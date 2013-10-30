@@ -11,7 +11,7 @@ import H.Value
 import Text.PrettyPrint ( Doc, ($$), (<+>) )
 import qualified Text.PrettyPrint as P
 
-import qualified Math.R.Foreign.Internal as R
+import qualified Language.R.Foreign.Internal as R
 
 -- | Generic structure of the haskell module that is created
 -- from R module

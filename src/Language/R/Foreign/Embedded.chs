@@ -5,7 +5,7 @@
 
 #include <R.h>
 #include <Rembedded.h>
-module Math.R.Foreign.Embedded
+module Language.R.Foreign.Embedded
   ( initEmbeddedR
   , endEmbeddedR
   , replDLLinit
@@ -15,7 +15,7 @@ module Math.R.Foreign.Embedded
 import Foreign
 import Foreign.C
 
-{# import Math.R.Foreign.Internal #}
+{# import Language.R.Foreign.Internal #}
 
 {# fun Rf_initEmbeddedR as initEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
 {# fun Rf_endEmbeddedR as  endEmbeddedR { `Int' } -> `()' #} -- TODO change to boolean

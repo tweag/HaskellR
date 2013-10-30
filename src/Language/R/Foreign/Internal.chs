@@ -6,7 +6,7 @@
 #include <Rinternals.h>
 -- | TODO: group functions as in header
 -- | TODO: add some way of typechecking
-module Math.R.Foreign.Internal
+module Language.R.Foreign.Internal
   ( -- * Datatypes
     SEXPTYPE(..)
   , SEXP

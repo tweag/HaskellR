@@ -13,10 +13,10 @@ cabal-version:       >=1.10
 library
   exposed-modules:     H.Module
                        H.Value
-                       Math.R.Interpreter
-                       Math.R.Foreign.Internal
-                       Math.R.Foreign.Embedded
-                       Math.R.Foreign.Parse
+                       Language.R.Interpreter
+                       Language.R.Foreign.Internal
+                       Language.R.Foreign.Embedded
+                       Language.R.Foreign.Parse
   hs-source-dirs:      src
   build-depends:       base >=4.6 && <4.7,
                        pretty >= 1.1,

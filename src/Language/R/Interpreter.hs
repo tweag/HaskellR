@@ -3,7 +3,7 @@
 --
 -- This module provides a way to run R-interpreter
 -- in the background thread and interact with it.
-module Math.R.Interpreter
+module Language.R.Interpreter
   where
 
 import Control.Concurrent.Async ( async, cancel )
@@ -17,9 +17,9 @@ import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
 import Foreign.C ( newCString )
 import System.Environment ( getProgName )
 
-import qualified Math.R.Foreign.Embedded as R
-import qualified Math.R.Foreign.Internal as R
-import qualified Math.R.Foreign.Parse    as R
+import qualified Language.R.Foreign.Embedded as R
+import qualified Language.R.Foreign.Internal as R
+import qualified Language.R.Foreign.Parse    as R
 
 data RRequest   =
         ReqParse String (R.SEXP -> IO ())

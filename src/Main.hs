@@ -10,8 +10,8 @@ import           System.Console.CmdArgs
 import qualified Paths_raskell
 
 import           H.Module
-import           Math.R.Interpreter
-import qualified Math.R.Foreign.Internal as R
+import           Language.R.Interpreter
+import qualified Language.R.Foreign.Internal as R
 
 
 data Raskell = Raskell
