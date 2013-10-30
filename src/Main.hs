@@ -30,9 +30,14 @@ raskell = Raskell
   -- TODO: add details clause
 
 main = do
-  action <- cmdArgs raskell
-  case action of
-      Raskell []  -> putStrLn "no input files"
-      Raskell fls -> withRInterpret $ \ch ->
-          mapM_ (\fl -> parseFile ch fl {-(const $ putStrLn "clb!")-} R.printValue) fls
+    action <- cmdArgs raskell
+    case action of
+        Raskell []  -> putStrLn "no input files"
+        Raskell fls -> withRInterpret $ \ch -> do
+            cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
+            mapM_ (\(x,y) -> putStrLn (x++":") >> putStrLn (show y)) cls
+  where
+    go fl x = do
+        R.printValue x    -- TODO: remove or put under verbose
+        return (fl, prettyModule $ translate x (mkMod Nothing "Test"))
 
