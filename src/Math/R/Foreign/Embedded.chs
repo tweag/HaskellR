@@ -1,7 +1,7 @@
 -- |
 -- Module: Math.R.Foreign.Embedded
 -- Copyright: (C) 2013, Amgen, Inc.
--- 
+--
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 
 #include <R.h>
@@ -25,4 +25,3 @@ import Foreign.C
 {# fun R_ReplDLLinit as replDLLinit {} -> `()' #}
 
 {# fun R_ReplDLLdo1 as replDLLdo1 {} -> `Int' #}
-

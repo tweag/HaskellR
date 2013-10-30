@@ -1,5 +1,5 @@
 -- |
--- Module: Compiler.Raskell.Module 
+-- Module: Compiler.Raskell.Module
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 -- This module provides datatype for representing Haskell
@@ -28,10 +28,10 @@ mkMod pkg name = RModule pkg name [] []
 
 -- | Pretty print module
 prettyModule :: RModule -> Doc
-prettyModule rmod = 
-    P.text "module" <+> P.text modname                        $$ 
+prettyModule rmod =
+    P.text "module" <+> P.text modname                        $$
     P.nest 4 (P.text "where")                                 $$
-    P.text ""                                                 $$                            
+    P.text ""                                                 $$
     P.vcat (map (\t -> P.text "import" <+> P.text t) imports) $$
     P.vcat (map P.text functions)
   where

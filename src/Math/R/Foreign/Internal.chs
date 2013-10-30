@@ -1,4 +1,4 @@
--- | 
+-- |
 -- Module: Math.R.Foreign.Internal
 -- Copyright: (C) 2013, Amgen, Inc.
 --
@@ -66,7 +66,7 @@ typedef enum SEXPTYPE{
 {# pointer *Rboolean as Rboolean #}
 
 -- | Interacive console swith, to set it one should use
--- @ 
+-- @
 -- poke rInteractive 1
 -- @
 foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
@@ -82,6 +82,3 @@ foreign import ccall "&R_NilValue"  nilValue  :: Ptr SEXP
 -- | Protect variable from the garbage collector
 {# fun Rf_protect as protect { id `SEXP'} -> `SEXP' castPtr #}
 {# fun Rf_unprotect as unprotect { `Int' } -> `()' #}
-
-
-

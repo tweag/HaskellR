@@ -1,10 +1,10 @@
 -- |
--- Module: Math.R.Interpreter 
+-- Module: Math.R.Interpreter
 -- Copyright: (C) 2013, Amgen, Inc.
 --
--- This module provides a way to run R-interpreter 
+-- This module provides a way to run R-interpreter
 -- in the background thread and interact with it.
-module Math.R.Interpreter 
+module Math.R.Interpreter
   where
 
 import Control.Concurrent.Async ( async, cancel )
@@ -24,13 +24,13 @@ import qualified Math.R.Foreign.Parse    as R
 
 data RRequest   =
         ReqParse String (R.SEXP -> IO ())
-data RError     = RError                
+data RError     = RError
 
 -- | Run interpretator in background thread
 withRInterpret :: (TChan RRequest -> IO a)  -- ^ actions to run
                -> IO a
 withRInterpret f =
-    bracket 
+    bracket
       (do ch <- newTChanIO
           tid <- async $ interpret ch
           return (ch, tid))
@@ -81,4 +81,3 @@ protect exp f = do
    x <- f e
    R.unprotect 1
    return x
-

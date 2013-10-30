@@ -3,7 +3,7 @@
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 {-# LANGUAGE DeriveDataTypeable #-}
-module Main 
+module Main
   where
 
 import           Data.Version ( showVersion )
@@ -22,7 +22,7 @@ data Raskell = Raskell
 
 raskell = Raskell
   { raskellFiles = def &= args &= typ "FILES/DIRS" }
-  &= 
+  &=
   verbosity &=
   help "R to Haskell translator" &=
   -- TODO: use version info from cabal, check copyright notice
@@ -40,4 +40,3 @@ main = do
     go fl x = do
         R.printValue x    -- TODO: remove or put under verbose
         return (fl, prettyModule $ translate x (mkMod Nothing "Test"))
-
