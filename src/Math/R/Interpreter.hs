@@ -14,7 +14,7 @@ import Control.Concurrent.STM ( atomically
 import Control.Exception ( bracket, evaluate )
 import Control.Monad ( void, forever )
 
-import Foreign ( poke, peek, alloca, allocaArray )
+import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
 import Foreign.C ( newCString )
 import System.Environment ( getProgName )
 
@@ -43,10 +43,14 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
     startEmbedded = do
         pn <- getProgName
         -- TODO: it's possible to populate with other options
-        allocaArray 1 $ \a -> do
-            sv <- newCString pn
-            poke a sv
-            R.initEmbeddedR 1 a
+        allocaArray 3 $ \a -> do
+            sv1 <- newCString pn
+            poke a sv1
+            sv2 <- newCString "--vanilla"
+            pokeElemOff a 1 sv2
+            sv3 <- newCString "--silent"
+            pokeElemOff a 2 sv3
+            R.initEmbeddedR 3 a
         poke R.rInteractive 0
     endEmbedded _ = void $ R.endEmbeddedR 0
     go = do
