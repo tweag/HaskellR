@@ -3,7 +3,8 @@
 --
 -- Unityped representation of the R values in the
 -- Haskell runtime,
-module Compiler.Raskell.Value
+
+module H.Value
   where
 
 

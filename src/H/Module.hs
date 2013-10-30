@@ -3,10 +3,11 @@
 --
 -- This module provides datatype for representing Haskell
 -- modules in Raskell.
-module Compiler.Raskell.Module
+
+module H.Module
   where
 
-import Compiler.Raskell.Value
+import H.Value
 import Text.PrettyPrint ( Doc, ($$), (<+>) )
 import qualified Text.PrettyPrint as P
 
