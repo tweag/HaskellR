@@ -7,7 +7,7 @@ module Main
 
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
-import qualified Paths_raskell as Paths_raskell
+import qualified Paths_raskell
 
 import           Compiler.Raskell.Module
 import           Math.R.Interpreter
@@ -34,7 +34,7 @@ main = do
         Raskell []  -> putStrLn "no input files"
         Raskell fls -> withRInterpret $ \ch -> do
             cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
-            mapM_ (\(x,y) -> putStrLn (x++":") >> putStrLn (show y)) cls
+            mapM_ (\(x,y) -> putStrLn (x++":") >> print y) cls
   where
     go fl x = do
         R.printValue x    -- TODO: remove or put under verbose

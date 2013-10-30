@@ -73,7 +73,7 @@ parseFile ch fl f = do
     atomically $ takeTMVar box
 
 
-protect :: (IO R.SEXP) -> (R.SEXP -> IO a) -> IO a
+protect :: IO R.SEXP -> (R.SEXP -> IO a) -> IO a
 protect exp f = do
    e <- exp
    R.protect e
