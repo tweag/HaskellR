@@ -1,5 +1,4 @@
 -- |
--- Module: Math.R.Interpreter
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 -- This module provides a way to run R-interpreter

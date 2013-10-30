@@ -1,5 +1,4 @@
 -- |
--- Module: Main
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 {-# LANGUAGE DeriveDataTypeable #-}

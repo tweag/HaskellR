@@ -1,5 +1,4 @@
 -- |
--- Module: Compiler.Raskell.Module
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 -- This module provides datatype for representing Haskell

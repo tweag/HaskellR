@@ -1,5 +1,4 @@
 -- |
--- Module: Math.R.Foreign.Embedded
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}

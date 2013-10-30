@@ -1,5 +1,4 @@
 -- |
--- Module: Compiler.Raskell.Value
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 -- Unityped representation of the R values in the

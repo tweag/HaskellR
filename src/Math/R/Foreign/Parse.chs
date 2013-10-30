@@ -1,5 +1,4 @@
 -- |
--- Module: Math.R.Foreign.Parse
 -- Copyright: (C) 2013, Amgen, Inc.
 --
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
