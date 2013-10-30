@@ -13,8 +13,7 @@ import qualified Text.PrettyPrint as P
 
 import qualified Language.R.Foreign.Internal as R
 
--- | Generic structure of the haskell module that is created
--- from R module
+-- | Generic structure of the haskell module that is created from R module.
 data RModule = RModule
       { modPackage   :: Maybe String
       , modName      :: String
@@ -22,11 +21,11 @@ data RModule = RModule
       , modFunctions :: [RValue]
       }
 
--- | Create default module
+-- | Create default module.
 mkMod :: Maybe String -> String -> RModule
 mkMod pkg name = RModule pkg name [] []
 
--- | Pretty print module
+-- | Pretty print module.
 prettyModule :: RModule -> Doc
 prettyModule rmod =
     P.text "module" <+> P.text modname                        $$
@@ -39,6 +38,6 @@ prettyModule rmod =
     imports = modImports rmod
     functions = []
 
--- | Translate R expresstion to the module
+-- | Translate R expresstion to the module.
 translate :: R.SEXP -> RModule -> RModule
 translate _ mod = mod

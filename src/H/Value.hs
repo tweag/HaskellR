@@ -8,6 +8,6 @@ module H.Value
   where
 
 
--- | Description of the RValues
+-- | Description of the RValues.
 data RValue = RNil    -- ^ Nil value
             deriving (Eq, Show)

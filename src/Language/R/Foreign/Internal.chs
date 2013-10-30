@@ -55,13 +55,13 @@ typedef enum SEXPTYPE{
 };
 #endc
 
--- | SEXP type representation
+-- | SEXP type representation.
 {# enum SEXPTYPE {} deriving (Eq,Show) #}
 
 -- | Pointer to SEXP structure
 {# pointer *SEXPREC as SEXP #}
 
--- | R boolean data type
+-- | R boolean data type.
 {# pointer *Rboolean as Rboolean #}
 
 -- | Interacive console swith, to set it one should use
@@ -70,14 +70,14 @@ typedef enum SEXPTYPE{
 -- @
 foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
 
--- | Global nil value
+-- | Global nil value.
 foreign import ccall "&R_NilValue"  nilValue  :: Ptr SEXP
 
 
--- | Create a String value inside R runtime
+-- | Create a String value inside R runtime.
 {# fun Rf_mkString as mkString { `String' } -> `SEXP' id #}
 {# fun Rf_PrintValue as printValue { id `SEXP'} -> `()' #}
 
--- | Protect variable from the garbage collector
+-- | Protect variable from the garbage collector.
 {# fun Rf_protect as protect { id `SEXP'} -> `SEXP' castPtr #}
 {# fun Rf_unprotect as unprotect { `Int' } -> `()' #}
