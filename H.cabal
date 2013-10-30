@@ -10,9 +10,20 @@ Synopsis:            R-to-Haskell translator and interoperability solution.
 build-type:          Simple
 cabal-version:       >=1.10
 
+library
+  exposed-modules:     Compiler.Raskell.Module
+                       Compiler.Raskell.Value
+  hs-source-dirs:      src
+  build-depends:       base >=4.6 && <4.7,
+                       pretty >= 1.1
+  default-language:    Haskell2010
+
+
 executable raskell
   main-is:             Main.hs
   build-depends:       base >=4.6 && <4.7,
-                       cmdargs >= 0.10.5
+                       cmdargs >= 0.10.5,
+                       pretty >= 1.1,
+                       raskell
   hs-source-dirs:      src
   default-language:    Haskell2010

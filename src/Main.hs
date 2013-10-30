@@ -10,6 +10,8 @@ import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
 import qualified Paths_raskell as Paths_raskell
 
+import           Compiler.Raskell.Module
+
 
 data Raskell = Raskell
        deriving (Eq, Data, Typeable, Show)
@@ -23,4 +25,9 @@ raskell = Raskell
   -- TODO: add details clause
 
 main = do
-  print =<< cmdArgs raskell
+  action <- cmdArgs raskell
+  case action of
+      Raskell ->
+          let dummyModule = RModule Nothing "Test" ["RPrelude"] []
+          in putStrLn $ show $ prettyModule dummyModule
+
