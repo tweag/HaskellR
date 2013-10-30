@@ -1,6 +1,6 @@
 -- |
 -- Module: Math.R.Interpreter 
--- Copyright: (C) $copyright
+-- Copyright: (C) 2013, Amgen, Inc.
 --
 -- This module provides a way to run R-interpreter 
 -- in the background thread and interact with it.
@@ -21,7 +21,6 @@ import System.Environment ( getProgName )
 import qualified Math.R.Foreign.Embedded as R
 import qualified Math.R.Foreign.Internal as R
 import qualified Math.R.Foreign.Parse    as R
-
 
 data RRequest   =
         ReqParse String (R.SEXP -> IO ())
@@ -58,14 +57,15 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
               ReqParse str callback -> do
                  protect (R.mkString str) $ \tmp ->
                     alloca $ \status ->
-                       protect (R.parseVector tmp (-1) status rNil) $ \e ->
-                       evaluate $ callback e
+                       protect (R.parseVector tmp (-1) status rNil) $ \e -> do
+                       callback e
 
-parseFile :: TChan RRequest -> FilePath -> (R.SEXP -> a) -> IO a 
+parseFile :: TChan RRequest -> FilePath -> (R.SEXP -> IO a) -> IO a
 parseFile ch fl f = do
     box <- newEmptyTMVarIO
     str <- readFile fl
-    let clb sexp = atomically $ putTMVar box (f sexp)
+    let clb sexp = do r <- f sexp
+                      atomically $ putTMVar box r
     atomically $ writeTChan ch (ReqParse str clb)
     atomically $ takeTMVar box
 

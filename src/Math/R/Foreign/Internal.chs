@@ -18,6 +18,7 @@ module Math.R.Foreign.Internal
     -- * Communication with runtime
   , rInteractive
   , nilValue
+  , printValue
   ) where
 
 import Foreign
@@ -76,6 +77,7 @@ foreign import ccall "&R_NilValue"  nilValue  :: Ptr SEXP
 
 -- | Create a String value inside R runtime
 {# fun Rf_mkString as mkString { `String' } -> `SEXP' id #}
+{# fun Rf_PrintValue as printValue { id `SEXP'} -> `()' #}
 
 -- | Protect variable from the garbage collector
 {# fun Rf_protect as protect { id `SEXP'} -> `SEXP' castPtr #}

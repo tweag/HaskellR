@@ -11,12 +11,17 @@ import           System.Console.CmdArgs
 import qualified Paths_raskell as Paths_raskell
 
 import           Compiler.Raskell.Module
+import           Math.R.Interpreter
+import qualified Math.R.Foreign.Internal as R
 
 
 data Raskell = Raskell
+       { raskellFiles :: [String]
+       }
        deriving (Eq, Data, Typeable, Show)
 
 raskell = Raskell
+  { raskellFiles = def &= args &= typ "FILES/DIRS" }
   &= 
   verbosity &=
   help "R to Haskell translator" &=
@@ -27,7 +32,7 @@ raskell = Raskell
 main = do
   action <- cmdArgs raskell
   case action of
-      Raskell ->
-          let dummyModule = RModule Nothing "Test" ["RPrelude"] []
-          in putStrLn $ show $ prettyModule dummyModule
+      Raskell []  -> putStrLn "no input files"
+      Raskell fls -> withRInterpret $ \ch ->
+          mapM_ (\fl -> parseFile ch fl {-(const $ putStrLn "clb!")-} R.printValue) fls
 
