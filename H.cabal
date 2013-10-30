@@ -13,12 +13,15 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Compiler.Raskell.Module
                        Compiler.Raskell.Value
+                       Math.R.Interpreter
                        Math.R.Foreign.Internal
                        Math.R.Foreign.Embedded
                        Math.R.Foreign.Parse
   hs-source-dirs:      src
   build-depends:       base >=4.6 && <4.7,
-                       pretty >= 1.1
+                       pretty >= 1.1,
+                       async >= 2.0,
+                       stm >= 2.4
   default-language:    Haskell2010
   build-tools:         c2hs
   pkgconfig-depends:   libR >= 3.0
