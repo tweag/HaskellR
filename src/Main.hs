@@ -14,13 +14,12 @@ import           Language.R.Interpreter
 import qualified Language.R.Foreign.Internal as R
 
 
-data Raskell = Raskell
-       { raskellFiles :: [String]
-       }
-       deriving (Eq, Data, Typeable, Show)
+data Config = Config
+    { configFiles :: [String]
+    } deriving (Eq, Data, Typeable, Show)
 
-raskell = Raskell
-  { raskellFiles = def &= args &= typ "FILES/DIRS" }
+cmdSpec = Config
+  { configFiles = def &= args &= typ "FILES/DIRS" }
   &=
   verbosity &=
   help "R-to-Haskell translator." &=
@@ -28,13 +27,14 @@ raskell = Raskell
            "\nCopyright (C) 2013 Amgen, Inc.")
   -- TODO: add details clause
 
+main :: IO ()
 main = do
-    action <- cmdArgs raskell
-    case action of
-        Raskell []  -> putStrLn "no input files"
-        Raskell fls -> withRInterpret $ \ch -> do
+    config <- cmdArgs cmdSpec
+    case config of
+        Config []  -> putStrLn "no input files"
+        Config fls -> withRInterpret $ \ch -> do
             cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
-            mapM_ (\(x,y) -> putStrLn (x++":") >> print y) cls
+            mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) cls
   where
     go fl x = do
         R.printValue x    -- TODO: remove or put under verbose
