@@ -7,7 +7,7 @@ module Main
 
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
-import qualified Paths_raskell
+import qualified Paths_H
 
 import           H.Module
 import           Language.R.Interpreter
@@ -25,7 +25,7 @@ raskell = Raskell
   verbosity &=
   help "R to Haskell translator" &=
   -- TODO: use version info from cabal, check copyright notice
-  summary ("Raskell v" ++ showVersion Paths_raskell.version ++ ", (C) 2013, Amgen, Inc.")
+  summary ("Raskell v" ++ showVersion Paths_H.version ++ ", (C) 2013, Amgen, Inc.")
   -- TODO: add details clause
 
 main = do
