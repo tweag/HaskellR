@@ -23,9 +23,9 @@ raskell = Raskell
   { raskellFiles = def &= args &= typ "FILES/DIRS" }
   &=
   verbosity &=
-  help "R to Haskell translator" &=
-  -- TODO: use version info from cabal, check copyright notice
-  summary ("Raskell v" ++ showVersion Paths_H.version ++ ", (C) 2013, Amgen, Inc.")
+  help "R-to-Haskell translator." &=
+  summary ("H version " ++ showVersion Paths_H.version ++
+           "\nCopyright (C) 2013 Amgen, Inc.")
   -- TODO: add details clause
 
 main = do

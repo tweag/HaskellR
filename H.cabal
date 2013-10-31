@@ -1,7 +1,7 @@
 name:                H
 version:             0.1.0.0
 license:             AllRightsReserved
-copyright:           Copyright (c) 2013, Amgen, Inc.
+copyright:           Copyright (c) 2013 Amgen, Inc.
 cabal-version:       >=1.10
 build-type:          Simple
 Category:            Compiler
