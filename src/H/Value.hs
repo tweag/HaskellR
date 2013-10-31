@@ -1,5 +1,5 @@
 -- |
--- Copyright: (C) 2013, Amgen, Inc.
+-- Copyright: (C) 2013 Amgen, Inc.
 --
 -- Unityped representation of the R values in the
 -- Haskell runtime,

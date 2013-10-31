@@ -1,5 +1,5 @@
 -- |
--- Copyright: (C) 2013, Amgen, Inc.
+-- Copyright: (C) 2013 Amgen, Inc.
 --
 -- This module provides datatype for representing Haskell
 -- modules in Raskell.

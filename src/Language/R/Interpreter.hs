@@ -1,5 +1,5 @@
 -- |
--- Copyright: (C) 2013, Amgen, Inc.
+-- Copyright: (C) 2013 Amgen, Inc.
 --
 -- This module provides a way to run R-interpreter
 -- in the background thread and interact with it.

@@ -1,5 +1,5 @@
 -- |
--- Copyright: (C) 2013, Amgen, Inc.
+-- Copyright: (C) 2013 Amgen, Inc.
 --
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 #include <R.h>
