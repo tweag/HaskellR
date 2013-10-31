@@ -5,6 +5,7 @@
 module Main
   where
 
+import           Control.Applicative
 import           Data.Version ( showVersion )
 import           Data.Maybe ( isNothing )
 import           Control.Monad ( when )
@@ -43,7 +44,7 @@ main = do
         Config [fl] True -> do
             populateEnv
             withRInterpret $ \ch -> do
-                print =<< parseFile ch fl (\x -> return $ prettyGhci $ translate x (mkMod Nothing "Test"))
+                print =<< parseFile ch fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
         Config fls _    -> do
             populateEnv
             withRInterpret $ \ch -> do
@@ -52,7 +53,8 @@ main = do
   where
     go fl x = do
         -- R.printValue x    -- TODO: remove or put under verbose
-        return (fl, prettyModule $ translate x (mkMod Nothing "Test"))
+        m <- translate x (mkMod Nothing "Test")
+        return (fl, prettyModule m)
 
 
 populateEnv :: IO ()
