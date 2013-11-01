@@ -48,7 +48,12 @@ scriptCase name scriptPath =
       (\outputR outputH ->
          if grepRValues (T.lines outputR) == T.lines outputH
          then return Nothing
-         else return $ Just "Outputs don't match.")
+         else return $ Just $ unlines ["Outputs don't match."
+                                      , "R: "
+                                      , T.unpack outputR
+                                      , "H: "
+                                      , T.unpack outputH
+                                      ])
       (const $ return ())
   where
     -- | Filter printed values from R session.
