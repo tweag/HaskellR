@@ -9,6 +9,8 @@ module H.Value
 
 import qualified Data.Vector.Unboxed as U
 import Data.List ( intercalate )
+import Data.Function ( on )
+import Debug.Trace
 
 -- | Compile time pointer to function, this type will be changed later
 type RFunction = String
@@ -45,22 +47,22 @@ newtype RTDouble = RTDouble (U.Vector Double) deriving (Eq)
 
 instance Show RTDouble where
   -- XXX: highly inefficient
-  show (RTDouble x) = "[" ++ show (U.length x) ++ "] " ++ intercalate " " (map show (U.toList x))
+  show (RTDouble x) = "[1] " ++ intercalate " " (map show (U.toList x))
 
 mkRTDouble :: [Double] -> RTDouble
 mkRTDouble = RTDouble . U.fromList
 
 instance Num RTDouble where
-  (+) = rtdSem (+)
-  (-) = rtdSem (-)
-  (*) = rtdSem (*)
+  (+) = liftFunU (+)
+  (-) = liftFunU (-)
+  (*) = liftFunU (*)
   negate (RTDouble x) = RTDouble $ U.map negate x
   abs    (RTDouble x) = RTDouble $ U.map abs x
   signum (RTDouble x) = RTDouble $ U.map signum x
   fromInteger i = RTDouble $ U.singleton (fromInteger i)
 
 instance Fractional RTDouble where
-  (/) = rtdSem (/)
+  (/) = liftFunU (/)
   fromRational x = RTDouble $ U.singleton (fromRational x)
 
 rtdSem :: (Double -> Double -> Double) -> RTDouble -> RTDouble -> RTDouble
@@ -69,4 +71,23 @@ rtdSem f (RTDouble x) (RTDouble y)
   | U.length y == 1 = RTDouble $ U.map (flip f (U.unsafeHead y)) x
   | U.length x == U.length y = RTDouble $ U.zipWith f x y    -- XXX: should check a multipleness
   | otherwise = error "longer object length is not a multiple of shorter object length"
+
+-- | XXX: It's possible to generalize this function:
+-- 1. use generic inner types
+-- 2. use generic vector types
+liftFunU :: (Double -> Double -> Double) -> RTDouble -> RTDouble -> RTDouble
+liftFunU f (RTDouble x) (RTDouble y) | trace (show x++" "++show y) False = undefined
+liftFunU f (RTDouble x) (RTDouble y) =
+    case (compare `on` U.length) x y of
+        EQ -> RTDouble $ U.zipWith f x y
+        LT -> let (k,z) = U.length y `divMod` U.length x
+              in if z == 0 
+                   then RTDouble $ U.zipWith f (cycleN k x) y
+                   else error "longer object length is not a multiple of shorter object length1"
+        GT -> let (k,z) = U.length x `divMod` U.length y
+              in if z == 0 
+                   then RTDouble $ U.zipWith f x (cycleN k y)
+                   else error "longer object length is not a multiple of shorter object length2"
+  where
+    cycleN i x = U.concat (replicate i x)
 

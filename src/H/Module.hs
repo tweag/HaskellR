@@ -171,7 +171,18 @@ fun "-" [a,b] = value a <+> P.text "-" <+> value b
 fun "/" [a,b] = value a <+> P.text "/" <+> value b
 fun "*" [a,b] = value a <+> P.text "*" <+> value b
 fun "(" [a]   = P.parens $ value a
-fun x _       = error $ "function '" ++ x ++ "' is  unsupported:"
+fun "c" (a:as) = 
+    -- XXX: support all types
+    -- XXX: extract most generic type
+    case a of
+        RReal l -> P.parens $ P.text "mkRTDouble" <+> P.text (show $ extractDouble (a:as))
+  where
+    extractDouble :: [RValue] -> [Double]
+    extractDouble = concatMap go
+      where
+        go (RReal x) = U.toList x
+        go _         = []
+fun x _       = error $ "fun: function '" ++ x ++ "' is  unsupported:"
 
 value :: RValue -> Doc
 value y@(RVar _) = name y
