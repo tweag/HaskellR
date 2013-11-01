@@ -38,6 +38,16 @@ prettyModule rmod =
     imports = modImports rmod
     functions = []
 
+prettyGhci :: RModule -> Doc
+prettyGhci rmod =
+    (if null imports
+      then P.empty
+      else P.text ":m +" <+> P.hcat (map P.text imports))     $$
+    P.vcat (map P.text functions)
+  where
+    imports = modImports rmod
+    functions = []
+
 -- | Translate R expresstion to the module.
 translate :: R.SEXP -> RModule -> RModule
 translate _ mod = mod
