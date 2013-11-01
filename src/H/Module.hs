@@ -5,7 +5,12 @@
 -- modules in Raskell.
 
 module H.Module
-  where
+  ( RModule
+  , mkMod
+  , prettyGhci
+  , prettyModule
+  , translate
+  ) where
 
 import Control.Applicative
 import Control.Monad ( forM, when )
@@ -23,12 +28,12 @@ data RModule = RModule
       { modPackage   :: Maybe String
       , modName      :: String
       , modImports   :: [String]
-      , modFunctions :: [String]
+      , modFunctions :: [Doc]
       }
 
 -- | Create default module.
 mkMod :: Maybe String -> String -> RModule
-mkMod pkg name = RModule pkg name ["Data.H.Value"] []
+mkMod pkg name = RModule pkg name ["H.Value"] []
 
 -- | Pretty print module.
 prettyModule :: RModule -> Doc
@@ -37,7 +42,7 @@ prettyModule rmod =
     P.nest 4 (P.text "where")                                 $$
     P.text ""                                                 $$
     P.vcat (map (\t -> P.text "import" <+> P.text t) imports) $$
-    P.vcat (map (P.text) functions)
+    P.vcat functions
   where
     modname = modName rmod
     imports = modImports rmod
@@ -48,15 +53,16 @@ prettyGhci rmod =
     (if null imports
       then P.empty
       else P.text ":m +" <+> P.hcat (map P.text imports))     $$
-    P.vcat (map P.text functions)
+    P.vcat functions
   where
     imports = modImports rmod
-    functions = []
+    functions = modFunctions rmod
 
 -- | Translate R expresstion to the module
 translate :: R.SEXP -> RModule -> IO RModule
 translate x mod = do
-    ls <- translate1 <$> translate0 x
+    -- XXX: currently we have hardcoded ghci but it's not right
+    ls <- translate2ghci <$> translate1 <$> translate0 x
     return $ mod{modFunctions = ls}
 
 -- | Step0 translation on this step we are mapping R Structures to
@@ -64,6 +70,7 @@ translate x mod = do
 -- optimize/rewrite R language.
 --
 -- This is the only step where we will need interpreter
+translate0 :: R.SEXP -> IO [RValue]
 translate0 x = do
     t <- R.typeOf x
     case t of
@@ -76,18 +83,20 @@ translate0 x = do
         l <- R.length x
         -- | TODO create hilevel wrapper
         forM [0..(l-1)] $ \i -> do
-          putStrLn "-----------------------------"
+--          putStrLn "-----------------------------"
           e <- R.vectorELT x i
           translateValue e
     translateValue y = do
         t <- R.typeOf y
-        print t
+--        print t
         case t of
+          R.NilSXP  -> return RNil
           R.IntSXP  -> error "no translation for int"
           R.RealSXP -> translateReal y
           R.ExpSXP  -> error "it's not possilbe to translate expression as value"
           R.LangSXP -> translateLang y
-          R.SymSXP  -> RVar <$> translateSym y
+          R.SymSXP  -> RVar  <$> translateSym y
+          R.ListSXP -> RList <$> translateList y
           _         -> error $ "unsopported type: "++ show t
     translateLang y = do
         vl <- translateSym =<< R.car y
@@ -97,14 +106,14 @@ translate0 x = do
         nm  <- R.char =<< R.printName y
         vl  <- R.symValue y
         tvl <- R.typeOf vl
-        putStr "SYM: "
-        R.printValue y
-        putStr $ "\nSYM-Name: "++nm
-        putStr $ "\nSYM-Value (" ++ show tvl ++ ") "
-        when (tvl == R.BuiltinSXP) $ R.printValue vl
-        putStr "\nSYM-Internal: "
-        R.printValue =<< R.symInternal y
-        putStrLn "\nSYM-END"
+--        putStr "SYM: "
+--        R.printValue y
+--        putStr $ "\nSYM-Name: "++nm
+--      putStr $ "\nSYM-Value (" ++ show tvl ++ ") "
+--      when (tvl == R.BuiltinSXP) $ R.printValue vl
+--      putStr "\nSYM-Internal: "
+--      R.printValue =<< R.symInternal y
+--      putStrLn "\nSYM-END"
         return nm         -- TODO: this is not correct (!)
     translateReal y = do
         l    <- R.length y
@@ -123,7 +132,7 @@ translate0 x = do
             return $ o:os
 
 -- | Translate a set of RValues into the Haskell code
-translate1 :: [RValue] -> [String]
+translate1 :: [RValue] -> [RExpr]
 translate1 = concatMap go
     -- XXX: we have to keep state and change it to track env, variables
     -- naming and such stuff but we don't want to do it from the start!
@@ -131,25 +140,45 @@ translate1 = concatMap go
     -- constants are not changing anything just ignoring
     -- XXX: if we can access to 'result of the previous statement' 
     -- this is no longer the case
-    go (RReal _) = []
+    go z@(RReal x) = [REConst z]
     -- assignment of the value
-    go (RLang  "<-" [lhs,rhs]) = [name lhs ++"="++ fun rhs]
+    go (RLang  "<-" [lhs,rhs]) =
+        case rhs of
+          RLang "function" _ -> [REFun lhs rhs]
+          _                  -> [REAssign lhs rhs]
     -- XXX: this is just wrong we want to assign temporary name to the
     -- value
-    go (RLang _ _) = []
+    go (RLang x z) = [RECall x z]
 
-    name (RVar x) = x
-    name _ = error "incorrect variable"
 
-    fun (RLang "+" [a,b]) = value a ++ "+" ++ value b
-    fun (RLang "-" [a,b]) = value a ++ "-" ++ value b
-    fun (RLang "/" [a,b]) = value a ++ "/" ++ value b
-    fun (RLang "*" [a,b]) = value a ++ "*" ++ value b
-    fun (RLang "(" [a])   = "("++value a ++ ")"
-    fun z@(RLang x _)     = error $ "function '" ++ x ++ "' is  unsupported:"++show z
-    fun _                 = error $ "incorrect variable"
+-- | This is Ghci version of the last step of the translation
+--
+translate2ghci :: [RExpr] -> [Doc]
+translate2ghci = concatMap go
+  where
+    go (REConst x)    = [value x]
+    go (REAssign x y) = error "translate-ghci: Assign is not implemented yet"
+    go (REFun x y)    = error "translate-ghci: Fun is not implemented yet"
+    go (RECall x y)   = 
+          [fun  x y]
+   --       | rhs == RLang "function"  = [name lhs ++"="++ fun rhs]
 
-    value y@(RVar x) = name y
-    value y@(RLang _ _) = fun y
-    value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
-    value y = error $ "value: unsupported argument " ++ show y
+name :: RValue -> Doc
+name (RVar x) = P.text x
+name _ = error "incorrect variable"
+
+fun :: RFunction -> [RValue] -> Doc
+fun "+" [a,b] = value a <+> P.text "+" <+> value b
+fun "-" [a,b] = value a <+> P.text "-" <+> value b
+fun "/" [a,b] = value a <+> P.text "/" <+> value b
+fun "*" [a,b] = value a <+> P.text "*" <+> value b
+fun "(" [a]   = P.parens $ value a
+fun x _       = error $ "function '" ++ x ++ "' is  unsupported:"
+
+value :: RValue -> Doc
+value y@(RVar _) = name y
+value (RLang x y) = fun x y
+value (RReal v)
+  | U.length v == 1 = P.parens $  P.text "fromRational" <+> (P.text . show $ U.head v) <+> P.text ":: RTDouble"
+--value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
+value y = error $ "value: unsupported argument " ++ show y

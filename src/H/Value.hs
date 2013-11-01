@@ -8,6 +8,11 @@ module H.Value
   where
 
 import qualified Data.Vector.Unboxed as U
+import Data.List ( intercalate )
+
+-- | Compile time pointer to function,
+-- this type will be changed later
+type RFunction = String
 
 -- | Description of the RValues.
 --
@@ -19,12 +24,29 @@ import qualified Data.Vector.Unboxed as U
 --
 data RValue = RNil                            -- ^ Nil value
             | RReal (U.Vector Double)         -- ^ Vector of Real variables
-            | RLang String [RValue]           -- ^ Function call
+            | RLang RFunction [RValue]        -- ^ Function call
+            | RList [RValue]                  -- ^ List type
             | RVar  String                    -- ^ Variable symbol
             deriving (Eq, Show)
 
+-- | Type for the RExpressions that shows how expressions are 
+-- presented in source file
+--
+-- On this step it's imporant to distinguish between REAssign and
+-- REFun that is a special version of REAssign
+data RExpr = REConst RValue                   -- ^ Constant value
+           | REAssign RValue RValue           -- ^ Assign A <- B
+           | RECall RFunction [RValue]        -- ^ function call
+           | REFun  RValue RValue             -- ^ Function declaration
+           deriving (Eq, Show)
+
+
 -- | Runtime Doubles
-newtype RTDouble = RTDouble (U.Vector Double) deriving (Eq,Show)
+newtype RTDouble = RTDouble (U.Vector Double) deriving (Eq)
+
+instance Show RTDouble where
+  -- XXX: highly inefficient
+  show (RTDouble x) = "[" ++ show (U.length x) ++ "] " ++ intercalate " " (map show (U.toList x))
 
 mkRTDouble :: [Double] -> RTDouble
 mkRTDouble = RTDouble . U.fromList
@@ -48,5 +70,4 @@ rtdSem f (RTDouble x) (RTDouble y)
   | U.length y == 1 = RTDouble $ U.map (flip f (U.unsafeHead y)) x
   | U.length x == U.length y = RTDouble $ U.zipWith f x y    -- XXX: should check a multipleness
   | otherwise = error "longer object length is not a multiple of shorter object length"
-
 
