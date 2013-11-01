@@ -39,3 +39,19 @@ executable H
                        H
   hs-source-dirs:      src
   default-language:    Haskell2010
+
+Test-Suite tests
+  main-is:             tests.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       H
+                     , base >=4.6 && <4.7
+                     , filepath >= 1.3
+                     , mtl >= 2.0
+                     , process >= 1.1
+                     , tasty >= 0.3 && < 0.4
+                     , tasty-golden >= 2.1
+                     , text >= 0.11
+  ghc-options:         -Wall
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
