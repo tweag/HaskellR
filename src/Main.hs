@@ -1,17 +1,23 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 module Main
   where
 
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
+import           System.Environment ( lookupEnv )
 import qualified Paths_H
+import qualified Env_H
 
 import           H.Module
 import           Language.R.Interpreter
 import qualified Language.R.Foreign.Internal as R
+
+#ifdef CABAL_POSIX
+import qualified System.Posix.Env
+#endif
 
 
 data Config = Config
@@ -31,6 +37,10 @@ cmdSpec = Config
 
 main :: IO ()
 main = do
+#ifdef CABAL_POSIX
+    System.Posix.Env.setEnv "R_HOME" Env_H.envRHOME False
+#endif
+
     config <- cmdArgs cmdSpec
     case config of
         Config []  _    -> putStrLn "no input files"  -- XXX: exitStatus with fail
