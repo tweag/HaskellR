@@ -10,8 +10,7 @@ module H.Value
 import qualified Data.Vector.Unboxed as U
 import Data.List ( intercalate )
 
--- | Compile time pointer to function,
--- this type will be changed later
+-- | Compile time pointer to function, this type will be changed later
 type RFunction = String
 
 -- | Description of the RValues.

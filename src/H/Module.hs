@@ -58,11 +58,11 @@ prettyGhci rmod =
     imports = modImports rmod
     functions = modFunctions rmod
 
--- | Translate R expresstion to the module
+-- | Translate R expression to the module
 translate :: R.SEXP -> RModule -> IO RModule
 translate x mod = do
     -- XXX: currently we have hardcoded ghci but it's not right
-    ls <- translate2ghci <$> translate1 <$> translate0 x
+    ls <- translate2ghci <$> emit <$> translate0 x
     return $ mod{modFunctions = ls}
 
 -- | Step0 translation on this step we are mapping R Structures to
@@ -72,32 +72,30 @@ translate x mod = do
 -- This is the only step where we will need interpreter
 translate0 :: R.SEXP -> IO [RValue]
 translate0 x = do
-    t <- R.typeOf x
-    case t of
-      R.IntSXP  -> error "int"
-      R.RealSXP -> error "real"
+    ty <- R.typeOf x
+    case ty of
       R.ExpSXP  -> translateExp x
-      _         -> error "unknown"
+      _         -> unimplemented "translateInternal" ty
   where
     translateExp y = do
         l <- R.length x
-        -- | TODO create hilevel wrapper
+        -- TODO create hi-level wrapper
         forM [0..(l-1)] $ \i -> do
 --          putStrLn "-----------------------------"
           e <- R.vectorELT x i
           translateValue e
     translateValue y = do
-        t <- R.typeOf y
+        ty <- R.typeOf y
 --        print t
-        case t of
+        case ty of
           R.NilSXP  -> return RNil
-          R.IntSXP  -> error "no translation for int"
+          R.IntSXP  -> unimplemented "translateValue" ty
           R.RealSXP -> translateReal y
           R.ExpSXP  -> error "it's not possilbe to translate expression as value"
           R.LangSXP -> translateLang y
           R.SymSXP  -> RVar  <$> translateSym y
           R.ListSXP -> RList <$> translateList y
-          _         -> error $ "unsopported type: "++ show t
+          _         -> unimplemented "translateValue" ty
     translateLang y = do
         vl <- translateSym =<< R.car y
         ls <- translateList =<< R.cdr y
@@ -122,8 +120,8 @@ translate0 x = do
         return $ RReal v
 --    translateList :: R.SEXP -> IO [RValue]
     translateList y = do
-        t <- R.typeOf y
-        case t of
+        ty <- R.typeOf y
+        case ty of
           R.NilSXP  -> return []
           R.ListSXP -> do
             z  <- R.car y
@@ -132,8 +130,8 @@ translate0 x = do
             return $ o:os
 
 -- | Translate a set of RValues into the Haskell code
-translate1 :: [RValue] -> [RExpr]
-translate1 = concatMap go
+emit :: [RValue] -> [RExpr]
+emit = concatMap go
     -- XXX: we have to keep state and change it to track env, variables
     -- naming and such stuff but we don't want to do it from the start!
   where
@@ -182,3 +180,6 @@ value (RReal v)
   | U.length v == 1 = P.parens $  P.text "fromRational" <+> (P.text . show $ U.head v) <+> P.text ":: RTDouble"
 --value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
 value y = error $ "value: unsupported argument " ++ show y
+
+unimplemented :: Show a => String -> a -> b
+unimplemented f a = error $ f ++ ": unimplemented " ++ show a

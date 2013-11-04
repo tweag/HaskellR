@@ -62,7 +62,7 @@ scriptCase name scriptPath =
       (invokeR scriptPath)
       (invokeH scriptPath)
       (\outputR outputH ->
-         if all vcomp $ zip (T.lines outputR) (T.lines outputH)
+         if all (uncurry compareValues) $ zip (T.lines outputR) (T.lines outputH)
          then return Nothing
          else return $ Just $ unlines ["Outputs don't match."
                                       , "R: "
@@ -72,12 +72,20 @@ scriptCase name scriptPath =
                                       ])
       (const $ return ())
   where
-    vcomp (r, h) =
+    -- Compare Haskell and R outputs:
+    -- This function assumes that output is a vector string
+    --    INFO Value1 Value2 .. ValueN
+    -- where INFO is [OFFSET]. For decimals we are checking if
+    -- they are equal with epsilon 1e-6, this is done because R
+    -- output is not very predictable it can output up to 6 
+    -- characters or round them.
+    compareValues :: Text -> Text -> Bool
+    compareValues r h =
       let (r': rs') = T.words r
           (h': hs') = T.words h
-      in (r' == h') && (all eq6 $ zip (map (read . T.unpack) rs' :: [Double]) (map (read . T.unpack) hs' :: [Double]))
-    eq6 :: (Double, Double) -> Bool
-    eq6 (a, b) = (a - b < 1e-6) && (a - b > (-1e-6))
+      in (r' == h') && (all eqEpsilon $ zip (map (read . T.unpack) rs' :: [Double]) (map (read . T.unpack) hs' :: [Double]))
+    eqEpsilon :: (Double, Double) -> Bool
+    eqEpsilon (a, b) = (a - b < 1e-6) && (a - b > (-1e-6))
 
 
 integrationTests :: TestTree
