@@ -62,14 +62,19 @@ scriptCase name scriptPath =
       (invokeR scriptPath)
       (invokeH scriptPath)
       (\outputR outputH ->
-         if all (uncurry compareValues) $ zip (T.lines outputR) (T.lines outputH)
-         then return Nothing
-         else return $ Just $ unlines ["Outputs don't match."
-                                      , "R: "
-                                      , T.unpack outputR
-                                      , "H: "
-                                      , T.unpack outputH
-                                      ])
+         let a = T.lines outputR
+             b = T.lines outputH
+             notmatch = Just $ unlines ["Outputs don't match."
+                                       , "R: "
+                                       , T.unpack outputR
+                                       , "H: "
+                                       , T.unpack outputH
+                                       ]
+         in if length a /= length b 
+              then return notmatch
+              else if all (uncurry compareValues) $ zip (T.lines outputR) (T.lines outputH)
+                     then return Nothing
+                     else return notmatch)
       (const $ return ())
   where
     -- Compare Haskell and R outputs:
