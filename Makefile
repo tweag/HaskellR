@@ -20,9 +20,10 @@ doc-internals:
 
 .PHONY: doc doc-internals doc-haddock
 
-dist/pandoc/H-ints.html: doc/H-ints.md
+dist/pandoc/H-ints.html: doc/H-ints.md doc/pandoc.css
 	mkdir -p dist/pandoc
-	$(PANDOC) -s -S --toc $< -o $@
+	cp doc/pandoc.css dist/pandoc
+	$(PANDOC) -s -S --toc -c pandoc.css $< -o $@
 
 doc-internals: dist/pandoc/H-ints.html
 
