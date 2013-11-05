@@ -3,7 +3,7 @@ version:             0.1.0.0
 license:             AllRightsReserved
 copyright:           Copyright (c) 2013 Amgen, Inc.
 cabal-version:       >=1.10
-build-type:          Custom
+build-type:          Simple
 Category:            Compiler
 Synopsis:            R-to-Haskell translator and interoperability solution.
 -- description:
@@ -35,6 +35,8 @@ executable H
                      , pretty >= 1.1
                      , stm >= 2.4
                      , async >= 2.0
+                     , process >= 1.0
+                     , setenv >= 0.1.1
                      , H
   hs-source-dirs:      src
   default-language:    Haskell2010
