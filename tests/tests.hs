@@ -67,8 +67,7 @@ scriptCase name scriptPath =
              b = T.lines outputH
          -- Continue only if values don't match. If they do, then there's
          -- 'Nothing' to do...
-         guard $ length a /= length b
-         guard $ not $ and $ zipWith compareValues a b
+         guard $ not $ and (zipWith compareValues a b) && length a == length b
          return $ unlines ["Outputs don't match."
                           , "R: "
                           , T.unpack outputR
