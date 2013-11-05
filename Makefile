@@ -5,7 +5,7 @@ PANDOC = pandoc
 
 all: install
 
-.PHONY: clean doc install test
+.PHONY: clean install test
 
 clean:
 	$(CABAL) clean
@@ -16,6 +16,17 @@ install:
 test:
 	$(CABAL) install --enable-tests
 
-doc:
+doc-internals:
+
+.PHONY: doc doc-internals doc-haddock
+
+dist/pandoc/H-ints.html: doc/H-ints.md
+	mkdir -p dist/pandoc
+	$(PANDOC) -s $< -o $@
+
+doc-internals: dist/pandoc/H-ints.html
+
+doc-haddock: install
 	$(CABAL) haddock
-	$(PANDOC) -s doc/H-ints.md -o dist/pandoc/H.ints.html
+
+doc: doc-haddock doc-internals
