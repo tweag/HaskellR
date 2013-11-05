@@ -22,7 +22,7 @@ doc-internals:
 
 dist/pandoc/H-ints.html: doc/H-ints.md
 	mkdir -p dist/pandoc
-	$(PANDOC) -s $< -o $@
+	$(PANDOC) -s -S --toc $< -o $@
 
 doc-internals: dist/pandoc/H-ints.html
 
