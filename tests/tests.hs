@@ -35,9 +35,9 @@ invokeR fp = do
 
 invokeH :: FilePath -> ValueGetter r Text
 invokeH fp = do
-    -- Logic: 
+    -- Logic:
     --
-    --    1. Run translation process that will output translation result to the 
+    --    1. Run translation process that will output translation result to the
     --    pipe.
     --
     --    XXX: in general case when multifile translation will be enabled we
@@ -46,11 +46,11 @@ invokeH fp = do
     --    2. Save file to the temporary module
     --
     --    3. Call ghci on resulting file
-    --    
+    --
     (_, Just outh1, _, _) <- liftIO $ createProcess $ (proc "./dist/build/H/H" ["--ghci",fp])
       { std_out = CreatePipe }
     (_, Just outh2, _, _) <- liftIO $ createProcess $ (proc "cabal" ["repl","-v0"])
-      { std_out = CreatePipe 
+      { std_out = CreatePipe
       , std_in = UseHandle outh1 }
     liftIO $ T.pack <$> hGetContents outh2
 
@@ -82,7 +82,7 @@ scriptCase name scriptPath =
     --    INFO Value1 Value2 .. ValueN
     -- where INFO is [OFFSET]. For decimals we are checking if
     -- they are equal with epsilon 1e-6, this is done because R
-    -- output is not very predictable it can output up to 6 
+    -- output is not very predictable it can output up to 6
     -- characters or round them.
     compareValues :: Text -> Text -> Bool
     compareValues r h =
