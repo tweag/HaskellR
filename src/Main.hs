@@ -1,12 +1,17 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 module Main
   where
 
 import           Data.Version ( showVersion )
+import           Data.Maybe ( isNothing )
+import           Control.Monad ( when )
 import           System.Console.CmdArgs
+import           System.Environment ( lookupEnv )
+import           System.SetEnv
+import           System.Process ( readProcess )
 import qualified Paths_H
 
 import           H.Module
@@ -31,16 +36,27 @@ cmdSpec = Config
 
 main :: IO ()
 main = do
+
     config <- cmdArgs cmdSpec
     case config of
         Config []  _    -> putStrLn "no input files"  -- XXX: exitStatus with fail
         Config [fl] True -> do
+            populateEnv
             withRInterpret $ \ch -> do
                 print =<< parseFile ch fl (\x -> return $ prettyGhci $ translate x (mkMod Nothing "Test"))
-        Config fls _    -> withRInterpret $ \ch -> do
-            cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
-            mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) cls
+        Config fls _    -> do
+            populateEnv
+            withRInterpret $ \ch -> do
+              cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
+              mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) cls
   where
     go fl x = do
         -- R.printValue x    -- TODO: remove or put under verbose
         return (fl, prettyModule $ translate x (mkMod Nothing "Test"))
+
+
+populateEnv :: IO ()
+populateEnv = do
+    mh <- lookupEnv "R_HOME"
+    when (isNothing mh) $
+      setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["RHOME"] "")

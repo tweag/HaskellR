@@ -7,7 +7,6 @@ build-type:          Simple
 Category:            Compiler
 Synopsis:            R-to-Haskell translator and interoperability solution.
 -- description:
-build-type:          Simple
 cabal-version:       >=1.10
 
 source-repository head
@@ -40,9 +39,16 @@ executable H
                      , pretty >= 1.1
                      , stm >= 2.4
                      , async >= 2.0
+                     , process >= 1.0
+                     , setenv >= 0.1.1
                      , H
   hs-source-dirs:      src
   default-language:    Haskell2010
+  if os(windows)
+      cpp-options:     -DCABAL_WINDOWS
+  else
+      cpp-options:     -DCABAL_POSIX
+      build-depends:   unix >= 2.6
 
 Test-Suite tests
   main-is:             tests.hs
