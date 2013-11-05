@@ -10,6 +10,10 @@ Synopsis:            R-to-Haskell translator and interoperability solution.
 build-type:          Simple
 cabal-version:       >=1.10
 
+source-repository head
+  type:     git
+  location: git://github.com/ps-labs/H.git
+
 library
   exposed-modules:     H
                        H.Module
