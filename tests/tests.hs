@@ -16,6 +16,7 @@ import System.IO
 import System.Process
 import System.FilePath
 
+import Control.Monad (guard)
 import Control.Monad.Trans
 import Control.Applicative ((<$>))
 import           Data.Text (Text)
@@ -61,20 +62,19 @@ scriptCase name scriptPath =
       name
       (invokeR scriptPath)
       (invokeH scriptPath)
-      (\outputR outputH ->
+      (\outputR outputH -> return $ do
          let a = T.lines outputR
              b = T.lines outputH
-             notmatch = Just $ unlines ["Outputs don't match."
-                                       , "R: "
-                                       , T.unpack outputR
-                                       , "H: "
-                                       , T.unpack outputH
-                                       ]
-         in if length a /= length b 
-              then return notmatch
-              else if all (uncurry compareValues) $ zip (T.lines outputR) (T.lines outputH)
-                     then return Nothing
-                     else return notmatch)
+         -- Continue only if values don't match. If they do, then there's
+         -- 'Nothing' to do...
+         guard $ length a /= length b
+         guard $ not $ and $ zipWith compareValues a b
+         return $ unlines ["Outputs don't match."
+                          , "R: "
+                          , T.unpack outputR
+                          , "H: "
+                          , T.unpack outputH
+                          ])
       (const $ return ())
   where
     -- Compare Haskell and R outputs:
