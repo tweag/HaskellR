@@ -6,7 +6,7 @@
 module Language.R.Interpreter
   where
 
-import Control.Concurrent.Async ( async, cancel )
+import Control.Concurrent.Async ( async, cancel, link )
 import Control.Concurrent.STM ( atomically
                               , TChan, newTChanIO, newTChanIO, readTChan, writeTChan
                               , TMVar, newEmptyTMVarIO, takeTMVar, putTMVar )
@@ -32,6 +32,7 @@ withRInterpret f =
     bracket
       (do ch <- newTChanIO
           tid <- async $ interpret ch
+          link tid
           return (ch, tid))
       (cancel . snd)
       (f . fst)
