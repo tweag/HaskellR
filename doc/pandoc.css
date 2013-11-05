@@ -22,12 +22,12 @@ code {
 }
 h1 a, h2 a, h3 a, h4 a, h5 a { 
     text-decoration: none;
-    color: #7a5ada; 
+    color: #2162a5;
 }
 h1, h2, h3, h4, h5 { font-family: verdana;
                      font-weight: bold;
                      border-bottom: 1px dotted black;
-                     color: #7a5ada; }
+                     color: #2162a5; }
 h1 {
         font-size: 130%;
 }
