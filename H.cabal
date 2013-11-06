@@ -27,6 +27,8 @@ library
                        Foreign.R.Parse
                        Language.R.Interpreter
   hs-source-dirs:      src
+  c-sources:           cbits/missing_r.c
+  include-dirs:        cbits
   build-depends:       base >= 4.6 && < 4.7
                      , bytestring >= 0.10
                      , pretty >= 1.1
@@ -61,11 +63,6 @@ executable H
                      , H
   hs-source-dirs:      src
   default-language:    Haskell2010
-  if os(windows)
-      cpp-options:     -DCABAL_WINDOWS
-  else
-      cpp-options:     -DCABAL_POSIX
-      build-depends:   unix >= 2.6
 
 Test-Suite tests
   main-is:             tests.hs

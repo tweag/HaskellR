@@ -8,6 +8,8 @@
 
 #include <R.h>
 #include <Rinternals.h>
+#include "missing_r.h"
+
 module Foreign.R
   ( module Foreign.R.Type
     -- * Datatypes
@@ -45,6 +47,12 @@ module Foreign.R
   , char
   , real
   , integer
+  , logical
+  , complex
+  , raw
+  , string
+  , vector
+  , expression
     -- * GC functions
   , protect
   , unprotect
@@ -58,6 +66,7 @@ import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)
 
 import Control.Applicative ((<$>))
+import Data.Complex
 import Foreign
 import Foreign.C
 import GHC.Storable (readPtrOffPtr)
@@ -149,6 +158,23 @@ cIntToEnum = toEnum . cIntConv
 -- | Read integer vector data
 {#fun INTEGER as integer { unSEXP `SEXP (R.Vector Int32)' } -> `Ptr CInt' id #}
 
+-- | Read raw data
+{#fun RAW as raw { unSEXP `SEXP (R.Vector Word8)' } -> `Ptr CChar' castPtr #}
+
+-- | Read logical vector data
+{#fun LOGICAL as logical { unSEXP `SEXP (R.Vector Bool)' } -> `Ptr CInt' id #}
+
+-- | Read complex vector data
+{#fun COMPLEX as complex { unSEXP `SEXP (R.Vector (Complex Double))' } -> `Ptr (Complex Double)' castPtr #}
+
+-- | Read string vector data
+{#fun STRING_PTR as string {unSEXP `SEXP (R.Vector (SEXP (R.Vector Word8)))'} -> `Ptr (SEXP (R.Vector Word8))' castPtr #}
+
+-- | Read any SEXP vector data
+{#fun INNER_VECTOR as vector {unSEXP `SEXP (R.Vector (SEXP R.Any))'} -> `Ptr (SEXP R.Any)' castPtr #}
+
+-- | Read expression vector data
+{#fun INNER_VECTOR as expression {unSEXP `SEXP (R.Vector (SEXP R.Expr))'} -> `Ptr (SEXP R.Expr)' castPtr #}
 
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
