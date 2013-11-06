@@ -181,13 +181,13 @@ cIntToEnum = toEnum . cIntConv
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-{#fun PRINTNAME as printName { unSEXP `SEXP a' } -> `SEXP (R.Vector Word8)' SEXP #}
+{#fun PRINTNAME as printName { unSEXP `SEXP R.Symbol' } -> `SEXP (R.Vector Word8)' SEXP #}
 
 -- | Read value from symbol.
-{#fun SYMVALUE as symValue { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+{#fun SYMVALUE as symValue { unSEXP `SEXP R.Symbol' } -> `SEXP a' SEXP #}
 
 -- | Read internal value from symbol.
-{#fun INTERNAL as symInternal { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+{#fun INTERNAL as symInternal { unSEXP `SEXP R.Symbol' } -> `SEXP a' SEXP #}
 
 --------------------------------------------------------------------------------
 -- Value conversion                                                           --

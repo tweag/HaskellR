@@ -14,7 +14,7 @@ module H.Module
   ) where
 
 import Control.Applicative
-import Control.Monad ( forM, when )
+import Control.Monad ( forM, when, (<=<) )
 import qualified Data.Vector.Unboxed as U
 import Foreign ( peekElemOff) 
 import Foreign.C
@@ -25,6 +25,7 @@ import Text.PrettyPrint ( Doc, ($$), (<+>) )
 import qualified Text.PrettyPrint as P
 
 import qualified Foreign.R as R
+import qualified H.HExp as HExp
 
 -- | Generic structure of the haskell module that is created from R module.
 data RModule = RModule

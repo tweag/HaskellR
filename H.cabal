@@ -60,9 +60,18 @@ executable H
                      , process >= 1.0
                      , setenv >= 0.1.1
                      , vector >= 0.10
+                     , bytestring >= 0.10
                      , H
   hs-source-dirs:      src
   default-language:    Haskell2010
+  default-extensions:  DataKinds
+                       FlexibleInstances
+                       FlexibleContexts
+                       GeneralizedNewtypeDeriving
+                       KindSignatures
+                       MultiParamTypeClasses
+                       StandaloneDeriving
+                       TypeOperators
 
 Test-Suite tests
   main-is:             tests.hs
