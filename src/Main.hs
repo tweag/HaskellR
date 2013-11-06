@@ -43,12 +43,14 @@ main = do
         Config [fl] True -> do
             populateEnv
             withRInterpret $ \ch -> do
-                print =<< parseFile ch fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
+              error "functions were not ported to the new interface"
+--                print =<< parseFile ch fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
         Config fls _    -> do
             populateEnv
             withRInterpret $ \ch -> do
-              cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
-              mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) cls
+              error "functions were not ported to the new interface"
+--              cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
+--              mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) cls
   where
     go fl x = do
         -- R.printValue x    -- TODO: remove or put under verbose

@@ -2,8 +2,9 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 -- This module provides datatype for representing Haskell
--- modules in Raskell.
+-- modules in H.
 
+{-# LANGUAGE DataKinds #-}
 module H.Module
   ( RModule
   , mkMod
@@ -59,12 +60,15 @@ prettyGhci rmod =
     functions = modFunctions rmod
 
 -- | Translate R expression to the module
-translate :: R.SEXP -> RModule -> IO RModule
-translate x mod = do
+translate :: R.SEXP (R.Vector R.Expr) -> RModule -> IO RModule
+translate x mod = error "translate function was not yet ported on the newer backend"
+    {-
     -- XXX: currently we have hardcoded ghci but it's not right
     ls <- translate2ghci <$> emit <$> translate0 x
     return $ mod{modFunctions = ls}
+    -}
 
+{-
 -- | Step0 translation on this step we are mapping R Structures to
 -- the unityped Haskell values, without deep inspection of actions to
 -- optimize/rewrite R language.
@@ -74,7 +78,7 @@ translate0 :: R.SEXP -> IO [RValue]
 translate0 x = do
     ty <- R.typeOf x
     case ty of
-      R.ExpSXP  -> translateExp x
+      ExpSXP  -> translateExp x
       _         -> unimplemented "translateInternal" ty
   where
     translateExp y = do
@@ -191,6 +195,7 @@ value (RReal v)
   | U.length v == 1 = P.parens $  P.text "fromRational" <+> (P.text . show $ U.head v) <+> P.text ":: RTDouble"
 --value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
 value y = error $ "value: unsupported argument " ++ show y
+-}
 
 unimplemented :: Show a => String -> a -> b
 unimplemented f a = error $ f ++ ": unimplemented " ++ show a

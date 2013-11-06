@@ -3,6 +3,7 @@
 --
 -- This module provides a way to run R-interpreter
 -- in the background thread and interact with it.
+{-# LANGUAGE DataKinds #-}
 module Language.R.Interpreter where
 
 import qualified Foreign.R as R
@@ -61,7 +62,7 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
                  protect (R.mkString str) $ \tmp ->
                     alloca $ \status ->
                        protect (R.parseVector tmp (-1) status rNil) $ \e -> do
-                       callback e
+                       callback (R.SEXP $ R.unSEXP e)
 
 parseFile :: TChan RRequest -> FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
 parseFile ch fl f = do

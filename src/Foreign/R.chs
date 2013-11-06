@@ -18,17 +18,33 @@ module Foreign.R
   , mkString
     -- * Cell attributes
   , typeOf
-  , length
-  , vectorElement
-  , char
-  , real
     -- ** Objects accessors
   , car
   , cdr
-    -- ** Symbol accessors
+  , tag
+    -- *** Environment
+  , frame
+  , enclos
+  , hashtab
+    -- *** Closure
+  , formals
+  , body
+  , cloEnv
+    -- *** Promise
+  , prCode
+  , prEnv
+  , prValue
+    -- *** Symbol
   , printName
   , symValue
   , symInternal
+    -- *** Vectors
+  , length
+  , trueLength
+  , vectorElement
+  , char
+  , real
+  , integer
     -- * GC functions
   , protect
   , unprotect
@@ -75,14 +91,40 @@ cIntToEnum = toEnum . cIntConv
 -- | Get the type of the object.
 {#fun TYPEOF as typeOf { unSEXP `SEXP a' } -> `SEXPTYPE' cIntToEnum #}
 
--- | Read value of real type.
-{#fun REAL as real { unSEXP `SEXP a' } -> `Ptr Prelude.Double' castPtr #}
-
 -- | read CAR object value
 {#fun CAR as car { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
 
 -- | read CDR object
 {#fun CDR as cdr { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+
+-- | read object`s Tag
+{# fun TAG as tag { unSEXP `SEXP a' } -> `SEXP a' SEXP #}  --- XXX: add better constraint
+
+--------------------------------------------------------------------------------
+-- Environment functions                                                  --
+--------------------------------------------------------------------------------
+
+{# fun FRAME as frame {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
+-- | read Environement frame
+{# fun ENCLOS as enclos {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
+-- | read Environement frame
+{# fun HASHTAB as hashtab {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
+
+--------------------------------------------------------------------------------
+-- Closure functions                                                  --
+--------------------------------------------------------------------------------
+
+{# fun FORMALS as formals {unSEXP `SEXP R.Closure' } -> `SEXP a' SEXP #}
+{# fun BODY as body {unSEXP `SEXP R.Closure' } -> `SEXP a' SEXP #}
+{# fun CLOENV as cloEnv {unSEXP `SEXP R.Closure' } -> `SEXP R.Env' SEXP #}
+
+--------------------------------------------------------------------------------
+-- Promise functions                                                  --
+--------------------------------------------------------------------------------
+{# fun PRCODE as prCode {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
+{# fun PRENV as prEnv {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
+{# fun PRVALUE as prValue {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
+
 
 --------------------------------------------------------------------------------
 -- Vector accessor functions                                                  --
@@ -93,6 +135,20 @@ cIntToEnum = toEnum . cIntConv
 
 -- | A vector element.
 {#fun VECTOR_ELT as vectorElement { unSEXP `SEXP (R.Vector a)', `Int'} -> `SEXP a' SEXP #}
+
+-- | Read True Length vector field
+{#fun TRUELENGTH as trueLength { unSEXP `SEXP (R.Vector a)' } -> `CInt' id #}
+
+-- | Read character vector data
+{#fun R_CHAR as char { unSEXP `SEXP (R.Vector Word8)' } -> `CString' id #} 
+-- XXX: check if we really need Word8 here, maybe some better handling of endoding
+
+-- | Read real vector data
+{#fun REAL as real { unSEXP `SEXP (R.Vector CDouble)' } -> `Ptr CDouble' id #}
+
+-- | Read integer vector data
+{#fun INTEGER as integer { unSEXP `SEXP (R.Vector Int32)' } -> `Ptr CInt' id #}
+
 
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
@@ -111,12 +167,18 @@ cIntToEnum = toEnum . cIntConv
 -- Value conversion                                                           --
 --------------------------------------------------------------------------------
 
--- | Conversion from R strings and C strings.
-{#fun R_CHAR as char { unSEXP `SEXP R.Char' } -> `String' #}
+--------------------------------------------------------------------------------
+-- Value contruction                                                          --
+--------------------------------------------------------------------------------
 
 -- | Create a String value inside R runtime.
 {#fun Rf_mkString as mkString { `String' } -> `SEXP (R.Vector Word8)' SEXP #}
 {#fun Rf_PrintValue as printValue { unSEXP `SEXP a'} -> `()' #}
+
+--------------------------------------------------------------------------------
+-- Garbage collection                                                         --
+--------------------------------------------------------------------------------
+
 
 -- | Protect variable from the garbage collector.
 {#fun Rf_protect as protect { unSEXP `SEXP a'} -> `SEXP a' SEXP #}

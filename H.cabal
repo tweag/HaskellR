@@ -19,6 +19,7 @@ library
                        H.HExp
                        H.Module
                        H.Value
+                       H.Constraints
                        Foreign.R
                        Foreign.R.Type
                        Foreign.R.Embedded
