@@ -1,18 +1,23 @@
+-- |
+-- Copyright: (C) 2013 Amgen, Inc.
+--
 -- This module is intended to be imported qualified.
-
+--
 -- Record field names are not intended to be exported. They exist merely to take
 -- advantage of the record punning syntax extension and as documentation of what
--- the field does.
+-- the field represents.
 
--- Use explicit UNPACK pragmas rather than -funbox-strict-fields in order to get
--- warnings if a field is not unpacked when we expect it to.
-
--- TODO Use GADT to encode invariants documented in "R Internals Guide".
+module H.HExp where
 
 import Data.Int (Int32)
 import Data.Vector (Vector)
 import Data.ByteString (ByteString)
 import Data.Complex (Complex)
+
+-- Use explicit UNPACK pragmas rather than -funbox-strict-fields in order to get
+-- warnings if a field is not unpacked when we expect it to.
+
+-- TODO Use GADT to encode invariants documented in "R Internals Guide".
 
 data HExp
   -- Primitive types. The field names match those of <RInternals.h>.
