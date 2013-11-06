@@ -15,6 +15,8 @@ TODO Documentation license
 Architectural overview
 ======================
 
+R source code is organized as a set of *scripts*. In its simplest
+form, H is a script-to-script translator.
 
 Rationale
 ---------
@@ -85,7 +87,8 @@ a *class* and that of a *type*. From the above link:
 Hence what R calls "types" are better thought of as "classes" in the
 above sense. They correspond to *variants* (or *constructors*) of
 a single type in the Haskell sense. R is really a unityped language.
-We call the type of all the classes that exist in R the *universe*.
+We call the type of all the classes that exist in R the *universe*
+(See [Internal Structures](#internal-structures)).
 
 [harper-dynamic-static]:
 http://existentialtype.wordpress.com/2011/03/19/dynamic-languages-are-static-languages/
@@ -93,10 +96,112 @@ http://existentialtype.wordpress.com/2011/03/19/dynamic-languages-are-static-lan
 Internal Structures
 ===================
 
+A native view of expresions
+---------------------------
 
+`HExp` is R's `SEXP` (or `*SEXPREC`) structure represented as
+a Haskell datatype. We make `HExp` an instance of the `Storable` type
+class to convert to/from R's internal representation as needed.
+
+```Haskell
+data HExp
+  = Nil						  -- NILSXP
+  | Symbol { ... }				  -- SYMSXP
+  | Real { ... }				  -- REALSXP
+  | ...
+```
+
+We define one constructor for each value of the `SEXPTYPE` enumeration
+in `<RInternals.h>`.
+
+For the sake of efficiency, we do *not* use `HExp` as the basic
+datatype that all H generated code expects. That is, we do not use
+`HExp` as the universe of R expressions, merely as a *view*. We
+introduce the following *view function* to *locally* convert to
+a `HExp`, given a `SEXP` from R.
+
+```Haskell
+hexp :: SEXP -> HExp
+```
+
+The fact that this conversion is local is crucial for good performance
+of the translated code. It means that conversion happens at each use
+site, and happens against values with a statically known shape. Thus
+we expect that the view function can usually be inlined, and the
+short-lived `HExp` values that it creates compiled away by code
+simplification rules applied by GHC. In this manner, we get the
+convenience of pattern matching that comes with a *bona fide*
+algebraic datatype, but without paying the penalty of allocating
+long-lived data structures that need to be converted to and from
+R internals every time we invoke internal R functions or C extension
+functions.
+
+Using an algebraic datatype for viewing R internal functions further
+has the advantage that invariants about these structures can readily
+be checked and enforced, including invariants that R itself does not
+check for (e.g. that types that are special forms of the list type
+really do have the right number of elements). The algebraic type
+statically guarantees that no ill-formed type will ever be constructed
+on the Haskell side and passed to R.
+
+The universe of values
+----------------------
+
+For the purposes of the translation below, we introduce the following
+datatype:
+
+```Haskell
+data HVal
+  = SEXP SEXP
+  | Lam1 (HVal -> HVal)
+  | Lam2 (HVal -> HVal -> HVal)
+  | Lam3 (HVal -> HVal -> HVal -> HVal)
+  | ...
+```
+
+For all practical purposes, we can typically limit the number of
+function constructors to some small number, say 8, and encode all
+higher arity functions in terms of functions of arity 8 or lower.
+
+TODO say something about GHC pointer tagging.
 
 Translation from R to Haskell
 =============================
+
+Grammar:
+
+```
+i,j,k ::= real literals
+x,y,z ::= (local) variables
+f,g,h ::= (function) variables
+M, N  ::= R expressions
+```
+
+```
+[[ i ]] = SEXP (mkSEXP i)
+[[ M + N ]] = SEXP (rplus (toSEXP M) (toSEXP N))
+[[ function(x1, ..., xn) M ]] = Lam_n (\x1 ... xn -> [[ M ]])
+[[ f(M1, ..., Mn) ]] = apply_n f [[ M1 ]] ... [[ Mn ]]
+```
+
+Where we have that:
+
+```Haskell
+class Literal a where
+  mkSEXP :: a -> SEXP
+
+rplus :: SEXP -> SEXP -> SEXP
+
+toSEXP :: HVal -> SEXP
+toSEXP (SEXP s) = s
+toSEXP _ = error "Bad argument."
+
+apply1 :: HVal -> HVal -> HVal
+apply2 :: HVal -> HVal -> HVal -> HVal
+apply3 :: HVal -> HVal -> HVal -> HVal -> HVal
+...
+```
+
 
 H naming conventions
 ====================
