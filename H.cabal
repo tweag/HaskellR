@@ -19,6 +19,7 @@ library
                        H.Value
                        Language.R.Interpreter
                        Language.R.Foreign.Internal
+                       Language.R.Foreign.Interface
                        Language.R.Foreign.Embedded
                        Language.R.Foreign.Parse
   hs-source-dirs:      src
