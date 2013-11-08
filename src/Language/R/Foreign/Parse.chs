@@ -17,4 +17,4 @@ import Foreign.C
 {# enum ParseStatus {} deriving (Eq, Show) #}
 
 -- TODO: use ParseStatus or write a wrapper for parseVector.
-{# fun R_ParseVector as parseVector { id `SEXP', `Int',id `Ptr CInt', id `SEXP' } -> `SEXP' id #}
+{# fun R_ParseVector as parseVector { id `SEXP', `Int', id `Ptr CInt', id `SEXP' } -> `SEXP' id #}
