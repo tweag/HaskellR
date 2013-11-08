@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE CPP, ForeignFunctionInterface #-}
+{-# LANGUAGE CPP, ForeignFunctionInterface, StandaloneDeriving, GeneralizedNewtypeDeriving #-}
 
 #include <R.h>
 #include <Rinternals.h>
@@ -10,7 +10,7 @@
 module Language.R.Foreign.Internal
   ( -- * Datatypes
     SEXPTYPE(..)
-  , SEXP
+  , SEXP(..)
   , mkString
     -- * Cell attributes
   , typeOf
@@ -75,7 +75,11 @@ typedef enum SEXPTYPE{
 
 
 -- | Pointer to SEXP structure
-{# pointer *SEXPREC as SEXP #}
+data SEXPREC = SEXPREC
+{# pointer *SEXPREC as SEXP -> SEXPREC #}
+
+--unSEXP :: SEXP -> Ptr SEXP
+--unSEXP (SEXP x) = x
 
 -- | Get the type of the object
 {# fun TYPEOF as typeOf { id `SEXP' } -> `SEXPTYPE' toEnumG #}
@@ -124,7 +128,7 @@ foreign import ccall "&R_NilValue"  nilValue  :: Ptr SEXP
 {# fun Rf_PrintValue as printValue { id `SEXP'} -> `()' #}
 
 -- | Protect variable from the garbage collector.
-{# fun Rf_protect as protect { id `SEXP'} -> `SEXP' castPtr #}
+{# fun Rf_protect as protect { id `SEXP'} -> `SEXP' id #}
 {# fun Rf_unprotect as unprotect { `Int' } -> `()' #}
 
 --
