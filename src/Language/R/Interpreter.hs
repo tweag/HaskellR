@@ -17,9 +17,9 @@ import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
 import Foreign.C ( newCString )
 import System.Environment ( getProgName )
 
-import qualified Language.R.Foreign.Embedded as R
-import qualified Language.R.Foreign.Internal as R
-import qualified Language.R.Foreign.Parse    as R
+import qualified Foreign.R as R
+import qualified Foreign.R.Embedded as R
+import qualified Foreign.R.Parse    as R
 
 data RRequest   =
         ReqParse String (R.SEXP -> IO ())

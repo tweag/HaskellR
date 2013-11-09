@@ -4,7 +4,7 @@
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
-module Language.R.Foreign.Parse
+module Foreign.R.Parse
   ( parseVector
   , ParseStatus(..)
   ) where
@@ -12,7 +12,7 @@ module Language.R.Foreign.Parse
 import Foreign
 import Foreign.C
 
-{# import Language.R.Foreign.Internal #}
+{# import Foreign.R #}
 
 {# enum ParseStatus {} deriving (Eq, Show) #}
 

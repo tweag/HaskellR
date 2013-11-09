@@ -2,8 +2,7 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 {-# LANGUAGE DeriveDataTypeable, CPP #-}
-module Main
-  where
+module Main where
 
 import           Control.Applicative
 import           Data.Version ( showVersion )
@@ -17,7 +16,7 @@ import qualified Paths_H
 
 import           H.Module
 import           Language.R.Interpreter
-import qualified Language.R.Foreign.Internal as R
+import qualified Foreign.R as R
 
 
 data Config = Config

@@ -17,11 +17,11 @@ library
   exposed-modules:     H
                        H.Module
                        H.Value
+                       Foreign.R
+                       Foreign.R.Embedded
+                       Foreign.R.Interface
+                       Foreign.R.Parse
                        Language.R.Interpreter
-                       Language.R.Foreign.Internal
-                       Language.R.Foreign.Interface
-                       Language.R.Foreign.Embedded
-                       Language.R.Foreign.Parse
   hs-source-dirs:      src
   build-depends:       base >= 4.6 && < 4.7
                      , pretty >= 1.1

@@ -5,7 +5,7 @@
 
 #define CSTACK_DEFNS
 #include <Rinterface.h>
-module Language.R.Foreign.Interface
+module Foreign.R.Interface
   ( -- * stack limit functions
     rCStackLimit
   , rCStackStart

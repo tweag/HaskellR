@@ -17,11 +17,11 @@ import Control.Monad ( forM, when )
 import qualified Data.Vector.Unboxed as U
 import Foreign ( peekElemOff )
 import H.Value
- 
+
 import Text.PrettyPrint ( Doc, ($$), (<+>) )
 import qualified Text.PrettyPrint as P
 
-import qualified Language.R.Foreign.Internal as R
+import qualified Foreign.R as R
 
 -- | Generic structure of the haskell module that is created from R module.
 data RModule = RModule
