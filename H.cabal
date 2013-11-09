@@ -30,9 +30,17 @@ library
                      , text >= 0.11
                      , vector >= 0.10
   default-language:    Haskell2010
+  default-extensions:  FlexibleInstances
+                       FlexibleContexts
+                       GeneralizedNewtypeDeriving
+                       KindSignatures
+                       MultiParamTypeClasses
+                       StandaloneDeriving
+                       TypeOperators
+  other-extensions:    CPP
+                       ForeignFunctionInterface
   build-tools:         c2hs
   pkgconfig-depends:   libR >= 3.0
-
 
 executable H
   main-is:             Main.hs
