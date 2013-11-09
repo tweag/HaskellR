@@ -136,7 +136,7 @@ emit = concatMap go
     -- naming and such stuff but we don't want to do it from the start!
   where
     -- constants are not changing anything just ignoring
-    -- XXX: if we can access to 'result of the previous statement' 
+    -- XXX: if we can access to 'result of the previous statement'
     -- this is no longer the case
     go z@(RReal x) = [REConst z]
     -- assignment of the value
@@ -157,7 +157,7 @@ translate2ghci = concatMap go
     go (REConst x)    = [value x]
     go (REAssign x y) = error "translate-ghci: Assign is not implemented yet"
     go (REFun x y)    = error "translate-ghci: Fun is not implemented yet"
-    go (RECall x y)   = 
+    go (RECall x y)   =
           [fun  x y]
    --       | rhs == RLang "function"  = [name lhs ++"="++ fun rhs]
 
@@ -171,7 +171,7 @@ fun "-" [a,b] = value a <+> P.text "-" <+> value b
 fun "/" [a,b] = value a <+> P.text "/" <+> value b
 fun "*" [a,b] = value a <+> P.text "*" <+> value b
 fun "(" [a]   = P.parens $ value a
-fun "c" (a:as) = 
+fun "c" (a:as) =
     -- XXX: support all types
     -- XXX: extract most generic type
     case a of
