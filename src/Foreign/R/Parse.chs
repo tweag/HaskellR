@@ -19,8 +19,6 @@ import qualified Foreign.R as R
 import Foreign
 import Foreign.C
 
-import Data.Word (Word8)
-
 {#enum ParseStatus {} deriving (Eq, Show) #}
 
 -- TODO: use ParseStatus or write a wrapper for parseVector.

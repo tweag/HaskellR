@@ -9,18 +9,14 @@ module H.HExp (HExp(..){-, view-}) where
 
 import H.Constraints
 import qualified Foreign.R.Type as R
-import qualified Foreign.R as R
 import           Foreign.R (SEXP, SEXPTYPE)
 
-import Control.Applicative
 import Data.Int (Int32)
 import Data.Word (Word8)
 import Data.Vector.Storable (Vector)
-import qualified Data.Vector.Storable as V
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Unsafe as BU
 import Data.Complex (Complex)
-import Foreign (Ptr, newForeignPtr_ )
+import Foreign (Ptr)
 
 -- Use explicit UNPACK pragmas rather than -funbox-strict-fields in order to get
 -- warnings if a field is not unpacked when we expect it to.
@@ -95,7 +91,7 @@ data HExp :: SEXPTYPE -> * where
 
 {-
 -- | Converts R SEXP into the Haskell view no changes with data are made so
--- R GC is capable for data collection and such types are not safe to use 
+-- R GC is capable for data collection and such types are not safe to use
 -- inside Haskell environment without additional actions.
 --
 -- Complexity: O(depth(S))
@@ -103,7 +99,7 @@ view :: R.SEXP a -> IO (HExp b)
 view s = do
     ty <- R.typeOf s
     case ty of
-      R.Nil -> 
+      R.Nil ->
         return Nil
       R.Symbol ->
         Symbol <$> (R.printName s)
@@ -115,7 +111,7 @@ view s = do
              <*> R.tag s
 --      R.Int  -> Int `vector` (mkVec R.integer)
 --      R.Real -> Real`vector` (mkVec R.real)
-{-             
+{-
       R.Env  ->
         Env  <$> R.frame s
              <*> R.enclos s
@@ -140,7 +136,7 @@ view s = do
           <*> (view =<< R.cdr s)
       R.SpecialSXP -> return $ Special 0 -- XXX: read correct offset
       R.BuiltinSXP -> return $ Builtin 0 -- XXX: read correct offset
-      R.CplxSXP -> 
+      R.CplxSXP ->
         unimplemented "convertHEXP" ty
         -- HExp.Complex `vector` (mkVec R.complex)
       R.StrSXP  -> String `vector` (mkVec R.string)
@@ -149,11 +145,11 @@ view s = do
       R.CharSXP    ->
         Char `vector`
           (\d l -> BU.unsafePackCStringLen . (flip (,) l) =<< R.char d)
-      R.RawSXP  -> 
+      R.RawSXP  ->
         Raw `vector`
           (\d l -> BU.unsafePackCStringLen . (flip (,) l) =<< R.raw d)
       R.AnySXP  -> return Any
-      R.DotSXP  -> 
+      R.DotSXP  ->
         unimplemented "convertHEXP" ty
         -- HExp.DotDotDot <$> R.args s
       R.BCodeSXP ->
@@ -163,16 +159,16 @@ view s = do
         -- XXX: require low level access
         unimplemented "converthexp" ty
       {-
-        HExp.ExtPtr 
+        HExp.ExtPtr
           <$> (convertHEXP <$> R.pointer s)
           <*> (convertHEXP <$> R.protectionValue s)
           <*> (convertHEXP <$> R.tag)
           -}
-      R.WeakRefSXP -> 
+      R.WeakRefSXP ->
         --- XXX: require low level access
         unimplemented "convertHEXP" ty
-{-      
-        HExp.WeakRef 
+{-
+        HExp.WeakRef
           <$> (fromIntegral <$> R.length s)
           <*> (fromIntegral <$> R.trueLength s)
           <*> (convertHEXP =<< R.key s)
@@ -180,14 +176,14 @@ view s = do
           <*> (convertHEXP =<< R.finalizer s)
           <*> (convertHEXP =<< R.next s)
       R.S4XSXP -> S4 <$> (view =<< R.tag s)
--}          
+-}
   where
     mkVec :: (V.Storable a) => (R.SEXP -> IO (Ptr a))  -> (R.SEXP -> Int -> IO (V.Vector a))
     mkVec f = \s l -> flip V.unsafeFromForeignPtr0 l <$> (newForeignPtr_ =<< f s)
     vector :: (Int32 -> Int32 -> a -> b) -> (R.SEXP -> Int -> IO a) -> IO b
     vector f g = do
         l <- R.length s
-        f (fromIntegral l) 
+        f (fromIntegral l)
           <$> (fromIntegral <$> R.trueLength s)
           <*> g s l
     unimplemented :: Show a => String -> a -> b

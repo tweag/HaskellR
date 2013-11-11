@@ -9,18 +9,15 @@ import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
 import qualified Paths_H
 
-import           H.Prelude
-import           H.HVal
 import           H.Module
 import           Language.R.Interpreter
-import qualified Foreign.R as R
-
 
 data Config = Config
     { configFiles :: [String]
     , configGhci  :: Bool
     } deriving (Eq, Data, Typeable, Show)
 
+cmdSpec :: Config
 cmdSpec = Config
   { configFiles = def &= args &= typ "FILES/DIRS"
   , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output" }

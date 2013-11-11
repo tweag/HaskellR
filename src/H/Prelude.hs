@@ -3,7 +3,6 @@
 module H.Prelude where
 
 import Data.Some
-import qualified H.HVal as H
 import qualified Foreign.R as R
 
 liftR :: (R.SEXP a -> b) -> Some R.SEXP -> b

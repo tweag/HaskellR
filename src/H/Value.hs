@@ -1,8 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Unityped representation of the R values in the
--- Haskell runtime,
+-- Unityped representation of the R values in the Haskell runtime.
 
 module H.Value
   where
@@ -18,7 +17,7 @@ type RFunction = String
 -- | Description of the RValues.
 --
 -- This is Haskell side of representation thus Haskell Runtime
--- manages such values, as a result such values have to be 
+-- manages such values, as a result such values have to be
 -- encoded to R values before processing in R runtime.
 --
 -- Such representation is used at least on translation stage.
@@ -30,7 +29,7 @@ data RValue = RNil                            -- ^ Nil value
             | RVar  String                    -- ^ Variable symbol
             deriving (Eq, Show)
 
--- | Type for the RExpressions that shows how expressions are 
+-- | Type for the RExpressions that shows how expressions are
 -- presented in source file
 --
 -- On this step it's imporant to distinguish between REAssign and
@@ -76,18 +75,18 @@ rtdSem f (RTDouble x) (RTDouble y)
 -- 1. use generic inner types
 -- 2. use generic vector types
 liftFunU :: (Double -> Double -> Double) -> RTDouble -> RTDouble -> RTDouble
-liftFunU f (RTDouble x) (RTDouble y) | trace (show x++" "++show y) False = undefined
+liftFunU _ (RTDouble x) (RTDouble y)
+    | trace (show x++" "++show y) False = undefined
 liftFunU f (RTDouble x) (RTDouble y) =
     case (compare `on` U.length) x y of
         EQ -> RTDouble $ U.zipWith f x y
         LT -> let (k,z) = U.length y `divMod` U.length x
-              in if z == 0 
+              in if z == 0
                    then RTDouble $ U.zipWith f (cycleN k x) y
                    else error "longer object length is not a multiple of shorter object length1"
         GT -> let (k,z) = U.length x `divMod` U.length y
-              in if z == 0 
+              in if z == 0
                    then RTDouble $ U.zipWith f x (cycleN k y)
                    else error "longer object length is not a multiple of shorter object length2"
   where
-    cycleN i x = U.concat (replicate i x)
-
+    cycleN i _ = U.concat (replicate i x)

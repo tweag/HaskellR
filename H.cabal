@@ -29,9 +29,6 @@ library
                        Foreign.R.Parse
                        Language.R
                        Language.R.Interpreter
-  hs-source-dirs:      src
-  c-sources:           cbits/missing_r.c
-  include-dirs:        cbits
   build-depends:       base >= 4.6 && < 4.7
                      , async >= 2.0
                      , bytestring >= 0.10
@@ -41,6 +38,9 @@ library
                      , stm >= 2.4
                      , text >= 0.11
                      , vector >= 0.10
+  hs-source-dirs:      src
+  c-sources:           cbits/missing_r.c
+  include-dirs:        cbits
   default-language:    Haskell2010
   default-extensions:  DataKinds
                        FlexibleInstances
@@ -54,6 +54,7 @@ library
                        ForeignFunctionInterface
   build-tools:         c2hs
   pkgconfig-depends:   libR >= 3.0
+  ghc-options:         -Wall -Werror
 
 executable H
   main-is:             src/Main.hs
@@ -74,8 +75,9 @@ executable H
                        MultiParamTypeClasses
                        StandaloneDeriving
                        TypeOperators
+  ghc-options:         -Wall -Werror
 
-Test-Suite tests
+test-suite tests
   main-is:             tests.hs
   type:                exitcode-stdio-1.0
   build-depends:       H

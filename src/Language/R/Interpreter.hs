@@ -11,14 +11,20 @@ import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Parse    as R
 
 import Control.Concurrent.Async ( async, cancel, link )
-import Control.Concurrent.STM ( atomically
-                              , TChan, newTChanIO, newTChanIO, readTChan, writeTChan
-                              , TMVar, newEmptyTMVarIO, takeTMVar, putTMVar )
-import Control.Exception ( bracket, evaluate )
+import Control.Concurrent.STM
+  ( TChan
+  , atomically
+  , newTChanIO
+  , newTChanIO
+  , readTChan
+  , writeTChan
+  , newEmptyTMVarIO
+  , takeTMVar
+  , putTMVar )
+import Control.Exception ( bracket )
 import Control.Monad ( forever, forM_, void, when )
-import Data.Word (Word8)
 
-import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
+import Foreign ( poke, pokeElemOff, alloca, allocaArray )
 import Foreign.C ( newCString )
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
@@ -107,9 +113,9 @@ parseFile ch fl f = do
     atomically $ takeTMVar box
 
 protect :: IO (R.SEXP a) -> (R.SEXP a -> IO b) -> IO b
-protect exp f = do
-   e <- exp
-   R.protect e
+protect sexp f = do
+   e <- sexp
+   _ <- R.protect e
    x <- f e
    R.unprotect 1
    return x

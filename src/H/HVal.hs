@@ -11,15 +11,14 @@ module H.HVal
   , someHVal
   ) where
 
-import           Control.Applicative
-import           Control.Monad ( forM_ )
-import qualified H.HExp as HExp
-import qualified Data.Vector.Storable as S
-import           Data.Some
 import qualified Language.R as R
 import qualified Foreign.R  as R
 
-import Foreign
+import Control.Applicative
+import Control.Monad ( forM_ )
+import Data.Some
+import Foreign ( newForeignPtr_, pokeByteOff )
+import System.IO.Unsafe ( unsafePerformIO )
 
 -- Temporary
 import qualified Data.Vector.Storable as V
@@ -36,15 +35,15 @@ instance Show HVal where
       l <- R.length s'
       v <- flip V.unsafeFromForeignPtr0 l <$> (newForeignPtr_ =<< R.real s')
       return $ "[1] " ++ (intercalate " " (map show $ V.toList v))
-    show (HLam2 x) = "HLam2 {..}"
-     
+    show (HLam2 _) = "HLam2 {..}"
+
 -- | Project from HVal to R SEXP.
 --
 -- Note that this function is partial.
 fromHVal :: HVal -> Some R.SEXP
 fromHVal (SEXP x) = Some x
 fromHVal _        = error "toSEXP: not an SEXP"
- 
+
 -- | Safe version of 'toSEXP'.
 safeFromHVal :: HVal -> Maybe (Some R.SEXP)
 safeFromHVal (SEXP x) = Just (Some x)
@@ -61,7 +60,8 @@ instance Num HVal where
     a + b = SEXP (rplus  (fromHVal a) (fromHVal b))
     a - b = SEXP (rminus (fromHVal a) (fromHVal b))
     a * b = SEXP (rmult  (fromHVal a) (fromHVal b))
-
+    abs _ = error "unimplemented."
+    signum _ = error "unimplemented."
 
 instance Fractional HVal where
     fromRational x = someHVal (mkSEXP (fromRational x :: Double))
@@ -88,7 +88,7 @@ instance IsSEXP Double where
 instance IsSEXP [Double] where
   mkSEXP x = Some $ unsafePerformIO $ do
       v  <- R.allocVector R.Real l
-      R.protect v
+      _ <- R.protect v
       pt <- R.real v
       forM_ (zip x [0..]) $ \(g,i) -> do
           pokeByteOff pt i (fromRational . toRational $ g::CDouble)

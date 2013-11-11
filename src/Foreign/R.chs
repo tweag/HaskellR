@@ -7,10 +7,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE PolyKinds  #-}
 
-#include <R.h>
-#include <Rinternals.h>
-#include "missing_r.h"
-
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
   ( module Foreign.R.Type
     -- * Internal R structures
@@ -86,6 +83,10 @@ import Foreign
 import Foreign.C
 import GHC.Storable (readPtrOffPtr)
 import Prelude hiding (length)
+
+#include <R.h>
+#include <Rinternals.h>
+#include "missing_r.h"
 
 --------------------------------------------------------------------------------
 -- R data structures                                                          --

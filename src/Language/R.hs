@@ -11,7 +11,8 @@ module Language.R
 
 import Control.Exception ( bracket )
 import Data.IORef ( IORef, newIORef, readIORef )
-import Foreign
+import Foreign ( alloca, nullPtr )
+import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
 
@@ -21,7 +22,7 @@ globalEnv = unsafePerformIO $ newIORef (R.SEXP nullPtr)
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
 -- function.
--- 
+--
 -- This function is done mainly for testing purposes.
 r1 :: String -> R.SEXP a -> R.SEXP b
 r1 fn a =
@@ -29,7 +30,7 @@ r1 fn a =
         protect (R.lang2 f a) (\v -> do
           gl <- readIORef globalEnv
           x <- alloca $ \p -> R.tryEval v gl p
-          R.protect x
+          _ <- R.protect x
           return x)
 
 -- | Call 2-arity R function, function will be found in runtime, using
@@ -40,10 +41,10 @@ r2 fn a b =
       protect (R.lang3 f a b) (\v -> do
         gl <- readIORef globalEnv
         x <- alloca $ \p -> R.tryEval v gl p
-        R.protect x
+        _ <- R.protect x
         return x)
 
 protect :: IO (R.SEXP a) -> (R.SEXP a -> IO b) -> IO b
-protect accure = 
+protect accure =
    bracket (accure >>= \x -> R.protect x >> return x)
            (const (R.unprotect 1))

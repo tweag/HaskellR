@@ -6,8 +6,6 @@
 
 module Main where
 
-import qualified H
-
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
 import Test.Tasty.Golden.Manage
@@ -21,7 +19,6 @@ import Control.Monad.Trans
 import Control.Applicative ((<$>))
 import           Data.Text (Text)
 import qualified Data.Text    as T
-import qualified Data.Text.IO as T
 
 invokeR :: FilePath -> ValueGetter r Text
 invokeR fp = do

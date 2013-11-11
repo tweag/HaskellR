@@ -5,7 +5,7 @@
 
 {-# LANGUAGE DataKinds #-}
 module H.Module
-  ( RModule
+  ( RModule(..)
   , mkMod
   , prettyGhci
   , prettyModule
@@ -13,18 +13,16 @@ module H.Module
   ) where
 
 import Control.Applicative
-import Control.Monad ( forM, when, (<=<) )
+import Control.Monad ( forM )
 import qualified Data.Vector.Unboxed as U
 import Foreign ( peekElemOff)
 import Foreign.C
-import Foreign.C.String ( peekCString )
 import H.Value
 
 import Text.PrettyPrint ( Doc, ($$), (<+>) )
 import qualified Text.PrettyPrint as P
 
 import qualified Foreign.R as R
-import qualified H.HExp as HExp
 
 -- | Generic structure of the haskell module that is created from R module.
 data RModule = RModule
@@ -36,8 +34,14 @@ data RModule = RModule
 
 -- | Create default module.
 mkMod :: Maybe String -> String -> RModule
-mkMod pkg name = RModule pkg name ["H.Prelude","H.HVal","Language.R.Interpreter"
-                                  ,"Foreign.R","Foreign","Data.IORef"] []
+mkMod pkg modname =
+    RModule pkg modname [ "Data.IORef"
+                        , "Foreign"
+                        , "Foreign.R"
+                        , "H.Prelude"
+                        , "H.HVal"
+                        , "Language.R.Interpreter"
+                        ] []
 
 -- | Pretty print module.
 prettyModule :: RModule -> Doc
@@ -68,10 +72,10 @@ prettyGhci rmod =
 
 -- | Translate R expression to the module
 translate :: R.SEXP (R.Vector (R.SEXP R.Any)) -> RModule -> IO RModule
-translate x mod = do
+translate x rmod = do
     -- XXX: currently we have hardcoded ghci but it's not right
     ls <- translate2ghci <$> emit <$> translate0 x
-    return $ mod{modFunctions = ls}
+    return $ rmod{modFunctions = ls}
 
 -- | Step0 translation on this step we are mapping R Structures to
 -- the unityped Haskell values, without deep inspection of actions to
@@ -104,8 +108,6 @@ translate0 x = do
     translateSym :: R.SEXP R.Symbol -> IO String
     translateSym y = do
         nm  <- R.char =<< R.symbolPrintName y
-        vl  <- R.symbolValue y
-        tvl <- R.typeOf vl
         peekCString nm         -- TODO: this is not correct (!)
     translateReal :: R.SEXP (R.Vector CDouble) -> IO RValue
     translateReal y = do
@@ -123,6 +125,7 @@ translate0 x = do
             o  <- translateValue z
             os <- translateList =<< R.cdr y
             return $ o:os
+          _ -> unimplemented "translateList"
 
 -- | Translate a set of RValues into the Haskell code
 emit :: [RValue] -> [RExpr]
@@ -133,7 +136,7 @@ emit = concatMap go
     -- constants are not changing anything just ignoring
     -- XXX: if we can access to 'result of the previous statement'
     -- this is no longer the case
-    go z@(RReal x) = [REConst z]
+    go z@(RReal _) = [REConst z]
     -- assignment of the value
     go (RLang  "<-" [lhs,rhs]) =
         case rhs of
@@ -142,6 +145,8 @@ emit = concatMap go
     -- XXX: this is just wrong we want to assign temporary name to the
     -- value
     go (RLang x z) = [RECall x z]
+    go _ = unimplemented "emit"
+
 
 -- | This is Ghci version of the last step of the translation
 --
@@ -149,11 +154,11 @@ translate2ghci :: [RExpr] -> [Doc]
 translate2ghci = concatMap go
   where
     go (REConst x)    = [value x]
-    go (REAssign x y) = error "translate-ghci: Assign is not implemented yet"
-    go (REFun x y)    = error "translate-ghci: Fun is not implemented yet"
+    go (REAssign _ _) = error "translate-ghci: Assign is not implemented yet"
+    go (REFun _ _)    = error "translate-ghci: Fun is not implemented yet"
     go (RECall x y)   =
           [fun  x y]
-   --       | rhs == RLang "function"  = [name lhs ++"="++ fun rhs]
+      --       | rhs == RLang "function"  = [name lhs ++"="++ fun rhs]
 
 name :: RValue -> Doc
 name (RVar x) = P.text x
@@ -169,7 +174,7 @@ fun "c" (a:as) =
     -- XXX: support all types
     -- XXX: extract most generic type
     case a of
-        RReal l -> P.parens $ P.text "someHVal . mkSEXP" <+> P.text "$"
+        RReal _ -> P.parens $ P.text "someHVal . mkSEXP" <+> P.text "$"
                            <+> P.parens ( P.text (show $ extractDouble (a:as))
                                         <+> P.text "::[Double]"
                                         )
@@ -180,6 +185,7 @@ fun "c" (a:as) =
               where
                 go (RReal x) = U.toList x
                 go _         = []
+        _ -> unimplemented "fun"
 fun x _       = error $ "fun: function '" ++ x ++ "' is  unsupported:"
 
 value :: RValue -> Doc

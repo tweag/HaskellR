@@ -3,8 +3,6 @@
 --
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 
-#define CSTACK_DEFNS
-#include <Rinterface.h>
 module Foreign.R.Interface
   ( -- * stack limit functions
     rCStackLimit
@@ -14,8 +12,12 @@ module Foreign.R.Interface
 import Foreign
 import Foreign.C
 
+#define CSTACK_DEFNS
+#include <Rinterface.h>
+
 -- | Stack limit for R
 foreign import ccall "&R_CStackLimit" rCStackLimit :: Ptr {# type uintptr_t #}
+
 -- | Start of the Stack for R
 foreign import ccall "&R_CStackStart" rCStackStart :: Ptr {# type uintptr_t #}
 
