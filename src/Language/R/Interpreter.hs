@@ -15,7 +15,7 @@ import Control.Concurrent.STM ( atomically
                               , TChan, newTChanIO, newTChanIO, readTChan, writeTChan
                               , TMVar, newEmptyTMVarIO, takeTMVar, putTMVar )
 import Control.Exception ( bracket, evaluate )
-import Control.Monad ( void, forever )
+import Control.Monad ( void, forever, forM_ )
 import Data.Word (Word8)
 
 import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
@@ -24,6 +24,29 @@ import System.Environment ( getProgName )
 
 data RRequest   = ReqParse String (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
 data RError     = RError
+
+data RConfig = RConfig
+       { rProgName :: Maybe String
+       , rParams   :: [String]
+       }
+
+initializeR :: Maybe RConfig -> IO ()
+initializeR Nothing = initializeR (Just $ RConfig Nothing ["--vanilla","--silent","--quiet"])
+initializeR (Just (RConfig nm prm)) = do
+    pn <- case nm of
+            Nothing -> getProgName
+            Just x  -> return x
+    -- TODO: it's possible to populate with other options
+    allocaArray (length prm+1) $ \a -> do
+        sv1 <- newCString pn
+        pokeElemOff a 0 sv1
+        forM_ (zip prm [1..]) $ \(v,i) -> do
+            pokeElemOff a i =<< newCString v
+        R.initEmbeddedR (length prm+1) a
+    poke R.rInteractive 0
+
+deinitializeR :: IO ()
+deinitializeR = R.endEmbeddedR 0
 
 -- | Run interpretator in background thread
 withRInterpret :: (TChan RRequest -> IO a)  -- ^ actions to run
