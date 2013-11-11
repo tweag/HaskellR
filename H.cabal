@@ -18,6 +18,7 @@ library
                        H.Module
                        H.Value
                        Foreign.R
+                       Foreign.R.Type
                        Foreign.R.Embedded
                        Foreign.R.Interface
                        Foreign.R.Parse

@@ -1,0 +1,128 @@
+-- |
+-- Copyright: (C) 2013 Amgen, Inc.
+--
+-- Definition of 'SEXPTYPE', which classifies the possible forms of an
+-- R expression (a 'SEXP'). It is normally not necessary to import this module
+-- directly, since it is reexported by "Foreign.R".
+--
+-- This is done in a separate module because we want to use hsc2hs rather than
+-- c2hs for discharging the boilerplate around 'SEXPTYPE'. This is because
+-- 'SEXPTYPE' is nearly but not quite a true enumeration and c2hs has trouble
+-- dealing with that.
+
+{-# LANGUAGE ExistentialQuantification #-}
+
+module Foreign.R.Type where
+
+#include <Rinternals.h>
+
+import H.Constraints
+
+-- | R "type". Note that what R calls a "type" is not what is usually meant by
+-- the term: there is really only a single type, called 'SEXP', and an R "type"
+-- in fact refers to the /class/ or /form/ of the expression.
+--
+-- To better illustrate the distinction, note that any sane type system normally
+-- has the /subject reduction property/: that the type of an expression is
+-- invariant under reduction. For example, @(\x -> x) 1@ has type 'Int', and so
+-- does the value of this expression, @2@, have type 'Int'. Yet the /form/ of
+-- the expression is an application of a function to a literal, while the form
+-- of its reduct is an integer literal.
+--
+-- We introduce convenient Haskell-like names for forms because this datatype is
+-- used to index 'SEXP' and other types through the @DataKinds@ extension.
+--
+data SEXPTYPE
+    = Nil
+    | Symbol
+    | List
+    | Closure
+    | Env
+    | Promise
+    | Lang
+    | Special
+    | Builtin
+    | Char
+    | Long
+    | Int
+    | Real
+    | Complex
+    | String
+    | DotDotDot
+    | Any
+    | forall a. Vector a
+    | Expr
+    | Bytecode
+    | ExtPtr
+    | WeakRef
+    | Raw
+    | S4
+    | New
+    | Free
+    | Fun
+
+instance Enum SEXPTYPE where
+  fromEnum Nil        = #const NILSXP
+  fromEnum Symbol     = #const SYMSXP
+  fromEnum List       = #const LISTSXP
+  fromEnum Closure    = #const CLOSXP
+  fromEnum Env        = #const ENVSXP
+  fromEnum Promise    = #const PROMSXP
+  fromEnum Lang       = #const LANGSXP
+  fromEnum Special    = #const SPECIALSXP
+  fromEnum Builtin    = #const BUILTINSXP
+  fromEnum Char       = #const CHARSXP
+  fromEnum Long       = #const LGLSXP
+  fromEnum Int        = #const INTSXP
+  fromEnum Real       = #const REALSXP
+  fromEnum Complex    = #const CPLXSXP
+  fromEnum String     = #const STRSXP
+  fromEnum DotDotDot  = #const DOTSXP
+  fromEnum Any        = #const ANYSXP
+  fromEnum (Vector _) = #const VECSXP
+  fromEnum Expr       = #const EXPRSXP
+  fromEnum Bytecode   = #const BCODESXP
+  fromEnum ExtPtr     = #const EXTPTRSXP
+  fromEnum WeakRef    = #const WEAKREFSXP
+  fromEnum Raw        = #const RAWSXP
+  fromEnum S4         = #const S4SXP
+  fromEnum New        = #const NEWSXP
+  fromEnum Free       = #const FREESXP
+  fromEnum Fun        = #const FUNSXP
+
+  toEnum (#const NILSXP)     = Nil
+  toEnum (#const SYMSXP)     = Symbol
+  toEnum (#const LISTSXP)    = List
+  toEnum (#const CLOSXP)     = Closure
+  toEnum (#const ENVSXP)     = Env
+  toEnum (#const PROMSXP)    = Promise
+  toEnum (#const LANGSXP)    = Lang
+  toEnum (#const SPECIALSXP) = Special
+  toEnum (#const BUILTINSXP) = Builtin
+  toEnum (#const CHARSXP)    = Char
+  toEnum (#const LGLSXP)     = Long
+  toEnum (#const INTSXP)     = Int
+  toEnum (#const REALSXP)    = Real
+  toEnum (#const CPLXSXP)    = Complex
+  toEnum (#const STRSXP)     = String
+  toEnum (#const DOTSXP)     = DotDotDot
+  toEnum (#const ANYSXP)     = Any
+  toEnum (#const VECSXP)     = (Vector Any)
+  toEnum (#const EXPRSXP)    = Expr
+  toEnum (#const BCODESXP)   = Bytecode
+  toEnum (#const EXTPTRSXP)  = ExtPtr
+  toEnum (#const WEAKREFSXP) = WeakRef
+  toEnum (#const RAWSXP)     = Raw
+  toEnum (#const S4SXP)      = S4
+  toEnum (#const NEWSXP)     = New
+  toEnum (#const FREESXP)    = Free
+  toEnum (#const FUNSXP)     = Fun
+  toEnum _                   = error "Unknown R type."
+
+-- | Used where the R documentation speaks of "pairlists", which are really just
+-- regular lists.
+type PairList = List
+
+-- 'Any' is the supremum of all classes (i.e. forms): all other classes are
+-- contained within it.
+instance a :∈ Any
