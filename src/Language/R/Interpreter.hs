@@ -15,12 +15,14 @@ import Control.Concurrent.STM ( atomically
                               , TChan, newTChanIO, newTChanIO, readTChan, writeTChan
                               , TMVar, newEmptyTMVarIO, takeTMVar, putTMVar )
 import Control.Exception ( bracket, evaluate )
-import Control.Monad ( void, forever, forM_ )
+import Control.Monad ( forever, forM_, void, when )
 import Data.Word (Word8)
 
 import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
 import Foreign.C ( newCString )
-import System.Environment ( getProgName )
+import System.Environment ( getProgName, lookupEnv )
+import System.Process     ( readProcess )
+import System.SetEnv
 
 data RRequest   = ReqParse String (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
 data RError     = RError
@@ -30,9 +32,17 @@ data RConfig = RConfig
        , rParams   :: [String]
        }
 
+populateEnv :: IO ()
+populateEnv = do
+    mh <- lookupEnv "R_HOME"
+    when (mh == Nothing) $
+      setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["RHOME"] "")
+
 initializeR :: Maybe RConfig -> IO ()
-initializeR Nothing = initializeR (Just $ RConfig Nothing ["--vanilla","--silent","--quiet"])
+initializeR Nothing =
+    initializeR (Just $ RConfig Nothing ["--vanilla","--silent","--quiet"])
 initializeR (Just (RConfig nm prm)) = do
+    populateEnv
     pn <- case nm of
             Nothing -> getProgName
             Just x  -> return x

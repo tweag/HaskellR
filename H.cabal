@@ -33,9 +33,11 @@ library
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
   build-depends:       base >= 4.6 && < 4.7
+                     , async >= 2.0
                      , bytestring >= 0.10
                      , pretty >= 1.1
-                     , async >= 2.0
+                     , process >= 1.0
+                     , setenv >= 0.1.1
                      , stm >= 2.4
                      , text >= 0.11
                      , vector >= 0.10
@@ -60,8 +62,6 @@ executable H
                      , pretty >= 1.1
                      , stm >= 2.4
                      , async >= 2.0
-                     , process >= 1.0
-                     , setenv >= 0.1.1
                      , vector >= 0.10
                      , bytestring >= 0.10
                      , H

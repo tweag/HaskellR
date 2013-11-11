@@ -6,12 +6,7 @@ module Main where
 
 import           Control.Applicative
 import           Data.Version ( showVersion )
-import           Data.Maybe ( isNothing )
-import           Control.Monad ( when )
 import           System.Console.CmdArgs
-import           System.Environment ( lookupEnv )
-import           System.SetEnv
-import           System.Process ( readProcess )
 import qualified Paths_H
 
 import           H.Prelude
@@ -55,10 +50,3 @@ main = do
         -- R.printValue x    -- TODO: remove or put under verbose
         m <- translate x (mkMod Nothing "Test")
         return (fl, prettyModule m)
-
-
-populateEnv :: IO ()
-populateEnv = do
-    mh <- lookupEnv "R_HOME"
-    when (isNothing mh) $
-      setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["RHOME"] "")
