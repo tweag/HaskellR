@@ -3,8 +3,11 @@
 --
 -- This module provides a way to run R-interpreter
 -- in the background thread and interact with it.
-module Language.R.Interpreter
-  where
+module Language.R.Interpreter where
+
+import qualified Foreign.R as R
+import qualified Foreign.R.Embedded as R
+import qualified Foreign.R.Parse    as R
 
 import Control.Concurrent.Async ( async, cancel, link )
 import Control.Concurrent.STM ( atomically
@@ -12,17 +15,13 @@ import Control.Concurrent.STM ( atomically
                               , TMVar, newEmptyTMVarIO, takeTMVar, putTMVar )
 import Control.Exception ( bracket, evaluate )
 import Control.Monad ( void, forever )
+import Data.Word (Word8)
 
 import Foreign ( poke, pokeElemOff, peek, alloca, allocaArray )
 import Foreign.C ( newCString )
 import System.Environment ( getProgName )
 
-import qualified Foreign.R as R
-import qualified Foreign.R.Embedded as R
-import qualified Foreign.R.Parse    as R
-
-data RRequest   =
-        ReqParse String (R.SEXP -> IO ())
+data RRequest   = ReqParse String (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
 data RError     = RError
 
 -- | Run interpretator in background thread
@@ -54,7 +53,7 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
         poke R.rInteractive 0
     endEmbedded _ = void $ R.endEmbeddedR 0
     go = do
-        rNil <- peek R.nilValue
+        rNil <- R.readSEXPOffPtr R.nilValue 0
         forever $ do
             req <- atomically $ readTChan ch
             case req of
@@ -64,7 +63,7 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
                        protect (R.parseVector tmp (-1) status rNil) $ \e -> do
                        callback e
 
-parseFile :: TChan RRequest -> FilePath -> (R.SEXP -> IO a) -> IO a
+parseFile :: TChan RRequest -> FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
 parseFile ch fl f = do
     box <- newEmptyTMVarIO
     str <- readFile fl
@@ -73,8 +72,7 @@ parseFile ch fl f = do
     atomically $ writeTChan ch (ReqParse str clb)
     atomically $ takeTMVar box
 
-
-protect :: IO R.SEXP -> (R.SEXP -> IO a) -> IO a
+protect :: IO (R.SEXP a) -> (R.SEXP a -> IO b) -> IO b
 protect exp f = do
    e <- exp
    R.protect e
