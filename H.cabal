@@ -18,6 +18,7 @@ library
                        H
                        H.Constraints
                        H.HExp
+                       H.HVal
                        H.Module
                        H.Value
                        Foreign.R
