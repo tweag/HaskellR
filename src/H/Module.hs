@@ -1,8 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module provides datatype for representing Haskell
--- modules in H.
+-- This module provides datatype for representing Haskell modules in H.
 
 {-# LANGUAGE DataKinds #-}
 module H.Module
@@ -16,7 +15,7 @@ module H.Module
 import Control.Applicative
 import Control.Monad ( forM, when, (<=<) )
 import qualified Data.Vector.Unboxed as U
-import Foreign ( peekElemOff) 
+import Foreign ( peekElemOff)
 import Foreign.C
 import Foreign.C.String ( peekCString )
 import H.Value
@@ -84,7 +83,7 @@ translate0 x = do
     l <- R.length x
     -- TODO create hi-level wrapper
     forM [0..(l-1)] $ \i -> do
-       e <- R.vectorElement x i
+       e <- R.index x i
        translateValue e
   where
     translateValue :: R.SEXP a -> IO RValue
@@ -104,8 +103,8 @@ translate0 x = do
         return $ RLang vl ls
     translateSym :: R.SEXP R.Symbol -> IO String
     translateSym y = do
-        nm  <- R.char =<< R.printName y
-        vl  <- R.symValue y
+        nm  <- R.char =<< R.symbolPrintName y
+        vl  <- R.symbolValue y
         tvl <- R.typeOf vl
         peekCString nm         -- TODO: this is not correct (!)
     translateReal :: R.SEXP (R.Vector CDouble) -> IO RValue
@@ -170,7 +169,7 @@ fun "c" (a:as) =
     -- XXX: support all types
     -- XXX: extract most generic type
     case a of
-        RReal l -> P.parens $ P.text "someHVal . mkSEXP" <+> P.text "$" 
+        RReal l -> P.parens $ P.text "someHVal . mkSEXP" <+> P.text "$"
                            <+> P.parens ( P.text (show $ extractDouble (a:as))
                                         <+> P.text "::[Double]"
                                         )

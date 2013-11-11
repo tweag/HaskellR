@@ -13,43 +13,44 @@
 
 module Foreign.R
   ( module Foreign.R.Type
-    -- * Datatypes
+    -- * Internal R structures
   , SEXPTYPE(..)
   , SEXP(..)
   , SEXP0
   , readSEXPOffPtr
-    -- * Construction
+    -- * Node creation
   , allocSEXP
   , allocList
   , allocVector
   , install
   , mkString
-    -- * Cell attributes
+    -- * Node attributes
   , typeOf
-    -- ** Objects accessors
+    -- * Node accessor functions
+    -- ** Lists
   , car
   , cdr
   , tag
-    -- *** Environment
-  , frame
-  , enclos
-  , hashtab
-    -- *** Closure
-  , formals
-  , body
-  , cloEnv
-    -- *** Promise
-  , prCode
-  , prEnv
-  , prValue
-    -- *** Symbol
-  , printName
-  , symValue
-  , symInternal
-    -- *** Vectors
+    -- ** Environments
+  , envFrame
+  , envClosure
+  , envHashtab
+    -- ** Closures
+  , closureFormals
+  , closureBody
+  , closureEnv
+    -- ** Promises
+  , promiseCode
+  , promiseEnv
+  , promiseValue
+    -- ** Symbols
+  , symbolPrintName
+  , symbolValue
+  , symbolInternal
+    -- ** Vectors
   , length
   , trueLength
-  , vectorElement
+  , index
   , char
   , real
   , integer
@@ -68,10 +69,11 @@ module Foreign.R
     -- * GC functions
   , protect
   , unprotect
-    -- * Communication with runtime
-  , rInteractive
-  , nilValue
+    -- * Globals
   , globalEnv
+  , nilValue
+  , rInteractive
+    -- * Communication with runtime
   , printValue
   ) where
 
@@ -129,26 +131,26 @@ cUIntFromEnum = cIntConv . fromEnum
 -- Environment functions                                                  --
 --------------------------------------------------------------------------------
 
-{# fun FRAME as frame {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
+{# fun FRAME as envFrame {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
 -- | read Environement frame
-{# fun ENCLOS as enclos {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
+{# fun ENCLOS as envClosure {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
 -- | read Environement frame
-{# fun HASHTAB as hashtab {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
+{# fun HASHTAB as envHashtab {unSEXP `SEXP R.Env' } -> `SEXP a' SEXP #}
 
 --------------------------------------------------------------------------------
 -- Closure functions                                                  --
 --------------------------------------------------------------------------------
 
-{# fun FORMALS as formals {unSEXP `SEXP R.Closure' } -> `SEXP a' SEXP #}
-{# fun BODY as body {unSEXP `SEXP R.Closure' } -> `SEXP a' SEXP #}
-{# fun CLOENV as cloEnv {unSEXP `SEXP R.Closure' } -> `SEXP R.Env' SEXP #}
+{# fun FORMALS as closureFormals {unSEXP `SEXP R.Closure' } -> `SEXP a' SEXP #}
+{# fun BODY as closureBody {unSEXP `SEXP R.Closure' } -> `SEXP a' SEXP #}
+{# fun CLOENV as closureEnv {unSEXP `SEXP R.Closure' } -> `SEXP R.Env' SEXP #}
 
 --------------------------------------------------------------------------------
 -- Promise functions                                                  --
 --------------------------------------------------------------------------------
-{# fun PRCODE as prCode {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
-{# fun PRENV as prEnv {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
-{# fun PRVALUE as prValue {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
+{# fun PRCODE as promiseCode {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
+{# fun PRENV as promiseEnv {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
+{# fun PRVALUE as promiseValue {unSEXP `SEXP R.Promise'} -> `SEXP a' SEXP #}
 
 
 --------------------------------------------------------------------------------
@@ -159,13 +161,13 @@ cUIntFromEnum = cIntConv . fromEnum
 {#fun LENGTH as length { unSEXP `SEXP (R.Vector a)' } -> `Int' #}
 
 -- | A vector element.
-{#fun VECTOR_ELT as vectorElement { unSEXP `SEXP (R.Vector (SEXP a))', `Int'} -> `SEXP a' SEXP #}
+{#fun VECTOR_ELT as index { unSEXP `SEXP (R.Vector (SEXP a))', `Int'} -> `SEXP a' SEXP #}
 
 -- | Read True Length vector field
 {#fun TRUELENGTH as trueLength { unSEXP `SEXP (R.Vector a)' } -> `CInt' id #}
 
 -- | Read character vector data
-{#fun R_CHAR as char { unSEXP `SEXP (R.Vector Word8)' } -> `CString' id #} 
+{#fun R_CHAR as char { unSEXP `SEXP (R.Vector Word8)' } -> `CString' id #}
 -- XXX: check if we really need Word8 here, maybe some better handling of endoding
 
 -- | Read real vector data
@@ -197,13 +199,13 @@ cUIntFromEnum = cIntConv . fromEnum
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-{#fun PRINTNAME as printName { unSEXP `SEXP R.Symbol' } -> `SEXP (R.Vector Word8)' SEXP #}
+{#fun PRINTNAME as symbolPrintName { unSEXP `SEXP R.Symbol' } -> `SEXP (R.Vector Word8)' SEXP #}
 
 -- | Read value from symbol.
-{#fun SYMVALUE as symValue { unSEXP `SEXP R.Symbol' } -> `SEXP a' SEXP #}
+{#fun SYMVALUE as symbolValue { unSEXP `SEXP R.Symbol' } -> `SEXP a' SEXP #}
 
 -- | Read internal value from symbol.
-{#fun INTERNAL as symInternal { unSEXP `SEXP R.Symbol' } -> `SEXP a' SEXP #}
+{#fun INTERNAL as symbolInternal { unSEXP `SEXP R.Symbol' } -> `SEXP a' SEXP #}
 
 --------------------------------------------------------------------------------
 -- Value conversion                                                           --
@@ -226,7 +228,7 @@ cUIntFromEnum = cIntConv . fromEnum
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' SEXP #}
 
 -- | Allocate Vector
-{#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' SEXP #} 
+{#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' SEXP #}
 
 {#fun Rf_PrintValue as printValue { unSEXP `SEXP a'} -> `()' #}
 
