@@ -17,6 +17,7 @@ import qualified Foreign.R  as R
 
 import Foreign
 
+
 -- | Runtime universe of R Values
 data HVal = forall a . SEXP (R.SEXP a)
           | HLam2 (HVal -> HVal)
@@ -38,20 +39,26 @@ safeFromHVal _        = Nothing
 
 someHVal :: Some R.SEXP -> HVal
 someHVal (Some x) = SEXP x
+
 --------------------------------------------------------------------------------
 -- Arithmetic subset of H                                                     --
 --------------------------------------------------------------------------------
 instance Num HVal where
     fromInteger x = someHVal (mkSEXP (fromInteger x :: Double))
---    a + b = SEXP (rplus  (toSEXP a) (toSEXP b))
+    a + b = SEXP (rplus (fromHVal a) (fromHVal b))
+ 
+
+-- SEXP (rplus  (toSEXP a) (toSEXP b))
 --    a - b = SEXP (rminus (toSEXP a) (toSEXP b))
 --    a * b = SEXP (rmult  (toSEXP a) (toSEXP b))
 
-rplus, rminus, rmult, rfrac :: R.SEXP a -> R.SEXP b -> R.SEXP c
-rplus  = undefined
+
+rplus, rminus, rmult, rfrac :: Some R.SEXP -> Some R.SEXP -> R.SEXP c
+rplus  (Some x) (Some y) = R.r2 "+" x y
 rminus = undefined
 rmult  = undefined
 rfrac  = undefined
+
 {-
 -- | Arithmetics subset of H
 rplus :: R.SEXP -> R.SEXP -> R.SEXP
