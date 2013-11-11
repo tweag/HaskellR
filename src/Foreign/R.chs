@@ -13,6 +13,8 @@ module Foreign.R
     -- * Datatypes
   , SEXPTYPE(..)
   , SEXP(..)
+  , SEXP0
+  , readSEXPOffPtr
   , mkString
     -- * Cell attributes
   , typeOf
@@ -42,44 +44,87 @@ import           Foreign.R.Type (SEXPTYPE)
 import Control.Applicative ((<$>))
 import Foreign
 import Foreign.C
+import GHC.Storable (readPtrOffPtr)
+import Prelude hiding (length)
 
--- | Pointer to SEXP structure
-data SEXPREC = SEXPREC
-{# pointer *SEXPREC as SEXP -> SEXPREC #}
+--------------------------------------------------------------------------------
+-- R data structures                                                          --
+--------------------------------------------------------------------------------
 
---unSEXP :: SEXP -> Ptr SEXP
---unSEXP (SEXP x) = x
+-- | The basic type of all R expressions, classified by the form of the
+-- expression.
+newtype SEXP (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr SEXPREC }
+data SEXPREC
 
--- | Get the type of the object
-{# fun TYPEOF as typeOf { id `SEXP' } -> `SEXPTYPE' toEnumG #}
--- | Read real type
-{# fun REAL as real { id `SEXP' } -> `Ptr CDouble' id #} 
+-- | 'SEXP' with no type index. 'unSEXP' / 'SEXP' act as (un)marshallers.
+{#pointer SEXP as SEXP0 -> SEXPREC #}
+
+readSEXPOffPtr :: Ptr (SEXP a) -> Int -> IO (SEXP a)
+readSEXPOffPtr ptr i = SEXP <$> readPtrOffPtr (castPtr ptr) i
+
+cIntConv :: (Integral a, Integral b) => a -> b
+cIntConv = fromIntegral
+
+cIntToEnum :: Enum a => CInt -> a
+cIntToEnum = toEnum . cIntConv
+
+--------------------------------------------------------------------------------
+-- Generic accessor functions                                                 --
+--------------------------------------------------------------------------------
+
+-- | Get the type of the object.
+{#fun TYPEOF as typeOf { unSEXP `SEXP a' } -> `SEXPTYPE' cIntToEnum #}
+
+-- | Read value of real type.
+{#fun REAL as real { unSEXP `SEXP a' } -> `Ptr Prelude.Double' castPtr #}
+
 -- | read CAR object value
-{# fun CAR as car { id `SEXP' } -> `SEXP' id #}
+{#fun CAR as car { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+
 -- | read CDR object
-{# fun CDR as cdr { id `SEXP' } -> `SEXP' id #}
+{#fun CDR as cdr { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
 
+--------------------------------------------------------------------------------
+-- Vector accessor functions                                                  --
+--------------------------------------------------------------------------------
 
+-- | Length of the vector.
+{#fun LENGTH as length { unSEXP `SEXP (R.Vector a)' } -> `Int' #}
 
 -- | A vector element.
-{#fun VECTOR_ELT as vectorElement { id `SEXP', `Int'} -> `SEXP' id #}
+{#fun VECTOR_ELT as vectorElement { unSEXP `SEXP (R.Vector a)', `Int'} -> `SEXP a' SEXP #}
 
--- | Length of the vector
-{# fun LENGTH as length { id `SEXP' } -> `Int' #}
+--------------------------------------------------------------------------------
+-- Symbol accessor functions                                                  --
+--------------------------------------------------------------------------------
 
+-- | Read a name from symbol.
+{#fun PRINTNAME as printName { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
 
--- | Access to the character info
-{# fun R_CHAR as char { id `SEXP' } -> `String' #}
--- | Read a name from symbol
-{# fun PRINTNAME as printName { id `SEXP' } -> `SEXP' id #}
--- | Read value from symbol
-{# fun SYMVALUE as symValue { id `SEXP' } -> `SEXP' id #}
--- | Read internal value from symbol
-{# fun INTERNAL as symInternal { id `SEXP' } -> `SEXP' id #}
+-- | Read value from symbol.
+{#fun SYMVALUE as symValue { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
 
+-- | Read internal value from symbol.
+{#fun INTERNAL as symInternal { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
 
--- | R boolean data type
-{# pointer *Rboolean as Rboolean #}
+--------------------------------------------------------------------------------
+-- Value conversion                                                           --
+--------------------------------------------------------------------------------
+
+-- | Conversion from R strings and C strings.
+{#fun R_CHAR as char { unSEXP `SEXP R.Char' } -> `String' #}
+
+-- | Create a String value inside R runtime.
+{#fun Rf_mkString as mkString { `String' } -> `SEXP (R.Vector Word8)' SEXP #}
+{#fun Rf_PrintValue as printValue { unSEXP `SEXP a'} -> `()' #}
+
+-- | Protect variable from the garbage collector.
+{#fun Rf_protect as protect { unSEXP `SEXP a'} -> `SEXP a' SEXP #}
+{#fun Rf_unprotect as unprotect { `Int' } -> `()' #}
+
+--------------------------------------------------------------------------------
+-- Global variables                                                           --
+--------------------------------------------------------------------------------
 
 -- | Interacive console swith, to set it one should use
 -- @
@@ -88,17 +133,4 @@ data SEXPREC = SEXPREC
 foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
 
 -- | Global nil value.
-foreign import ccall "&R_NilValue"  nilValue  :: Ptr SEXP
-
-
--- | Create a String value inside R runtime.
-{# fun Rf_mkString as mkString { `String' } -> `SEXP' id #}
-{# fun Rf_PrintValue as printValue { id `SEXP'} -> `()' #}
-
--- | Protect variable from the garbage collector.
-{# fun Rf_protect as protect { id `SEXP'} -> `SEXP' id #}
-{# fun Rf_unprotect as unprotect { `Int' } -> `()' #}
-
---
-toEnumG :: (Integral a, Enum b) => a -> b
-toEnumG = toEnum . fromIntegral
+foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP R.Nil)
