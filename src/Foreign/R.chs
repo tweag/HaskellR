@@ -17,6 +17,11 @@ module Foreign.R
   , SEXP(..)
   , SEXP0
   , readSEXPOffPtr
+    -- * Construction
+  , allocSEXP
+  , allocList
+  , allocVector
+  , install
   , mkString
     -- * Cell attributes
   , typeOf
@@ -53,12 +58,18 @@ module Foreign.R
   , string
   , vector
   , expression
+    -- * Evaluation
+  , tryEval
+  , lang1
+  , lang2
+  , lang3
     -- * GC functions
   , protect
   , unprotect
     -- * Communication with runtime
   , rInteractive
   , nilValue
+  , globalEnv
   , printValue
   ) where
 
@@ -92,6 +103,9 @@ cIntConv = fromIntegral
 
 cIntToEnum :: Enum a => CInt -> a
 cIntToEnum = toEnum . cIntConv
+
+cUIntFromEnum :: Enum a => a -> CUInt
+cUIntFromEnum = cIntConv . fromEnum
 
 --------------------------------------------------------------------------------
 -- Generic accessor functions                                                 --
@@ -199,6 +213,19 @@ cIntToEnum = toEnum . cIntConv
 
 -- | Create a String value inside R runtime.
 {#fun Rf_mkString as mkString { `String' } -> `SEXP (R.Vector Word8)' SEXP #}
+
+-- | Create symbol by string name
+{#fun Rf_install as install { `String' } -> `SEXP R.Symbol' SEXP #}
+
+-- | Allocate SEXP
+{#fun Rf_allocSExp as allocSEXP { cUIntFromEnum `SEXPTYPE' } -> `SEXP a' SEXP #}
+
+-- | Allocate List
+{#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' SEXP #}
+
+-- | Allocate Vector
+{#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' SEXP #} 
+
 {#fun Rf_PrintValue as printValue { unSEXP `SEXP a'} -> `()' #}
 
 --------------------------------------------------------------------------------
@@ -209,6 +236,22 @@ cIntToEnum = toEnum . cIntConv
 -- | Protect variable from the garbage collector.
 {#fun Rf_protect as protect { unSEXP `SEXP a'} -> `SEXP a' SEXP #}
 {#fun Rf_unprotect as unprotect { `Int' } -> `()' #}
+
+--------------------------------------------------------------------------------
+-- Evaluation                                                                 --
+--------------------------------------------------------------------------------
+
+-- | evaluate expression
+{# fun R_tryEval as tryEval { unSEXP `SEXP a', unSEXP `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' SEXP #}
+
+-- | construct 1 arity expression
+{# fun Rf_lang1 as lang1 { unSEXP `SEXP a'} -> `SEXP R.Lang' SEXP #}
+
+-- | construct 1 arity expression
+{# fun Rf_lang2 as lang2 { unSEXP `SEXP a', unSEXP `SEXP b'} -> `SEXP R.Lang' SEXP #}
+
+-- | construct 1 arity expression
+{# fun Rf_lang3 as lang3 { unSEXP `SEXP a', unSEXP `SEXP b', unSEXP `SEXP c'} -> `SEXP R.Lang' SEXP #}
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
@@ -222,3 +265,6 @@ foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
 
 -- | Global nil value.
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP R.Nil)
+
+-- | Global environment
+foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP0)
