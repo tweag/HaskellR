@@ -25,6 +25,7 @@ library
                        Foreign.R.Embedded
                        Foreign.R.Interface
                        Foreign.R.Parse
+                       Language.R
                        Language.R.Interpreter
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
