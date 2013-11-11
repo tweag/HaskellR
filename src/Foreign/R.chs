@@ -1,13 +1,13 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- This module is intended to be imported qualified.
+
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 #include <R.h>
 #include <Rinternals.h>
--- | TODO: group functions as in header
--- | TODO: add some way of typechecking
 module Foreign.R
   ( -- * Datatypes
     SEXPTYPE(..)
