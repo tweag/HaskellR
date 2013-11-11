@@ -20,6 +20,7 @@ library
                        H.HExp
                        H.HVal
                        H.Module
+                       H.Prelude
                        H.Value
                        Foreign.R
                        Foreign.R.Type
