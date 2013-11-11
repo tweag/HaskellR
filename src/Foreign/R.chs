@@ -92,13 +92,13 @@ cIntToEnum = toEnum . cIntConv
 {#fun TYPEOF as typeOf { unSEXP `SEXP a' } -> `SEXPTYPE' cIntToEnum #}
 
 -- | read CAR object value
-{#fun CAR as car { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+{#fun CAR as car { unSEXP `SEXP a' } -> `SEXP b' SEXP #}
 
 -- | read CDR object
-{#fun CDR as cdr { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+{#fun CDR as cdr { unSEXP `SEXP a' } -> `SEXP b' SEXP #}
 
 -- | read object`s Tag
-{# fun TAG as tag { unSEXP `SEXP a' } -> `SEXP a' SEXP #}  --- XXX: add better constraint
+{# fun TAG as tag { unSEXP `SEXP a' } -> `SEXP b' SEXP #}  --- XXX: add better constraint
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                  --
