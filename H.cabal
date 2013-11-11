@@ -14,12 +14,12 @@ source-repository head
   location: git://github.com/ps-labs/H.git
 
 library
-  exposed-modules:     H
+  exposed-modules:     Data.Some
+                       H
                        H.Constraints
                        H.HExp
                        H.Module
                        H.Value
-                       H.Constraints
                        Foreign.R
                        Foreign.R.Type
                        Foreign.R.Embedded
