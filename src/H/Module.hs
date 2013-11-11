@@ -16,7 +16,9 @@ module H.Module
 import Control.Applicative
 import Control.Monad ( forM, when )
 import qualified Data.Vector.Unboxed as U
-import Foreign ( peekElemOff )
+import Foreign ( peekElemOff) 
+import Foreign.C
+import Foreign.C.String ( peekCString )
 import H.Value
 
 import Text.PrettyPrint ( Doc, ($$), (<+>) )
@@ -60,74 +62,58 @@ prettyGhci rmod =
     functions = modFunctions rmod
 
 -- | Translate R expression to the module
-translate :: R.SEXP (R.Vector R.Expr) -> RModule -> IO RModule
-translate x mod = error "translate function was not yet ported on the newer backend"
-    {-
+translate :: R.SEXP (R.Vector (R.SEXP R.Any)) -> RModule -> IO RModule
+translate x mod = do
     -- XXX: currently we have hardcoded ghci but it's not right
     ls <- translate2ghci <$> emit <$> translate0 x
     return $ mod{modFunctions = ls}
-    -}
 
-{-
 -- | Step0 translation on this step we are mapping R Structures to
 -- the unityped Haskell values, without deep inspection of actions to
 -- optimize/rewrite R language.
 --
 -- This is the only step where we will need interpreter
-translate0 :: R.SEXP -> IO [RValue]
+translate0 :: R.SEXP (R.Vector (R.SEXP R.Any)) -> IO [RValue]
 translate0 x = do
-    ty <- R.typeOf x
-    case ty of
-      ExpSXP  -> translateExp x
-      _         -> unimplemented "translateInternal" ty
+    l <- R.length x
+    -- TODO create hi-level wrapper
+    forM [0..(l-1)] $ \i -> do
+       e <- R.vectorElement x i
+       translateValue e
   where
-    translateExp y = do
-        l <- R.length x
-        -- TODO create hi-level wrapper
-        forM [0..(l-1)] $ \i -> do
---          putStrLn "-----------------------------"
-          e <- R.vectorELT x i
-          translateValue e
+    translateValue :: R.SEXP a -> IO RValue
     translateValue y = do
         ty <- R.typeOf y
---        print t
         case ty of
-          R.NilSXP  -> return RNil
-          R.IntSXP  -> unimplemented "translateValue" ty
-          R.RealSXP -> translateReal y
-          R.ExpSXP  -> error "it's not possilbe to translate expression as value"
-          R.LangSXP -> translateLang y
-          R.SymSXP  -> RVar  <$> translateSym y
-          R.ListSXP -> RList <$> translateList y
-          _         -> unimplemented "translateValue" ty
+          R.Nil   -> return RNil
+          R.Real  -> translateReal $ R.SEXP . R.unSEXP $ y
+          R.Lang  -> translateLang $ R.SEXP . R.unSEXP $ y
+          R.Symbol-> RVar  <$> translateSym (R.SEXP . R.unSEXP $ y)
+          R.List  -> RList <$> translateList (R.SEXP . R.unSEXP $ y)
+          _       -> unimplemented "translateValue"
+    translateLang :: R.SEXP R.Lang -> IO RValue
     translateLang y = do
         vl <- translateSym =<< R.car y
         ls <- translateList =<< R.cdr y
         return $ RLang vl ls
+    translateSym :: R.SEXP R.Symbol -> IO String
     translateSym y = do
         nm  <- R.char =<< R.printName y
         vl  <- R.symValue y
         tvl <- R.typeOf vl
---        putStr "SYM: "
---        R.printValue y
---        putStr $ "\nSYM-Name: "++nm
---      putStr $ "\nSYM-Value (" ++ show tvl ++ ") "
---      when (tvl == R.BuiltinSXP) $ R.printValue vl
---      putStr "\nSYM-Internal: "
---      R.printValue =<< R.symInternal y
---      putStrLn "\nSYM-END"
-        return nm         -- TODO: this is not correct (!)
+        peekCString nm         -- TODO: this is not correct (!)
+    translateReal :: R.SEXP (R.Vector CDouble) -> IO RValue
     translateReal y = do
         l    <- R.length y
         cptr <- R.real y
         v <- U.generateM l (\i -> realToFrac <$> peekElemOff cptr i)
         return $ RReal v
---    translateList :: R.SEXP -> IO [RValue]
+    translateList :: R.SEXP R.List -> IO [RValue]
     translateList y = do
         ty <- R.typeOf y
         case ty of
-          R.NilSXP  -> return []
-          R.ListSXP -> do
+          R.Nil  -> return []
+          R.List -> do
             z  <- R.car y
             o  <- translateValue z
             os <- translateList =<< R.cdr y
@@ -151,7 +137,6 @@ emit = concatMap go
     -- XXX: this is just wrong we want to assign temporary name to the
     -- value
     go (RLang x z) = [RECall x z]
-
 
 -- | This is Ghci version of the last step of the translation
 --
@@ -195,7 +180,6 @@ value (RReal v)
   | U.length v == 1 = P.parens $  P.text "fromRational" <+> (P.text . show $ U.head v) <+> P.text ":: RTDouble"
 --value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
 value y = error $ "value: unsupported argument " ++ show y
--}
 
-unimplemented :: Show a => String -> a -> b
-unimplemented f a = error $ f ++ ": unimplemented " ++ show a
+unimplemented :: String -> b
+unimplemented f = error $ f ++ ": unimplemented "

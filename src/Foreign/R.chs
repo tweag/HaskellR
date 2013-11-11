@@ -155,7 +155,7 @@ cIntToEnum = toEnum . cIntConv
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-{#fun PRINTNAME as printName { unSEXP `SEXP a' } -> `SEXP a' SEXP #}
+{#fun PRINTNAME as printName { unSEXP `SEXP a' } -> `SEXP (R.Vector Word8)' SEXP #}
 
 -- | Read value from symbol.
 {#fun SYMVALUE as symValue { unSEXP `SEXP a' } -> `SEXP a' SEXP #}

@@ -30,4 +30,4 @@ import Data.Word (Word8)
      , `Int'
      , id `Ptr CInt'
      , unSEXP `SEXP a' }
-  -> `SEXP (R.Vector (R.SEXP R.Expr))' SEXP #}
+  -> `SEXP (R.Vector (R.SEXP R.Any))' SEXP #}
