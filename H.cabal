@@ -15,6 +15,7 @@ source-repository head
 
 library
   exposed-modules:     H
+                       H.Constraints
                        H.Module
                        H.Value
                        Foreign.R
