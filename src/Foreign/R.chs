@@ -1,7 +1,8 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE CPP, ForeignFunctionInterface, StandaloneDeriving, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 
 #include <R.h>
 #include <Rinternals.h>
