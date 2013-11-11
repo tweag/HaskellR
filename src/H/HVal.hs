@@ -22,9 +22,6 @@ import Foreign
 data HVal = forall a . SEXP (R.SEXP a)
           | HLam2 (HVal -> HVal)
 
---instance Show HVal where -- error
---    show (SEXP x) = "SEXP: " ++ show (unsafePerformIO (HExp.view x))
-
 -- | Project from HVal to R SEXP.
 --
 -- Note that this function is partial.
@@ -45,34 +42,20 @@ someHVal (Some x) = SEXP x
 --------------------------------------------------------------------------------
 instance Num HVal where
     fromInteger x = someHVal (mkSEXP (fromInteger x :: Double))
-    a + b = SEXP (rplus (fromHVal a) (fromHVal b))
- 
+    a + b = SEXP (rplus  (fromHVal a) (fromHVal b))
+    a - b = SEXP (rminus (fromHVal a) (fromHVal b))
+    a * b = SEXP (rmult  (fromHVal a) (fromHVal b))
 
--- SEXP (rplus  (toSEXP a) (toSEXP b))
---    a - b = SEXP (rminus (toSEXP a) (toSEXP b))
---    a * b = SEXP (rmult  (toSEXP a) (toSEXP b))
-
+instance Fractional HVal where
+    fromRational x = someHVal (mkSEXP (fromRational x :: Double))
+    a / b = SEXP (rfrac (fromHVal a) (fromHVal b))
 
 rplus, rminus, rmult, rfrac :: Some R.SEXP -> Some R.SEXP -> R.SEXP c
 rplus  (Some x) (Some y) = R.r2 "+" x y
-rminus = undefined
-rmult  = undefined
-rfrac  = undefined
+rminus (Some x) (Some y) = R.r2 "-" x y
+rmult  (Some x) (Some y) = R.r2 "*" x y
+rfrac  (Some x) (Some y) = R.r2 "/" x y
 
-{-
--- | Arithmetics subset of H
-rplus :: R.SEXP -> R.SEXP -> R.SEXP
-rplus = R.r2 "+"
-
-rminus :: R.SEXP -> R.SEXP -> R.SEXP
-rminus = R.r2 "-"
-
-rmult :: R.SEXP -> R.SEXP -> R.SEXP
-rmult = R.r2 "*"
-
-rfrac :: R.SEXP -> R.SEXP -> R.SEXP
-rfrac = R.r2 "/"
--}
 
 -- | Represents a value that can be converted into S Expression
 class IsSEXP a where
