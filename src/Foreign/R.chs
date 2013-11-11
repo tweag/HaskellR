@@ -16,7 +16,7 @@ module Foreign.R
     -- * Cell attributes
   , typeOf
   , length
-  , vectorELT
+  , vectorElement
   , char
   , real
     -- ** Objects accessors
@@ -93,13 +93,12 @@ data SEXPREC = SEXPREC
 
 
 
--- Vector access attributes
+-- | A vector element.
+{#fun VECTOR_ELT as vectorElement { id `SEXP', `Int'} -> `SEXP' id #}
 
 -- | Length of the vector
 {# fun LENGTH as length { id `SEXP' } -> `Int' #}
 
--- | Returns vector element
-{# fun VECTOR_ELT as vectorELT { id `SEXP', `Int'} -> `SEXP' id #}
 
 -- | Access to the character info
 {# fun R_CHAR as char { id `SEXP' } -> `String' #}
