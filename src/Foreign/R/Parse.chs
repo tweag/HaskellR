@@ -1,7 +1,8 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE CPP, ForeignFunctionInterface #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
 module Foreign.R.Parse
