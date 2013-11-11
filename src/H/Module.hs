@@ -37,7 +37,8 @@ data RModule = RModule
 
 -- | Create default module.
 mkMod :: Maybe String -> String -> RModule
-mkMod pkg name = RModule pkg name ["H.Value"] []
+mkMod pkg name = RModule pkg name ["H.Prelude","H.HVal","Language.R.Interpreter"
+                                  ,"Foreign.R","Foreign","Data.IORef"] []
 
 -- | Pretty print module.
 prettyModule :: RModule -> Doc
@@ -54,9 +55,13 @@ prettyModule rmod =
 
 prettyGhci :: RModule -> Doc
 prettyGhci rmod =
+    P.text ":set -fno-ghci-sandbox"                                  $$
     (if null imports
       then P.empty
-      else P.text ":m +" <+> P.hcat (map P.text imports))     $$
+      else P.text ":m +" <+> P.hsep (map P.text imports))            $$
+    P.text "initializeR Nothing"                                     $$
+    P.text
+      "writeIORef Language.R.globalEnv . SEXP =<< peek Foreign.R.globalEnv" $$
     P.vcat functions
   where
     imports = modImports rmod
@@ -165,20 +170,24 @@ fun "c" (a:as) =
     -- XXX: support all types
     -- XXX: extract most generic type
     case a of
-        RReal l -> P.parens $ P.text "mkRTDouble" <+> P.text (show $ extractDouble (a:as))
-  where
-    extractDouble :: [RValue] -> [Double]
-    extractDouble = concatMap go
-      where
-        go (RReal x) = U.toList x
-        go _         = []
+        RReal l -> P.parens $ P.text "someHVal . mkSEXP" <+> P.text "$" 
+                           <+> P.parens ( P.text (show $ extractDouble (a:as))
+                                        <+> P.text "::[Double]"
+                                        )
+                           <+> P.text "::HVal"
+          where
+            extractDouble :: [RValue] -> [Double]
+            extractDouble = concatMap go
+              where
+                go (RReal x) = U.toList x
+                go _         = []
 fun x _       = error $ "fun: function '" ++ x ++ "' is  unsupported:"
 
 value :: RValue -> Doc
 value y@(RVar _) = name y
 value (RLang x y) = fun x y
 value (RReal v)
-  | U.length v == 1 = P.parens $  P.text "fromRational" <+> (P.text . show $ U.head v) <+> P.text ":: RTDouble"
+  | U.length v == 1 = P.parens $ (P.text . show $ U.head v) <+> P.text ":: HVal"
 --value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
 value y = error $ "value: unsupported argument " ++ show y
 

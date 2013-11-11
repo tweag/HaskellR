@@ -14,6 +14,8 @@ import           System.SetEnv
 import           System.Process ( readProcess )
 import qualified Paths_H
 
+import           H.Prelude
+import           H.HVal
 import           H.Module
 import           Language.R.Interpreter
 import qualified Foreign.R as R
@@ -36,7 +38,6 @@ cmdSpec = Config
 
 main :: IO ()
 main = do
-
     config <- cmdArgs cmdSpec
     case config of
         Config []  _    -> putStrLn "no input files"  -- XXX: exitStatus with fail

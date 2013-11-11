@@ -5,6 +5,7 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE PolyKinds  #-}
 
 #include <R.h>
 #include <Rinternals.h>
