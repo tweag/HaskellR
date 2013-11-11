@@ -134,7 +134,7 @@ cIntToEnum = toEnum . cIntConv
 {#fun LENGTH as length { unSEXP `SEXP (R.Vector a)' } -> `Int' #}
 
 -- | A vector element.
-{#fun VECTOR_ELT as vectorElement { unSEXP `SEXP (R.Vector a)', `Int'} -> `SEXP a' SEXP #}
+{#fun VECTOR_ELT as vectorElement { unSEXP `SEXP (R.Vector (SEXP a))', `Int'} -> `SEXP a' SEXP #}
 
 -- | Read True Length vector field
 {#fun TRUELENGTH as trueLength { unSEXP `SEXP (R.Vector a)' } -> `CInt' id #}
