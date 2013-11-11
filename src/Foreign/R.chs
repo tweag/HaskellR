@@ -63,6 +63,7 @@ module Foreign.R
   , lang1
   , lang2
   , lang3
+  , findFun
     -- * GC functions
   , protect
   , unprotect
@@ -242,17 +243,19 @@ cUIntFromEnum = cIntConv . fromEnum
 --------------------------------------------------------------------------------
 
 -- | evaluate expression
-{# fun R_tryEval as tryEval { unSEXP `SEXP a', unSEXP `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' SEXP #}
+{#fun R_tryEval as tryEval { unSEXP `SEXP a', unSEXP `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' SEXP #}
 
 -- | construct 1 arity expression
-{# fun Rf_lang1 as lang1 { unSEXP `SEXP a'} -> `SEXP R.Lang' SEXP #}
+{#fun Rf_lang1 as lang1 { unSEXP `SEXP a'} -> `SEXP R.Lang' SEXP #}
 
 -- | construct 1 arity expression
-{# fun Rf_lang2 as lang2 { unSEXP `SEXP a', unSEXP `SEXP b'} -> `SEXP R.Lang' SEXP #}
+{#fun Rf_lang2 as lang2 { unSEXP `SEXP a', unSEXP `SEXP b'} -> `SEXP R.Lang' SEXP #}
 
 -- | construct 1 arity expression
-{# fun Rf_lang3 as lang3 { unSEXP `SEXP a', unSEXP `SEXP b', unSEXP `SEXP c'} -> `SEXP R.Lang' SEXP #}
+{#fun Rf_lang3 as lang3 { unSEXP `SEXP a', unSEXP `SEXP b', unSEXP `SEXP c'} -> `SEXP R.Lang' SEXP #}
 
+-- |  find function by name
+{#fun Rf_findFun as findFun { unSEXP `SEXP a', unSEXP `SEXP R.Env'} -> `SEXP c' SEXP #}
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
