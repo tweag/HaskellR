@@ -36,12 +36,13 @@ safeFromHVal :: HVal -> Maybe (Some R.SEXP)
 safeFromHVal (SEXP x) = Just (Some x)
 safeFromHVal _        = Nothing
 
-{-
+someHVal :: Some R.SEXP -> HVal
+someHVal (Some x) = SEXP x
 --------------------------------------------------------------------------------
 -- Arithmetic subset of H                                                     --
 --------------------------------------------------------------------------------
 instance Num HVal where
-    fromInteger x = SEXP (mkSEXP (fromInteger x :: Double))
+    fromInteger x = someHVal (mkSEXP (fromInteger x :: Double))
 --    a + b = SEXP (rplus  (toSEXP a) (toSEXP b))
 --    a - b = SEXP (rminus (toSEXP a) (toSEXP b))
 --    a * b = SEXP (rmult  (toSEXP a) (toSEXP b))
@@ -66,7 +67,6 @@ rfrac :: R.SEXP -> R.SEXP -> R.SEXP
 rfrac = R.r2 "/"
 -}
 
--}
 -- | Represents a value that can be converted into S Expression
 class IsSEXP a where
   mkSEXP :: a -> Some R.SEXP
