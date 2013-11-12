@@ -147,11 +147,11 @@ emit = concatMap go
 translate2ghci :: [RExpr] -> [Doc]
 translate2ghci = concatMap go
   where
-    go (REConst x)    = [value x]
+    go (REConst x)    = [P.text "someHVal $" <+> value x]
     go (REAssign _ _) = error "translate-ghci: Assign is not implemented yet"
     go (REFun _ _)    = error "translate-ghci: Fun is not implemented yet"
     go (RECall x y)   =
-          [fun  x y]
+          [P.text "someHVal $" <+> fun  x y]
       --       | rhs == RLang "function"  = [name lhs ++"="++ fun rhs]
 
 name :: RValue -> Doc
@@ -159,20 +159,19 @@ name (RVar x) = P.text x
 name _ = error "incorrect variable"
 
 fun :: RFunction -> [RValue] -> Doc
-fun "+" [a,b] = value a <+> P.text "+" <+> value b
-fun "-" [a,b] = value a <+> P.text "-" <+> value b
-fun "/" [a,b] = value a <+> P.text "/" <+> value b
-fun "*" [a,b] = value a <+> P.text "*" <+> value b
+fun "+" [a,b] = P.text "rplus"  <+> P.parens (value a) <+> P.parens (value b)
+fun "-" [a,b] = P.text "rminus" <+> P.parens (value a) <+> P.parens (value b)
+fun "/" [a,b] = P.text "rfrac"  <+> P.parens (value a) <+> P.parens (value b)
+fun "*" [a,b] = P.text "rmult"  <+> P.parens (value a) <+> P.parens (value b)
 fun "(" [a]   = P.parens $ value a
 fun "c" (a:as) =
     -- XXX: support all types
     -- XXX: extract most generic type
     case a of
-        RReal _ -> P.parens $ P.text "someHVal . mkSEXP" <+> P.text "$"
+        RReal _ -> P.parens $ P.text "mkSEXP" <+> P.text "$"
                            <+> P.parens ( P.text (show $ extractDouble (a:as))
                                         <+> P.text "::[Double]"
                                         )
-                           <+> P.text "::HVal"
           where
             extractDouble :: [RValue] -> [Double]
             extractDouble = concatMap go
@@ -186,7 +185,7 @@ value :: RValue -> Doc
 value y@(RVar _) = name y
 value (RLang x y) = fun x y
 value (RReal v)
-  | U.length v == 1 = P.parens $ (P.text . show $ U.head v) <+> P.text ":: HVal"
+  | U.length v == 1 = P.parens $ P.text "mkSEXP" <+> P.parens (P.text (show $ U.head v) <+> P.text "::Double")
 --value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
 value y = error $ "value: unsupported argument " ++ show y
 
