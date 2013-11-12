@@ -21,38 +21,54 @@ import Foreign (Ptr)
 -- Use explicit UNPACK pragmas rather than -funbox-strict-fields in order to get
 -- warnings if a field is not unpacked when we expect it to.
 
+-- | A view of R's internal 'SEXP' structure as an algebraic datatype. Because
+-- this is in fact a GADT, the use of named record fields is not possible here.
+-- Named record fields give rise to functions for whom it is not possible to
+-- assign a reasonable type (existentially quantified type variables would
+-- escape).
+--
+-- Note further that Haddock does not currently support constructor comments
+-- when using the GADT syntax.
 data HExp :: SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
   Nil       :: HExp a
-  Symbol    :: SEXP (R.Vector Word8)              -- ^ pname
-            -> SEXP a                             -- ^ value
-            -> SEXP b                             -- ^ internal
+  -- Fields: pname, value, internal.
+  Symbol    :: SEXP (R.Vector Word8)
+            -> SEXP a
+            -> SEXP b
             -> HExp R.Symbol
-  List      :: SEXP a                             -- ^ carval
-            -> SEXP R.List                        -- ^ cdrval
-            -> SEXP R.Symbol                      -- ^ tagval
+  -- Fields: carval, cdrval, tagval.
+  List      :: SEXP a
+            -> SEXP R.List
+            -> SEXP R.Symbol
             -> HExp R.List
-  Env       :: SEXP R.PairList                    -- ^ frame
-            -> SEXP R.Env                         -- ^ enclos
-            -> SEXP (R.Vector R.PairList)         -- ^ hashtab
+  -- Fields: frame, enclos, hashtab.
+  Env       :: SEXP R.PairList
+            -> SEXP R.Env
+            -> SEXP (R.Vector R.PairList)
             -> HExp R.Env
-  Closure   :: SEXP R.PairList                    -- ^ formals
-            -> SEXP a                             -- ^ body
-            -> SEXP R.Env                         -- ^ env
+  -- Fields: formals, body, env.
+  Closure   :: SEXP R.PairList
+            -> SEXP a
+            -> SEXP R.Env
             -> HExp R.Closure
-  Promise   :: SEXP a                             -- ^ value
-            -> SEXP b                             -- ^ expr
-            -> SEXP R.Env                         -- ^ env
+  -- Fields: value, expr, env.
+  Promise   :: SEXP a
+            -> SEXP b
+            -> SEXP R.Env
             -> HExp R.Promise
   -- Derived types. These types don't have their own 'struct' declaration in
   -- <Rinternals.h>.
+  -- Fields: function, args.
   Lang      :: (a :∈ R.Symbol :+: R.Lang)         -- XXX R.Closure also?
-            => SEXP a                             -- ^ function
-            -> SEXP R.List                        -- ^ args
+            => SEXP a
+            -> SEXP R.List
             -> HExp R.List
-  Special   :: {-# UNPACK #-} !Int32              -- ^ offset
+  -- Fields: offset.
+  Special   :: {-# UNPACK #-} !Int32
             -> HExp R.Special
-  Builtin   :: {-# UNPACK #-} !Int32              -- ^ offset
+  -- Fields: offset.
+  Builtin   :: {-# UNPACK #-} !Int32
             -> HExp R.Builtin
   Char      :: {-# UNPACK #-} !ByteString
             -> HExp (R.Vector Word8)
@@ -64,29 +80,35 @@ data HExp :: SEXPTYPE -> * where
             -> HExp (R.Vector (Complex Double))
   String    :: {-# UNPACK #-} !(Vector (SEXP (R.Vector Word8)))
             -> HExp (R.Vector (SEXP (R.Vector Word8)))
-  DotDotDot :: SEXP R.List                        -- ^ pairlist of promises
+  -- Fields: pairlist of promises.
+  DotDotDot :: SEXP R.PairList
             -> HExp R.List
   Any       :: HExp a
-  Vector    :: {-# UNPACK #-} !Int32              -- ^ truelength
+  -- Fields: truelength, content.
+  Vector    :: {-# UNPACK #-} !Int32
             -> {-# UNPACK #-} !(Vector (SEXP R.Any))
             -> HExp (R.Vector (SEXP R.Any))
-  Expr      :: {-# UNPACK #-} !Int32              -- ^ truelength
+  -- Fields: truelength, content.
+  Expr      :: {-# UNPACK #-} !Int32
             -> !(Vector (SEXP R.Any))
             -> HExp (R.Vector (SEXP R.Any))
   Bytecode  :: HExp a -- XXX
-  ExtPtr    :: Ptr a                              -- ^ pointer
-            -> SEXP b                             -- ^ protectionValue
-            -> SEXP R.Symbol                      -- ^ tagval
+  -- Fields: pointer, protectionValue, tagval
+  ExtPtr    :: Ptr a
+            -> SEXP b
+            -> SEXP R.Symbol
             -> HExp R.ExtPtr
+  -- Fields: key, value, finalizer, next.
   WeakRef   :: (a :∈ R.Nil :+: R.Env :+: R.ExtPtr)
-            => SEXP a                             -- ^ key
-            -> SEXP b                             -- ^ value
-            -> SEXP c                             -- ^ finalizer
-            -> SEXP d                             -- ^ next
+            => SEXP a
+            -> SEXP b
+            -> SEXP c
+            -> SEXP d
             -> HExp R.WeakRef
   Raw       :: {-# UNPACK #-} !ByteString
             -> HExp R.Raw
-  S4        :: SEXP R.Symbol                      -- ^ tagval
+  -- Fields: tagval.
+  S4        :: SEXP R.Symbol
             -> HExp R.S4
 
 {-
