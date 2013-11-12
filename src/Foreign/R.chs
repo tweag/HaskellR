@@ -172,7 +172,7 @@ cUIntFromEnum = cIntConv . fromEnum
 -- XXX: check if we really need Word8 here, maybe some better handling of endoding
 
 -- | Read real vector data
-{#fun REAL as real { unSEXP `SEXP (R.Vector CDouble)' } -> `Ptr CDouble' id #}
+{#fun REAL as real { unSEXP `SEXP (R.Vector Double)' } -> `Ptr Double' castPtr #}
 
 -- | Read integer vector data
 {#fun INTEGER as integer { unSEXP `SEXP (R.Vector Int32)' } -> `Ptr CInt' id #}

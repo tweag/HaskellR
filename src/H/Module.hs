@@ -109,11 +109,11 @@ translate0 x = do
     translateSym y = do
         nm  <- R.char =<< R.symbolPrintName y
         peekCString nm         -- TODO: this is not correct (!)
-    translateReal :: R.SEXP (R.Vector CDouble) -> IO RValue
+    translateReal :: R.SEXP (R.Vector Double) -> IO RValue
     translateReal y = do
         l    <- R.length y
         cptr <- R.real y
-        v <- U.generateM l (\i -> realToFrac <$> peekElemOff cptr i)
+        v <- U.generateM l (\i -> peekElemOff cptr i)
         return $ RReal v
     translateList :: R.SEXP R.List -> IO [RValue]
     translateList y = do

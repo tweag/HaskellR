@@ -31,7 +31,7 @@ data HVal = forall a . SEXP (R.SEXP a)
 
 instance Show HVal where
     show (SEXP s)  = unsafePerformIO $ do
-      let s' = R.SEXP . R.unSEXP $ s :: R.SEXP (R.Vector CDouble)
+      let s' = R.SEXP . R.unSEXP $ s :: R.SEXP (R.Vector Double)
       l <- R.length s'
       v <- flip V.unsafeFromForeignPtr0 l <$> (newForeignPtr_ =<< R.real s')
       return $ "[1] " ++ (intercalate " " (map show $ V.toList v))
