@@ -96,6 +96,8 @@ integrationTests = testGroup "Integration tests"
   -- TODO: enable in relevant topic branches.
   , scriptCase "Simple arithmetic" $
        "tests" </> "R" </> "arith.R"
+  , scriptCase "Simple arithmetic on vectors" $
+       "tests" </> "R" </> "arith-vector.R"
   -- , scriptCase "Functions - factorial" $
   --     "tests" </> "R" </> "fact.R"
   -- , scriptCase "Functions - Fibonacci sequence" $
