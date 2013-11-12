@@ -35,13 +35,7 @@ data RModule = RModule
 -- | Create default module.
 mkMod :: Maybe String -> String -> RModule
 mkMod pkg modname =
-    RModule pkg modname [ "Data.IORef"
-                        , "Foreign"
-                        , "Foreign.R"
-                        , "H.Prelude"
-                        , "H.HVal"
-                        , "Language.R.Interpreter"
-                        ] []
+    RModule pkg modname ["H.Prelude"] []
 
 -- | Pretty print module.
 prettyModule :: RModule -> Doc
