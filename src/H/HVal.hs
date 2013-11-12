@@ -17,13 +17,12 @@ import qualified Foreign.R  as R
 import Control.Applicative
 import Control.Monad ( forM_ )
 import Data.Some
-import Foreign ( newForeignPtr_, pokeByteOff )
+import Foreign ( newForeignPtr_, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- Temporary
 import qualified Data.Vector.Storable as V
 import Data.List ( intercalate )
-import Foreign.C
 
 -- | Runtime universe of R Values
 data HVal = forall a . SEXP (R.SEXP a)
@@ -82,16 +81,15 @@ instance IsSEXP Double where
   mkSEXP x = Some $ unsafePerformIO $ do
     v  <- R.allocVector R.Real 1
     pt <- R.real v
-    pokeByteOff pt 0 x
+    pokeElemOff pt 0 (fromRational . toRational $ x)
     return v
 
 instance IsSEXP [Double] where
   mkSEXP x = Some $ unsafePerformIO $ do
       v  <- R.allocVector R.Real l
-      _ <- R.protect v
       pt <- R.real v
       forM_ (zip x [0..]) $ \(g,i) -> do
-          pokeByteOff pt i (fromRational . toRational $ g::CDouble)
+          pokeElemOff pt i g
       return v
     where
       l = length x
