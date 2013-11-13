@@ -274,4 +274,4 @@ foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP R.Nil)
 
 -- | Global environment
-foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP0)
+foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP R.Env)
