@@ -153,17 +153,8 @@ datatype:
 ```Haskell
 data HVal
   = SEXP SEXP
-  | Lam1 (HVal -> HVal)
-  | Lam2 (HVal -> HVal -> HVal)
-  | Lam3 (HVal -> HVal -> HVal -> HVal)
-  | ...
+  | Lam (HVal -> HVal)
 ```
-
-For all practical purposes, we can typically limit the number of
-function constructors to some small number, say 8, and encode all
-higher arity functions in terms of functions of arity 8 or lower.
-
-TODO say something about GHC pointer tagging.
 
 Translation from R to Haskell
 =============================
@@ -180,8 +171,8 @@ M, N  ::= R expressions
 ```
 [[ i ]] = SEXP (mkSEXP i)
 [[ M + N ]] = SEXP (rplus (toSEXP M) (toSEXP N))
-[[ function(x1, ..., xn) M ]] = Lam_n (\x1 ... xn -> [[ M ]])
-[[ f(M1, ..., Mn) ]] = apply_n f [[ M1 ]] ... [[ Mn ]]
+[[ function(x1, ..., xn) M ]] = Lam (\x1 ... (Lam \xn -> [[ M ]])...)
+[[ f(M1, ..., Mn) ]] = f `apply` [[ M1 ]] `apply` ... `apply` [[ Mn ]]
 ```
 
 Where we have that:
@@ -196,12 +187,36 @@ toSEXP :: HVal -> SEXP
 toSEXP (SEXP s) = s
 toSEXP _ = error "Bad argument."
 
-apply1 :: HVal -> HVal -> HVal
-apply2 :: HVal -> HVal -> HVal -> HVal
-apply3 :: HVal -> HVal -> HVal -> HVal -> HVal
-...
+apply :: HVal -> HVal -> HVal
 ```
 
+Making the translation more compact and efficient
+=================================================
+
+TODO Explain eval/apply optimization.
+
+For all practical purposes, we can typically limit the number of
+function constructors to some small number, say 8, and encode all
+higher arity functions in terms of functions of arity 8 or lower.
+
+Note: GHC uses [pointer
+tagging](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/PointerTagging)
+for certain optimizations. In particular, when a pointer points to
+a constructor, the tag bits in the pointer say precisely which
+constructor is being pointed to, which avoids having to scrutinize the
+info table to get the same information. On 64-bit platforms, pointer
+tagging only works for datatypes of 8 constructors or less, so it is
+important not to add too many constructors to the universe for the
+purposes of the eval/apply optimization.
+
+Pointer tagging is also used to indicate the arity of a function.
+Doing so allows to optimize calls to unknown functions when the arity
+of the function matches exactly that of the number of actual
+arguments. Notice that this optimization is still useful given the
+universe above: the various `apply` operators can jump directly into
+the code for the functions given as the first argument, without having
+to go through the steps of a [generic
+apply](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/FunctionCalls#Genericapply).
 
 H naming conventions
 ====================
