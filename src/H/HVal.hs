@@ -9,6 +9,12 @@ module H.HVal
   , fromHVal
   , safeFromHVal
   , someHVal
+  , toHVal
+  -- * Arithmetics
+  , rplus
+  , rminus
+  , rmult
+  , rfrac
   ) where
 
 import qualified Language.R as R
@@ -51,26 +57,29 @@ safeFromHVal _        = Nothing
 someHVal :: Some R.SEXP -> HVal
 someHVal (Some x) = SEXP x
 
+toHVal :: R.SEXP a -> HVal
+toHVal x = SEXP x
+
 --------------------------------------------------------------------------------
 -- Arithmetic subset of H                                                     --
 --------------------------------------------------------------------------------
 instance Num HVal where
     fromInteger x = someHVal (mkSEXP (fromInteger x :: Double))
-    a + b = SEXP (rplus  (fromHVal a) (fromHVal b))
-    a - b = SEXP (rminus (fromHVal a) (fromHVal b))
-    a * b = SEXP (rmult  (fromHVal a) (fromHVal b))
+    a + b = someHVal (rplus  (fromHVal a) (fromHVal b))
+    a - b = someHVal (rminus (fromHVal a) (fromHVal b))
+    a * b = someHVal (rmult  (fromHVal a) (fromHVal b))
     abs _ = error "unimplemented."
     signum _ = error "unimplemented."
 
 instance Fractional HVal where
     fromRational x = someHVal (mkSEXP (fromRational x :: Double))
-    a / b = SEXP (rfrac (fromHVal a) (fromHVal b))
+    a / b = someHVal (rfrac (fromHVal a) (fromHVal b))
 
-rplus, rminus, rmult, rfrac :: Some R.SEXP -> Some R.SEXP -> R.SEXP c
-rplus  (Some x) (Some y) = R.r2 "+" x y
-rminus (Some x) (Some y) = R.r2 "-" x y
-rmult  (Some x) (Some y) = R.r2 "*" x y
-rfrac  (Some x) (Some y) = R.r2 "/" x y
+rplus, rminus, rmult, rfrac :: Some R.SEXP -> Some R.SEXP -> Some R.SEXP
+rplus  (Some x) (Some y) = Some $ R.r2 "+" x y
+rminus (Some x) (Some y) = Some $ R.r2 "-" x y
+rmult  (Some x) (Some y) = Some $ R.r2 "*" x y
+rfrac  (Some x) (Some y) = Some $ R.r2 "/" x y
 
 
 -- | Represents a value that can be converted into S Expression
