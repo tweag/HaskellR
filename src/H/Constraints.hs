@@ -9,6 +9,9 @@
 
 module H.Constraints where
 
+infix 1 :∈
+infixl 2 :+:
+
 -- | Combine classes. This datatype is used purely as a type index, has no
 -- computational significance and hence has no runtime representation.
 data a :+: b
