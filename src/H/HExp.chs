@@ -33,7 +33,6 @@ import Foreign.C
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
-{# import qualified Foreign.R #} ()
 #include <R.h>
 #define USE_RINTERNALS
 #include <Rinternals.h>
