@@ -6,16 +6,18 @@ module Language.R
   ( r1
   , r2
   , globalEnv
+  , parseFile
   ) where
 
 
 import Control.Exception ( bracket )
-import Data.ByteString ( ByteString, useAsCString )
+import Data.ByteString as B
 import Data.IORef ( IORef, newIORef, readIORef )
 import Foreign ( alloca, nullPtr )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
+import qualified Foreign.R.Parse as R
 
 globalEnv :: IORef (R.SEXP R.Env)
 globalEnv = unsafePerformIO $ newIORef nullPtr
@@ -30,7 +32,7 @@ r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
     unsafePerformIO $ 
       useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
-        protect (R.lang2 f a) (\v -> do
+        protecting (R.lang2 f a) (\v -> do
           gl <- readIORef globalEnv
           x <- alloca $ \p -> R.tryEval v gl p
           _ <- R.protect x
@@ -42,13 +44,28 @@ r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
     unsafePerformIO $ 
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      protect (R.lang3 f a b) (\v -> do
+      protecting (R.lang3 f a b) (\v -> do
         gl <- readIORef globalEnv
         x <- alloca $ \p -> R.tryEval v gl p
         _ <- R.protect x
         return x)
 
-protect :: IO (R.SEXP a) -> (R.SEXP a -> IO b) -> IO b
-protect accure =
+protecting :: IO (R.SEXP a) -> (R.SEXP a -> IO b) -> IO b
+protecting accure =
    bracket (accure >>= \x -> R.protect x >> return x)
            (const (R.unprotect 1))
+
+-- | Parse file and perform some actions on parsed file.
+--
+-- This function uses continuation because this is an easy way to make
+-- operations GC-safe
+--
+-- This function is not safe to use inside GHCi.
+parseFile :: FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
+parseFile fl f = do
+    str <- B.readFile fl
+    useAsCString str $ \cstr ->
+      protecting (R.mkString cstr) $ \rstr -> do
+        rNil <- R.readSEXPOffPtr R.nilValue 0
+        alloca $ \status ->
+          protecting (R.parseVector rstr (-1) status rNil) f

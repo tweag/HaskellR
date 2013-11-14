@@ -64,7 +64,15 @@ initializeR (Just (RConfig nm prm)) = do
 deinitializeR :: IO ()
 deinitializeR = R.endEmbeddedR 0
 
+-- | Initialize R runtime in the main thread and automatically
+-- deinitilize in on exit from the function scope.
+withR :: Maybe RConfig -- ^ R configuration options
+      -> IO a
+      -> IO a
+withR cfg = bracket (initializeR cfg) (const deinitializeR) . const
+
 -- | Run interpretator in background thread
+{-# DEPRECATED withRInterpret "use withR instead" #-}
 withRInterpret :: (TChan RRequest -> IO a)  -- ^ actions to run
                -> IO a
 withRInterpret f =
@@ -76,6 +84,7 @@ withRInterpret f =
       (cancel . snd)
       (f . fst)
 
+{-# DEPRECATED interpret "use withR instead" #-}
 interpret :: TChan RRequest -> IO ()
 interpret ch = bracket startEmbedded endEmbedded (const go)
   where
@@ -104,6 +113,7 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
                        protect (R.parseVector tmp (-1) status rNil) $ \e -> do
                        callback (castPtr e)
 
+{-# DEPRECATED parseFile "use 'Language.R.parseFile instead'" #-}
 parseFile :: TChan RRequest -> FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
 parseFile ch fl f = do
     box <- newEmptyTMVarIO

@@ -10,7 +10,8 @@ import           System.Console.CmdArgs
 import qualified Paths_H
 
 import           H.Module
-import           Language.R.Interpreter
+import           Language.R.Interpreter ( withR )
+import           Language.R ( parseFile )
 
 data Config = Config
     { configFiles :: [String]
@@ -32,18 +33,9 @@ main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-        Config []  _    -> putStrLn "no input files"  -- XXX: exitStatus with fail
-        Config [fl] True -> do
-            populateEnv
-            withRInterpret $ \ch -> do
-              print =<< parseFile ch fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
-        Config fls _    -> do
-            populateEnv
-            withRInterpret $ \ch -> do
-              cls <- mapM (\fl -> parseFile ch fl (go fl)) fls
-              mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) cls
-  where
-    go fl x = do
-        -- R.printValue x    -- TODO: remove or put under verbose
-        m <- translate x (mkMod Nothing "Test")
-        return (fl, prettyModule m)
+        Config []  _     -> putStrLn "no input files"  -- XXX: exitStatus with fail
+        Config [fl] True -> withR Nothing $ do
+          print =<< parseFile fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
+        Config fls _     -> withR Nothing $ do
+          ms <- mapM (flip parseFile (flip translate (mkMod Nothing "Test"))) fls
+          mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $ zip fls (map prettyModule ms)
