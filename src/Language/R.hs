@@ -10,6 +10,7 @@ module Language.R
 
 
 import Control.Exception ( bracket )
+import Data.ByteString ( ByteString, useAsCString )
 import Data.IORef ( IORef, newIORef, readIORef )
 import Foreign ( alloca, nullPtr )
 import System.IO.Unsafe ( unsafePerformIO )
@@ -23,10 +24,12 @@ globalEnv = unsafePerformIO $ newIORef nullPtr
 -- using global environment, no additional environment is provided to
 -- function.
 --
--- This function is done mainly for testing purposes.
-r1 :: String -> R.SEXP a -> R.SEXP b
+-- This function is done mainly for testing purposes, and execution of R
+-- code in case that we can't construct symbol by other methods.
+r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
-    unsafePerformIO $ R.install fn >>= \f -> do
+    unsafePerformIO $ 
+      useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
         protect (R.lang2 f a) (\v -> do
           gl <- readIORef globalEnv
           x <- alloca $ \p -> R.tryEval v gl p
@@ -35,9 +38,10 @@ r1 fn a =
 
 -- | Call 2-arity R function, function will be found in runtime, using
 -- global environment. See 'r1' for additional comments.
-r2 :: String -> R.SEXP a -> R.SEXP b -> R.SEXP c
+r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
-    unsafePerformIO $ R.install fn >>= \f ->
+    unsafePerformIO $ 
+      useAsCString fn $ \cfn -> R.install cfn >>= \f ->
       protect (R.lang3 f a b) (\v -> do
         gl <- readIORef globalEnv
         x <- alloca $ \p -> R.tryEval v gl p

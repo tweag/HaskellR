@@ -9,6 +9,7 @@ module Language.R.Interpreter where
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Parse    as R
+import           Foreign.C.String
 
 import Control.Concurrent.Async ( async, cancel, link )
 import Control.Concurrent.STM
@@ -25,12 +26,11 @@ import Control.Exception ( bracket )
 import Control.Monad ( forever, forM_, void, when )
 
 import Foreign ( castPtr, peek, poke, pokeElemOff, alloca, allocaArray )
-import Foreign.C ( newCString )
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
 import System.SetEnv
 
-data RRequest   = ReqParse String (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
+data RRequest   = ReqParse FilePath (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
 data RError     = RError
 
 data RConfig = RConfig
@@ -97,9 +97,10 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
         forever $ do
             req <- atomically $ readTChan ch
             case req of
-              ReqParse str callback -> do
-                 protect (R.mkString str) $ \tmp ->
-                    alloca $ \status ->
+              ReqParse str callback ->
+                 withCString str $ \cstr ->
+                   protect (R.mkString cstr) $ \tmp ->
+                     alloca $ \status ->
                        protect (R.parseVector tmp (-1) status rNil) $ \e -> do
                        callback (castPtr e)
 

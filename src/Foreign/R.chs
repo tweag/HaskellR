@@ -235,10 +235,10 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 --------------------------------------------------------------------------------
 
 -- | Create a String value inside R runtime.
-{#fun Rf_mkString as mkString { `String' } -> `SEXP (R.Vector Word8)' sexp #}
+{#fun Rf_mkString as mkString { id `CString' } -> `SEXP (R.Vector Word8)' sexp #}
 
 -- | Create symbol by string name
-{#fun Rf_install as install { `String' } -> `SEXP R.Symbol' sexp #}
+{#fun Rf_install as install { id `CString' } -> `SEXP R.Symbol' sexp #}
 
 -- | Allocate SEXP
 {#fun Rf_allocSExp as allocSEXP { cUIntFromEnum `SEXPTYPE' } -> `SEXP a' sexp #}

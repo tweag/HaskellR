@@ -51,6 +51,7 @@ library
                        MultiParamTypeClasses
                        StandaloneDeriving
                        TypeOperators
+                       OverloadedStrings
   other-extensions:    CPP
                        ForeignFunctionInterface
   build-tools:         c2hs
