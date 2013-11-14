@@ -14,8 +14,7 @@ source-repository head
   location: git://github.com/ps-labs/H.git
 
 library
-  exposed-modules:     Data.Some
-                       H
+  exposed-modules:     H
                        H.Constraints
                        H.HExp
                        H.HVal
@@ -42,10 +41,12 @@ library
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
   default-language:    Haskell2010
-  default-extensions:  DataKinds
+  default-extensions:  BangPatterns
+                       DataKinds
                        FlexibleInstances
                        FlexibleContexts
                        GeneralizedNewtypeDeriving
+                       LambdaCase
                        KindSignatures
                        MultiParamTypeClasses
                        StandaloneDeriving

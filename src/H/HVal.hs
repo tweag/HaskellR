@@ -22,8 +22,7 @@ import qualified Foreign.R  as R
 
 import Control.Applicative
 import Control.Monad ( forM_ )
-import Data.Some
-import Foreign ( newForeignPtr_, pokeElemOff )
+import Foreign ( castPtr, newForeignPtr_, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- Temporary
@@ -36,7 +35,7 @@ data HVal = forall a . SEXP (R.SEXP a)
 
 instance Show HVal where
     show (SEXP s)  = unsafePerformIO $ do
-      let s' = R.SEXP . R.unSEXP $ s :: R.SEXP (R.Vector Double)
+      let s' = castPtr s :: R.SEXP (R.Vector Double)
       l <- R.length s'
       v <- flip V.unsafeFromForeignPtr0 l <$> (newForeignPtr_ =<< R.real s')
       return $ "[1] " ++ (intercalate " " (map show $ V.toList v))
@@ -45,17 +44,17 @@ instance Show HVal where
 -- | Project from HVal to R SEXP.
 --
 -- Note that this function is partial.
-fromHVal :: HVal -> Some R.SEXP
-fromHVal (SEXP x) = Some x
+fromHVal :: HVal -> R.SomeSEXP
+fromHVal (SEXP x) = R.SomeSEXP x
 fromHVal _        = error "toSEXP: not an SEXP"
 
 -- | Safe version of 'toSEXP'.
-safeFromHVal :: HVal -> Maybe (Some R.SEXP)
-safeFromHVal (SEXP x) = Just (Some x)
+safeFromHVal :: HVal -> Maybe (R.SomeSEXP)
+safeFromHVal (SEXP x) = Just (R.SomeSEXP x)
 safeFromHVal _        = Nothing
 
-someHVal :: Some R.SEXP -> HVal
-someHVal (Some x) = SEXP x
+someHVal :: R.SomeSEXP -> HVal
+someHVal (R.SomeSEXP x) = SEXP x
 
 toHVal :: R.SEXP a -> HVal
 toHVal x = SEXP x
@@ -75,26 +74,26 @@ instance Fractional HVal where
     fromRational x = someHVal (mkSEXP (fromRational x :: Double))
     a / b = someHVal (rfrac (fromHVal a) (fromHVal b))
 
-rplus, rminus, rmult, rfrac :: Some R.SEXP -> Some R.SEXP -> Some R.SEXP
-rplus  (Some x) (Some y) = Some $ R.r2 "+" x y
-rminus (Some x) (Some y) = Some $ R.r2 "-" x y
-rmult  (Some x) (Some y) = Some $ R.r2 "*" x y
-rfrac  (Some x) (Some y) = Some $ R.r2 "/" x y
+rplus, rminus, rmult, rfrac :: R.SomeSEXP -> R.SomeSEXP -> R.SomeSEXP
+rplus  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "+" x y
+rminus (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "-" x y
+rmult  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "*" x y
+rfrac  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "/" x y
 
 
 -- | Represents a value that can be converted into S Expression
 class IsSEXP a where
-  mkSEXP :: a -> Some R.SEXP
+  mkSEXP :: a -> R.SomeSEXP
 
 instance IsSEXP Double where
-  mkSEXP x = Some $ unsafePerformIO $ do
+  mkSEXP x = R.SomeSEXP $ unsafePerformIO $ do
     v  <- R.allocVector R.Real 1
     pt <- R.real v
     pokeElemOff pt 0 (fromRational . toRational $ x)
     return v
 
 instance IsSEXP [Double] where
-  mkSEXP x = Some $ unsafePerformIO $ do
+  mkSEXP x = R.SomeSEXP $ unsafePerformIO $ do
       v  <- R.allocVector R.Real l
       pt <- R.real v
       forM_ (zip x [0..]) $ \(g,i) -> do

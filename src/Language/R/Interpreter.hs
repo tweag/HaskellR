@@ -24,7 +24,7 @@ import Control.Concurrent.STM
 import Control.Exception ( bracket )
 import Control.Monad ( forever, forM_, void, when )
 
-import Foreign ( poke, pokeElemOff, alloca, allocaArray )
+import Foreign ( castPtr, peek, poke, pokeElemOff, alloca, allocaArray )
 import Foreign.C ( newCString )
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
@@ -93,7 +93,7 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
         poke R.rInteractive 0
     endEmbedded _ = void $ R.endEmbeddedR 0
     go = do
-        rNil <- R.readSEXPOffPtr R.nilValue 0
+        rNil <- peek R.nilValue
         forever $ do
             req <- atomically $ readTChan ch
             case req of
@@ -101,7 +101,7 @@ interpret ch = bracket startEmbedded endEmbedded (const go)
                  protect (R.mkString str) $ \tmp ->
                     alloca $ \status ->
                        protect (R.parseVector tmp (-1) status rNil) $ \e -> do
-                       callback (R.SEXP $ R.unSEXP e)
+                       callback (castPtr e)
 
 parseFile :: TChan RRequest -> FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
 parseFile ch fl f = do

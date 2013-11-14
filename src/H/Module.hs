@@ -15,7 +15,7 @@ module H.Module
 import Control.Applicative
 import Control.Monad ( forM )
 import qualified Data.Vector.Unboxed as U
-import Foreign ( peekElemOff)
+import Foreign ( castPtr, peekElemOff )
 import Foreign.C
 import H.Value
 
@@ -89,10 +89,10 @@ translate0 x = do
         ty <- R.typeOf y
         case ty of
           R.Nil   -> return RNil
-          R.Real  -> translateReal $ R.SEXP . R.unSEXP $ y
-          R.Lang  -> translateLang $ R.SEXP . R.unSEXP $ y
-          R.Symbol-> RVar  <$> translateSym (R.SEXP . R.unSEXP $ y)
-          R.List  -> RList <$> translateList (R.SEXP . R.unSEXP $ y)
+          R.Real  -> translateReal (castPtr y)
+          R.Lang  -> translateLang (castPtr y)
+          R.Symbol-> RVar  <$> translateSym (castPtr y)
+          R.List  -> RList <$> translateList (castPtr y)
           _       -> unimplemented "translateValue"
     translateLang :: R.SEXP R.Lang -> IO RValue
     translateLang y = do
