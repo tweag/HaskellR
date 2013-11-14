@@ -85,8 +85,15 @@ import GHC.Storable (readPtrOffPtr)
 import Prelude hiding (length)
 
 #include <R.h>
+#define USE_RINTERNALS
 #include <Rinternals.h>
 #include "missing_r.h"
+
+-- XXX temp workaround due to R bug: doesn't export R_CHAR when USE_RINTERNALS
+-- is defined.
+#c
+const char *(R_CHAR)(SEXP x);
+#endc
 
 --------------------------------------------------------------------------------
 -- R data structures                                                          --
@@ -106,8 +113,8 @@ readSEXPOffPtr ptr i = SEXP <$> readPtrOffPtr (castPtr ptr) i
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv = fromIntegral
 
-cIntToEnum :: Enum a => CInt -> a
-cIntToEnum = toEnum . cIntConv
+cUIntToEnum :: Enum a => CUInt -> a
+cUIntToEnum = toEnum . cIntConv
 
 cUIntFromEnum :: Enum a => a -> CUInt
 cUIntFromEnum = cIntConv . fromEnum
@@ -116,8 +123,8 @@ cUIntFromEnum = cIntConv . fromEnum
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
 
--- | Get the type of the object.
-{#fun TYPEOF as typeOf { unSEXP `SEXP a' } -> `SEXPTYPE' cIntToEnum #}
+typeOf :: SEXP a -> IO SEXPTYPE
+typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 -- | read CAR object value
 {#fun CAR as car { unSEXP `SEXP a' } -> `SEXP b' SEXP #}
