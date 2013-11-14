@@ -14,6 +14,7 @@ module Foreign.R
     -- * Internal R structures
   , SEXPTYPE(..)
   , SEXP
+  , SEXPREC
   , SEXP0
   , sexp
   , unsexp

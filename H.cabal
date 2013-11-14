@@ -41,10 +41,12 @@ library
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
   default-language:    Haskell2010
-  default-extensions:  DataKinds
+  default-extensions:  BangPatterns
+                       DataKinds
                        FlexibleInstances
                        FlexibleContexts
                        GeneralizedNewtypeDeriving
+                       LambdaCase
                        KindSignatures
                        MultiParamTypeClasses
                        StandaloneDeriving
