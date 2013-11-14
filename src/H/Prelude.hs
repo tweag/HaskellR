@@ -10,7 +10,6 @@ module H.Prelude
   ) where
 
 import qualified Foreign.R as R
-import Data.Some
 
 -- Reexported modules.
 import Data.IORef
@@ -19,5 +18,5 @@ import Foreign.R hiding (protect)
 import H.HVal
 import Language.R.Interpreter
 
-liftR :: (R.SEXP a -> b) -> Some R.SEXP -> b
-liftR f (Some x) = f (R.SEXP . R.unSEXP $ x)
+liftR :: (R.SEXP a -> b) -> R.SomeSEXP -> b
+liftR f (R.SomeSEXP x) = f (castPtr x)

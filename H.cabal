@@ -14,8 +14,7 @@ source-repository head
   location: git://github.com/ps-labs/H.git
 
 library
-  exposed-modules:     Data.Some
-                       H
+  exposed-modules:     H
                        H.Constraints
                        H.HExp
                        H.HVal

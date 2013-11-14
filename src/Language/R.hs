@@ -17,7 +17,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 import qualified Foreign.R as R
 
 globalEnv :: IORef (R.SEXP R.Env)
-globalEnv = unsafePerformIO $ newIORef (R.SEXP nullPtr)
+globalEnv = unsafePerformIO $ newIORef nullPtr
 
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
