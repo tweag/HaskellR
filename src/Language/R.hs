@@ -13,7 +13,7 @@ module Language.R
 import Control.Exception ( bracket )
 import Data.ByteString as B
 import Data.IORef ( IORef, newIORef, readIORef )
-import Foreign ( alloca, nullPtr )
+import Foreign ( alloca, nullPtr, peek )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
@@ -66,6 +66,6 @@ parseFile fl f = do
     str <- B.readFile fl
     useAsCString str $ \cstr ->
       protecting (R.mkString cstr) $ \rstr -> do
-        rNil <- R.readSEXPOffPtr R.nilValue 0
+        rNil <- peek R.nilValue
         alloca $ \status ->
           protecting (R.parseVector rstr (-1) status rNil) f
