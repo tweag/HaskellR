@@ -72,7 +72,10 @@ module Foreign.R
   , unprotect
     -- * Globals
   , globalEnv
+  , baseEnv
   , nilValue
+  , unboundValue
+  , missingArg
   , rInteractive
     -- * Communication with runtime
   , printValue
@@ -293,3 +296,12 @@ foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP R.Nil)
 
 -- | Global environment
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP R.Env)
+
+-- | Unbound marker
+foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP R.Symbol)
+
+-- | The base environment; formerly nilValue
+foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP R.Env)
+
+-- | Missing argument marker
+foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP R.Symbol)

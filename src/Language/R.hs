@@ -6,10 +6,14 @@ module Language.R
   ( r1
   , r2
   , parseFile
+  , withProtected
   -- * R global constants
   -- $ghci-bug
   , globalEnv
-  , withProtected
+  , baseEnv
+  , nilValue
+  , unboundValue
+  , missingArg
   ) where
 
 
@@ -25,6 +29,18 @@ import qualified Foreign.R as R
 
 globalEnv :: IORef (R.SEXP R.Env)
 globalEnv = unsafePerformIO $ newIORef nullPtr
+
+baseEnv :: IORef (R.SEXP R.Env)
+baseEnv = unsafePerformIO $ newIORef nullPtr
+
+nilValue :: IORef (R.SEXP R.Nil)
+nilValue = unsafePerformIO $ newIORef nullPtr
+
+unboundValue :: IORef (R.SEXP R.Symbol)
+unboundValue = unsafePerformIO $ newIORef nullPtr
+
+missingArg :: IORef (R.SEXP R.Symbol)
+missingArg = unsafePerformIO $ newIORef nullPtr
 
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
