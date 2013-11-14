@@ -11,6 +11,7 @@
 module H.HExp
   ( HExp(..)
   , hexp
+  , unhexp
   ) where
 
 import H.Constraints
@@ -19,7 +20,7 @@ import qualified Foreign.R.Type as R
 import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
 
 import qualified Data.Vector.Storable as Vector
-import qualified Data.ByteString.Unsafe as BS
+-- import qualified Data.ByteString.Unsafe as BS
 import           Data.ByteString (ByteString)
 
 import Control.Applicative
@@ -27,11 +28,30 @@ import Data.Int (Int32)
 import Data.Word (Word8)
 import Data.Complex
 import GHC.Ptr (Ptr(..), plusPtr)
-import Foreign.ForeignPtr
+import Foreign.ForeignPtr hiding ( unsafeForeignPtrToPtr )
+import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Storable
 import Foreign.C
+import Foreign ( castPtr )
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
+
+newtype SVector a = SVector { unSVector :: Vector.Vector a }
+
+unsafeFromSEXP :: Storable a => SEXP (R.Vector a) -> IO (SVector a)
+unsafeFromSEXP s = do
+    len  <- {#get VECSEXP->vecsxp.length #} s
+    fptr <- castForeignPtr <$> newForeignPtr_ (s `plusPtr` {#sizeof SEXPREC_ALIGN #}) :: IO (ForeignPtr a)
+    return $
+      SVector $ Vector.unsafeFromForeignPtr0
+                       fptr
+                       (fromIntegral len)
+
+extractSEXP :: forall a . Storable a => SVector a -> SEXP (R.Vector a)
+extractSEXP sv = castPtr (unsafeForeignPtrToPtr p)
+  where 
+    v = unSVector sv 
+    (p,_) = Vector.unsafeToForeignPtr0 v
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -90,15 +110,15 @@ data HExp :: SEXPTYPE -> * where
   -- Fields: offset.
   Builtin   :: {-# UNPACK #-} !Int32
             -> HExp R.Builtin
-  Char      :: {-# UNPACK #-} !ByteString
+  Char      :: {-# UNPACK #-} !(SVector Word8)
             -> HExp (R.Vector Word8)
-  Int       :: {-# UNPACK #-} !(Vector.Vector Int32)
+  Int       :: {-# UNPACK #-} !(SVector Int32)
             -> HExp (R.Vector Int32)
-  Real      :: {-# UNPACK #-} !(Vector.Vector Double)
-            -> HExp (R.Vector Int32)
-  Complex   :: {-# UNPACK #-} !(Vector.Vector (Complex Double))
+  Real      :: {-# UNPACK #-} !(SVector Double)
+            -> HExp (R.Vector Double)
+  Complex   :: {-# UNPACK #-} !(SVector (Complex Double))
             -> HExp (R.Vector (Complex Double))
-  String    :: {-# UNPACK #-} !(Vector.Vector (SEXP (R.Vector Word8)))
+  String    :: {-# UNPACK #-} !(SVector (SEXP (R.Vector Word8)))
             -> HExp (R.Vector (SEXP (R.Vector Word8)))
   -- Fields: pairlist of promises.
   DotDotDot :: SEXP R.PairList
@@ -106,7 +126,7 @@ data HExp :: SEXPTYPE -> * where
   Any       :: HExp a
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
+            -> {-# UNPACK #-} !(SVector (SEXP R.Any))
             -> HExp (R.Vector (SEXP R.Any))
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !Int32
@@ -145,7 +165,7 @@ instance (Fractional a, Real a, Storable a) => Storable (Complex a) where
 instance Storable (HExp a) where
   sizeOf _ = {#sizeof SEXPREC #}
   alignment _ = {#alignof SEXPREC #}
-  poke = error "Unimplemented."
+  poke = pokeHExp
   peek = peekHExp
 
 peekHExp :: SEXP a -> IO (HExp a)
@@ -153,20 +173,16 @@ peekHExp s = do
     let coerce :: IO (HExp a) -> IO (HExp b)
         coerce = unsafeCoerce
 
-        vector :: forall a. Storable a => IO (Vector.Vector a)
-        vector = do
-          len <- {#get VECSEXP->vecsxp.length #} s
-          fptr <- castForeignPtr <$> newForeignPtr_ s :: IO (ForeignPtr a)
-          return $ Vector.unsafeFromForeignPtr
-                     fptr
-                     {#sizeof SEXPREC_ALIGN #}
-                     (fromIntegral len)
+        unsafeFromSEXP' :: forall a. Storable a => IO (SVector a)
+        unsafeFromSEXP' = unsafeFromSEXP (unsafeCoerce s)
 
+{- Will be here until we decide if we will use bytestings or vectors
         bytestring :: IO ByteString
         bytestring = do
           len <- {#get VECSEXP->vecsxp.length #} s
           let !(Ptr addr#) = s `plusPtr` {#sizeof SEXPREC_ALIGN #}
           BS.unsafePackAddressLen (fromIntegral len) addr#
+-}
 
     R.typeOf s >>= \case
       R.Nil       -> coerce $ return Nil
@@ -197,10 +213,10 @@ peekHExp s = do
         Special   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
       R.Builtin   -> coerce $
         Builtin   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
-      R.Char      -> coerce $ Char    <$> bytestring
-      R.Int       -> coerce $ Int     <$> vector
-      R.Real      -> coerce $ Real    <$> vector
-      R.Complex   -> coerce $ Complex <$> vector
+      R.Char      -> coerce $ Char    <$> unsafeFromSEXP'
+      R.Int       -> coerce $ Int     <$> unsafeFromSEXP'
+      R.Real      -> coerce $ Real    <$> unsafeFromSEXP'
+      R.Complex   -> coerce $ Complex <$> unsafeFromSEXP'
       R.String    -> coerce $ error "Unimplemented."
       R.DotDotDot -> coerce $ error "Unimplemented."
       R.Any       -> return Any
@@ -213,7 +229,82 @@ peekHExp s = do
       R.S4        -> coerce $ error "Unimplemented."
       _           -> coerce $ error "Unimplemented."
 
+pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
+pokeHExp s h = 
+    let s' = castPtr s
+    in case h of
+         Nil -> return ()
+         Symbol nm vl int -> do
+           {#set SEXP->u.symsxp.pname #} s' (R.unsexp nm)
+           {#set SEXP->u.symsxp.value #} s' (R.unsexp vl)
+           {#set SEXP->u.symsxp.internal #} s' (R.unsexp int)
+         List cr cd tg -> do
+           {#set SEXP->u.listsxp.carval #} s' (R.unsexp cr)
+           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cd)
+           {#set SEXP->u.listsxp.tagval #} s' (R.unsexp tg)
+         Env fr en ht -> do
+           {#set SEXP->u.envsxp.frame #} s' (R.unsexp fr)
+           {#set SEXP->u.envsxp.enclos #} s' (R.unsexp en)
+           {#set SEXP->u.envsxp.hashtab #} s' (R.unsexp ht)
+         Closure fo bo en -> do 
+           {#set SEXP->u.closxp.formals #} s' (R.unsexp fo)
+           {#set SEXP->u.closxp.body #} s' (R.unsexp bo)
+           {#set SEXP->u.closxp.env #} s' (R.unsexp en)
+         Promise vl ex en -> do
+           {#set SEXP->u.promsxp.value #} s' (R.unsexp vl)
+           {#set SEXP->u.promsxp.expr #} s' (R.unsexp ex)
+           {#set SEXP->u.promsxp.env #} s' (R.unsexp en)
+         Lang cr cd -> do
+           {#set SEXP->u.listsxp.carval #} s' (R.unsexp cr)
+           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cd)
+         Special o -> do      
+           {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
+         Builtin o -> do
+           {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
+         Char _vc     -> error "Unimplemented"
+         Int  _vt     -> error "Unimplemented"
+         Real _vt     -> error "Unimplemented"
+         String _vt   -> error "Unimplemented"
+         Complex _vt  -> error "Unimplemented"
+         Vector _v _  -> error "Unimplemented"
+         Bytecode     -> error "Unimplemented"
+         ExtPtr _ _ _ -> error "Unimplemented"
+         WeakRef _ _ _ _ -> error "Unimplemented"
+         Raw     _    -> error "Unimplemented"
+         S4      _    -> error "Unimplemented"
+         DotDotDot _  -> error "Unimplemented"
+         Expr _ _     -> error "Unimplemented"
+         Any          -> return ()
+
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
 hexp :: SEXP a -> HExp a
 hexp = unsafePerformIO . peek
+
+-- | Inverse hexp view to the real structure, note that for scalar types
+-- hexp will allocate new SEXP, and unhexp . hexp is not an identity function.
+-- however for vector types it will return original SEXP.
+unhexp :: HExp a -> IO (SEXP a)
+unhexp   Nil = R.allocSEXP R.Nil
+unhexp s@(Symbol{})  = R.allocSEXP R.Symbol >>= \x -> poke x s >> return x
+unhexp s@(List{})    = R.allocSEXP R.List >>= \x -> poke x s >> return x
+unhexp s@(Env{})     = R.allocSEXP R.Env >>= \x -> poke x s >> return x
+unhexp s@(Closure{}) = R.allocSEXP R.Closure >>= \x -> poke x s >> return x
+unhexp s@(Special{}) = R.allocSEXP R.Special >>= \x -> poke x s >> return x
+unhexp s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
+unhexp s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
+unhexp  (Bytecode{}) = error "Unimplemented"
+unhexp Any         = R.allocSEXP R.Any
+unhexp (Real vt)     = return $ extractSEXP vt
+unhexp (Int vt)      = return $ extractSEXP vt
+unhexp (Complex vt)  = return $ extractSEXP vt
+unhexp (Vector _ vt) = return $ extractSEXP vt
+unhexp (Char vt)     = return $ extractSEXP vt
+unhexp (String vt)   = return $ extractSEXP vt
+unhexp Raw{}        = error "Unimplemented"
+unhexp S4{}         = error "Unimplemented"
+unhexp Expr{}       = error "Unimplemented"
+unhexp WeakRef{}    = error "Unimplemented"
+unhexp DotDotDot{}  = error "Unimplemented"
+unhexp ExtPtr{}     = error "Unimplemented"
+unhexp _ = error "nno"
