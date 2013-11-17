@@ -304,8 +304,21 @@ toSEXP (SEXP s) = s
 toSEXP _ = error "Bad argument."
 
 apply :: HVal -> HVal -> HVal
-apply (SEXP s) x = [r| $s(x) |]
-apply ()
+apply (SEXP s) x = [r| s_hs(x_hs) |]
+apply (Lam f)  x = f x
+
+apply1 :: HVal -> HVal -> HVal
+apply1 (SEXP s) x = [r| s_hs(x_hs) |]
+apply1 (Lam1 f) x = f x
+apply1 (Lam2 f) x = f x R.undefinedValue
+...
+
+apply2 :: HVal -> HVal -> HVal -> HVal
+apply2 (SEXP s) x1 x2 = [r| s_hs(x1_hs, x2_hs) |]
+apply2 (Lam1 f) x1 x2 = error "Too many arguments."
+apply2 (Lam2 f) x1 x2 = f x1 x2
+apply2 (Lam3 f) x1 x2 = f x1 x2 R.undefinedValue
+...
 ```
 
 ### `.Internal()` and `.Primitive()` calls
