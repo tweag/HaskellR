@@ -23,7 +23,7 @@ doc-internals:
 dist/pandoc/H-ints.html: doc/H-ints.md doc/pandoc.css
 	mkdir -p dist/pandoc
 	cp doc/pandoc.css dist/pandoc
-	$(PANDOC) -s -S --toc -c pandoc.css $< -o $@
+	$(PANDOC) -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
 
 doc-internals: dist/pandoc/H-ints.html
 

@@ -4,6 +4,13 @@
 
 <!-- fill-column: 70 -->
 
+\newcommand{\trans}[1]{[\![#1]\!]}
+\newcommand{\fn}[1]{\mathsf{#1}\;}
+\newcommand{\infix}[1]{\;`\mathsf{#1}`\;}
+\newcommand{\kw}[1]{\mathbf{#1}}
+\newcommand{\function}[1]{\kw{function}(#1)\;}
+\newcommand{\hsabs}[1]{\backslash #1\to\;}
+
 Introduction
 ============
 
@@ -161,19 +168,26 @@ Translation from R to Haskell
 
 Grammar:
 
-```
-i,j,k ::= real literals
-x,y,z ::= (local) variables
-f,g,h ::= (function) variables
-M, N  ::= R expressions
-```
+$$
+\begin{align*}
+   i,j,k &::= \mbox{real literals}
+\\ x,y,z &::= \mbox{(local) variables}
+\\ f,g,h &::= \mbox{(function) variables}
+\\ M, N  &::= \mbox{R expressions}
+\end{align*}
+$$
 
-```
-[[ i ]] = SEXP (mkSEXP i)
-[[ M + N ]] = SEXP (rplus (toSEXP M) (toSEXP N))
-[[ function(x1, ..., xn) M ]] = Lam (\x1 ... (Lam \xn -> [[ M ]])...)
-[[ f(M1, ..., Mn) ]] = f `apply` [[ M1 ]] `apply` ... `apply` [[ Mn ]]
-```
+$$
+\begin{align*}
+   \trans i &= \fn{SEXP} (\fn{mkSEXP} i)
+\\ \trans{M(N_1, ..., N_2)} &= \fn{SEXP} (\fn{rplus} (\fn{toSEXP}
+     \trans M) (\fn{toSEXP} \trans N))
+\\ \trans{\function{x_1, ..., x_n} M} &=
+     \fn{Lam} (\hsabs{x_1} ... (\fn{Lam} (\hsabs{x_n} \trans M))...)
+\\ \trans{f(M_1, ..., M_n)} &=
+     f \infix{apply} \trans{M_1} \infix{apply} ... \infix{apply} \trans{M_n}
+\end{align*}
+$$
 
 Where we have that:
 
