@@ -25,6 +25,41 @@ Architectural overview
 R source code is organized as a set of *scripts*. In its simplest
 form, H is a script-to-script translator.
 
+In its most general form, H is a desgurer for quasiquotations.
+A quasi-quotation is a partial R script --- that is, a script with
+holes in it that stand in for as of yet undetermined portions. An
+example quasiquote in Haskell of an R snippet is:
+
+```Haskell
+[r| function(x) x + 1 ]
+```
+
+This quasiquote is *ground*, in that does not contain any holes
+(called *antiquotes*), unlike the below quasiquote:
+
+```Haskell
+let y = mkSEXP 1
+in [r| function(x) x + y_hs ]
+```
+
+Unlike all other symbols, any symbol with a `_hs` prefix is by
+convention interpreted as a reference to a Haskell variable defined
+somewhere in the ambient source code. Given any quasiquote, it is
+possible to obtain a full R script, with no holes in it, by *splicing*
+the value of the Haskell variables into the quasiquote, in place of
+the antiquotes.
+
+Given this general view of H as a desugarer for R quasiquoted
+snippets, translating an entire R script stored in a file into
+Haskell code is a mere special case: an R script file can be seen as
+one giant quasiquote that contains no antiquotes.
+
+Rather than fed directly to R, the result of a quasiquote can
+optionally be *translated*. In this case, R functions are translated
+to Haskell functions, and the symbols they are bound to in the
+embedded R instance are rebound to wrappers that invoke the Haskell
+versions of the functions.
+
 Rationale
 ---------
 
@@ -94,8 +129,13 @@ a *class* and that of a *type*. From the above link:
 Hence what R calls "types" are better thought of as "classes" in the
 above sense. They correspond to *variants* (or *constructors*) of
 a single type in the Haskell sense. R is really a unityped language.
+
 We call the type of all the classes that exist in R the *universe*
 (See [Internal Structures](#internal-structures)).
+
+Because "class" is already an overloaded term in both R and in
+Haskell, in the following we use the term *shape* to refer to what the
+above calls a "class".
 
 [harper-dynamic-static]:
 http://existentialtype.wordpress.com/2011/03/19/dynamic-languages-are-static-languages/
@@ -151,6 +191,12 @@ really do have the right number of elements). The algebraic type
 statically guarantees that no ill-formed type will ever be constructed
 on the Haskell side and passed to R.
 
+We also define an inverse of the view function:
+
+```Haskell
+sexp :: HExp -> SEXP
+```
+
 The universe of values
 ----------------------
 
@@ -160,32 +206,88 @@ datatype:
 ```Haskell
 data HVal
   = SEXP SEXP
-  | Lam (HVal -> HVal)
+  | Lam    (SEXP -> HVal)
+  | Lam1   (HVal -> HVal)
+  | ...
+  | Lam<ARGMAX> (HVal -> ... -> HVal -> HVal)
 ```
+
+Where `ARGMAX` is some small number (e.g. 6). The `Lam*` family of
+constructors is for functions of known arity. Variadic functions or
+functions whose arity exceeds that of the available constructors are
+encoded using the `Lam` constructor, whose function expects an
+argument pairlist, in the style of `.External` foreign functions.
 
 Translation from R to Haskell
 =============================
 
-Grammar:
+We express translations in terms of a simplified grammar of
+R expressions. This grammar corresponds to [R's internal
+representation][R-ints] of all expressions (i.e. `SEXP`), so we do not
+attempt to define it explicitly here. However, for readability, we
+reuse elements of R's surface syntax to denote `SEXP`'s.
+
+There is only one translation function in H. This translation is often
+applied to the value of a quasiquote, so we describe it first.
+
+Naming conventions
+------------------
 
 $$
 \begin{align*}
-   i,j,k &::= \mbox{real literals}
+   i,j,k &::= \mbox{literals}
 \\ x,y,z &::= \mbox{(local) variables}
 \\ f,g,h &::= \mbox{(function) variables}
 \\ M, N  &::= \mbox{R expressions}
+\\ cargs  &::= \mbox{A non simple expression list (e.g. with names and dots)}
 \end{align*}
 $$
 
+We give translation schemas below, where we use an ellipsis ($\ldots$)
+for repetition. But `...` is also a syntactic construct within R. Mind
+the difference in font to disambiguate between the two.
+
+`SEXP` construction
+-------------------
+
+Given an R expression, represented as a `SEXP`, a quasiquote expands
+to the programmatic construction of a SEXP.
+
+Parsing is delegated to a compile-time instance of R. One might wonder
+why the string of a quasiquote is not passed to the runtime instance
+of R, rather than some compile-time instance. The reason is that doing
+so would preclude the ability to do any splicing.
+
+But doing parsing at compile-time means that the AST produced by R's
+parser, being allocated in the compile-time instance of R, is not
+available at runtime. Therefore, a quasiquote expands to Haskell code
+that builds an equivalent AST at runtime, using the view and inverse
+view function defined above.
+
+`HVal` translation
+------------------
+
+All variables in the input are assumed to have be renamed suitably so
+that no variable ever gets assigned a value more than once, i.e. we
+assume input in static single assignent (SSA) form. 
+
+XXX Alternative to SSA: make all local vars IORefs.
+
+XXX Make translation monadic (introduce "R" monad).
+
 $$
 \begin{align*}
-   \trans i &= \fn{SEXP} (\fn{mkSEXP} i)
-\\ \trans{M(N_1, ..., N_2)} &= \fn{SEXP} (\fn{rplus} (\fn{toSEXP}
-     \trans M) (\fn{toSEXP} \trans N))
-\\ \trans{\function{x_1, ..., x_n} M} &=
-     \fn{Lam} (\hsabs{x_1} ... (\fn{Lam} (\hsabs{x_n} \trans M))...)
-\\ \trans{f(M_1, ..., M_n)} &=
-     f \infix{apply} \trans{M_1} \infix{apply} ... \infix{apply} \trans{M_n}
+\\ \trans x &= x
+\\ \trans i &= \fn{SEXP} (\fn{mkSEXP} i)
+\\ \trans{\function{x_1, \ldots, x_n} M} &=
+     \mathsf{Lam}_n\; (\hsabs{x_1 \;\ldots\; x_n} \trans M)
+     &\mbox{if $n \leq \mathsf{ARG_{max}}$}
+%     \fn{Lam} (\hsabs{x_1} \ldots (\fn{Lam}\; (\hsabs{x_n} \trans M))\ldots)
+\\ \trans{\function{cargs} M} &=
+     \fn{Lam} (\hsabs{args} \trans M) & \mbox{where $args$ fresh}
+\\ \trans{M(N_1, \ldots, N_n)} &=
+     \mathsf{apply}_n \;\trans M \;\trans{N_1} \;\ldots\; \trans{N_n}
+%     \trans M \infix{apply} \trans{M_1} \infix{apply} \ldots \infix{apply} \trans{M_n}
 \end{align*}
 $$
 
@@ -202,16 +304,23 @@ toSEXP (SEXP s) = s
 toSEXP _ = error "Bad argument."
 
 apply :: HVal -> HVal -> HVal
+apply (SEXP s) x = [r| $s(x) |]
+apply ()
 ```
 
-Making the translation more compact and efficient
-=================================================
+### `.Internal()` and `.Primitive()` calls
+
+### `.External()` calls
+
+
+Optimizations
+=============
 
 TODO Explain eval/apply optimization.
 
 For all practical purposes, we can typically limit the number of
-function constructors to some small number, say 8, and encode all
-higher arity functions in terms of functions of arity 8 or lower.
+function constructors to some small number, say 6, and encode all
+higher arity functions in terms of functions variable arity.
 
 Note: GHC uses [pointer
 tagging](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/PointerTagging)
@@ -232,5 +341,7 @@ the code for the functions given as the first argument, without having
 to go through the steps of a [generic
 apply](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/FunctionCalls#Genericapply).
 
-H naming conventions
-====================
+H implementation naming conventions
+===================================
+
+[R-ints]: http://cran.r-project.org/doc/manuals/R-ints.html
