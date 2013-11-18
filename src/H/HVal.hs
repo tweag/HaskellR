@@ -4,7 +4,7 @@
 {-# LANGUAGE PolyKinds  #-}
 module H.HVal
   ( HVal
-  , IsSEXP(..)
+  , Literal(..)
   -- * Conversion
   , fromHVal
   , safeFromHVal
@@ -82,17 +82,17 @@ rfrac  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "/" x y
 
 
 -- | Represents a value that can be converted into S Expression
-class IsSEXP a where
+class Literal a where
   mkSEXP :: a -> R.SomeSEXP
 
-instance IsSEXP Double where
+instance Literal Double where
   mkSEXP x = R.SomeSEXP $ unsafePerformIO $ do
     v  <- R.allocVector R.Real 1
     pt <- R.real v
     pokeElemOff pt 0 (fromRational . toRational $ x)
     return v
 
-instance IsSEXP [Double] where
+instance Literal [Double] where
   mkSEXP x = R.SomeSEXP $ unsafePerformIO $ do
       v  <- R.allocVector R.Real l
       pt <- R.real v
@@ -101,3 +101,6 @@ instance IsSEXP [Double] where
       return v
     where
       l = length x
+
+instance Literal String where
+  mkSEXP = R.SomeSEXP . unsafePerformIO . R.mkString
