@@ -24,6 +24,7 @@ import qualified Foreign.R  as R
 import Control.Applicative
 import Control.Monad ( forM_ )
 import Foreign ( castPtr, newForeignPtr_, pokeElemOff )
+import Foreign.C.String ( newCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- Temporary
@@ -107,4 +108,4 @@ instance Literal [Double] (R.Vector Double) where
         l = length x
 
 instance Literal String (R.Vector Word8) where
-  mkSEXP = unsafePerformIO . R.mkString
+  mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
