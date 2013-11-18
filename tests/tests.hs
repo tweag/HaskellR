@@ -46,7 +46,7 @@ invokeH fp = do
     --
     (_, Just outh1, _, _) <- liftIO $ createProcess $ (proc "./dist/build/H/H" ["--ghci",fp])
       { std_out = CreatePipe }
-    (_, Just outh2, _, _) <- liftIO $ createProcess $ (proc "cabal" ["repl","-v0"])
+    (_, Just outh2, _, _) <- liftIO $ createProcess $ (proc "sh" ["tests/ghciH.sh","-v0"])
       { std_out = CreatePipe
       , std_in = UseHandle outh1 }
     liftIO $ T.pack <$> hGetContents outh2
