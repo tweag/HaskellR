@@ -32,7 +32,7 @@ r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
     unsafePerformIO $ 
       useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
-        protecting (R.lang2 f a) (\v -> do
+        withProtected (R.lang2 f a) (\v -> do
           gl <- readIORef globalEnv
           x <- alloca $ \p -> R.tryEval v gl p
           _ <- R.protect x
@@ -44,14 +44,18 @@ r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
     unsafePerformIO $ 
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      protecting (R.lang3 f a b) (\v -> do
+      withProtected (R.lang3 f a b) (\v -> do
         gl <- readIORef globalEnv
         x <- alloca $ \p -> R.tryEval v gl p
         _ <- R.protect x
         return x)
 
-protecting :: IO (R.SEXP a) -> (R.SEXP a -> IO b) -> IO b
-protecting accure =
+-- | Perform an action with resource while protecting it from the garbage
+-- collection.
+withProtected :: IO (R.SEXP a)      -- Action to accure resource
+              -> (R.SEXP a -> IO b) -- Action
+              -> IO b
+withProtected accure =
    bracket (accure >>= \x -> R.protect x >> return x)
            (const (R.unprotect 1))
 
@@ -65,7 +69,7 @@ parseFile :: FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
 parseFile fl f = do
     str <- B.readFile fl
     useAsCString str $ \cstr ->
-      protecting (R.mkString cstr) $ \rstr -> do
+      withProtected (R.mkString cstr) $ \rstr -> do
         rNil <- peek R.nilValue
         alloca $ \status ->
-          protecting (R.parseVector rstr (-1) status rNil) f
+          withProtected (R.parseVector rstr (-1) status rNil) f
