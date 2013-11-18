@@ -29,12 +29,10 @@ library
                        Language.R
                        Language.R.Interpreter
   build-depends:       base >= 4.6 && < 4.7
-                     , async >= 2.0
                      , bytestring >= 0.10
                      , pretty >= 1.1
                      , process >= 1.0
                      , setenv >= 0.1.1
-                     , stm >= 2.4
                      , text >= 0.11
                      , vector >= 0.10
   hs-source-dirs:      src
@@ -51,6 +49,7 @@ library
                        MultiParamTypeClasses
                        StandaloneDeriving
                        TypeOperators
+                       OverloadedStrings
   other-extensions:    CPP
                        ForeignFunctionInterface
   build-tools:         c2hs
@@ -62,8 +61,6 @@ executable H
   build-depends:       base >= 4.6 && < 4.7
                      , cmdargs >= 0.10.5
                      , pretty >= 1.1
-                     , stm >= 2.4
-                     , async >= 2.0
                      , vector >= 0.10
                      , bytestring >= 0.10
                      , H
