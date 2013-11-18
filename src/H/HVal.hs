@@ -2,6 +2,7 @@
 -- Copyright: 2013 (C) Amgen, Inc
 {-# Language ExistentialQuantification #-}
 {-# LANGUAGE PolyKinds  #-}
+{-# LANGUAGE FunctionalDependencies #-}
 module H.HVal
   ( HVal
   , Literal(..)
@@ -28,6 +29,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 -- Temporary
 import qualified Data.Vector.Storable as V
 import Data.List ( intercalate )
+import Data.Word
 
 -- | Runtime universe of R Values
 data HVal = forall a . SEXP (R.SEXP a)
@@ -62,8 +64,9 @@ toHVal x = SEXP x
 --------------------------------------------------------------------------------
 -- Arithmetic subset of H                                                     --
 --------------------------------------------------------------------------------
+{-
 instance Num HVal where
-    fromInteger x = someHVal (mkSEXP (fromInteger x :: Double))
+    fromInteger x = SEXP $ mkSEXP (fromInteger x :: Double)
     a + b = someHVal (rplus  (fromHVal a) (fromHVal b))
     a - b = someHVal (rminus (fromHVal a) (fromHVal b))
     a * b = someHVal (rmult  (fromHVal a) (fromHVal b))
@@ -71,36 +74,37 @@ instance Num HVal where
     signum _ = error "unimplemented."
 
 instance Fractional HVal where
-    fromRational x = someHVal (mkSEXP (fromRational x :: Double))
-    a / b = someHVal (rfrac (fromHVal a) (fromHVal b))
+    fromRational x = SEXP (mkSEXP (fromRational x :: Double))
+    a / b = SEXP (rfrac (fromHVal a) (fromHVal b))
+-}
 
-rplus, rminus, rmult, rfrac :: R.SomeSEXP -> R.SomeSEXP -> R.SomeSEXP
-rplus  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "+" x y
-rminus (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "-" x y
-rmult  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "*" x y
-rfrac  (R.SomeSEXP x) (R.SomeSEXP y) = R.SomeSEXP $ R.r2 "/" x y
+rplus, rminus, rmult, rfrac :: R.SEXP a -> R.SEXP a -> R.SEXP a
+rplus  x y = R.r2 "+" x y
+rminus x y = R.r2 "-" x y
+rmult  x y = R.r2 "*" x y
+rfrac  x y = R.r2 "/" x y
 
 
 -- | Represents a value that can be converted into S Expression
-class Literal a where
-  mkSEXP :: a -> R.SomeSEXP
+class Literal a b | a -> b where
+    mkSEXP :: a -> R.SEXP b
 
-instance Literal Double where
-  mkSEXP x = R.SomeSEXP $ unsafePerformIO $ do
-    v  <- R.allocVector R.Real 1
-    pt <- R.real v
-    pokeElemOff pt 0 (fromRational . toRational $ x)
-    return v
-
-instance Literal [Double] where
-  mkSEXP x = R.SomeSEXP $ unsafePerformIO $ do
-      v  <- R.allocVector R.Real l
+instance Literal Double (R.Vector Double) where
+    mkSEXP x = unsafePerformIO $ do
+      v  <- R.allocVector R.Real 1
       pt <- R.real v
-      forM_ (zip x [0..]) $ \(g,i) -> do
-          pokeElemOff pt i g
+      pokeElemOff pt 0 (fromRational . toRational $ x)
       return v
-    where
-      l = length x
 
-instance Literal String where
-  mkSEXP = R.SomeSEXP . unsafePerformIO . R.mkString
+instance Literal [Double] (R.Vector Double) where
+    mkSEXP x = unsafePerformIO $ do
+        v  <- R.allocVector R.Real l
+        pt <- R.real v
+        forM_ (zip x [0..]) $ \(g,i) -> do
+          pokeElemOff pt i g
+        return v
+      where
+        l = length x
+
+instance Literal String (R.Vector Word8) where
+  mkSEXP = unsafePerformIO . R.mkString

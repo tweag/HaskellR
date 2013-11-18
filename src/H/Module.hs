@@ -58,7 +58,7 @@ prettyGhci rmod =
       else P.text ":m +" <+> P.hsep (map P.text imports))            $$
     P.text "initializeR Nothing"                                     $$
     P.text
-      "writeIORef Language.R.globalEnv . SEXP =<< peek Foreign.R.globalEnv" $$
+      "writeIORef Language.R.globalEnv =<< peek Foreign.R.globalEnv" $$
     P.vcat functions
   where
     imports = modImports rmod
@@ -147,11 +147,11 @@ emit = concatMap go
 translate2ghci :: [RExpr] -> [Doc]
 translate2ghci = concatMap go
   where
-    go (REConst x)    = [P.text "someHVal $" <+> value x]
+    go (REConst x)    = [P.text "toHVal $" <+> value x]
     go (REAssign _ _) = error "translate-ghci: Assign is not implemented yet"
     go (REFun _ _)    = error "translate-ghci: Fun is not implemented yet"
     go (RECall x y)   =
-          [P.text "someHVal $" <+> fun  x y]
+          [P.text "toHVal $" <+> fun  x y]
       --       | rhs == RLang "function"  = [name lhs ++"="++ fun rhs]
 
 name :: RValue -> Doc
