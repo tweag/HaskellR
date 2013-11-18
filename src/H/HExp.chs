@@ -260,7 +260,7 @@ hexp :: SEXP a -> HExp a
 hexp = unsafePerformIO . peek
 
 -- | Inverse hexp view to the real structure, note that for scalar types
--- hexp will allocate new SEXP, and unhexp . hexp is not an identity function.
+-- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
 unhexp :: HExp a -> IO (SEXP a)
 unhexp   Nil = R.allocSEXP R.Nil
