@@ -21,6 +21,7 @@ library
                        H.Module
                        H.Prelude
                        H.Value
+                       Data.Vector.SEXP
                        Foreign.R
                        Foreign.R.Type
                        Foreign.R.Embedded
