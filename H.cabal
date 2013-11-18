@@ -56,7 +56,10 @@ library
   other-extensions:    CPP
                        ForeignFunctionInterface
   build-tools:         c2hs
-  pkgconfig-depends:   libR >= 3.0
+  if os(windows)
+    extra-libraries:   R
+  else
+    pkgconfig-depends: libR >= 3.0
   ghc-options:         -Wall -Werror
 
 executable H
