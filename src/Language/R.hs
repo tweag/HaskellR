@@ -12,12 +12,13 @@ module Language.R
 
 import Control.Exception ( bracket )
 import Data.ByteString as B
+import Data.ByteString.Char8 as C8 ( pack )
 import Data.IORef ( IORef, newIORef, readIORef )
-import Foreign ( alloca, nullPtr, peek )
+import Foreign ( alloca, nullPtr )
+import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
-import qualified Foreign.R.Parse as R
 
 globalEnv :: IORef (R.SEXP R.Env)
 globalEnv = unsafePerformIO $ newIORef nullPtr
@@ -67,9 +68,6 @@ withProtected accure =
 -- This function is not safe to use inside GHCi.
 parseFile :: FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
 parseFile fl f = do
-    str <- B.readFile fl
-    useAsCString str $ \cstr ->
-      withProtected (R.mkString cstr) $ \rstr -> do
-        rNil <- peek R.nilValue
-        alloca $ \status ->
-          withProtected (R.parseVector rstr (-1) status rNil) f
+    withCString fl $ \cfl ->
+      withProtected (R.mkString cfl) $ \rfl ->
+        withProtected (return $ r1 (C8.pack "parse") rfl) f
