@@ -43,7 +43,7 @@ let y = mkSEXP 1
 in [r| function(x) x + y_hs ]
 ```
 
-Unlike all other symbols, any symbol with a `_hs` prefix is by
+Unlike all other symbols, any symbol with a `_hs` suffix is by
 convention interpreted as a reference to a Haskell variable defined
 somewhere in the ambient source code. Given any quasiquote, it is
 possible to obtain a full R script, with no holes in it, by *splicing*
