@@ -110,9 +110,8 @@ data HExp :: SEXPTYPE -> * where
             -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
             -> HExp (R.Vector (SEXP R.Any))
   -- Fields: truelength, content.
-  Expr      :: {-# UNPACK #-} !Int32
-            -> !(Vector.Vector (SEXP R.Any))
-            -> HExp (R.Vector (SEXP R.Any))
+  Expr      :: {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
+            -> HExp R.Expr
   Bytecode  :: HExp a -- XXX
   -- Fields: pointer, protectionValue, tagval
   ExtPtr    :: Ptr a
@@ -195,17 +194,17 @@ peekHExp s = do
       R.Int       -> coerce $ Int     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Real      -> coerce $ Real    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.String    -> coerce $ error "Unimplemented."
-      R.DotDotDot -> coerce $ error "Unimplemented."
+      R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
       R.Any       -> return Any
-      R.Vector _  -> coerce $ error "Unimplemented."
-      R.Expr      -> coerce $ error "Unimplemented."
-      R.Bytecode  -> coerce $ error "Unimplemented."
-      R.ExtPtr    -> coerce $ error "Unimplemented."
-      R.WeakRef   -> coerce $ error "Unimplemented."
-      R.Raw       -> coerce $ error "Unimplemented."
-      R.S4        -> coerce $ error "Unimplemented."
-      _           -> coerce $ error "Unimplemented."
+      R.Vector _  -> coerce $ error "peekHExp: Unimplemented. (Vector)"
+      R.Expr      -> coerce $ Expr    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Bytecode  -> coerce $ error "peekHExp: Unimplemented."
+      R.ExtPtr    -> coerce $ error "peekHExp: Unimplemented."
+      R.WeakRef   -> coerce $ error "peekHExp: Unimplemented."
+      R.Raw       -> coerce $ error "peekHExp: Unimplemented."
+      R.S4        -> coerce $ error "peekHExp: Unimplemented."
+      _           -> coerce $ error "peekHExp: Unimplemented."
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = 
@@ -239,19 +238,19 @@ pokeHExp s h =
            {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
          Builtin o -> do
            {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
-         Char _vc     -> error "Unimplemented"
-         Int  _vt     -> error "Unimplemented"
-         Real _vt     -> error "Unimplemented"
-         String _vt   -> error "Unimplemented"
-         Complex _vt  -> error "Unimplemented"
-         Vector _v _  -> error "Unimplemented"
-         Bytecode     -> error "Unimplemented"
-         ExtPtr _ _ _ -> error "Unimplemented"
-         WeakRef _ _ _ _ -> error "Unimplemented"
-         Raw     _    -> error "Unimplemented"
-         S4      _    -> error "Unimplemented"
-         DotDotDot _  -> error "Unimplemented"
-         Expr _ _     -> error "Unimplemented"
+         Char _vc     -> error "Unimplemented (vector)"
+         Int  _vt     -> error "Unimplemented (vector)"
+         Real _vt     -> error "Unimplemented (vector)"
+         String _vt   -> error "Unimplemented (vector)"
+         Complex _vt  -> error "Unimplemented (vector)"
+         Vector _v _  -> error "Unimplemented (vector)"
+         Bytecode     -> error "Unimplemented."
+         ExtPtr _ _ _ -> error "Unimplemented."
+         WeakRef _ _ _ _ -> error "Unimplemented."
+         Raw     _    -> error "Unimplemented (vector)"
+         S4      _    -> error "Unimplemented."
+         DotDotDot _  -> error "Unimplemented."
+         Expr _      -> error "Unimplemented (vector)"
          Any          -> return ()
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
@@ -262,27 +261,30 @@ hexp = unsafePerformIO . peek
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
-unhexp :: HExp a -> IO (SEXP a)
-unhexp   Nil = R.allocSEXP R.Nil
-unhexp s@(Symbol{})  = R.allocSEXP R.Symbol >>= \x -> poke x s >> return x
-unhexp s@(List{})    = R.allocSEXP R.List >>= \x -> poke x s >> return x
-unhexp s@(Env{})     = R.allocSEXP R.Env >>= \x -> poke x s >> return x
-unhexp s@(Closure{}) = R.allocSEXP R.Closure >>= \x -> poke x s >> return x
-unhexp s@(Special{}) = R.allocSEXP R.Special >>= \x -> poke x s >> return x
-unhexp s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
-unhexp s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
-unhexp  (Bytecode{}) = error "Unimplemented"
-unhexp Any         = R.allocSEXP R.Any
-unhexp (Real vt)     = return $ Vector.toSEXP vt
-unhexp (Int vt)      = return $ Vector.toSEXP vt
-unhexp (Complex vt)  = return $ Vector.toSEXP vt
-unhexp (Vector _ vt) = return $ Vector.toSEXP vt
-unhexp (Char vt)     = return $ Vector.toSEXP vt
-unhexp (String vt)   = return $ Vector.toSEXP vt
-unhexp Raw{}        = error "Unimplemented"
-unhexp S4{}         = error "Unimplemented"
-unhexp Expr{}       = error "Unimplemented"
-unhexp WeakRef{}    = error "Unimplemented"
-unhexp DotDotDot{}  = error "Unimplemented"
-unhexp ExtPtr{}     = error "Unimplemented"
-unhexp _ = error "nno"
+unhexp :: HExp a -> SEXP a
+unhexp = unsafePerformIO . unhexpIO
+  where
+    unhexpIO :: HExp a -> IO (SEXP a)
+    unhexpIO   Nil = R.allocSEXP R.Nil
+    unhexpIO s@(Symbol{})  = R.allocSEXP R.Symbol >>= \x -> poke x s >> return x
+    unhexpIO s@(List{})    = R.allocSEXP R.List >>= \x -> poke x s >> return x
+    unhexpIO s@(Lang{})    = R.allocSEXP R.Lang >>= \x -> poke x s >> return x
+    unhexpIO s@(Env{})     = R.allocSEXP R.Env >>= \x -> poke x s >> return x
+    unhexpIO s@(Closure{}) = R.allocSEXP R.Closure >>= \x -> poke x s >> return x
+    unhexpIO s@(Special{}) = R.allocSEXP R.Special >>= \x -> poke x s >> return x
+    unhexpIO s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
+    unhexpIO s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
+    unhexpIO  (Bytecode{}) = error "Unimplemented."
+    unhexpIO Any         = R.allocSEXP R.Any
+    unhexpIO (Real vt)     = return $ Vector.toSEXP vt
+    unhexpIO (Int vt)      = return $ Vector.toSEXP vt
+    unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
+    unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
+    unhexpIO (Char vt)     = return $ Vector.toSEXP vt
+    unhexpIO (String vt)   = return $ Vector.toSEXP vt
+    unhexpIO Raw{}        = error "Unimplemented."
+    unhexpIO S4{}         = error "Unimplemented."
+    unhexpIO Expr{}       = error "Unimplemented."
+    unhexpIO WeakRef{}    = error "Unimplemented."
+    unhexpIO DotDotDot{}  = error "Unimplemented."
+    unhexpIO ExtPtr{}     = error "Unimplemented."
