@@ -4,12 +4,13 @@
 
 <!-- fill-column: 70 -->
 
-\newcommand{\trans}[1]{[\![#1]\!]}
+\newcommand{\trans}[2]{[\![#1]\!]\;#2}
 \newcommand{\fn}[1]{\mathsf{#1}\;}
 \newcommand{\infix}[1]{\;`\mathsf{#1}`\;}
 \newcommand{\kw}[1]{\mathbf{#1}}
 \newcommand{\function}[1]{\kw{function}(#1)\;}
 \newcommand{\hsabs}[1]{\backslash #1\to\;}
+\newcommand{\refv}[1]{#1^{\mathsf{ref}}}
 
 Introduction
 ============
@@ -267,27 +268,36 @@ view function defined above.
 `HVal` translation
 ------------------
 
-All variables in the input are assumed to have be renamed suitably so
-that no variable ever gets assigned a value more than once, i.e. we
-assume input in static single assignent (SSA) form. 
-
-XXX Alternative to SSA: make all local vars IORefs.
-
-XXX Make translation monadic (introduce "R" monad).
+In general R computations have arbitrary side effects. These include
+I/O, but also mutation of variables. We cannot just assume
+computations to be pure. In Haskell, effectful computations are
+modelled using monads. The translation below targets some abstract
+monad allowing at least all of the same effects as the `IO` monad. In
+practice, we target a concrete monad which we call the `R` monad.
 
 $$
 \begin{align*}
-\\ \trans x &= x
-\\ \trans i &= \fn{SEXP} (\fn{mkSEXP} i)
-\\ \trans{\function{x_1, \ldots, x_n} M} &=
-     \mathsf{Lam}_n\; (\hsabs{x_1 \;\ldots\; x_n} \trans M)
-     &\mbox{if $n \leq \mathsf{ARG_{max}}$}
-%     \fn{Lam} (\hsabs{x_1} \ldots (\fn{Lam}\; (\hsabs{x_n} \trans M))\ldots)
-\\ \trans{\function{cargs} M} &=
-     \fn{Lam} (\hsabs{args} \trans M) & \mbox{where $args$ fresh}
-\\ \trans{M(N_1, \ldots, N_n)} &=
-     \mathsf{apply}_n \;\trans M \;\trans{N_1} \;\ldots\; \trans{N_n}
-%     \trans M \infix{apply} \trans{M_1} \infix{apply} \ldots \infix{apply} \trans{M_n}
+\\ \trans x \rho &= \fn{readIORef} \refv x
+     &\mbox{if $x \in \rho$}
+\\ \trans x \rho &= x
+     &\mbox{otherwise}
+\\ \trans i \rho &= \fn{return} \fn{SEXP} (\fn{mkSEXP} i)
+\\ \trans{\function{x_1, \ldots, x_n} M} \rho &=
+     \fn{return} \mathsf{Lam}_n\; (\hsabs{x_1 \;\ldots\; x_n} \kw{do}
+     &\hskip{-2em}\mbox{if $n \leq \mathsf{ARG_{max}}$}
+\\&\qquad \refv{x_1} \leftarrow \fn{newIORef}{x_1}
+\\&\qquad \qquad\vdots
+\\&\qquad \refv{x_n} \leftarrow \fn{newIORef}{x_n}
+\\&\qquad \trans M (\rho \cup \{x_1,\ldots,x_n\}))
+% \\ \trans{\function{cargs} M} &=
+%      \fn{return} \fn{Lam} (\hsabs{args} \trans M) & \mbox{where $args$ fresh}
+\\ \trans{M(N_1, \ldots, N_n)} \rho &= \kw{do}
+     &\hskip{-7em}\mbox{where $\forall i.\;rator,rand_i$ fresh}
+\\&\qquad rator \leftarrow \trans M \rho
+\\&\qquad rand_1 \leftarrow \trans{N_1} \rho
+\\&\qquad \qquad\vdots
+\\&\qquad rand_n \leftarrow \trans{N_n} \rho
+\\&\qquad \mathsf{apply}_n \; rator \; rand_1 \;\ldots\; rand_n
 \end{align*}
 $$
 
