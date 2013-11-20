@@ -3,6 +3,20 @@ The H compiler
 
 An R-to-Haskell translator and interoperability solution.
 
+Installing
+----------
+
+cabal-install >= 1.16.0.2 is required to build without
+warnings.
+
+Unix
+
+    cabal install
+
+Windows
+
+    cabal install --extra-include-dirs=$R_HOME\include \
+                  --extra-lib-dirs=$R_HOME\bin\x64
 
 Running H
 ---------
@@ -14,7 +28,7 @@ or by calling H as:
     R_HOME=`pkg-config --variable=rhome libR` H
 
 If `R_HOME` is not provided then H will inspect output of
-R RHOME in runtime.
+R -e "cat(R.home())" at runtime.
 
 Running GHCi
 ------------
