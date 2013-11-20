@@ -30,7 +30,7 @@ populateEnv :: IO ()
 populateEnv = do
     mh <- lookupEnv "R_HOME"
     when (mh == Nothing) $
-      setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["RHOME"] "")
+      setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
 initializeR :: Maybe RConfig -> IO ()
 initializeR Nothing =
