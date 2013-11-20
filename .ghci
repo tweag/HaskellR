@@ -1,12 +1,10 @@
+-- Copyright: (C) 2013 Amgen, Inc.
 :set -fno-ghci-sandbox
 :{
 :def initR
      (\_ -> return
-        $    ":m + H.Prelude"
-        ++ "\n:def initR_ \\_ -> initializeR Nothing "
-        ++                   ">> (writeIORef Language.R.globalEnv =<< peek Foreign.R.globalEnv) "
-        ++                   ">> return \"\""
-        ++ "\n:initR_"
-        ++ "\n:undef initR_"
+        $ ":cmd Language.R.Interpreter.initializeR Nothing "
+       ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
+       ++ ">> return \"\""
      )
 :}
