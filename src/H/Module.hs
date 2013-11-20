@@ -52,13 +52,10 @@ prettyModule rmod =
 
 prettyGhci :: RModule -> Doc
 prettyGhci rmod =
-    P.text ":set -fno-ghci-sandbox"                                  $$
+    P.text ":initR"                                                  $$
     (if null imports
       then P.empty
       else P.text ":m +" <+> P.hsep (map P.text imports))            $$
-    P.text "initializeR Nothing"                                     $$
-    P.text
-      "writeIORef Language.R.globalEnv =<< peek Foreign.R.globalEnv" $$
     P.vcat functions
   where
     imports = modImports rmod
