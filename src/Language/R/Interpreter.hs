@@ -12,7 +12,7 @@ import qualified Language.R as LR
 import           Foreign.C.String
 
 import Control.Exception ( bracket )
-import Control.Monad ( forM_, when )
+import Control.Monad ( forM_, when, unless )
 
 import Data.IORef
 
@@ -20,6 +20,7 @@ import Foreign ( poke, peek, pokeElemOff, allocaArray )
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
 import System.SetEnv
+import System.IO.Unsafe ( unsafePerformIO )
 
 data RRequest   = ReqParse FilePath (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
 data RError     = RError
@@ -35,22 +36,29 @@ populateEnv = do
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
+isInitialized :: IORef Bool
+isInitialized = unsafePerformIO $ newIORef False
+
 initializeR :: Maybe RConfig -> IO ()
 initializeR Nothing =
     initializeR (Just $ RConfig Nothing ["--vanilla","--silent","--quiet"])
-initializeR (Just (RConfig nm prm)) = do
-    populateEnv
-    pn <- case nm of
-            Nothing -> getProgName
-            Just x  -> return x
-    -- TODO: it's possible to populate with other options
-    allocaArray (length prm+1) $ \a -> do
-        sv1 <- newCString pn
-        pokeElemOff a 0 sv1
-        forM_ (zip prm [1..]) $ \(v,i) -> do
-            pokeElemOff a i =<< newCString v
-        R.initEmbeddedR (length prm+1) a
-    poke R.rInteractive 0
+initializeR (Just (RConfig nm prm)) = readIORef isInitialized >>= flip unless inner
+  where
+    inner = do
+        populateEnv
+        pn <- case nm of
+                Nothing -> getProgName
+                Just x  -> return x
+        -- TODO: it's possible to populate with other options
+        allocaArray (length prm+1) $ \a -> do
+            sv1 <- newCString pn
+            pokeElemOff a 0 sv1
+            forM_ (zip prm [1..]) $ \(v,i) -> do
+                pokeElemOff a i =<< newCString v
+            R.initEmbeddedR (length prm+1) a
+        poke R.rInteractive 0
+        initializeConstants
+        writeIORef isInitialized True
 
 deinitializeR :: IO ()
 deinitializeR = R.endEmbeddedR 0
