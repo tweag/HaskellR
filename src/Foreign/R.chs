@@ -79,13 +79,16 @@ module Foreign.R
   , rInteractive
     -- * Communication with runtime
   , printValue
+    -- * Debugging
+  , SEXPInfo(..)
+  , peekInfo
   ) where
 
 import {-# SOURCE #-} H.HExp
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)
 
-import Control.Applicative ((<$>))
+import Control.Applicative
 import Data.Complex
 import Foreign
 import Foreign.C
@@ -305,3 +308,38 @@ foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP R.Env)
 
 -- | Missing argument marker
 foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP R.Symbol)
+
+----------------------------------------------------------------------------------
+-- Structure header                                                             --
+----------------------------------------------------------------------------------
+
+-- | Info header for the SEXP data structure.
+data SEXPInfo = SEXPInfo
+      { infoType  :: SEXPTYPE    -- ^ Type of the SEXP.
+      , infoObj   :: Bool        -- ^ Is this an object with a class attribute.
+      , infoNamed :: CUInt       -- ^ Control copying information.
+      , infoGp    :: CUInt       -- ^ General purpose data.
+      , infoMark  :: Bool        -- ^ Mark object as 'in use' in GC.
+      , infoDebug :: Bool        -- ^ Debug marker.
+      , infoTrace :: Bool        -- ^ Trace marker.
+      , infoSpare :: Bool        -- ^ Alignment (not in use).
+      , infoGcGen :: CUInt       -- ^ GC Generation.
+      , infoGcCls :: CUInt       -- ^ GC Class of node.
+      } deriving ( Show )
+
+-- | Read header information for given SEXP structure.
+peekInfo :: SEXP a -> IO SEXPInfo
+peekInfo ts =
+    SEXPInfo
+      <$> (toEnum.fromIntegral <$> {#get SEXP->sxpinfo.type #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.obj #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.named #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gp #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.mark #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.debug #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.trace #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.spare #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gcgen #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gccls #} s)
+  where
+    s = unsexp ts
