@@ -119,6 +119,35 @@ instance Enum SEXPTYPE where
   toEnum (#const FUNSXP)     = Fun
   toEnum _                   = error "Unknown R type."
 
+instance Show SEXPTYPE where
+  show Nil        = "Nil"
+  show Symbol     = "Symbol"
+  show List       = "List"
+  show Closure    = "Closure"
+  show Env        = "Env"
+  show Promise    = "Promise"
+  show Lang       = "Lang"
+  show Special    = "Special"
+  show Builtin    = "Builin"
+  show Char       = "Char"
+  show Long       = "Long"
+  show Int        = "Int"
+  show Real       = "Real"
+  show Complex    = "Complex"
+  show String     = "String"
+  show DotDotDot  = "DotDotDot"
+  show Any        = "Any"
+  show (Vector _) = "Vector"
+  show Expr       = "Expr"
+  show Bytecode   = "Bytecode"
+  show ExtPtr     = "ExtPtr"
+  show WeakRef    = "WeakRef"
+  show Raw        = "Raw"
+  show S4         = "S4"
+  show New        = "New"
+  show Free       = "Free"
+  show Fun        = "Fun"
+
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
 type PairList = List
