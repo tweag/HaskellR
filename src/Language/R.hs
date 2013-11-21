@@ -5,8 +5,10 @@
 module Language.R
   ( r1
   , r2
-  , globalEnv
   , parseFile
+  -- * R global constants
+  -- $ghci-bug
+  , globalEnv
   ) where
 
 
@@ -71,3 +73,11 @@ parseFile fl f = do
     withCString fl $ \cfl ->
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
+
+-- $ghci-bug
+-- The main reason to have all constant be presented as IORef in a global
+-- scope is that peeking variable in ghci doesn't work as excepted an
+-- returns incorrect address. The workaround is to populate all variables
+-- in the ghci session, that is done automatically by calling  :initR.
+--
+-- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
