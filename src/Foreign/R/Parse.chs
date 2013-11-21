@@ -23,9 +23,9 @@ import Foreign.C
 
 -- TODO: use ParseStatus or write a wrapper for parseVector.
 {#fun R_ParseVector as parseVector
-  `(In a (R.Nil :+: R.Vector Word8))'
-  => { unsexp `SEXP (R.Vector Word8)'
+  `(In a (R.Nil :+: R.String))'
+  => { unsexp `SEXP (R.String)'
      , `Int'
      , id `Ptr CInt'
      , unsexp `SEXP a' }
-  -> `SEXP (R.Vector (R.SEXP R.Any))' sexp #}
+  -> `SEXP (R.Expr)' sexp #}
