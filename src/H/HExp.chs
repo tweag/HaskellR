@@ -18,6 +18,7 @@ import H.Constraints
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
+import qualified Language.R     as LR
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
@@ -25,6 +26,7 @@ import           Data.ByteString (ByteString)
 import Control.Applicative
 import Data.Int (Int32)
 import Data.Word (Word8)
+import Data.IORef ( readIORef )
 import Data.Complex
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
@@ -56,12 +58,12 @@ data HExp :: SEXPTYPE -> * where
   -- Fields: pname, value, internal.
   Symbol    :: SEXP (R.Vector Word8)
             -> SEXP a
-            -> SEXP b
+            -> Maybe (SEXP b)
             -> HExp R.Symbol
   -- Fields: carval, cdrval, tagval.
   List      :: SEXP a
-            -> SEXP R.List
-            -> SEXP R.Symbol
+            -> !(Maybe (SEXP R.List))
+            -> !(Maybe (SEXP R.Symbol))
             -> HExp R.List
   -- Fields: frame, enclos, hashtab.
   Env       :: SEXP R.PairList
@@ -166,11 +168,11 @@ peekHExp s = do
       R.Symbol    -> coerce $
         Symbol    <$> (R.sexp <$> {#get SEXP->u.symsxp.pname #} s)
                   <*> (R.sexp <$> {#get SEXP->u.symsxp.value #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.symsxp.internal #} s)
+                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.symsxp.internal #} s))
       R.List      -> coerce $
         List      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
+                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s))
+                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s))
       R.Env       -> coerce $
         Env       <$> (R.sexp <$> {#get SEXP->u.envsxp.frame #} s)
                   <*> (R.sexp <$> {#get SEXP->u.envsxp.enclos #} s)
@@ -190,7 +192,7 @@ peekHExp s = do
         Special   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
       R.Builtin   -> coerce $
         Builtin   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
-      R.Char      -> coerce $ Char    <$> Vector.unsafeFromSEXP (unsafeCoerce s) 
+      R.Char      -> coerce $ Char    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Int       -> coerce $ Int     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Real      -> coerce $ Real    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
@@ -206,24 +208,29 @@ peekHExp s = do
       R.S4        -> coerce $ error "peekHExp: Unimplemented."
       _           -> coerce $ error "peekHExp: Unimplemented."
 
+
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
-pokeHExp s h = 
+pokeHExp s h = do
+    nil <- readIORef LR.nilValue
     let s' = castPtr s
-    in case h of
+    case h of
          Nil -> return ()
          Symbol nm vl int -> do
            {#set SEXP->u.symsxp.pname #} s' (R.unsexp nm)
            {#set SEXP->u.symsxp.value #} s' (R.unsexp vl)
-           {#set SEXP->u.symsxp.internal #} s' (R.unsexp int)
+           maybe ({#set SEXP->u.symsxp.internal#} s' (R.unsexp nil))
+                 ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) int
          List cr cd tg -> do
            {#set SEXP->u.listsxp.carval #} s' (R.unsexp cr)
-           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cd)
-           {#set SEXP->u.listsxp.tagval #} s' (R.unsexp tg)
+           maybe ({#set SEXP->u.listsxp.cdrval#} s' (R.unsexp nil))
+                 ({#set SEXP->u.listsxp.cdrval#} s' . R.unsexp) cd
+           maybe ({#set SEXP->u.listsxp.tagval#} s' (R.unsexp nil))
+                 ({#set SEXP->u.listsxp.tagval#} s' . R.unsexp) tg
          Env fr en ht -> do
            {#set SEXP->u.envsxp.frame #} s' (R.unsexp fr)
            {#set SEXP->u.envsxp.enclos #} s' (R.unsexp en)
            {#set SEXP->u.envsxp.hashtab #} s' (R.unsexp ht)
-         Closure fo bo en -> do 
+         Closure fo bo en -> do
            {#set SEXP->u.closxp.formals #} s' (R.unsexp fo)
            {#set SEXP->u.closxp.body #} s' (R.unsexp bo)
            {#set SEXP->u.closxp.env #} s' (R.unsexp en)
@@ -234,7 +241,7 @@ pokeHExp s h =
          Lang cr cd -> do
            {#set SEXP->u.listsxp.carval #} s' (R.unsexp cr)
            {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cd)
-         Special o -> do      
+         Special o -> do
            {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
          Builtin o -> do
            {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
@@ -288,3 +295,13 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO WeakRef{}    = error "Unimplemented."
     unhexpIO DotDotDot{}  = error "Unimplemented."
     unhexpIO ExtPtr{}     = error "Unimplemented."
+
+-- | Check if SEXP is nill
+maybeNil :: SEXP a
+         -> IO (Maybe (SEXP a))
+maybeNil s = do
+  nil <- readIORef LR.nilValue
+  return $
+    if R.unsexp s == R.unsexp nil
+      then Nothing
+      else Just s
