@@ -12,6 +12,8 @@ module H.HExp
   ( HExp(..)
   , hexp
   , unhexp
+  -- * Low level access
+  , injectList
   ) where
 
 import H.Constraints
@@ -305,3 +307,7 @@ maybeNil s = do
     if R.unsexp s == R.unsexp nil
       then Nothing
       else Just s
+
+-- | Inject object inside list
+injectList :: SEXP R.List -> SEXP a -> IO ()
+injectList s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
