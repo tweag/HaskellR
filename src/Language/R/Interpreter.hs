@@ -8,12 +8,15 @@ module Language.R.Interpreter where
 
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
+import qualified Language.R as LR
 import           Foreign.C.String
 
 import Control.Exception ( bracket )
 import Control.Monad ( forM_, when )
 
-import Foreign ( poke, pokeElemOff, allocaArray )
+import Data.IORef
+
+import Foreign ( poke, peek, pokeElemOff, allocaArray )
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
 import System.SetEnv
@@ -58,3 +61,13 @@ withR :: Maybe RConfig -- ^ R configuration options
       -> IO a
       -> IO a
 withR cfg = bracket (initializeR cfg) (const deinitializeR) . const
+
+-- | Initialize all R constants in haskell.
+--
+-- Required in compiled files due to GHCi linking bug
+initializeConstants :: IO ()
+initializeConstants = do
+    writeIORef LR.globalEnv =<< peek R.globalEnv
+    writeIORef LR.nilValue =<< peek R.nilValue
+    writeIORef LR.unboundValue =<< peek R.unboundValue
+    writeIORef LR.baseEnv =<< peek R.baseEnv
