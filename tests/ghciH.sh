@@ -1,6 +1,6 @@
 #!/bin/sh
 GHCi=ghci
-if [[ -x $(which ghcii.sh) ]]
+if command -v ghcii.sh > /dev/null 2>&1
 then
     GHCi=ghcii.sh
 fi
