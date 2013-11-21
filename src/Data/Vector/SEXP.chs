@@ -3,22 +3,34 @@
 --
 
 {-# Language RankNTypes #-}
-module Data.Vector.SEXP 
+module Data.Vector.SEXP
   ( Vector(..)
   , toSEXP
-  , unsafeFromSEXP 
+  , unsafeFromSEXP
+    -- some reexports
+  , length
+  , head
+  , toList
+  , toString
+  , toByteString
   ) where
 
+import Prelude hiding ( length, head )
 import qualified Foreign.R as R
 import           Foreign.R ( SEXP )
 
+import Control.Arrow ( first )
 import Control.Applicative
 import qualified Data.Vector.Storable as Vector
+import Data.ByteString ( ByteString )
+import qualified Data.ByteString.Unsafe as B
+import Data.Word ( Word8 )
 import Foreign ( plusPtr, castPtr )
 import Foreign.C
 import Foreign.Storable
 import Foreign.ForeignPtr hiding ( unsafeForeignPtrToPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
+import System.IO.Unsafe ( unsafePerformIO )
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -40,5 +52,30 @@ unsafeFromSEXP s = do
 
 toSEXP :: forall a . Storable a => Vector a -> SEXP (R.Vector a)
 toSEXP (Vector v) = castPtr (unsafeForeignPtrToPtr p)
-  where 
+  where
     (p,_) = Vector.unsafeToForeignPtr0 v
+
+length :: (Storable a) => Vector a -> Int
+length = Vector.length . unVector
+
+head :: (Storable a) => Vector a -> a
+head = Vector.head . unVector
+
+toList :: (Storable a) => Vector a -> [a]
+toList = Vector.toList . unVector
+
+toString :: Vector Word8 -> String
+toString v = unsafePerformIO $ peekCString . castPtr
+         . unsafeForeignPtrToPtr . fst
+         . Vector.unsafeToForeignPtr0
+         . unVector $ v
+
+
+toByteString :: Vector Word8 -> ByteString
+toByteString = unsafePerformIO
+             . B.unsafePackCStringLen
+             . first castPtr
+             . first unsafeForeignPtrToPtr
+             . Vector.unsafeToForeignPtr0
+             . unVector
+
