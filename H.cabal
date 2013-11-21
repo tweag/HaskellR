@@ -17,6 +17,7 @@ source-repository head
 
 library
   exposed-modules:     H
+                       H.Inspect
                        H.Constraints
                        H.HExp
                        H.HVal
