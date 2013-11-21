@@ -7,6 +7,11 @@ module Language.R
   , r2
   , parseFile
   , withProtected
+  , symbol
+  , install
+  , string
+  , strings
+  , eval
   -- * R global constants
   -- $ghci-bug
   , globalEnv
@@ -18,10 +23,12 @@ module Language.R
 
 
 import Control.Exception ( bracket )
+import Control.Monad ( (<=<) )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack )
 import Data.IORef ( IORef, newIORef, readIORef )
-import Foreign ( alloca, nullPtr )
+import Data.Word
+import Foreign ( alloca, nullPtr)
 import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
@@ -91,6 +98,27 @@ parseFile fl f = do
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
 
+install :: String -> IO (R.SEXP R.Symbol)
+install str = withCString str (R.protect <=< R.install)
+
+symbol :: String -> IO (R.SEXP R.Symbol)
+symbol str = do
+    gl <- readIORef globalEnv
+    withCString str $ \cstr ->
+      withProtected (R.install cstr) $
+        flip R.findVar gl
+
+string :: String -> IO (R.SEXP (R.Vector Word8))
+string str = withCString str (R.protect <=< R.mkChar)
+
+strings :: String -> IO (R.SEXP (R.String))
+strings str = withCString str (R.protect <=< R.mkString)
+
+eval :: R.SEXP a -> IO (R.SEXP b)
+eval x = do
+    gl <- readIORef globalEnv
+    alloca $ \p -> R.tryEval x gl p
+    
 -- $ghci-bug
 -- The main reason to have all constant be presented as IORef in a global
 -- scope is that peeking variable in ghci doesn't work as excepted an

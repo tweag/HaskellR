@@ -6,6 +6,11 @@ module H.Prelude
   , module H.HVal
   , module Language.R.Interpreter
   , liftR
+  , symbol
+  , string
+  , strings
+  , install
+  , eval
   -- * constants
   , unboundValue
   , globalEnv
@@ -19,12 +24,28 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- Reexported modules.
 import Data.IORef
+import Data.Word
 import Foreign hiding ( unsafePerformIO )
 import H.HVal
 import Language.R.Interpreter
 
 liftR :: (R.SEXP a -> b) -> R.SomeSEXP -> b
 liftR f (R.SomeSEXP x) = f (castPtr x)
+
+symbol :: String -> R.SEXP R.Symbol
+symbol = unsafePerformIO . LR.symbol
+
+install :: String -> R.SEXP R.Symbol
+install = unsafePerformIO . LR.install
+
+string :: String -> R.SEXP (R.Vector Word8)
+string = unsafePerformIO . LR.string
+
+strings :: String -> R.SEXP (R.String)
+strings = unsafePerformIO . LR.strings
+
+eval :: R.SEXP a -> R.SEXP b
+eval = unsafePerformIO . LR.eval
 
 unboundValue :: R.SEXP R.Symbol
 unboundValue = unsafePerformIO $ readIORef LR.unboundValue
