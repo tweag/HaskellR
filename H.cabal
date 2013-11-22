@@ -23,6 +23,9 @@ library
                        H.Module
                        H.Prelude
                        H.Value
+                       H.Internal.Literal
+                       H.Internal.FunWrappers
+                       H.Internal.TH
                        Data.Vector.SEXP
                        Foreign.R
                        Foreign.R.Type
@@ -38,6 +41,7 @@ library
                      , setenv >= 0.1.1
                      , text >= 0.11
                      , vector >= 0.10
+                     , template-haskell
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
