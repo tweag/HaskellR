@@ -1,8 +1,10 @@
 -- |
 -- Copyright: 2013 (C) Amgen, Inc
 {-# Language ExistentialQuantification #-}
-{-# LANGUAGE PolyKinds  #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE PolyKinds  #-}
+{-# LANGUAGE UndecidableInstances #-}
 module H.HVal
   ( HVal
   , Literal(..)
@@ -18,19 +20,17 @@ module H.HVal
   , rfrac
   ) where
 
+import H.Internal.Literal
 import qualified Language.R as R
 import qualified Foreign.R  as R
 
 import Control.Applicative
-import Control.Monad ( forM_ )
-import Foreign ( castPtr, newForeignPtr_, pokeElemOff )
-import Foreign.C.String ( newCString )
+import Foreign ( castPtr , newForeignPtr_ )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- Temporary
 import qualified Data.Vector.Storable as V
 import Data.List ( intercalate )
-import Data.Word
 
 -- | Runtime universe of R Values
 data HVal = forall a . SEXP (R.SEXP a)
@@ -84,28 +84,3 @@ rplus  x y = R.r2 "+" x y
 rminus x y = R.r2 "-" x y
 rmult  x y = R.r2 "*" x y
 rfrac  x y = R.r2 "/" x y
-
-
--- | Represents a value that can be converted into S Expression
-class Literal a b | a -> b where
-    mkSEXP :: a -> R.SEXP b
-
-instance Literal Double (R.Vector Double) where
-    mkSEXP x = unsafePerformIO $ do
-      v  <- R.allocVector R.Real 1
-      pt <- R.real v
-      pokeElemOff pt 0 (fromRational . toRational $ x)
-      return v
-
-instance Literal [Double] (R.Vector Double) where
-    mkSEXP x = unsafePerformIO $ do
-        v  <- R.allocVector R.Real l
-        pt <- R.real v
-        forM_ (zip x [0..]) $ \(g,i) -> do
-          pokeElemOff pt i g
-        return v
-      where
-        l = length x
-
-instance Literal String (R.Vector Word8) where
-  mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x

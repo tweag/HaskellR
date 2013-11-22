@@ -9,6 +9,7 @@ module Language.R
   -- * R global constants
   -- $ghci-bug
   , globalEnv
+  , withProtected
   ) where
 
 
