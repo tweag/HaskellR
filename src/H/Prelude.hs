@@ -1,5 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
+{-# Language ViewPatterns #-}
+{-# Language GADTs #-}
 module H.Prelude
   ( module Data.IORef
   , module Foreign
@@ -19,9 +21,11 @@ module H.Prelude
   ) where
 
 import           H.Prelude.Constants
+import           H.HExp
 import qualified Foreign.R as R
 import qualified Language.R as LR
 import System.IO.Unsafe ( unsafePerformIO )
+import qualified Data.Vector.SEXP as Vector   
 
 -- Reexported modules.
 import Data.IORef
@@ -45,6 +49,9 @@ string = unsafePerformIO . LR.string
 strings :: String -> R.SEXP (R.String)
 strings = unsafePerformIO . LR.strings
 
+-- | Evaluate R expression
 eval :: R.SEXP a -> R.SEXP b
-eval = unsafePerformIO . LR.eval
+eval (hexp -> Expr v) = last . unsafePerformIO $
+    mapM LR.eval (Vector.toList v)
+eval x = unsafePerformIO (LR.eval x)
 
