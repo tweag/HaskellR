@@ -1,3 +1,4 @@
+// Copyright: (C) 2013 Amgen, Inc.
 #ifndef MISSING_R__H
 #define MISSING_R__H
 
