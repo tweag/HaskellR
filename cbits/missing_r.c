@@ -1,3 +1,4 @@
+// Copyright: (C) 2013 Amgen, Inc.
 #include <R.h>
 
 #define USE_RINTERNALS

@@ -1,3 +1,5 @@
+-- |
+-- Copyright: (C) 2013 Amgen, Inc.
 module H.Internal.TH
   ( thWrappers
   , thWrapper
