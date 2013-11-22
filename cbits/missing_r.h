@@ -3,4 +3,8 @@
 
 SEXP * INNER_VECTOR(SEXP);
 
+#include <R_ext/Rdynload.h>
+
+SEXP funPtrToSEXP(DL_FUNC pf);
+
 #endif

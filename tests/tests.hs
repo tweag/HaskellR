@@ -9,6 +9,7 @@ module Main where
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
 import Test.Tasty.Golden.Manage
+import Test.Tasty.HUnit
 
 import System.IO
 import System.Process
@@ -17,8 +18,13 @@ import System.FilePath
 import Control.Monad (guard)
 import Control.Monad.Trans
 import Control.Applicative ((<$>))
+import qualified Data.ByteString.Char8 (pack)
 import           Data.Text (Text)
 import qualified Data.Text    as T
+
+import H.Prelude
+import Language.R
+import Debug.Trace
 
 invokeR :: FilePath -> ValueGetter r Text
 invokeR fp = do
@@ -64,7 +70,7 @@ scriptCase name scriptPath =
              b = T.lines outputH
          -- Continue only if values don't match. If they do, then there's
          -- 'Nothing' to do...
-         guard $ not $ and (zipWith compareValues a b) && length a == length b
+         guard $ not $ and (zipWith compareValues a b) && Prelude.length a == Prelude.length b
          return $ unlines ["Outputs don't match."
                           , "R: "
                           , T.unpack outputR
@@ -88,6 +94,16 @@ scriptCase name scriptPath =
     eqEpsilon :: (Double, Double) -> Bool
     eqEpsilon (a, b) = (a - b < 1e-6) && (a - b > (-1e-6))
 
+unitTests :: TestTree
+unitTests = testGroup "Unit tests"
+  [ testCase "Haskell function from R" $ do
+      initializeR Nothing
+      (("[1] 3.0" @=?) =<<) $
+        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
+          e <- peek H.Prelude.globalEnv
+          withProtected (return $ mkSEXP (\x -> (return $ x+1 :: IO Double))) $
+            \sf -> tryEval (r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
+  ]
 
 integrationTests :: TestTree
 integrationTests = testGroup "Integration tests"
@@ -105,7 +121,7 @@ integrationTests = testGroup "Integration tests"
   ]
 
 tests :: TestTree
-tests = testGroup "Tests" [integrationTests]
+tests = testGroup "Tests" [unitTests, integrationTests]
 
 main :: IO ()
 main = defaultMain tests
