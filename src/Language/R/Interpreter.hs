@@ -22,9 +22,6 @@ import System.Process     ( readProcess )
 import System.SetEnv
 import System.IO.Unsafe ( unsafePerformIO )
 
-data RRequest   = ReqParse FilePath (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO ())
-data RError     = RError
-
 data RConfig = RConfig
        { rProgName :: Maybe String
        , rParams   :: [String]
