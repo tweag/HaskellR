@@ -27,7 +27,8 @@ static inline SEXP Rf_MakeNativeSymbolRef(DL_FUNC f)
     //setAttrib(ref, R_ClassSymbol, klass);
     //UNPROTECT(2);
 
-    return R_MakeExternalPtrFn(f, install("native symbol"), R_NilValue);
+    // TODO: instead of passing NULL, pass R_NilValue but workaround linking bug in ghci.
+    return R_MakeExternalPtrFn(f, install("native symbol"), NULL);
 }
 
 
