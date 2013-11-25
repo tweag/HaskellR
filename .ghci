@@ -2,7 +2,7 @@
 :set -fno-ghci-sandbox
 :set -XQuasiQuotes
 :set -XTemplateHaskell
-:m +H.QQ
+:m +Language.R.Runtime.QQ
 :{
 :def initR
      (\_ -> return
