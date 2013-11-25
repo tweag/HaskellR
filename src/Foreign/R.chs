@@ -341,14 +341,14 @@ foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP R.Symbol)
 data SEXPInfo = SEXPInfo
       { infoType  :: SEXPTYPE    -- ^ Type of the SEXP.
       , infoObj   :: Bool        -- ^ Is this an object with a class attribute.
-      , infoNamed :: CUInt       -- ^ Control copying information.
-      , infoGp    :: CUInt       -- ^ General purpose data.
+      , infoNamed :: Int         -- ^ Control copying information.
+      , infoGp    :: Int         -- ^ General purpose data.
       , infoMark  :: Bool        -- ^ Mark object as 'in use' in GC.
       , infoDebug :: Bool        -- ^ Debug marker.
       , infoTrace :: Bool        -- ^ Trace marker.
       , infoSpare :: Bool        -- ^ Alignment (not in use).
-      , infoGcGen :: CUInt       -- ^ GC Generation.
-      , infoGcCls :: CUInt       -- ^ GC Class of node.
+      , infoGcGen :: Int         -- ^ GC Generation.
+      , infoGcCls :: Int         -- ^ GC Class of node.
       } deriving ( Show )
 
 -- | Read header information for given SEXP structure.

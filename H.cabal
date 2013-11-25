@@ -38,6 +38,7 @@ library
                        Language.R.QQ
                        Language.R.Runtime.QQ
   build-depends:       base >= 4.6 && < 4.7
+                     , aeson >= 0.6
                      , bytestring >= 0.10
                      , pretty >= 1.1
                      , process >= 1.0
