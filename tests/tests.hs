@@ -12,6 +12,7 @@ import Test.Tasty.Golden.Manage
 import Test.Tasty.HUnit
 
 import System.IO
+import qualified System.IO.Strict as Strict (readFile)
 import System.Process
 import System.FilePath
 
@@ -21,6 +22,7 @@ import Control.Applicative ((<$>))
 import qualified Data.ByteString.Char8 (pack)
 import           Data.Text (Text)
 import qualified Data.Text    as T
+import qualified Data.Text.IO as T (readFile)
 
 import H.Prelude
 import Foreign.R
@@ -57,6 +59,10 @@ invokeH fp = do
       { std_out = CreatePipe
       , std_in = UseHandle outh1 }
     liftIO $ T.pack <$> hGetContents outh2
+
+invokeGHCi :: FilePath -> ValueGetter r Text
+invokeGHCi fp = liftIO $ fmap T.pack $
+    Strict.readFile fp >>= readProcess "sh" ["tests/ghciH.sh","-v0"]
 
 scriptCase :: TestName
            -> FilePath
@@ -95,6 +101,24 @@ scriptCase name scriptPath =
     eqEpsilon :: (Double, Double) -> Bool
     eqEpsilon (a, b) = (a - b < 1e-6) && (a - b > (-1e-6))
 
+ghciSession :: TestName -> FilePath -> TestTree
+ghciSession name scriptPath =
+    goldenTest
+      name
+      (liftIO $ T.readFile $ scriptPath ++ ".golden.output")
+      (invokeGHCi scriptPath)
+      (\goldenOutput outputH ->
+         if goldenOutput == outputH then return Nothing
+         else return $ Just $
+           unlines ["Outputs don't match."
+                   , "expected: "
+                   , T.unpack goldenOutput
+                   , "H: "
+                   , T.unpack outputH
+                   ])
+      (const $ return ())
+
+
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "Haskell function from R" $ do
@@ -115,6 +139,8 @@ integrationTests = testGroup "Integration tests"
        "tests" </> "R" </> "arith.R"
   , scriptCase "Simple arithmetic on vectors" $
        "tests" </> "R" </> "arith-vector.R"
+  , ghciSession "qq.ghci" $
+       "tests" </> "ghci" </> "qq.ghci"
   -- , scriptCase "Functions - factorial" $
   --     "tests" </> "R" </> "fact.R"
   -- , scriptCase "Functions - Fibonacci sequence" $
