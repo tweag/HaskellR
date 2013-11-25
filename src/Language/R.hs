@@ -57,7 +57,7 @@ missingArg = unsafePerformIO $ newIORef nullPtr
 -- code in case that we can't construct symbol by other methods.
 r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
-    unsafePerformIO $ 
+    unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
         withProtected (R.lang2 f a) (\v -> do
           gl <- readIORef globalEnv
@@ -69,7 +69,7 @@ r1 fn a =
 -- global environment. See 'r1' for additional comments.
 r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
-    unsafePerformIO $ 
+    unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
       withProtected (R.lang3 f a b) (\v -> do
         gl <- readIORef globalEnv
@@ -89,7 +89,7 @@ withProtected accure =
 -- | Parse file and perform some actions on parsed file.
 --
 -- This function uses continuation because this is an easy way to make
--- operations GC-safe
+-- operations GC-safe.
 --
 -- This function is not safe to use inside GHCi.
 parseFile :: FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
@@ -118,7 +118,7 @@ eval :: R.SEXP a -> IO (R.SEXP b)
 eval x = do
     gl <- readIORef globalEnv
     alloca $ \p -> R.tryEval x gl p
-    
+
 -- $ghci-bug
 -- The main reason to have all constant be presented as IORef in a global
 -- scope is that peeking variable in ghci doesn't work as excepted an

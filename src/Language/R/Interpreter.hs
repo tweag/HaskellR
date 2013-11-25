@@ -65,14 +65,14 @@ deinitializeR = R.endEmbeddedR 0
 
 -- | Initialize R runtime in the main thread and automatically
 -- deinitilize in on exit from the function scope.
-withR :: Maybe RConfig -- ^ R configuration options
+withR :: Maybe RConfig -- ^ R configuration options.
       -> IO a
       -> IO a
 withR cfg = bracket (initializeR cfg) (const deinitializeR) . const
 
 -- | Initialize all R constants in haskell.
 --
--- Required in compiled files due to GHCi linking bug
+-- Required in compiled files due to GHCi linking bug.
 initializeConstants :: IO ()
 initializeConstants = do
     writeIORef LR.globalEnv =<< peek R.globalEnv
