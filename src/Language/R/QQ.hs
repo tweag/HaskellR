@@ -54,13 +54,14 @@ parseExpCompile txt = do
            R.parseVector rtxt (-1) status nil
        let (Expr v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
-     [| vs |]
+     let v = head vs
+     [| v |] -- XXX: fix me allow working with lists
 
 instance Lift (R.SEXP a) where
     -- XXX: it's possible that we may want to create HVal with correct
     --      ForeignPtr that will block SEXP deallocation in R
     lift (hexp -> Nil) = [| unhexp Nil |]
-    lift (hexp -> Real vs) = [| H.mkSEXP $(return . ListE $ map (LitE . DoublePrimL . toRational) (Vector.toList vs)) |]
+    lift (hexp -> Real vs) = [| H.mkSEXP $(return (ListE $ map (\t -> ConE (mkName "GHC.Exts.D#") `AppE` (LitE . DoublePrimL . toRational $ t)) (Vector.toList vs))) |]
     lift h@(hexp -> Lang (hexp -> Symbol (hexp -> Char (Vector.toString -> name))
                                          (hexp -> Special _)
                                          g) ls) =
@@ -81,10 +82,10 @@ instance Lift (R.SEXP a) where
       then
         let hname = take (length name - 3) name
         in [| H.mkSEXP $(varE (mkName hname)) |]
-      else -- [| H.nameded (H.marked (unhexp (Symbol (H.string name) H.unboundValue Nothing))) |] --
-        if name == ""
-        then [| unhexp (Symbol (H.string "") H.unboundValue Nothing) |]
-        else [| H.install name |]
+      else [| {-H.nameded (H.marked-} (unhexp (Symbol (H.string name) H.unboundValue Nothing)){-)-} |] --
+--        if name == ""
+--        then [| unhexp (Symbol (H.string "") H.unboundValue Nothing) |]
+--        else [| H.install name |]
     lift (hexp -> List x mxs mtg) =
       [| unhexp (List $([| x |]) $([|mxs|]) $([|mtg|]))|]
     lift (hexp -> Char (Vector.toString -> value)) =
