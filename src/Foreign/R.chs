@@ -28,6 +28,8 @@ module Foreign.R
   , mkChar
     -- * Node attributes
   , typeOf
+  , setAttribute
+  , getAttribute
     -- * Node accessor functions
     -- ** Lists
   , car
@@ -372,3 +374,13 @@ mark b ts = {#set SEXP->sxpinfo.mark #} (unsexp ts) (if b then 1 else 0)
 
 named :: Int -> SEXP a -> IO ()
 named v ts = {#set SEXP->sxpinfo.named #} (unsexp ts) (fromIntegral v)
+
+-------------------------------------------------------------------------------
+-- Attribute header                                                          --
+-------------------------------------------------------------------------------
+
+getAttribute :: SEXP a -> IO (SEXP b)
+getAttribute s = castPtr <$> ({#get SEXP->attrib #} (unsexp s))
+
+setAttribute :: SEXP a -> SEXP b -> IO ()
+setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
