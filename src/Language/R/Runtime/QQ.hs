@@ -7,15 +7,14 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
 module Language.R.Runtime.QQ
-  ( r
-  ) where
+  where
 
 import qualified H.Prelude as H
 import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
-import Language.R ( nilValue {-, unboundValue-} )
+import Language.R ( nilValue, withProtected )
 
 import Data.List ( isSuffixOf )
 import Data.IORef ( readIORef )
@@ -58,13 +57,13 @@ parseExpRuntime txt = do
      let l = RuntimeSEXP ex
      case attachHs ex of
          [] -> [| unRuntimeSEXP l |]
-         x  -> [| unsafePerformIO $ $(gather x) >> return (unRuntimeSEXP l) |]
+         x  -> [| unsafePerformIO $(gather x l) |]
   where
-    gather :: [ExpQ] -> Q Exp
-    gather eps = doE $ map noBindS eps
+    gather :: [ExpQ -> ExpQ] -> (RuntimeSEXP a) -> ExpQ
+    gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 -- | Generate code to attach haskell symbols to SEXP structure.
-attachHs :: R.SEXP a -> [Q Exp]
+attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
 attachHs (hexp -> Lang x@(hexp -> Lang{}) ls) =
   attachHs x ++ attachHs ls
 attachHs (hexp -> Lang x@(hexp -> List{}) ls) =
@@ -80,13 +79,14 @@ attachHs h@(hexp -> List x@(hexp -> Symbol{}) tl _) =
       Nothing -> maybe [] attachHs tl
 attachHs _ = []
 
-attachList :: R.SEXP R.List -> R.SEXP b -> Maybe (Q Exp)
+attachList :: R.SEXP R.List -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
 attachList s@(hexp -> List _ tl tg) (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
     then 
       let hname = take (length name - 3) name
           rs = RuntimeSEXP s
-      in Just ([| injectList (unRuntimeSEXP rs) (H.mkSEXP $(varE (mkName hname))) |])
+      in Just (\e ->
+                    [| withProtected (return $ H.mkSEXP $(varE (mkName hname))) $ \l -> injectList (unRuntimeSEXP rs) l >> $e |])
     else Nothing
 attachList _ _ = Nothing
 
