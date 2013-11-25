@@ -35,6 +35,7 @@ library
                        Foreign.R.Parse
                        Language.R
                        Language.R.Interpreter
+                       Language.R.Runtime.QQ
   build-depends:       base >= 4.6 && < 4.7
                      , bytestring >= 0.10
                      , pretty >= 1.1
