@@ -28,7 +28,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 -- | Represents a value that can be converted into S Expression
 class Literal a b | a -> b where
     mkSEXP :: a -> R.SEXP b
-    fromSEXP :: R.SEXP b -> a
+    fromSEXP :: R.SEXP c -> a
 
 instance Literal Double (R.Vector Double) where
     mkSEXP x = unsafePerformIO $ do
@@ -40,6 +40,7 @@ instance Literal Double (R.Vector Double) where
     fromSEXP s =
       case hexp s of
         Real (SVector.Vector v) | V.length v == 1 -> v V.! 0
+        Int  (SVector.Vector v) | V.length v == 1 -> fromIntegral (v V.! 0)
         _ -> error "Double expected where some other expression appeared."
 
 instance Literal [Double] (R.Vector Double) where
@@ -51,11 +52,15 @@ instance Literal [Double] (R.Vector Double) where
         return v
       where
         l = length x
-
     fromSEXP s =
       case hexp s of
         Real (SVector.Vector v) -> V.toList v
+        Int  (SVector.Vector v) -> map fromIntegral $ V.toList v
         _ -> error "[Double] expected where some other expression appeared."
+
+instance Literal (R.SEXP a) b where
+    mkSEXP = R.sexp . R.unsexp
+    fromSEXP = R.sexp . R.unsexp
 
 instance Literal String (R.String) where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
