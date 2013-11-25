@@ -11,7 +11,8 @@ module H.Inspect
   where
 
 import H.HExp
-import qualified H.Prelude as H
+import H.Prelude.Constants as H
+import Foreign.Storable
 import qualified Foreign.R as R
 import qualified Data.Vector.SEXP as Vector
 import System.IO.Unsafe ( unsafePerformIO )
@@ -52,7 +53,7 @@ instance ToJSON (R.SEXP a) where
         , tp .= go x
         ]
     where
-      vector :: (ToJSON a,H.Storable a) => Vector.Vector a -> V.Vector Value
+      vector :: (ToJSON a,Storable a) => Vector.Vector a -> V.Vector Value
       vector = V.fromList . map toJSON . Vector.toList -- XXX: do not use lists
       ub = R.unsexp H.unboundValue
       nil = R.unsexp H.nilValue

@@ -23,6 +23,7 @@ library
                        H.HVal
                        H.Module
                        H.Prelude
+                       H.Prelude.Constants
                        H.Value
                        H.Internal.Literal
                        H.Internal.FunWrappers
