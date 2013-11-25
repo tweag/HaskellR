@@ -54,6 +54,7 @@ parseExpRuntime txt = do
                       R.parseVector rtxt (-1) status nil
              -- XXX: Support multiple expressions
              exs `R.indexExpr` 0
+
      let l = RuntimeSEXP ex
      case attachHs ex of
          [] -> [| unRuntimeSEXP l |]
@@ -64,6 +65,10 @@ parseExpRuntime txt = do
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [Q Exp]
+attachHs (hexp -> Lang x@(hexp -> Lang{}) ls) =
+  attachHs x ++ attachHs ls
+attachHs (hexp -> Lang x@(hexp -> List{}) ls) =
+  attachHs x ++ attachHs ls
 attachHs (hexp -> Lang _ ls) = attachHs ls
 attachHs (hexp -> List x@(hexp -> Lang{}) tl _) =
   attachHs x ++ (maybe [] attachHs tl)
