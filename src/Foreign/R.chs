@@ -25,6 +25,7 @@ module Foreign.R
   , allocVector
   , install
   , mkString
+  , mkChar
     -- * Node attributes
   , typeOf
     -- * Node accessor functions
@@ -52,6 +53,7 @@ module Foreign.R
   , length
   , trueLength
   , index
+  , indexExpr
   , char
   , real
   , integer
@@ -67,22 +69,31 @@ module Foreign.R
   , lang2
   , lang3
   , findFun
+  , findVar
     -- * GC functions
   , protect
   , unprotect
     -- * Globals
   , globalEnv
+  , baseEnv
   , nilValue
+  , unboundValue
+  , missingArg
   , rInteractive
     -- * Communication with runtime
   , printValue
+    -- * Low level info header access
+  , SEXPInfo(..)
+  , peekInfo
+  , mark
+  , named
   ) where
 
 import {-# SOURCE #-} H.HExp
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)
 
-import Control.Applicative ((<$>))
+import Control.Applicative
 import Data.Complex
 import Foreign
 import Foreign.C
@@ -147,7 +158,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 {# fun TAG as tag { unsexp `SEXP a' } -> `SEXP b' sexp #}  --- XXX: add better constraint
 
 --------------------------------------------------------------------------------
--- Environment functions                                                  --
+-- Environment functions                                                      --
 --------------------------------------------------------------------------------
 
 {# fun FRAME as envFrame { unsexp `SEXP R.Env' } -> `SEXP a' sexp #}
@@ -157,7 +168,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 {# fun HASHTAB as envHashtab { unsexp `SEXP R.Env' } -> `SEXP a' sexp #}
 
 --------------------------------------------------------------------------------
--- Closure functions                                                  --
+-- Closure functions                                                          --
 --------------------------------------------------------------------------------
 
 {# fun FORMALS as closureFormals { unsexp `SEXP R.Closure' } -> `SEXP a' sexp #}
@@ -165,7 +176,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 {# fun CLOENV as closureEnv { unsexp `SEXP R.Closure' } -> `SEXP R.Env' sexp #}
 
 --------------------------------------------------------------------------------
--- Promise functions                                                  --
+-- Promise functions                                                          --
 --------------------------------------------------------------------------------
 {# fun PRCODE as promiseCode { unsexp `SEXP R.Promise'} -> `SEXP a' sexp #}
 {# fun PRENV as promiseEnv { unsexp `SEXP R.Promise'} -> `SEXP a' sexp #}
@@ -182,36 +193,44 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | A vector element.
 {#fun VECTOR_ELT as index { unsexp `SEXP (R.Vector (SEXP a))', `Int'} -> `SEXP a' sexp #}
 
--- | Read True Length vector field
+-- | Expression element.
+{# fun VECTOR_ELT as indexExpr { unsexp `SEXP R.Expr', `Int'} -> `SEXP a' sexp #}
+
+-- | Read True Length vector field.
 {#fun TRUELENGTH as trueLength { unsexp `SEXP (R.Vector a)' } -> `CInt' id #}
 
 -- | Read character vector data
 {#fun R_CHAR as char { unsexp `SEXP (R.Vector Word8)' } -> `CString' id #}
--- XXX: check if we really need Word8 here, maybe some better handling of endoding
+-- XXX: check if we really need Word8 here, maybe some better handling of 
+-- encoding
 
--- | Read real vector data
+-- | Read real vector data.
 {#fun REAL as real { unsexp `SEXP (R.Vector Double)' } -> `Ptr Double' castPtr #}
 
--- | Read integer vector data
+-- | Read integer vector data.
 {#fun INTEGER as integer { unsexp `SEXP (R.Vector Int32)' } -> `Ptr CInt' id #}
 
--- | Read raw data
+-- | Read raw data.
 {#fun RAW as raw { unsexp `SEXP (R.Vector Word8)' } -> `Ptr CChar' castPtr #}
 
--- | Read logical vector data
+-- | Read logical vector data.
 {#fun LOGICAL as logical { unsexp `SEXP (R.Vector Bool)' } -> `Ptr CInt' id #}
 
--- | Read complex vector data
-{#fun COMPLEX as complex { unsexp `SEXP (R.Vector (Complex Double))' } -> `Ptr (Complex Double)' castPtr #}
+-- | Read complex vector data.
+{#fun COMPLEX as complex { unsexp `SEXP (R.Vector (Complex Double))' }
+      -> `Ptr (Complex Double)' castPtr #}
 
--- | Read string vector data
-{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'} -> `Ptr (SEXP (R.Vector Word8))' castPtr #}
+-- | Read string vector data.
+{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'} 
+      -> `Ptr (SEXP (R.Vector Word8))' castPtr #}
 
--- | Read any SEXP vector data
-{#fun INNER_VECTOR as vector { unsexp `SEXP (R.Vector (SEXP R.Any))'} -> `Ptr (SEXP R.Any)' castPtr #}
+-- | Read any SEXP vector data.
+{#fun INNER_VECTOR as vector { unsexp `SEXP (R.Vector (SEXP R.Any))'}
+      -> `Ptr (SEXP R.Any)' castPtr #}
 
 -- | Read expression vector data
-{#fun INNER_VECTOR as expression { unsexp `SEXP (R.Vector (SEXP R.Expr))'} -> `Ptr (SEXP R.Expr)' castPtr #}
+{#fun INNER_VECTOR as expression { unsexp `SEXP (R.Vector (SEXP R.Expr))'}
+      -> `Ptr (SEXP R.Expr)' castPtr #}
 
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
@@ -235,18 +254,24 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 --------------------------------------------------------------------------------
 
 -- | Create a String value inside R runtime.
-{#fun Rf_mkString as mkString { id `CString' } -> `SEXP (R.Vector Word8)' sexp #}
+{#fun Rf_mkString as mkString { id `CString' } -> `SEXP (R.String)' sexp #}
 
--- | Create symbol by string name
+
+{#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP (R.Vector Word8)' sexp #}
+
+-- | Probe the symbol table
+--
+-- If "name" is not found, it is installed in the symbol table.
+-- The symbol corresponding to the string "name" is returned.
 {#fun Rf_install as install { id `CString' } -> `SEXP R.Symbol' sexp #}
 
--- | Allocate SEXP
+-- | Allocate SEXP.
 {#fun Rf_allocSExp as allocSEXP { cUIntFromEnum `SEXPTYPE' } -> `SEXP a' sexp #}
 
--- | Allocate List
+-- | Allocate List.
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
 
--- | Allocate Vector
+-- | Allocate Vecto.r
 {#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' sexp #}
 
 {#fun Rf_PrintValue as printValue { unsexp `SEXP a'} -> `()' #}
@@ -264,25 +289,28 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- Evaluation                                                                 --
 --------------------------------------------------------------------------------
 
--- | evaluate expression
+-- | Evaluate expression.
 {#fun R_tryEval as tryEval { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' sexp #}
 
--- | construct 1 arity expression
+-- | Construct 1 arity expression.
 {#fun Rf_lang1 as lang1 { unsexp `SEXP a'} -> `SEXP R.Lang' sexp #}
 
--- | construct 1 arity expression
+-- | Construct 2 arity expression.
 {#fun Rf_lang2 as lang2 { unsexp `SEXP a', unsexp `SEXP b'} -> `SEXP R.Lang' sexp #}
 
--- | construct 1 arity expression
+-- | Construct 3 arity expression.
 {#fun Rf_lang3 as lang3 { unsexp `SEXP a', unsexp `SEXP b', unsexp `SEXP c'} -> `SEXP R.Lang' sexp #}
 
--- |  find function by name
+-- | Find function by name.
 {#fun Rf_findFun as findFun { unsexp `SEXP a', unsexp `SEXP R.Env'} -> `SEXP c' sexp #}
+
+-- | Find variable by name.
+{#fun Rf_findVar as findVar { unsexp `SEXP a', unsexp `SEXP R.Env'} -> `SEXP R.Symbol' sexp #}
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
 
--- | Interacive console swith, to set it one should use
+-- | Interacive console swith, to set it one should use.
 -- @
 -- poke rInteractive 1
 -- @
@@ -291,5 +319,56 @@ foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
 -- | Global nil value.
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP R.Nil)
 
--- | Global environment
+-- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP R.Env)
+
+-- | Unbound marker.
+foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP R.Symbol)
+
+-- | The base environment; formerly nilValue.
+foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP R.Env)
+
+-- | Missing argument marker.
+foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP R.Symbol)
+
+----------------------------------------------------------------------------------
+-- Structure header                                                             --
+----------------------------------------------------------------------------------
+
+-- | Info header for the SEXP data structure.
+data SEXPInfo = SEXPInfo
+      { infoType  :: SEXPTYPE    -- ^ Type of the SEXP.
+      , infoObj   :: Bool        -- ^ Is this an object with a class attribute.
+      , infoNamed :: CUInt       -- ^ Control copying information.
+      , infoGp    :: CUInt       -- ^ General purpose data.
+      , infoMark  :: Bool        -- ^ Mark object as 'in use' in GC.
+      , infoDebug :: Bool        -- ^ Debug marker.
+      , infoTrace :: Bool        -- ^ Trace marker.
+      , infoSpare :: Bool        -- ^ Alignment (not in use).
+      , infoGcGen :: CUInt       -- ^ GC Generation.
+      , infoGcCls :: CUInt       -- ^ GC Class of node.
+      } deriving ( Show )
+
+-- | Read header information for given SEXP structure.
+peekInfo :: SEXP a -> IO SEXPInfo
+peekInfo ts =
+    SEXPInfo
+      <$> (toEnum.fromIntegral <$> {#get SEXP->sxpinfo.type #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.obj #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.named #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gp #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.mark #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.debug #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.trace #} s)
+      <*> ((/=0)               <$> {#get SEXP->sxpinfo.spare #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gcgen #} s)
+      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gccls #} s)
+  where
+    s = unsexp ts
+
+-- | Set GC mark.
+mark :: Bool -> SEXP a -> IO ()
+mark b ts = {#set SEXP->sxpinfo.mark #} (unsexp ts) (if b then 1 else 0)
+
+named :: Int -> SEXP a -> IO ()
+named v ts = {#set SEXP->sxpinfo.named #} (unsexp ts) (fromIntegral v)

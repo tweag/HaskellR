@@ -23,6 +23,7 @@ import           Data.Text (Text)
 import qualified Data.Text    as T
 
 import H.Prelude
+import Foreign.R
 import Language.R
 import Debug.Trace
 
@@ -100,7 +101,7 @@ unitTests = testGroup "Unit tests"
       initializeR Nothing
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
-          e <- peek H.Prelude.globalEnv
+          e <- peek Foreign.R.globalEnv
           withProtected (return $ mkSEXP (\x -> (return $ x+1 :: IO Double))) $
             \sf -> tryEval (r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
   ]

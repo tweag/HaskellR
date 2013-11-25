@@ -6,18 +6,29 @@ module Language.R
   ( r1
   , r2
   , parseFile
+  , withProtected
+  , symbol
+  , install
+  , string
+  , strings
+  , eval
   -- * R global constants
   -- $ghci-bug
   , globalEnv
-  , withProtected
+  , baseEnv
+  , nilValue
+  , unboundValue
+  , missingArg
   ) where
 
 
 import Control.Exception ( bracket )
+import Control.Monad ( (<=<) )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack )
 import Data.IORef ( IORef, newIORef, readIORef )
-import Foreign ( alloca, nullPtr )
+import Data.Word
+import Foreign ( alloca, nullPtr)
 import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
@@ -25,6 +36,18 @@ import qualified Foreign.R as R
 
 globalEnv :: IORef (R.SEXP R.Env)
 globalEnv = unsafePerformIO $ newIORef nullPtr
+
+baseEnv :: IORef (R.SEXP R.Env)
+baseEnv = unsafePerformIO $ newIORef nullPtr
+
+nilValue :: IORef (R.SEXP R.Nil)
+nilValue = unsafePerformIO $ newIORef nullPtr
+
+unboundValue :: IORef (R.SEXP R.Symbol)
+unboundValue = unsafePerformIO $ newIORef nullPtr
+
+missingArg :: IORef (R.SEXP R.Symbol)
+missingArg = unsafePerformIO $ newIORef nullPtr
 
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
@@ -34,7 +57,7 @@ globalEnv = unsafePerformIO $ newIORef nullPtr
 -- code in case that we can't construct symbol by other methods.
 r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
-    unsafePerformIO $ 
+    unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
         withProtected (R.lang2 f a) (\v -> do
           gl <- readIORef globalEnv
@@ -46,7 +69,7 @@ r1 fn a =
 -- global environment. See 'r1' for additional comments.
 r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
-    unsafePerformIO $ 
+    unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
       withProtected (R.lang3 f a b) (\v -> do
         gl <- readIORef globalEnv
@@ -66,7 +89,7 @@ withProtected accure =
 -- | Parse file and perform some actions on parsed file.
 --
 -- This function uses continuation because this is an easy way to make
--- operations GC-safe
+-- operations GC-safe.
 --
 -- This function is not safe to use inside GHCi.
 parseFile :: FilePath -> (R.SEXP (R.Vector (R.SEXP R.Any)) -> IO a) -> IO a
@@ -74,6 +97,27 @@ parseFile fl f = do
     withCString fl $ \cfl ->
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
+
+install :: String -> IO (R.SEXP R.Symbol)
+install str = withCString str (R.protect <=< R.install)
+
+symbol :: String -> IO (R.SEXP R.Symbol)
+symbol str = do
+    gl <- readIORef globalEnv
+    withCString str $ \cstr ->
+      withProtected (R.install cstr) $
+        flip R.findVar gl
+
+string :: String -> IO (R.SEXP (R.Vector Word8))
+string str = withCString str (R.protect <=< R.mkChar)
+
+strings :: String -> IO (R.SEXP (R.String))
+strings str = withCString str (R.protect <=< R.mkString)
+
+eval :: R.SEXP a -> IO (R.SEXP b)
+eval x = do
+    gl <- readIORef globalEnv
+    alloca $ \p -> R.tryEval x gl p
 
 -- $ghci-bug
 -- The main reason to have all constant be presented as IORef in a global

@@ -1,10 +1,18 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 :set -fno-ghci-sandbox
+:set -XQuasiQuotes
+:set -XTemplateHaskell
+:m +H.QQ
 :{
 :def initR
      (\_ -> return
         $ ":cmd Language.R.Interpreter.initializeR Nothing "
        ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
+       ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
+       ++ ">> (Data.IORef.writeIORef Language.R.nilValue =<< Foreign.peek Foreign.R.nilValue) "
+       ++ ">> (Data.IORef.writeIORef Language.R.unboundValue =<< Foreign.peek Foreign.R.unboundValue) "
+       ++ ">> (Data.IORef.writeIORef Language.R.baseEnv =<< Foreign.peek Foreign.R.baseEnv) "
+       ++ ">> (Foreign.poke Foreign.R.rInteractive 0) "
        ++ ">> return \"\""
      )
 :}

@@ -17,6 +17,7 @@ source-repository head
 
 library
   exposed-modules:     H
+                       H.Inspect
                        H.Constraints
                        H.HExp
                        H.HVal
@@ -34,6 +35,8 @@ library
                        Foreign.R.Parse
                        Language.R
                        Language.R.Interpreter
+                       Language.R.QQ
+                       Language.R.Runtime.QQ
   build-depends:       base >= 4.6 && < 4.7
                      , bytestring >= 0.10
                      , pretty >= 1.1

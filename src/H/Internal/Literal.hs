@@ -4,6 +4,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# Language GADTs #-}
 {-# Language TemplateHaskell #-}
+{-# Language ViewPatterns #-}
 module H.Internal.Literal
   ( Literal(..)
   , HFunWrap(..)
@@ -11,13 +12,12 @@ module H.Internal.Literal
     -- * wrapper helpers
   ) where
 
-import           H.HExp
+import           H.HExp as HExp
 import           H.Internal.FunWrappers
 import           H.Internal.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
 
-import           Data.Word
 import qualified Data.Vector.Storable as V
 import Control.Monad ( forM_ )
 import Foreign          ( FunPtr, castFunPtr, castPtr )
@@ -57,13 +57,9 @@ instance Literal [Double] (R.Vector Double) where
         Real (SVector.Vector v) -> V.toList v
         _ -> error "[Double] expected where some other expression appeared."
 
-instance Literal String (R.Vector Word8) where
+instance Literal String (R.String) where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
-
-    fromSEXP s =
-      case hexp s of
-        Char (SVector.Vector v) -> map (toEnum . fromEnum) $  V.toList v
-        _ -> error "String expected where some other expression appeared."
+    fromSEXP  = error "Unimplemented. fromSEXP (String)"
 
 instance Literal a b => Literal (IO a) R.ExtPtr where
     mkSEXP = funToSEXP wrap0
