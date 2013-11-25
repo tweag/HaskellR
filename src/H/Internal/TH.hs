@@ -10,11 +10,11 @@ module H.Internal.TH
 import Language.Haskell.TH
 
 
--- | Generate wrappers from n to m
+-- | Generate wrappers from n to m.
 thWrappers :: Int -> Int -> DecsQ
 thWrappers n m = mapM thWrapper [n..m]
 
--- | Generate wrapper
+-- | Generate wrapper.
 --
 -- Example for input 5:
 --
@@ -32,36 +32,36 @@ thWrapper :: Int -> DecQ
 thWrapper n = do
     forImpD cCall safe "wrapper" (mkName $ "wrap"++show n) $
       forallT (map PlainTV vars) (cxt []) $
-        (appT arrowT (go vars))  `appT` 
+        (appT arrowT (go vars))  `appT`
         ( conT (mkName "IO") `appT` (conT (mkName "FunPtr") `appT` (go vars)))
   where
     vars :: [Name]
     vars = take (n+1) $ map (mkName.return) ['a'..]
     go :: [Name] -> TypeQ
     go [] = error "thWrapper: impossible happened"
-    go [x] = 
+    go [x] =
       conT (mkName "IO") `appT` (conT (mkName "R.SEXP") `appT` (varT x))
-    go (x:xs) = 
+    go (x:xs) =
       (appT arrowT (conT (mkName "R.SEXP") `appT` (varT x)))
         `appT` (go xs)
 
 thWrapperLiterals :: Int -> Int -> DecsQ
 thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 
--- | Generate Literal Instance for wrapper
--- 
--- Example for input 6
+-- | Generate Literal Instance for wrapper.
+--
+-- Example for input 6:
 -- @
 -- instance ( Literal a a0, Literal b b0, Literal c c0, Literal d d0, Literal e e0
 --         , Literal f f0, Literal g g0
 --         )
 --         => Literal (a -> b -> c -> d -> e -> f -> IO g) R.ExtPtr where
 --    mkSEXP = funToSEXP wrap6
---    fromSEXP = error \"Unimplemented. fromSEXP (a -> b -> c -> d -> e -> f -> IO g)\"
+--    fromSEXP = error \"Unimplemented.\"
 -- @
 thWrapperLiteral :: Int -> DecQ
 thWrapperLiteral n = instanceD ctx typ funs
-  where 
+  where
     vars :: [Name]
     vars = take (n+1) $ map (mkName.return) ['a'..]
     vars0 :: [Name]

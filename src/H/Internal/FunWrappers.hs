@@ -5,7 +5,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TemplateHaskell #-}
 module H.Internal.FunWrappers
-  ( wrap0 
+  ( wrap0
   , wrap1
   , wrap2
   , wrap3
