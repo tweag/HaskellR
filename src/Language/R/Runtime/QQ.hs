@@ -57,8 +57,9 @@ parseExpRuntime txt = do
 
      let l = RuntimeSEXP ex
      case attachHs ex of
-         [] -> [| unRuntimeSEXP l |]
-         x  -> [| unsafePerformIO $ $(gather x) >> return (unRuntimeSEXP l) |]
+         [] -> [| H.eval (unRuntimeSEXP l) |]
+         x  -> [| unsafePerformIO $ $(gather x) >>
+                  return (H.eval $ unRuntimeSEXP l) |]
   where
     gather :: [ExpQ] -> Q Exp
     gather eps = doE $ map noBindS eps
@@ -83,7 +84,7 @@ attachHs _ = []
 attachList :: R.SEXP R.List -> R.SEXP b -> Maybe (Q Exp)
 attachList s@(hexp -> List _ tl tg) (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
-    then 
+    then
       let hname = take (length name - 3) name
           rs = RuntimeSEXP s
       in Just ([| injectList (unRuntimeSEXP rs) (H.mkSEXP $(varE (mkName hname))) |])
