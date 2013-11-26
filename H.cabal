@@ -25,6 +25,8 @@ library
                        H.Module
                        H.Prelude
                        H.Prelude.Constants
+                       H.Prelude.Reexports
+                       H.Prelude.Eval
                        H.Value
                        H.Internal.Literal
                        H.Internal.FunWrappers
