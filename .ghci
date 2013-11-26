@@ -2,6 +2,7 @@
 :set -fno-ghci-sandbox
 :set -XQuasiQuotes
 :set -XTemplateHaskell
+import qualified H.Prelude as H
 import Language.R.Runtime.QQ as QQ
 :{
 :def initR
