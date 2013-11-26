@@ -8,6 +8,7 @@
 {-# LANGUAGE GADTs #-}
 module Language.R.Runtime.QQ
   ( r
+  , rexp
   ) where
 
 import qualified H.Prelude as H
@@ -33,10 +34,19 @@ import System.IO.Unsafe ( unsafePerformIO )
 -------------------------------------------------------------------------------
 
 -- | Runtime R quasiquoter. It parses R variable, then add all required
--- substitutions, and finally return new SExpression that describes the
--- result and can be either inspected or evaluated.
+-- substitutions, and finally evaluates the resulting expression.
 r :: QuasiQuoter
 r = QuasiQuoter
+      { quoteExp  = parseExpRuntimeEval
+      , quotePat  = error "rr/Pat: Unimplemented."
+      , quoteType = error "rr/Type: Unimplemented."
+      , quoteDec  = error "rr/Dec: Unimplemented."
+      }
+
+-- | Runtime R quasiquoter. Same as 'r', except that it doesn't evaluate the
+-- expression.
+rexp :: QuasiQuoter
+rexp = QuasiQuoter
       { quoteExp  = parseExpRuntime
       , quotePat  = error "rr/Pat: Unimplemented."
       , quoteType = error "rr/Type: Unimplemented."
@@ -45,6 +55,27 @@ r = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
+     ex <- runIO $ withCString txt $ \ctxt -> do
+             rtxt <- R.mkString ctxt
+             -- XXX: this is a hack due to incorrect address mapping in ghci
+             --      it requires Language.R.nilValue to be set before running
+             nil <- readIORef nilValue
+             exs <- alloca $ \status ->
+                      R.parseVector rtxt (-1) status nil
+             -- XXX: Support multiple expressions
+             exs `R.indexExpr` 0
+
+     let l = RuntimeSEXP ex
+     case attachHs ex of
+         [] -> [| unRuntimeSEXP l |]
+         x  -> [| unsafePerformIO $ $(gather x) >>
+                  return (unRuntimeSEXP l) |]
+  where
+    gather :: [ExpQ] -> Q Exp
+    gather eps = doE $ map noBindS eps
+
+parseExpRuntimeEval :: String -> Q Exp
+parseExpRuntimeEval txt = do
      ex <- runIO $ withCString txt $ \ctxt -> do
              rtxt <- R.mkString ctxt
              -- XXX: this is a hack due to incorrect address mapping in ghci
