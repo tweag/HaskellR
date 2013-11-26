@@ -18,6 +18,7 @@ module H.Prelude
   , missingArg
   ) where
 
+import           H.Prelude.Constants
 import qualified Foreign.R as R
 import qualified Language.R as LR
 import System.IO.Unsafe ( unsafePerformIO )
@@ -47,14 +48,3 @@ strings = unsafePerformIO . LR.strings
 eval :: R.SEXP a -> R.SEXP b
 eval = unsafePerformIO . LR.eval
 
-unboundValue :: R.SEXP R.Symbol
-unboundValue = unsafePerformIO $ readIORef LR.unboundValue
-
-globalEnv :: R.SEXP R.Env
-globalEnv = unsafePerformIO $ readIORef LR.globalEnv
-
-nilValue :: R.SEXP R.Nil
-nilValue = unsafePerformIO $ readIORef LR.nilValue
-
-missingArg :: R.SEXP R.Symbol
-missingArg = unsafePerformIO $ readIORef LR.missingArg

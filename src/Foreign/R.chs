@@ -28,6 +28,8 @@ module Foreign.R
   , mkChar
     -- * Node attributes
   , typeOf
+  , setAttribute
+  , getAttribute
     -- * Node accessor functions
     -- ** Lists
   , car
@@ -339,14 +341,14 @@ foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP R.Symbol)
 data SEXPInfo = SEXPInfo
       { infoType  :: SEXPTYPE    -- ^ Type of the SEXP.
       , infoObj   :: Bool        -- ^ Is this an object with a class attribute.
-      , infoNamed :: CUInt       -- ^ Control copying information.
-      , infoGp    :: CUInt       -- ^ General purpose data.
+      , infoNamed :: Int         -- ^ Control copying information.
+      , infoGp    :: Int         -- ^ General purpose data.
       , infoMark  :: Bool        -- ^ Mark object as 'in use' in GC.
       , infoDebug :: Bool        -- ^ Debug marker.
       , infoTrace :: Bool        -- ^ Trace marker.
       , infoSpare :: Bool        -- ^ Alignment (not in use).
-      , infoGcGen :: CUInt       -- ^ GC Generation.
-      , infoGcCls :: CUInt       -- ^ GC Class of node.
+      , infoGcGen :: Int         -- ^ GC Generation.
+      , infoGcCls :: Int         -- ^ GC Class of node.
       } deriving ( Show )
 
 -- | Read header information for given SEXP structure.
@@ -372,3 +374,13 @@ mark b ts = {#set SEXP->sxpinfo.mark #} (unsexp ts) (if b then 1 else 0)
 
 named :: Int -> SEXP a -> IO ()
 named v ts = {#set SEXP->sxpinfo.named #} (unsexp ts) (fromIntegral v)
+
+-------------------------------------------------------------------------------
+-- Attribute header                                                          --
+-------------------------------------------------------------------------------
+
+getAttribute :: SEXP a -> IO (SEXP b)
+getAttribute s = castPtr <$> ({#get SEXP->attrib #} (unsexp s))
+
+setAttribute :: SEXP a -> SEXP b -> IO ()
+setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
