@@ -11,6 +11,7 @@ module H.Prelude
   , strings
   , install
   , eval
+  , evalPrint
   -- * constants
   , unboundValue
   , globalEnv
@@ -20,6 +21,8 @@ module H.Prelude
 
 import qualified Foreign.R as R
 import qualified Language.R as LR
+
+import Control.Monad ((<=<))
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- Reexported modules.
@@ -46,6 +49,9 @@ strings = unsafePerformIO . LR.strings
 
 eval :: R.SEXP a -> R.SEXP b
 eval = unsafePerformIO . LR.eval
+
+evalPrint :: R.SEXP a -> IO ()
+evalPrint = R.printValue <=< LR.eval
 
 unboundValue :: R.SEXP R.Symbol
 unboundValue = unsafePerformIO $ readIORef LR.unboundValue
