@@ -49,10 +49,8 @@ parseExpRuntime txt = do
              -- XXX: this is a hack due to incorrect address mapping in ghci
              --      it requires Language.R.nilValue to be set before running
              nil <- readIORef nilValue
-             exs <- alloca $ \status ->
-                      R.parseVector rtxt (-1) status nil
-             -- XXX: Support multiple expressions
-             exs `R.indexExpr` 0
+             alloca $ \status ->
+               R.parseVector rtxt (-1) status nil
 
      let l = RuntimeSEXP ex
      case attachHs ex of
@@ -64,6 +62,8 @@ parseExpRuntime txt = do
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
+attachHs (hexp -> Expr v) =
+  concat (map attachHs (Vector.toList v))
 attachHs (hexp -> Lang x@(hexp -> Lang{}) ls) =
   attachHs x ++ attachHs ls
 attachHs (hexp -> Lang x@(hexp -> List{}) ls) =
