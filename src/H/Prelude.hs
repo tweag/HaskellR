@@ -12,7 +12,10 @@ module H.Prelude
   , string
   , strings
   , install
+  -- * evaluation constructs
   , eval
+  , evalIO
+  , eval_
   -- * constants
   , unboundValue
   , globalEnv
@@ -22,16 +25,18 @@ module H.Prelude
 
 import           H.Prelude.Constants
 import           H.HExp
+import           H.HVal
+import qualified Data.Vector.SEXP as Vector   
 import qualified Foreign.R as R
 import qualified Language.R as LR
-import System.IO.Unsafe ( unsafePerformIO )
-import qualified Data.Vector.SEXP as Vector   
+
+import           Control.Applicative
+import           Control.Monad ( void )
+import           Foreign hiding ( unsafePerformIO, void )
+import           System.IO.Unsafe ( unsafePerformIO )
 
 -- Reexported modules.
 import Data.IORef
-import Data.Word
-import Foreign hiding ( unsafePerformIO )
-import H.HVal
 import Language.R.Interpreter
 
 liftR :: (R.SEXP a -> b) -> R.SomeSEXP -> b
@@ -49,9 +54,17 @@ string = unsafePerformIO . LR.string
 strings :: String -> R.SEXP (R.String)
 strings = unsafePerformIO . LR.strings
 
--- | Evaluate R expression
+-- | Evaluate R expression. Purely this function
+-- may be usefull inside fully pure code
 eval :: R.SEXP a -> R.SEXP b
-eval (hexp -> Expr v) = last . unsafePerformIO $
-    mapM LR.eval (Vector.toList v)
-eval x = unsafePerformIO (LR.eval x)
+eval = unsafePerformIO . evalIO
 
+-- | Evaluate inside IO monad
+evalIO :: R.SEXP a -> IO (R.SEXP b)
+evalIO (hexp -> Expr v) =
+    last <$> mapM LR.eval (Vector.toList v)
+evalIO x = LR.eval x
+
+-- | Silent version of 'evalIO' function. Discards result
+eval_ :: R.SEXP a -> IO ()
+eval_ = void . evalIO
