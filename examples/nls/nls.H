@@ -20,7 +20,6 @@ putStrLn $
             ]
 :}
 next
-:initR
 :{
 putStrLn $
   unlines [ "Prelare points in R:"

@@ -66,11 +66,10 @@ parseExpRuntime txt = do
      let l = RuntimeSEXP ex
      case attachHs ex of
          [] -> [| unRuntimeSEXP l |]
-         x  -> [| unsafePerformIO $ $(gather x) >>
-                  return (unRuntimeSEXP l) |]
+         x  -> [| unsafePerformIO $(gather x l) |]
   where
-    gather :: [ExpQ] -> Q Exp
-    gather eps = doE $ map noBindS eps
+    gather :: [ExpQ -> ExpQ] -> (RuntimeSEXP a) -> ExpQ
+    gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
 parseExpRuntimeEval txt = [| H.eval $(parseExpRuntime txt) |]
