@@ -26,3 +26,16 @@ Foreign.R.printValue $ H.Prelude.eval [r| function(y) y_hs + y |]
 Foreign.R.printValue $ H.Prelude.eval [r| z <- function(y) y_hs + y |]
 Foreign.R.printValue $ H.Prelude.eval [r| z(3) |]
 
+-- Should be [1] 1 2 3 4 5 6 7 8 9 10
+Foreign.R.printValue $ H.Prelude.eval [r| y <- c(1:10) |]
+let foo1 = (\x -> (return $ x+1 :: IO Double))
+let foo2 = (\x -> (return $ map (+1) x :: IO [Double]))
+
+-- Should be [1] 2
+Foreign.R.printValue $ H.Prelude.eval [r| (function(x).Call(foo1_hs,x))(2) |]
+
+-- Should be [1] 2 3 4 5 6 7 8 9 10 11
+Foreign.R.printValue $ H.Prelude.eval [r| (function(x).Call(foo2_hs,x))(y) |]
+
+-- Should be [1] 1
+Foreign.R.printValue $ H.Prelude.eval [r| x <- 42 ; x |]

@@ -16,7 +16,7 @@ import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
-import Language.R ( nilValue {-, unboundValue-} )
+import Language.R ( nilValue, withProtected )
 
 import Data.List ( isSuffixOf )
 import Data.IORef ( readIORef )
@@ -60,10 +60,8 @@ parseExpRuntime txt = do
              -- XXX: this is a hack due to incorrect address mapping in ghci
              --      it requires Language.R.nilValue to be set before running
              nil <- readIORef nilValue
-             exs <- alloca $ \status ->
-                      R.parseVector rtxt (-1) status nil
-             -- XXX: Support multiple expressions
-             exs `R.indexExpr` 0
+             alloca $ \status ->
+               R.parseVector rtxt (-1) status nil
 
      let l = RuntimeSEXP ex
      case attachHs ex of
@@ -75,28 +73,12 @@ parseExpRuntime txt = do
     gather eps = doE $ map noBindS eps
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = do
-     ex <- runIO $ withCString txt $ \ctxt -> do
-             rtxt <- R.mkString ctxt
-             -- XXX: this is a hack due to incorrect address mapping in ghci
-             --      it requires Language.R.nilValue to be set before running
-             nil <- readIORef nilValue
-             exs <- alloca $ \status ->
-                      R.parseVector rtxt (-1) status nil
-             -- XXX: Support multiple expressions
-             exs `R.indexExpr` 0
-
-     let l = RuntimeSEXP ex
-     case attachHs ex of
-         [] -> [| H.eval (unRuntimeSEXP l) |]
-         x  -> [| unsafePerformIO $ $(gather x) >>
-                  return (H.eval $ unRuntimeSEXP l) |]
-  where
-    gather :: [ExpQ] -> Q Exp
-    gather eps = doE $ map noBindS eps
+parseExpRuntimeEval txt = [| H.eval $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
-attachHs :: R.SEXP a -> [Q Exp]
+attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
+attachHs (hexp -> Expr v) =
+  concat (map attachHs (Vector.toList v))
 attachHs (hexp -> Lang x@(hexp -> Lang{}) ls) =
   attachHs x ++ attachHs ls
 attachHs (hexp -> Lang x@(hexp -> List{}) ls) =
@@ -112,13 +94,14 @@ attachHs h@(hexp -> List x@(hexp -> Symbol{}) tl _) =
       Nothing -> maybe [] attachHs tl
 attachHs _ = []
 
-attachList :: R.SEXP R.List -> R.SEXP b -> Maybe (Q Exp)
+attachList :: R.SEXP R.List -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
 attachList s@(hexp -> List _ tl tg) (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
     then
       let hname = take (length name - 3) name
           rs = RuntimeSEXP s
-      in Just ([| injectList (unRuntimeSEXP rs) (H.mkSEXP $(varE (mkName hname))) |])
+      in Just (\e ->
+                    [| withProtected (return $ H.mkSEXP $(varE (mkName hname))) $ \l -> injectList (unRuntimeSEXP rs) l >> $e |])
     else Nothing
 attachList _ _ = Nothing
 
