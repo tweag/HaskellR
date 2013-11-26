@@ -6,7 +6,7 @@ generate x =
   withSystemRandom . asGenIO $ \gen -> 
     let r = x*x+2*x
     in do v <- standard gen
-          return $ r*(1+0.10*v)
+          return $ r*(1+0.05*v)
 
 generate_lifted :: [Double] -> IO [Double]
 generate_lifted = mapM generate

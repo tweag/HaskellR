@@ -1,25 +1,9 @@
 -- Initializing R runtime and all constants
 -- Copyright: (C) 2013 Amgen, Inc.
-:set -fno-ghci-sandbox
-:set -XQuasiQuotes
-:set -XTemplateHaskell
-:m +H.Prelude
-:m +Language.R.Runtime.QQ
-:{
-:def initR
-     (\_ -> return
-        $ ":cmd Language.R.Interpreter.initializeR Nothing "
-       ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
-       ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
-       ++ ">> (Data.IORef.writeIORef Language.R.nilValue =<< Foreign.peek Foreign.R.nilValue) "
-       ++ ">> (Data.IORef.writeIORef Language.R.unboundValue =<< Foreign.peek Foreign.R.unboundValue) "
-       ++ ">> (Data.IORef.writeIORef Language.R.baseEnv =<< Foreign.peek Foreign.R.baseEnv) "
-       ++ ">> (Foreign.poke Foreign.R.rInteractive 0) "
-       ++ ">> return \"\""
-     )
-:}
 :m +Control.Monad
+:m +Foreign.R
 :l system.hs
+let next = putStrLn "<Press enter to continue>" >> void (getLine)
 :{
 putStrLn $
     unlines [ "In this demo we will run H using haskell callbacks"
@@ -35,19 +19,33 @@ putStrLn $
             , "   ghci -v0 -ghci-script nls.H"
             ]
 :}
-putStrLn "Initializing R (we may integrate this command inside H)"
+next
 :initR
 :{
 putStrLn $
   unlines [ "Prelare points in R:"
           , "We are creating 'xs' points with R command [r| xs <- c(1:100) |]"
-          , "This command will create an expression that can be executed by H.Prelude.eval"
-          , "You may use printValue R command to print result"
+          , "   [r| ... |] command creates a command that may be evaluated in GHCi"
+          , "              or used as an R expression later"
+          , ""
+          , "To evaluate command you may use one of the following functions:"
+          , "   H.Prelude.evalIO - strictly evaluates expression in IO Monad"
+          , "   H.Prelude.eval_  - evaluate expression in IO Monad discarding result"
+          , "                      (no output will be printed)"
+          , "   H.Prelude.eval   - pure lazy evaluation of the expression."
+          , ""
+          , "To print result one may use R facilities: "
+          , "   printValue       - prints expression like R does"
+          , ""
           , "Thus we are calling: printValue $ eval [r| xs <- c(1:100) |]"
           ]
 :}
-:m +Foreign.R
+next
+putStrLn "printValue [r| xs <- c(1:100) |] - expression"
+printValue [r| xs <- c(1:100) |]
+putStrLn "printValue $ eval [r| xs <- c(1:100) |] - result"
 printValue $ eval [r| xs <- c(1:100) |]
+next
 :{
 putStrLn $ 
   unlines [ "Now for each point we want to calculate complicated function"
@@ -59,14 +57,19 @@ putStrLn $
           ]
 :}
 replicateM 10 (generate 10)
+next
 :{
 putStrLn $ 
   unlines [ "Now we want to use that function in R:"
-          , "for this we will generate R table."
-          , "<Now you can see additional output but it could be fixed>"]
+          , "in order to use function we need to lift it on vector level"
+          ]
 :}
-eval [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
-printValue $ eval [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 2, c = 0.4)) |]
-eval [r| plot(xs,ys,main="nls") |]
-eval [r| lines(xs,predict(nlmod), col = 2)|]
+putStrLn "eval_ [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]"
+eval_ [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
+next
+putStrLn "eval [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]"
+printValue $ eval [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
+next
+eval_ [r| plot(xs,ys,main="nls") |]
+eval_ [r| lines(xs,predict(nlmod), col = 2)|]
 getLine
