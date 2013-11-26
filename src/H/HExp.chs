@@ -13,7 +13,8 @@ module H.HExp
   , hexp
   , unhexp
   -- * Low level access
-  , injectList
+  , injectSymbol
+  , symbolLoop
   ) where
 
 import H.Constraints
@@ -33,7 +34,7 @@ import Data.Complex
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
 import Foreign.C
-import Foreign ( castPtr )
+import Foreign ( castPtr, nullPtr )
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -308,6 +309,14 @@ maybeNil s = do
       then Nothing
       else Just s
 
--- | Inject object inside list
-injectList :: SEXP R.List -> SEXP a -> IO ()
-injectList s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
+-- | Create a symbol that loops on itself.
+symbolLoop :: SEXP R.Symbol
+symbolLoop = unsafePerformIO $ do
+  chr <- withCString "" R.mkChar
+  let x = unhexp $ Symbol chr nullPtr Nothing
+  x `seq` {#set SEXP->u.symsxp.value #} (R.unsexp x) (R.unsexp x)
+  return x
+
+-- | Inject object inside structure
+injectSymbol :: SEXP a -> SEXP b -> IO ()
+injectSymbol s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
