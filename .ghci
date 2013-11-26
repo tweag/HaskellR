@@ -16,3 +16,4 @@ import Language.R.Runtime.QQ as QQ
        ++ ">> return \"\""
      )
 :}
+:initR
