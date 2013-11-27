@@ -2,12 +2,12 @@
 :set -fno-ghci-sandbox
 :set -XQuasiQuotes
 :set -XTemplateHaskell
-:m +Language.R.Runtime.QQ
+import qualified H.Prelude as H
+import Language.R.Runtime.QQ as QQ
 :{
-:def initR
+:def updateR
      (\_ -> return
-        $ ":cmd Language.R.Interpreter.initializeR Nothing "
-       ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
+        $ ":cmd (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
        ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
        ++ ">> (Data.IORef.writeIORef Language.R.nilValue =<< Foreign.peek Foreign.R.nilValue) "
        ++ ">> (Data.IORef.writeIORef Language.R.unboundValue =<< Foreign.peek Foreign.R.unboundValue) "
@@ -16,3 +16,11 @@
        ++ ">> return \"\""
      )
 :}
+
+:{
+:def initR
+     (\_ -> return
+        $ ":cmd Language.R.Interpreter.initializeR Nothing >> return \"\" \n :updateR "
+     )
+:}
+:initR

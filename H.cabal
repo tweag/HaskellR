@@ -17,6 +17,7 @@ source-repository head
 
 library
   exposed-modules:     H
+                       H.Repl
                        H.Inspect
                        H.Constraints
                        H.HExp
@@ -38,6 +39,8 @@ library
                        Language.R.Interpreter
                        Language.R.QQ
                        Language.R.Runtime.QQ
+  other-modules:       H.Repl.Windows
+                       H.Repl.Unix
   build-depends:       base >= 4.6 && < 4.7
                      , aeson >= 0.6
                      , bytestring >= 0.10
@@ -46,7 +49,7 @@ library
                      , setenv >= 0.1.1
                      , text >= 0.11
                      , vector >= 0.10
-                     , template-haskell
+                     , template-haskell >= 2.8
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
@@ -67,6 +70,7 @@ library
   build-tools:         c2hs
   if os(windows)
     extra-libraries:   R
+    ghc-options:       -DCABAL_WINDOWS=1
   else
     pkgconfig-depends: libR >= 3.0
   ghc-options:         -Wall -Werror
@@ -78,6 +82,7 @@ executable H
                      , pretty >= 1.1
                      , vector >= 0.10
                      , bytestring >= 0.10
+                     , process >= 1.0
                      , H
   default-language:    Haskell2010
   default-extensions:  DataKinds

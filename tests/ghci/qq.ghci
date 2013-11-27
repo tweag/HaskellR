@@ -36,3 +36,6 @@ Foreign.R.printValue $ H.Prelude.eval [r| (function(x).Call(foo1_hs,x))(2) |]
 
 -- Should be [1] 2 3 4 5 6 7 8 9 10 11
 Foreign.R.printValue $ H.Prelude.eval [r| (function(x).Call(foo2_hs,x))(y) |]
+
+-- Should be [1] 1
+Foreign.R.printValue $ H.Prelude.eval [r| x <- 42 ; x |]
