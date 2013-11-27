@@ -80,5 +80,5 @@ the name of the Haskell variable that ought to be spliced.
 And we mean even functions can be passed:
 
     H QQ> let f = (\x -> return (x + 1)) :: Double -> IO Double
-    H QQ> H.print [r| .Call(f_hs,1) |]
+    H QQ> H.print [r| f_hs(1) |]
     [1] 2
