@@ -90,10 +90,20 @@ attachHs h@(hexp -> List x tl _) =
 attachHs _ = []
 
 attachSymbol :: R.SEXP a -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
+attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
+    let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
+        rp = RuntimeSEXP params
+    in Just (\e ->
+         [| withProtected (return $ H.install ".Call") $ \call ->
+              withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
+                injectCar (unRuntimeSEXP rs) call
+                injectCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
+                $e
+         |])
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> injectSymbol (unRuntimeSEXP rs) l >> $e |])
+         [| withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> injectCar (unRuntimeSEXP rs) l >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: R.SEXP a -> Maybe Name
