@@ -39,3 +39,7 @@ H.print [r| (function(x).Call(foo2_hs,x))(y) |]
 
 -- Should be [1] 43
 H.print [r| x <- 42 ; x + 1 |]
+
+-- Should be [1] 1 2 3
+let xs = [1,2,3]::[Double]
+H.print [r| xs_hs |]
