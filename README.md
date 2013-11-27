@@ -1,7 +1,13 @@
-The H compiler
-==============
+The H environment - an R-to-Haskell interoperablity solution
+============================================================
 
-An R-to-Haskell translator and interoperability solution.
+The H project provides an interpreted translation and a
+compiled translation. Since the compiled translation is in
+flux so it will not be discussed further.
+
+Quasiquotation only works in GHCi at the moment but should
+work even in Haskell source files in the future.
+
 
 Installing
 ----------
@@ -9,39 +15,70 @@ Installing
 cabal-install >= 1.16.0.2 is required to build without
 warnings.
 
-Unix
+First change the current working directory to the folder
+containing the H.cabal file. Then depending on your OS:
+
+In Unix-like systems
 
     cabal install
 
-Windows
+In Windows
 
     cabal install --extra-include-dirs=$R_HOME\include \
                   --extra-lib-dirs=$R_HOME\bin\x64
 
-Running H
----------
 
-In order to run H you need to provide `R_HOME` environment 
-variable. This can be done either by disto-specific settings 
-or by calling H as:
+Optionally, you may add --enable-tests to the command line
+arguments in order execute tests before installation.
 
-    R_HOME=`pkg-config --variable=rhome libR` H
 
-If `R_HOME` is not provided then H will inspect output of
-R -e "cat(R.home())" at runtime.
+Setting up H in GHCi
+--------------------
 
-Running GHCi
-------------
+After installing H, stay in the folder containing H.cabal
+and type at the prompt:
 
-To use H in ghci you need to provide `R_HOME` variable,
-see Running H. To start ghci use `ghci -no-ghci-sandbox`.
-Then load R runtime:
+    ghci
 
-   :m + Language.R.Interpreter
+ghci will pickup the .ghci script located in the same folder.
+This script will load the H environment and bring the
+relevant definitions into scope. In addition, an instance of
+the R interpreter will be started in the background.
 
-   > runInterpreter
 
-Starting from this moment you may use H function.
-Note that you can't even use pure functions without the 
-R runtime being loaded first.
+Using H in GHCi
+---------------
 
+Now expressions can be evaluated with the r quasi-quoter.
+
+    H QQ> H.print [r| 1 + 1 |]
+    [1] 2
+    H QQ> H.print [r| R.home() |]
+    [1] "/usr/lib/R"
+
+The r quasi-quoter will pass expressions to the R
+interpreter and return the result that is printed.
+
+Because expressions are passed to the R interpreter, the
+effect of assignments is remembered.
+
+    H QQ> H.print [r| x <- 1 |]
+    [1] 1
+    H QQ> H.print [r| x |]
+    [1] 1
+
+Quasiquotes can refer to values bound in Haskell in the
+lexical scope surrounding it, through _splicing_.
+
+Splicing Haskell values is denoted by appending the "_hs" to
+the name of the Haskell variable that ought to be spliced.
+
+    H QQ> let x = 2 :: Double
+    H QQ> H.print [r| x_hs + x_hs |]
+    [1] 4
+
+And we mean even functions can be passed:
+
+    H QQ> let f = (\x -> return (x + 1)) :: Double -> IO Double
+    H QQ> H.print [r| .Call(f_hs,1) |]
+    [1] 2
