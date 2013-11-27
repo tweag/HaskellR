@@ -13,7 +13,8 @@ module H.HExp
   , hexp
   , unhexp
   -- * Low level access
-  , injectSymbol
+  , injectCar
+  , injectCdr
   , symbolLoop
   ) where
 
@@ -317,6 +318,10 @@ symbolLoop = unsafePerformIO $ do
   x `seq` {#set SEXP->u.symsxp.value #} (R.unsexp x) (R.unsexp x)
   return x
 
--- | Inject object inside structure
-injectSymbol :: SEXP a -> SEXP b -> IO ()
-injectSymbol s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
+-- | Inject object inside car field.
+injectCar :: SEXP a -> SEXP b -> IO ()
+injectCar s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
+
+-- | Inject object inside cdr field.
+injectCdr :: SEXP a -> SEXP b -> IO ()
+injectCdr s cr = {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
