@@ -65,6 +65,7 @@ module Foreign.R
   , string
   , vector
   , expression
+  , setExprElem
     -- * Evaluation
   , tryEval
   , lang1
@@ -197,6 +198,9 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 -- | Expression element.
 {# fun VECTOR_ELT as indexExpr { unsexp `SEXP R.Expr', `Int'} -> `SEXP a' sexp #}
+
+-- | Set expression element.
+{# fun SET_VECTOR_ELT as setExprElem { unsexp `SEXP R.Expr', `Int', unsexp `SEXP a'} -> `SEXP a' sexp #}
 
 -- | Read True Length vector field.
 {#fun TRUELENGTH as trueLength { unsexp `SEXP (R.Vector a)' } -> `CInt' id #}
