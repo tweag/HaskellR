@@ -71,33 +71,37 @@ parseExpRuntimeEval txt = [| H.eval $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
-attachHs (hexp -> Expr v) =
-  concat (map attachHs (Vector.toList v))
-attachHs (hexp -> Lang x@(hexp -> Lang{}) ls) =
-  attachHs x ++ attachHs ls
-attachHs (hexp -> Lang x@(hexp -> List{}) ls) =
-  attachHs x ++ attachHs ls
-attachHs (hexp -> Lang _ ls) = attachHs ls
-attachHs (hexp -> List x@(hexp -> Lang{}) tl _) =
-  attachHs x ++ (maybe [] attachHs tl)
-attachHs (hexp -> List x@(hexp -> List{}) tl _) =
-  attachHs x ++ (maybe [] attachHs tl)
-attachHs h@(hexp -> List x@(hexp -> Symbol{}) tl _) =
-  case attachList h x of
-      Just z -> z:maybe [] attachHs tl
-      Nothing -> maybe [] attachHs tl
+attachHs h@(hexp -> Expr v) =
+    concat (map (\(i,t) ->
+      let tl = attachHs t
+      in case haskellName t of
+           Just hname -> 
+             [\e -> [| R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname)) >> $e |]]
+           Nothing -> tl)
+                $ zip [(0::Int)..] (Vector.toList v))
+  where
+    s = RuntimeSEXP (R.sexp . R.unsexp $ h)
+attachHs h@(hexp -> Lang x ls) =
+  let tl = attachHs x ++ attachHs ls
+  in maybe tl (:tl) (attachSymbol h x)
+attachHs h@(hexp -> List x tl _) =
+  let tls = (attachHs x) ++ (maybe [] attachHs tl)
+  in maybe tls (:tls) (attachSymbol h x)
 attachHs _ = []
 
-attachList :: R.SEXP R.List -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
-attachList s@(hexp -> List _ tl tg) (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
+attachSymbol :: R.SEXP a -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
+attachSymbol s (haskellName -> Just hname) =
+    let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
+    in Just (\e ->
+         [| withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> injectSymbol (unRuntimeSEXP rs) l >> $e |])
+attachSymbol _ _ = Nothing
+
+haskellName :: R.SEXP a -> Maybe Name
+haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
-    then
-      let hname = take (length name - 3) name
-          rs = RuntimeSEXP s
-      in Just (\e ->
-                    [| withProtected (return $ H.mkSEXP $(varE (mkName hname))) $ \l -> injectList (unRuntimeSEXP rs) l >> $e |])
+    then Just . mkName $ take (length name - 3) name 
     else Nothing
-attachList _ _ = Nothing
+haskellName _ = Nothing
 
 newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
 
