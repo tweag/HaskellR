@@ -16,10 +16,9 @@ import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
-import Language.R ( nilValue, withProtected )
+import Language.R ( withProtected )
 
 import Data.List ( isSuffixOf )
-import Data.IORef ( readIORef )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
@@ -55,18 +54,14 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-     ex <- runIO $ withCString txt $ \ctxt -> do
-             rtxt <- R.mkString ctxt
-             -- XXX: this is a hack due to incorrect address mapping in ghci
-             --      it requires Language.R.nilValue to be set before running
-             nil <- readIORef nilValue
-             alloca $ \status ->
-               R.parseVector rtxt (-1) status nil
-
-     let l = RuntimeSEXP ex
-     case attachHs ex of
-         [] -> [| unRuntimeSEXP l |]
-         x  -> [| unsafePerformIO $(gather x l) |]
+    ex <- runIO $ withCString txt $ \ctxt ->
+            withProtected (R.mkString ctxt) $ \rtxt ->
+              alloca $ \status ->
+                R.parseVector rtxt (-1) status H.nilValue
+    let l = RuntimeSEXP ex
+    case attachHs ex of
+      [] -> [| unRuntimeSEXP l |]
+      x  -> [| unsafePerformIO $(gather x l) |]
   where
     gather :: [ExpQ -> ExpQ] -> (RuntimeSEXP a) -> ExpQ
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
