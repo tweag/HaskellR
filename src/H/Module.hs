@@ -52,7 +52,6 @@ prettyModule rmod =
 
 prettyGhci :: RModule -> Doc
 prettyGhci rmod =
-    P.text ":initR"                                                  $$
     (if null imports
       then P.empty
       else P.text ":m +" <+> P.hsep (map P.text imports))            $$

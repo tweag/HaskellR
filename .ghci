@@ -4,6 +4,7 @@
 :set -XTemplateHaskell
 import qualified H.Prelude as H
 import Language.R.Runtime.QQ as QQ
+
 :{
 :def updateR
      (\_ -> return
@@ -17,10 +18,5 @@ import Language.R.Runtime.QQ as QQ
      )
 :}
 
-:{
-:def initR
-     (\_ -> return
-        $ ":cmd Language.R.Interpreter.initializeR Nothing >> return \"\" \n :updateR "
-     )
-:}
-:initR
+Language.R.Interpreter.initializeR Nothing
+:updateR
