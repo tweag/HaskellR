@@ -39,7 +39,7 @@ main = do
     config <- cmdArgs cmdSpec
     case config of
         Config prm _ True    -> do
-            cfg <- Paths_H.getDataFileName ".ghci"
+            cfg <- Paths_H.getDataFileName "H.ghci"
             (_,_,_,ph) <- createProcess (proc replCommand (prm ++ ["-v0","-ghci-script",cfg]))
                 {std_in=Inherit
                 ,std_out=Inherit

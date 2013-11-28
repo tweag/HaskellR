@@ -123,6 +123,6 @@ eval x = do
 -- The main reason to have all constant be presented as IORef in a global
 -- scope is that peeking variable in ghci doesn't work as excepted an
 -- returns incorrect address. The workaround is to populate all variables
--- in the ghci session, that is done automatically by calling  :initR.
+-- in the ghci session, that is done automatically by the .ghci script.
 --
 -- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>

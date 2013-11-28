@@ -9,7 +9,7 @@ Synopsis:            R-to-Haskell translator and interoperability solution.
 -- description:
 cabal-version:       >=1.10
 
-data-files: .ghci
+data-files: H.ghci
 
 source-repository head
   type:     git
