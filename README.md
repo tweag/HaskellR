@@ -35,15 +35,19 @@ arguments in order execute tests before installation.
 Setting up H in GHCi
 --------------------
 
-After installing H, stay in the folder containing H.cabal
-and type at the prompt:
+After installing H, type at the prompt:
 
-    ghci
+    $ H --repl
 
-ghci will pickup the .ghci script located in the same folder.
-This script will load the H environment and bring the
-relevant definitions into scope. In addition, an instance of
-the R interpreter will be started in the background.
+This will start ghci loading the H environment and bringing
+the relevant definitions into scope. In addition, an instance
+of the R interpreter will be started in the background.
+
+Alternatively, the following should work:
+
+    $ ghci -ghci-script H.ghci
+
+where H.ghci is a file colocated with the H.cabal file.
 
 
 Using H in GHCi

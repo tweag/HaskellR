@@ -55,14 +55,14 @@ invokeH fp = do
     --
     (_, Just outh1, _, _) <- liftIO $ createProcess $ (proc "./dist/build/H/H" ["--ghci",fp])
       { std_out = CreatePipe }
-    (_, Just outh2, _, _) <- liftIO $ createProcess $ (proc "sh" ["tests/ghciH.sh","-v0"])
+    (_, Just outh2, _, _) <- liftIO $ createProcess $ (proc "sh" ["tests/ghciH.sh","-v0","-ghci-script","H.ghci"])
       { std_out = CreatePipe
       , std_in = UseHandle outh1 }
     liftIO $ T.pack <$> hGetContents outh2
 
 invokeGHCi :: FilePath -> ValueGetter r Text
 invokeGHCi fp = liftIO $ fmap T.pack $
-    Strict.readFile fp >>= readProcess "sh" ["tests/ghciH.sh","-v0"]
+    Strict.readFile fp >>= readProcess "sh" ["tests/ghciH.sh","-v0","-ghci-script","H.ghci"]
 
 scriptCase :: TestName
            -> FilePath
