@@ -298,7 +298,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 --------------------------------------------------------------------------------
 
 -- | Evaluate expression.
-{#fun R_eval as eval { unsexp `SEXP a', unsexp `SEXP R.Env' } -> `SEXP b' sexp #}
+{#fun Rf_eval as eval { unsexp `SEXP a', unsexp `SEXP R.Env' } -> `SEXP b' sexp #}
 
 -- | Try to evaluate expression.
 {#fun R_tryEval as tryEval { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' sexp #}
