@@ -1,4 +1,4 @@
-#!/bin/sh -eux
+#!/bin/bash -eux
 #
 # test-pull-requet.sh <branch>
 #
