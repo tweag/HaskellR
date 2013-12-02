@@ -43,6 +43,11 @@ arguments in order execute tests before installation.
 Setting up H in GHCi
 --------------------
 
+In Windows, make sure the file R.dll appears in some folder
+listed in the PATH environment variable. In Unix-like
+systems, libR.so should be located within reach of the
+dynamic linker (LD_LIBRARY_PATH, /etc/ld.so.conf, etc).
+
 After installing H, type at the prompt:
 
     $ H --repl
