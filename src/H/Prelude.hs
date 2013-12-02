@@ -7,7 +7,6 @@ module H.Prelude
   , module Foreign
   , module H.HVal
   , module Language.R.Interpreter
-  , liftR
   , print
   -- * evaluation constructs
   , module H.Prelude.Eval
@@ -30,9 +29,6 @@ import Data.IORef
 import Language.R.Interpreter
 
 import Prelude hiding (print)
-
-liftR :: (R.SEXP a -> b) -> R.SomeSEXP -> b
-liftR f (R.SomeSEXP x) = f (castPtr x)
 
 print :: R.SEXP a -> IO ()
 print = R.printValue
