@@ -38,16 +38,20 @@ main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-        Config prm _ True    -> do
-            cfg <- Paths_H.getDataFileName "H.ghci"
-            (_,_,_,ph) <- createProcess (proc replCommand (prm ++ ["-v0","-ghci-script",cfg]))
-                {std_in=Inherit
-                ,std_out=Inherit
-                }
-            void $ waitForProcess ph
-        Config []  _ _     -> putStrLn "no input files"  -- XXX: exitStatus with fail
-        Config [fl] True _ -> withR Nothing $ do
-          print =<< parseFile fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
-        Config fls _ _   -> withR Nothing $ do
-          ms <- mapM (flip parseFile (flip translate (mkMod Nothing "Test"))) fls
-          mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $ zip fls (map prettyModule ms)
+      Config {configFiles, configRepl = True} -> do
+        cfg <- Paths_H.getDataFileName "H.ghci"
+        (_,_,_,ph) <-
+            createProcess (proc replCommand (configFiles ++ ["-v0","-ghci-script",cfg]))
+            { std_in = Inherit
+            , std_out = Inherit
+            }
+        void $ waitForProcess ph
+      Config {configFiles = []} -> do
+        putStrLn "no input files"  -- XXX: exitStatus with fail
+      Config {configFiles = [file], configGhci = True} -> withR Nothing $ do
+        print =<< parseFile file (\x ->
+          prettyGhci <$> translate x (mkMod Nothing "Test"))
+      Config {configFiles} -> withR Nothing $ do
+        ms <- mapM (`parseFile` (`translate` mkMod Nothing "Test")) configFiles
+        mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $
+          zip configFiles (map prettyModule ms)

@@ -93,6 +93,8 @@ executable H
                        GeneralizedNewtypeDeriving
                        KindSignatures
                        MultiParamTypeClasses
+                       NamedFieldPuns
+                       RecordWildCards
                        StandaloneDeriving
                        TypeOperators
   ghc-options:         -Wall -Werror
