@@ -6,6 +6,7 @@ module Main where
 
 import           H.Module
 import           Language.R.Interpreter ( withR )
+import qualified Language.R.Interpreter as R
 import           Language.R ( parseFile )
 
 import           Distribution.System (OS(..), buildOS)
@@ -59,10 +60,10 @@ main = do
       Config {configFiles = []} -> do
         putStrLn "no input files"
         exitFailure
-      Config {configFiles = [file], configGhci = True} -> withR Nothing $ do
+      Config {configFiles = [file], configGhci = True} -> withR R.defaultConfig $ do
         print =<< parseFile file (\x ->
           prettyGhci <$> translate x (mkMod Nothing "Test"))
-      Config {configFiles} -> withR Nothing $ do
+      Config {configFiles} -> withR R.defaultConfig $ do
         ms <- mapM (`parseFile` (`translate` mkMod Nothing "Test")) configFiles
         mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $
           zip configFiles (map prettyModule ms)

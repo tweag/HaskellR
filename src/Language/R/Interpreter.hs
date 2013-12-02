@@ -7,8 +7,8 @@
 {-# LANGUAGE DataKinds #-}
 
 module Language.R.Interpreter
-  ( RConfig(..)
-  , defRConfig
+  ( Config(..)
+  , defaultConfig
   -- * Initialization
   , isInitialized
   , initializeR
@@ -36,13 +36,14 @@ import System.SetEnv
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Configuration options for R runtime.
-data RConfig = RConfig
-       { rProgName :: Maybe String  -- ^ Program name
-       , rParams   :: [String]      -- ^ Parameters
-       }
+data Config = Config
+    { configProgName :: Maybe String    -- ^ Program name. If 'Nothing' then
+                                        -- value of 'getProgName' will be used.
+    , configArgs     :: [String]        -- ^ Command-line arguments.
+    }
 
-defRConfig :: RConfig
-defRConfig = RConfig Nothing ["--vanilla","--silent","--quiet"]
+defaultConfig :: Config
+defaultConfig = Config Nothing ["--vanilla", "--silent"]
 
 -- | Populate environment with @R_HOME@ variable if it does not exist.
 populateEnv :: IO ()
@@ -56,33 +57,30 @@ isInitialized :: IORef Bool
 isInitialized = unsafePerformIO $ newIORef False
 
 -- | Initializes R environment.
-initializeR :: Maybe RConfig -- R options, default on Nothing
+initializeR :: Config
             -> IO ()
-initializeR Nothing = initializeR (Just defRConfig)
-initializeR (Just (RConfig nm prm)) = readIORef isInitialized >>= flip unless inner
+initializeR Config{..} = readIORef isInitialized >>= flip unless inner
   where
     inner = do
         populateEnv
-        pn <- case nm of
-                Nothing -> getProgName
-                Just x  -> return x
-        allocaArray (length prm+1) $ \a -> do
-            sv1 <- newCString pn
-            pokeElemOff a 0 sv1
-            forM_ (zip prm [1..]) $ \(v,i) -> do
+        argv0 <- maybe getProgName return configProgName
+        allocaArray (length configArgs + 1) $ \a -> do
+            sv0 <- newCString argv0
+            pokeElemOff a 0 sv0
+            forM_ (zip configArgs [1..]) $ \(v,i) -> do
                 pokeElemOff a i =<< newCString v
-            R.initEmbeddedR (length prm+1) a
+            R.initEmbeddedR (length configArgs + 1) a
         poke R.rInteractive 0
         initializeConstants
         writeIORef isInitialized True
 
--- | Deinitialize R environment.
+-- | Finalize R environment.
 deinitializeR :: IO ()
 deinitializeR = R.endEmbeddedR 0
 
--- | Initialize R runtime in the main thread and automatically deinitilize in on
--- exit from the function scope.
-withR :: Maybe RConfig -- ^ R configuration options.
+-- | Properly acquire the R runtime, initializing R and ensuring that it is
+-- finalized before returning.
+withR :: Config -- ^ R configuration options.
       -> IO a
       -> IO a
 withR cfg = bracket (initializeR cfg) (const deinitializeR) . const

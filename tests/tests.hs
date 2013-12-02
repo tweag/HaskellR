@@ -122,7 +122,7 @@ ghciSession name scriptPath =
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "Haskell function from R" $ do
-      initializeR Nothing
+      initializeR defaultConfig
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
           e <- peek Foreign.R.globalEnv
