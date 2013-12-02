@@ -1,32 +1,40 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable, CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module Main where
+
+import           H.Module
+import           Language.R.Interpreter ( withR )
+import           Language.R ( parseFile )
+
+import           Distribution.System (OS(..), buildOS)
 
 import           Control.Applicative
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
 import           System.Process
+
 import qualified Paths_H
 
-import           H.Module
-import           H.Repl
-import           Language.R.Interpreter ( withR )
-import           Language.R ( parseFile )
 
 data Config = Config
     { configFiles :: [String]
     , configGhci  :: Bool
     , configRepl  :: Bool
+    , configReplCommand :: FilePath
     } deriving (Eq, Data, Typeable, Show)
 
 cmdSpec :: Config
 cmdSpec = Config
   { configFiles = def &= args &= typ "FILES/DIRS"
   , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output"
-  , configRepl  = def &= explicit &= name "repl" &= help "Run interpreter" }
+  , configRepl  = def &= explicit &= name "repl" &= help "Run interpreter"
+  , configReplCommand = case buildOS of
+      Windows -> "ghcii.sh"
+      _ -> "ghci"
+  }
   &=
   verbosity &=
   help "R-to-Haskell translator." &=
@@ -38,10 +46,11 @@ main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-      Config {configFiles, configRepl = True} -> do
+      Config {configFiles, configRepl = True, configReplCommand} -> do
         cfg <- Paths_H.getDataFileName "H.ghci"
+        let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
         (_,_,_,ph) <-
-            createProcess (proc replCommand (configFiles ++ ["-v0","-ghci-script",cfg]))
+            createProcess (proc configReplCommand argv)
             { std_in = Inherit
             , std_out = Inherit
             }
