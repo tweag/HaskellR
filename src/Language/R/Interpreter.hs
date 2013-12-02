@@ -23,12 +23,14 @@ import qualified Foreign.R.Embedded as R
 import qualified Language.R as LR
 import           Foreign.C.String
 
+import Control.Applicative
 import Control.Exception ( bracket )
-import Control.Monad ( forM_, when, unless )
+import Control.Monad ( unless, when, zipWithM_ )
 
 import Data.IORef
 
-import Foreign ( poke, peek, pokeElemOff, allocaArray )
+import Foreign ( Ptr, allocaArray )
+import Foreign.Storable (Storable(..))
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
 import System.SetEnv
@@ -55,20 +57,28 @@ populateEnv = do
 isInitialized :: IORef Bool
 isInitialized = unsafePerformIO $ newIORef False
 
--- | Initializes R environment.
+-- | Allocate and initialize a new array of elements.
+newCArray :: Storable a
+          => [a]                                  -- ^ Array elements
+          -> (Ptr a -> IO r)                      -- ^ Continuation
+          -> IO r
+newCArray xs k =
+    allocaArray (length xs) $ \ptr -> do
+      zipWithM_ (pokeElemOff ptr) [0..] xs
+      k ptr
+
+-- | Initialize the R environment.
 initializeR :: Config
             -> IO ()
-initializeR Config{..} = readIORef isInitialized >>= flip unless inner
+initializeR Config{..} = readIORef isInitialized >>= (`unless` go)
   where
-    inner = do
+    go = do
         populateEnv
-        argv0 <- maybe getProgName return configProgName
-        allocaArray (length configArgs + 1) $ \a -> do
-            sv0 <- newCString argv0
-            pokeElemOff a 0 sv0
-            forM_ (zip configArgs [1..]) $ \(v,i) -> do
-                pokeElemOff a i =<< newCString v
-            R.initEmbeddedR (length configArgs + 1) a
+        args <- (:) <$> maybe getProgName return configProgName
+                    <*> pure configArgs
+        argv <- mapM newCString args
+        let argc = length argv
+        newCArray argv $ R.initEmbeddedR argc
         poke R.rInteractive 0
         initializeConstants
         writeIORef isInitialized True
