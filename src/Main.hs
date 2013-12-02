@@ -14,6 +14,7 @@ import           Control.Applicative
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
+import           System.Exit (exitFailure)
 import           System.Process
 
 import qualified Paths_H
@@ -56,7 +57,8 @@ main = do
             }
         void $ waitForProcess ph
       Config {configFiles = []} -> do
-        putStrLn "no input files"  -- XXX: exitStatus with fail
+        putStrLn "no input files"
+        exitFailure
       Config {configFiles = [file], configGhci = True} -> withR Nothing $ do
         print =<< parseFile file (\x ->
           prettyGhci <$> translate x (mkMod Nothing "Test"))
