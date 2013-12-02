@@ -2,7 +2,6 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 
-{-# Language RankNTypes #-}
 module Data.Vector.SEXP
   ( Vector(..)
   , toSEXP
@@ -50,7 +49,7 @@ unsafeFromSEXP s = do
                        fptr
                        (fromIntegral len)
 
-toSEXP :: forall a . Storable a => Vector a -> SEXP (R.Vector a)
+toSEXP :: Storable a => Vector a -> SEXP (R.Vector a)
 toSEXP (Vector v) = castPtr (unsafeForeignPtrToPtr p)
   where
     (p,_) = Vector.unsafeToForeignPtr0 v
@@ -70,7 +69,6 @@ toString v = unsafePerformIO $ peekCString . castPtr
          . Vector.unsafeToForeignPtr0
          . unVector $ v
 
-
 toByteString :: Vector Word8 -> ByteString
 toByteString = unsafePerformIO
              . B.unsafePackCStringLen
@@ -78,4 +76,3 @@ toByteString = unsafePerformIO
              . first unsafeForeignPtrToPtr
              . Vector.unsafeToForeignPtr0
              . unVector
-
