@@ -17,14 +17,13 @@ source-repository head
 
 library
   exposed-modules:     H
-                       H.Repl
-                       H.Inspect
                        H.Constraints
+                       H.Debug
                        H.HExp
                        H.HVal
                        H.Module
                        H.Prelude
-                       H.Prelude.Constants
+                       H.Prelude.Globals
                        H.Prelude.Reexports
                        H.Prelude.Eval
                        H.Value
@@ -41,8 +40,6 @@ library
                        Language.R.Interpreter
                        Language.R.QQ
                        Language.R.Runtime.QQ
-  other-modules:       H.Repl.Windows
-                       H.Repl.Unix
   build-depends:       base >= 4.6 && < 4.7
                      , aeson >= 0.6
                      , bytestring >= 0.10
@@ -72,20 +69,20 @@ library
   build-tools:         c2hs
   if os(windows)
     extra-libraries:   R
-    ghc-options:       -DCABAL_WINDOWS=1
   else
     pkgconfig-depends: libR >= 3.0
   ghc-options:         -Wall -Werror
 
 executable H
   main-is:             src/Main.hs
-  build-depends:       base >= 4.6 && < 4.7
-                     , cmdargs >= 0.10.5
-                     , pretty >= 1.1
-                     , vector >= 0.10
+  build-depends:       H
+                     , base >= 4.6 && < 4.7
                      , bytestring >= 0.10
+                     , cmdargs >= 0.10.5
+                     , Cabal >= 1.16
+                     , pretty >= 1.1
                      , process >= 1.0
-                     , H
+                     , vector >= 0.10
   default-language:    Haskell2010
   default-extensions:  DataKinds
                        FlexibleInstances
@@ -93,6 +90,8 @@ executable H
                        GeneralizedNewtypeDeriving
                        KindSignatures
                        MultiParamTypeClasses
+                       NamedFieldPuns
+                       RecordWildCards
                        StandaloneDeriving
                        TypeOperators
   ghc-options:         -Wall -Werror

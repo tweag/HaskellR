@@ -1,32 +1,41 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable, CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module Main where
+
+import           H.Module
+import           Language.R.Interpreter ( withR )
+import           Language.R ( parseFile )
+
+import           Distribution.System (OS(..), buildOS)
 
 import           Control.Applicative
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
+import           System.Exit (exitFailure)
 import           System.Process
+
 import qualified Paths_H
 
-import           H.Module
-import           H.Repl
-import           Language.R.Interpreter ( withR )
-import           Language.R ( parseFile )
 
 data Config = Config
     { configFiles :: [String]
     , configGhci  :: Bool
     , configRepl  :: Bool
+    , configReplCommand :: FilePath
     } deriving (Eq, Data, Typeable, Show)
 
 cmdSpec :: Config
 cmdSpec = Config
   { configFiles = def &= args &= typ "FILES/DIRS"
   , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output"
-  , configRepl  = def &= explicit &= name "repl" &= help "Run interpreter" }
+  , configRepl  = def &= explicit &= name "repl" &= help "Run interpreter"
+  , configReplCommand = case buildOS of
+      Windows -> "ghcii.sh"
+      _ -> "ghci"
+  }
   &=
   verbosity &=
   help "R-to-Haskell translator." &=
@@ -38,16 +47,22 @@ main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-        Config prm _ True    -> do
-            cfg <- Paths_H.getDataFileName "H.ghci"
-            (_,_,_,ph) <- createProcess (proc replCommand (prm ++ ["-v0","-ghci-script",cfg]))
-                {std_in=Inherit
-                ,std_out=Inherit
-                }
-            void $ waitForProcess ph
-        Config []  _ _     -> putStrLn "no input files"  -- XXX: exitStatus with fail
-        Config [fl] True _ -> withR Nothing $ do
-          print =<< parseFile fl (\x -> prettyGhci <$> translate x (mkMod Nothing "Test"))
-        Config fls _ _   -> withR Nothing $ do
-          ms <- mapM (flip parseFile (flip translate (mkMod Nothing "Test"))) fls
-          mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $ zip fls (map prettyModule ms)
+      Config {configFiles, configRepl = True, configReplCommand} -> do
+        cfg <- Paths_H.getDataFileName "H.ghci"
+        let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
+        (_,_,_,ph) <-
+            createProcess (proc configReplCommand argv)
+            { std_in = Inherit
+            , std_out = Inherit
+            }
+        void $ waitForProcess ph
+      Config {configFiles = []} -> do
+        putStrLn "no input files"
+        exitFailure
+      Config {configFiles = [file], configGhci = True} -> withR Nothing $ do
+        print =<< parseFile file (\x ->
+          prettyGhci <$> translate x (mkMod Nothing "Test"))
+      Config {configFiles} -> withR Nothing $ do
+        ms <- mapM (`parseFile` (`translate` mkMod Nothing "Test")) configFiles
+        mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $
+          zip configFiles (map prettyModule ms)
