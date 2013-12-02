@@ -50,7 +50,7 @@ dynamic linker (LD_LIBRARY_PATH, /etc/ld.so.conf, etc).
 
 After installing H, type at the prompt:
 
-    $ H --repl
+    $ H --interactive
 
 This will start ghci loading the H environment and bringing
 the relevant definitions into scope. In addition, an instance

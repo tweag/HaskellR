@@ -23,16 +23,16 @@ import qualified Paths_H
 data Config = Config
     { configFiles :: [String]
     , configGhci  :: Bool
-    , configRepl  :: Bool
-    , configReplCommand :: FilePath
+    , configInteractive  :: Bool
+    , configInteractiveCommand :: FilePath
     } deriving (Eq, Data, Typeable, Show)
 
 cmdSpec :: Config
 cmdSpec = Config
   { configFiles = def &= args &= typ "FILES/DIRS"
   , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output"
-  , configRepl  = def &= explicit &= name "repl" &= help "Run interpreter"
-  , configReplCommand = case buildOS of
+  , configInteractive  = def &= explicit &= name "interactive" &= help "Run interpreter"
+  , configInteractiveCommand = case buildOS of
       Windows -> "ghcii.sh"
       _ -> "ghci"
   }
@@ -47,11 +47,11 @@ main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-      Config {configFiles, configRepl = True, configReplCommand} -> do
+      Config {configFiles, configInteractive = True, configInteractiveCommand} -> do
         cfg <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
         (_,_,_,ph) <-
-            createProcess (proc configReplCommand argv)
+            createProcess (proc configInteractiveCommand argv)
             { std_in = Inherit
             , std_out = Inherit
             }
