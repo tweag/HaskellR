@@ -125,4 +125,4 @@ strings str = withCString str (R.protect <=< R.mkString)
 eval :: R.SEXP a -> IO (R.SEXP b)
 eval x = do
     gl <- readIORef globalEnv
-    alloca $ \p -> R.tryEval x gl p
+    alloca $ \p -> R.tryEvalSilent x gl p
