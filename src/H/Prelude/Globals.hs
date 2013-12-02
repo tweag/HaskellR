@@ -1,6 +1,10 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
-module H.Prelude.Constants
+--
+-- Global variables used by the R interpreter. They are all constant, but not
+-- referentially transparent (e.g. the global environment varies over time).
+
+module H.Prelude.Globals
   ( unboundValue
   , globalEnv
   , nilValue

@@ -17,7 +17,7 @@ module H.Debug
   where
 
 import H.HExp
-import H.Prelude.Constants as H
+import H.Prelude.Globals as H
 import Foreign.Storable
 import qualified Foreign.R as R
 import qualified Data.Vector.SEXP as Vector
