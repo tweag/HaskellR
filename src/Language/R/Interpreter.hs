@@ -15,7 +15,6 @@ module Language.R.Interpreter
   , deinitializeR
   -- * helpers
   , withR
-  , populateEnv
   , initializeConstants
   ) where
 
