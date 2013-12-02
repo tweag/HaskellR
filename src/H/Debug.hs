@@ -1,12 +1,18 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- Debugging facilities, in particular to analyze the internal structure of
+-- a 'SEXP'.
+--
 -- This module is intended to be imported qualified.
-{-# LANGUAGE ViewPatterns #-}
+
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module H.Inspect
+
+module H.Debug
   ( inspect )
   where
 
