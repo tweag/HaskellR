@@ -1,10 +1,12 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module provides a way to run R-interpreter
--- in the background thread and interact with it.
+-- This module provides a way to run R interpreter in a background thread and
+-- interact with it.
+
 {-# LANGUAGE DataKinds #-}
-module Language.R.Interpreter 
+
+module Language.R.Interpreter
   ( RConfig(..)
   , defRConfig
   -- * Initialization
@@ -33,7 +35,7 @@ import System.Process     ( readProcess )
 import System.SetEnv
 import System.IO.Unsafe ( unsafePerformIO )
 
--- | Configuration options for R runtime
+-- | Configuration options for R runtime.
 data RConfig = RConfig
        { rProgName :: Maybe String  -- ^ Program name
        , rParams   :: [String]      -- ^ Parameters
@@ -42,18 +44,18 @@ data RConfig = RConfig
 defRConfig :: RConfig
 defRConfig = RConfig Nothing ["--vanilla","--silent","--quiet"]
 
--- | Populate environment with R_HOME variable if it's not exists there
+-- | Populate environment with @R_HOME@ variable if it does not exist.
 populateEnv :: IO ()
 populateEnv = do
     mh <- lookupEnv "R_HOME"
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
--- | Contains status of initialization
+-- | Contains status of initialization.
 isInitialized :: IORef Bool
 isInitialized = unsafePerformIO $ newIORef False
 
--- | Initializes R environment
+-- | Initializes R environment.
 initializeR :: Maybe RConfig -- R options, default on Nothing
             -> IO ()
 initializeR Nothing = initializeR (Just defRConfig)
@@ -78,8 +80,8 @@ initializeR (Just (RConfig nm prm)) = readIORef isInitialized >>= flip unless in
 deinitializeR :: IO ()
 deinitializeR = R.endEmbeddedR 0
 
--- | Initialize R runtime in the main thread and automatically
--- deinitilize in on exit from the function scope.
+-- | Initialize R runtime in the main thread and automatically deinitilize in on
+-- exit from the function scope.
 withR :: Maybe RConfig -- ^ R configuration options.
       -> IO a
       -> IO a
