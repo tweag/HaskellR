@@ -34,6 +34,14 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
 
+-- $ghci-bug
+-- The main reason to have all constant be presented as IORef in a global
+-- scope is that peeking variable in ghci doesn't work as excepted an
+-- returns incorrect address. The workaround is to populate all variables
+-- in the ghci session, that is done automatically by the .ghci script.
+--
+-- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
+
 globalEnv :: IORef (R.SEXP R.Env)
 globalEnv = unsafePerformIO $ newIORef nullPtr
 
@@ -118,11 +126,3 @@ eval :: R.SEXP a -> IO (R.SEXP b)
 eval x = do
     gl <- readIORef globalEnv
     alloca $ \p -> R.tryEval x gl p
-
--- $ghci-bug
--- The main reason to have all constant be presented as IORef in a global
--- scope is that peeking variable in ghci doesn't work as excepted an
--- returns incorrect address. The workaround is to populate all variables
--- in the ghci session, that is done automatically by the .ghci script.
---
--- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
