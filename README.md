@@ -15,8 +15,16 @@ Installing
 cabal-install >= 1.16.0.2 is required to build without
 warnings.
 
-First change the current working directory to the folder
-containing the H.cabal file. Then depending on your OS:
+This [patched branch](https://github.com/facundominguez/c2hs/tree/bitfield-sizeAlign-fix)
+of c2hs 0.16.5 is required for i386 builds on Windows:
+
+    git clone -b bitfield-sizeAlign-fix git@github.com:facundominguez/c2hs.git
+	cd c2hs
+	cabal install
+
+To install H, change the current working directory to the
+folder containing the H.cabal file. Then, depending on your
+OS:
 
 In Unix-like systems
 
@@ -34,6 +42,11 @@ arguments in order execute tests before installation.
 
 Setting up H in GHCi
 --------------------
+
+In Windows, make sure the file R.dll appears in some folder
+listed in the PATH environment variable. In Unix-like
+systems, libR.so should be located within reach of the
+dynamic linker (LD_LIBRARY_PATH, /etc/ld.so.conf, etc).
 
 After installing H, type at the prompt:
 
