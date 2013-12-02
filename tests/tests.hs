@@ -29,6 +29,8 @@ import Foreign.R
 import Language.R
 import Debug.Trace
 
+import Foreign
+
 invokeR :: FilePath -> ValueGetter r Text
 invokeR fp = do
     inh <- liftIO $ openFile fp ReadMode
