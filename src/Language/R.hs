@@ -68,11 +68,7 @@ r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
-        withProtected (R.lang2 f a) (\v -> do
-          gl <- readIORef globalEnv
-          x <- alloca $ \p -> R.tryEval v gl p
-          _ <- R.protect x
-          return x)
+        withProtected (R.lang2 f a) eval
 
 -- | Call 2-arity R function, function will be found in runtime, using
 -- global environment. See 'r1' for additional comments.
@@ -80,11 +76,7 @@ r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      withProtected (R.lang3 f a b) (\v -> do
-        gl <- readIORef globalEnv
-        x <- alloca $ \p -> R.tryEval v gl p
-        _ <- R.protect x
-        return x)
+      withProtected (R.lang3 f a b) eval
 
 -- | Perform an action with resource while protecting it from the garbage
 -- collection.
