@@ -6,6 +6,7 @@
 module Foreign.R.Error
   ( RError(..)
   , throwR
+  , throwRMessage
   ) where
 
 import Foreign.R as R
@@ -35,3 +36,7 @@ getErrMsg e = do
 throwR :: R.SEXP R.Env  -- Environment to search error.
        -> IO a
 throwR x = getErrMsg x >>= throwIO . RError 
+
+-- | Throw R exception with specified message.
+throwRMessage :: String -> IO a
+throwRMessage = throwIO . RError
