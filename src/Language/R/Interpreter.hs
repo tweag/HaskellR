@@ -3,6 +3,8 @@
 --
 -- This module provides a way to run R interpreter in a background thread and
 -- interact with it.
+--
+-- This module is intended to be imported qualified.
 
 {-# LANGUAGE DataKinds #-}
 
@@ -11,10 +13,10 @@ module Language.R.Interpreter
   , defaultConfig
   -- * Initialization
   , isInitialized
-  , initializeR
-  , deinitializeR
+  , initialize
+  , finalize
   -- * helpers
-  , withR
+  , with
   , initializeConstants
   ) where
 
@@ -53,7 +55,7 @@ populateEnv = do
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
--- | Contains status of initialization.
+-- | Status of initialization.
 isInitialized :: IORef Bool
 isInitialized = unsafePerformIO $ newIORef False
 
@@ -68,9 +70,9 @@ newCArray xs k =
       k ptr
 
 -- | Initialize the R environment.
-initializeR :: Config
-            -> IO ()
-initializeR Config{..} = readIORef isInitialized >>= (`unless` go)
+initialize :: Config
+           -> IO ()
+initialize Config{..} = readIORef isInitialized >>= (`unless` go)
   where
     go = do
         populateEnv
@@ -84,15 +86,15 @@ initializeR Config{..} = readIORef isInitialized >>= (`unless` go)
         writeIORef isInitialized True
 
 -- | Finalize R environment.
-deinitializeR :: IO ()
-deinitializeR = R.endEmbeddedR 0
+finalize :: IO ()
+finalize = R.endEmbeddedR 0
 
 -- | Properly acquire the R runtime, initializing R and ensuring that it is
 -- finalized before returning.
-withR :: Config -- ^ R configuration options.
+with :: Config -- ^ R configuration options.
       -> IO a
       -> IO a
-withR cfg = bracket (initializeR cfg) (const deinitializeR) . const
+with cfg = bracket (initialize cfg) (const finalize) . const
 
 -- | Initialize all R constants in haskell.
 --

@@ -16,14 +16,14 @@ import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
-import Language.R ( nilValue {-, unboundValue-} )
+import Language.R ( nilValue )
+import qualified Language.R.Interpreter as R
 
 import Data.List ( isSuffixOf )
 import Data.IORef ( readIORef )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import Language.R.Interpreter ( initializeR, defaultConfig )
 
 import Foreign ( alloca )
 import Foreign.C.String ( withCString )
@@ -44,7 +44,7 @@ r = QuasiQuoter
 parseExpCompile :: String -> ExpQ
 parseExpCompile txt = do
      vs <- runIO $ do
-       initializeR defaultConfig
+       R.initialize R.defaultConfig
        ex <- withCString txt $ \ctxt -> do
          rtxt <- R.mkString ctxt
          -- XXX: this is a hack due to incorrect address mapping in ghci

@@ -6,30 +6,33 @@
 
 module Main where
 
+import H.Prelude
+import qualified Foreign.R as R
+import qualified Language.R.Interpreter as R (initialize, defaultConfig)
+import qualified Language.R as R (withProtected, r2)
+
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
 import Test.Tasty.Golden.Manage
 import Test.Tasty.HUnit
 
-import System.IO
-import qualified System.IO.Strict as Strict (readFile)
-import System.Process
-import System.FilePath
-
-import Control.Monad (guard)
-import Control.Monad.Trans
-import Control.Applicative ((<$>))
 import qualified Data.ByteString.Char8 (pack)
 import           Data.Text (Text)
 import qualified Data.Text    as T
 import qualified Data.Text.IO as T (readFile)
 
-import H.Prelude
-import Foreign.R
-import Language.R
+import Control.Monad (guard)
+import Control.Monad.Trans
+import Control.Applicative ((<$>))
+
 import Debug.Trace
 
 import Foreign
+
+import System.IO
+import qualified System.IO.Strict as Strict (readFile)
+import System.Process
+import System.FilePath
 
 invokeR :: FilePath -> ValueGetter r Text
 invokeR fp = do
@@ -124,12 +127,12 @@ ghciSession name scriptPath =
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "Haskell function from R" $ do
-      initializeR defaultConfig
+      R.initialize R.defaultConfig
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
-          e <- peek Foreign.R.globalEnv
-          withProtected (return $ mkSEXP (\x -> (return $ x+1 :: IO Double))) $
-            \sf -> tryEval (r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
+          e <- peek R.globalEnv
+          R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: IO Double))) $
+            \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
   ]
 
 integrationTests :: TestTree
