@@ -33,5 +33,5 @@ getErrMsg e = do
 
 -- | Throw R exception.
 throwR :: R.SEXP R.Env  -- Environment to search error.
-       -> IO ()
+       -> IO a
 throwR x = getErrMsg x >>= throwIO . RError 
