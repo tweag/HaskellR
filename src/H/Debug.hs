@@ -34,7 +34,7 @@ instance ToJSON R.SEXPTYPE where
 
 instance ToJSON R.SEXPInfo where
   toJSON x =
-    object 
+    object
       [ "type"  .= R.infoType x
       , "obj"   .= R.infoObj x
       , "named" .= R.infoNamed x
@@ -48,11 +48,11 @@ instance ToJSON R.SEXPInfo where
       ]
 
 instance ToJSON a => ToJSON (Complex a) where
-  toJSON (x :+ y) = 
+  toJSON (x :+ y) =
     object ["Re" .= x, "Im" .= y]
 
 instance ToJSON (R.SEXP a) where
-  toJSON x = 
+  toJSON x =
       object
         [ "header" .= info
         , "attributes" .= if R.unsexp x == R.unsexp attr then "loop" else toJSON attr
@@ -90,7 +90,7 @@ instance ToJSON (R.SEXP a) where
       go (hexp -> Vector _ v) = A.Array (vector v)
 --  String    :: {-# UNPACK #-} !(Vector.Vector (SEXP (R.Vector Word8)))
 --            -> HExp (R.Vector (SEXP (R.Vector Word8)))
-      go (hexp -> List i j k) = 
+      go (hexp -> List i j k) =
           object [ "value" .= i
                  , "next"  .= j
                  , "tag"   .= k
@@ -98,7 +98,7 @@ instance ToJSON (R.SEXP a) where
       go (hexp -> Any) = A.String "Any"
       go (hexp -> Env _ _ _) = A.String "Environment"
       go (hexp -> Closure f b e) =
-         object [ "formals" .= f 
+         object [ "formals" .= f
                 , "body" .= b
                 , "environment" .= e
                 ]
@@ -111,7 +111,7 @@ instance ToJSON (R.SEXP a) where
           object [ "promises" .= v]
       go (hexp -> Expr v)   = A.Array (vector v)
       go (hexp -> Bytecode) = A.String "Bytecode"
-      go (hexp -> ExtPtr _ a b) = 
+      go (hexp -> ExtPtr _ a b) =
           object [ "ptr" .= A.String "<PTR>"
                  , "second" .= a
                  , "symbol" .= b
@@ -123,7 +123,7 @@ instance ToJSON (R.SEXP a) where
                  , "next" .= nxt
                  ]
       go (hexp -> Raw _bs) = A.String "<data>"
-      go (hexp -> S4 s) = 
+      go (hexp -> S4 s) =
           object [ "tagval" .= s ]
       go _ = A.String "Unimplemented."
 
