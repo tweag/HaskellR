@@ -67,6 +67,7 @@ module Foreign.R
   , expression
   , setExprElem
     -- * Evaluation
+  , eval
   , tryEval
   , tryEvalSilent
   , lang1
@@ -297,9 +298,12 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 --------------------------------------------------------------------------------
 
 -- | Evaluate expression.
+{#fun R_eval as eval { unsexp `SEXP a', unsexp `SEXP R.Env' } -> `SEXP b' sexp #}
+
+-- | Try to evaluate expression.
 {#fun R_tryEval as tryEval { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' sexp #}
 
--- | Evaluate without printing error/warning messages to stdout.
+-- | Try to evaluate without printing error/warning messages to stdout.
 {#fun R_tryEvalSilent as  tryEvalSilent { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' sexp #}
 
 -- | Construct 1 arity expression.
