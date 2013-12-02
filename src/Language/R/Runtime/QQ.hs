@@ -16,14 +16,16 @@ import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
+import qualified Foreign.R.Error as R
 import Language.R ( withProtected )
 
+import Control.Applicative
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
-import Foreign ( alloca
+import Foreign ( alloca, peek
                , ptrToIntPtr, intPtrToPtr )
 import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
@@ -56,8 +58,13 @@ parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
     ex <- runIO $ withCString txt $ \ctxt ->
             withProtected (R.mkString ctxt) $ \rtxt ->
-              alloca $ \status ->
-                R.parseVector rtxt (-1) status H.nilValue
+              alloca $ \status -> do
+                x <- R.parseVector rtxt (-1) status H.nilValue
+                v <- fromIntegral <$> peek status
+                case toEnum v of
+                    R.PARSE_INCOMPLETE -> R.throwRMessage "Incomplete parse"
+                    R.PARSE_ERROR -> R.throwRMessage $ "Error parsing: "++txt
+                    _ -> return x
     let l = RuntimeSEXP ex
     case attachHs ex of
       [] -> [| unRuntimeSEXP l |]
