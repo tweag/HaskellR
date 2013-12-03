@@ -13,6 +13,7 @@ module Language.R
   , string
   , strings
   , eval
+  , evalEnv
   -- * R global constants
   -- $ghci-bug
   , globalEnv
@@ -67,12 +68,11 @@ parseEval txt = useAsCString txt $ \ctxt ->
   withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
       nil <- readIORef nilValue
-      z <- withProtected (R.parseVector rtxt 1 status nil) $ \ex -> 
-             eval =<< R.indexExpr ex 0
-      e <- fromIntegral <$> peek status
-      unless (R.PARSE_OK == toEnum e) $
-        R.throwRMessage $ "Parse error in: " ++ C8.unpack txt
-      return z
+      withProtected (R.parseVector rtxt 1 status nil) $ \ex -> do
+        e <- fromIntegral <$> peek status
+        unless (R.PARSE_OK == toEnum e) $
+          R.throwRMessage $ "Parse error in: " ++ C8.unpack txt
+        eval =<< R.indexExpr ex 0
 
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
@@ -134,12 +134,16 @@ string str = withCString str (R.protect <=< R.mkChar)
 strings :: String -> IO (R.SEXP (R.String))
 strings str = withCString str (R.protect <=< R.mkString)
 
-eval :: R.SEXP a -> IO (R.SEXP b)
-eval x = do
-    gl <- readIORef globalEnv
+-- | Evaluate expression in given environment.
+evalEnv :: R.SEXP a -> R.SEXP R.Env -> IO (R.SEXP b)
+evalEnv x rho = 
     alloca $ \p -> do
-        v <- R.tryEvalSilent x gl p
+        v <- R.tryEvalSilent x rho p
         e <- peek p
         when (e /= 0) $ do
-          R.throwR gl
+          R.throwR rho
         return v
+
+-- | Evaluate expression in global environment.
+eval :: R.SEXP a -> IO (R.SEXP b)
+eval x = readIORef globalEnv >>= evalEnv x
