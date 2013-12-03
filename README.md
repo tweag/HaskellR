@@ -33,11 +33,14 @@ In Unix-like systems
 In Windows
 
     cabal install --extra-include-dirs=$R_HOME\include \
-                  --extra-lib-dirs=$R_HOME\bin\x64
+                  --extra-lib-dirs=$R_HOME\bin\[i386|x64]
 
 
 Optionally, you may add --enable-tests to the command line
 arguments in order execute tests before installation.
+
+In Windows you need to select which R library folder to use
+depending on whether an i386 or x64 build is desired.
 
 
 Setting up H in GHCi
@@ -61,6 +64,9 @@ Alternatively, the following should work:
     $ ghci -ghci-script H.ghci
 
 where H.ghci is a file colocated with the H.cabal file.
+
+When in Windows, both H and ghci work best with the cmd
+terminal.
 
 
 Using H in GHCi
