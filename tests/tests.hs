@@ -113,16 +113,16 @@ ghciSession name scriptPath =
       (liftIO $ T.readFile $ scriptPath ++ ".golden.output")
       (invokeGHCi scriptPath)
       (\goldenOutput outputH ->
-         if goldenOutput == outputH then return Nothing
+         if and $ zipWith (==) (T.lines goldenOutput) (T.lines outputH)
+         then return Nothing
          else return $ Just $
            unlines ["Outputs don't match."
                    , "expected: "
-                   , T.unpack goldenOutput
+                   , show $ T.unpack goldenOutput
                    , "H: "
-                   , T.unpack outputH
+                   , show $ T.unpack outputH
                    ])
       (const $ return ())
-
 
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
