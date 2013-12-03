@@ -3,19 +3,20 @@
 --
 -- This module provides a way to run R interpreter in a background thread and
 -- interact with it.
+--
+-- This module is intended to be imported qualified.
 
 {-# LANGUAGE DataKinds #-}
 
 module Language.R.Interpreter
-  ( RConfig(..)
-  , defRConfig
+  ( Config(..)
+  , defaultConfig
   -- * Initialization
   , isInitialized
-  , initializeR
-  , deinitializeR
+  , initialize
+  , finalize
   -- * helpers
-  , withR
-  , populateEnv
+  , with
   , initializeConstants
   ) where
 
@@ -24,25 +25,28 @@ import qualified Foreign.R.Embedded as R
 import qualified Language.R as LR
 import           Foreign.C.String
 
+import Control.Applicative
 import Control.Exception ( bracket )
-import Control.Monad ( forM_, when, unless )
+import Control.Monad ( unless, when, zipWithM_ )
 
 import Data.IORef
 
-import Foreign ( poke, peek, pokeElemOff, allocaArray )
+import Foreign ( Ptr, allocaArray )
+import Foreign.Storable (Storable(..))
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
 import System.SetEnv
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Configuration options for R runtime.
-data RConfig = RConfig
-       { rProgName :: Maybe String  -- ^ Program name
-       , rParams   :: [String]      -- ^ Parameters
-       }
+data Config = Config
+    { configProgName :: Maybe String    -- ^ Program name. If 'Nothing' then
+                                        -- value of 'getProgName' will be used.
+    , configArgs     :: [String]        -- ^ Command-line arguments.
+    }
 
-defRConfig :: RConfig
-defRConfig = RConfig Nothing ["--vanilla","--silent","--quiet"]
+defaultConfig :: Config
+defaultConfig = Config Nothing ["--vanilla", "--silent"]
 
 -- | Populate environment with @R_HOME@ variable if it does not exist.
 populateEnv :: IO ()
@@ -51,41 +55,46 @@ populateEnv = do
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
--- | Contains status of initialization.
+-- | Status of initialization.
 isInitialized :: IORef Bool
 isInitialized = unsafePerformIO $ newIORef False
 
--- | Initializes R environment.
-initializeR :: Maybe RConfig -- R options, default on Nothing
-            -> IO ()
-initializeR Nothing = initializeR (Just defRConfig)
-initializeR (Just (RConfig nm prm)) = readIORef isInitialized >>= flip unless inner
+-- | Allocate and initialize a new array of elements.
+newCArray :: Storable a
+          => [a]                                  -- ^ Array elements
+          -> (Ptr a -> IO r)                      -- ^ Continuation
+          -> IO r
+newCArray xs k =
+    allocaArray (length xs) $ \ptr -> do
+      zipWithM_ (pokeElemOff ptr) [0..] xs
+      k ptr
+
+-- | Initialize the R environment.
+initialize :: Config
+           -> IO ()
+initialize Config{..} = readIORef isInitialized >>= (`unless` go)
   where
-    inner = do
+    go = do
         populateEnv
-        pn <- case nm of
-                Nothing -> getProgName
-                Just x  -> return x
-        allocaArray (length prm+1) $ \a -> do
-            sv1 <- newCString pn
-            pokeElemOff a 0 sv1
-            forM_ (zip prm [1..]) $ \(v,i) -> do
-                pokeElemOff a i =<< newCString v
-            R.initEmbeddedR (length prm+1) a
+        args <- (:) <$> maybe getProgName return configProgName
+                    <*> pure configArgs
+        argv <- mapM newCString args
+        let argc = length argv
+        newCArray argv $ R.initEmbeddedR argc
         poke R.rInteractive 0
         initializeConstants
         writeIORef isInitialized True
 
--- | Deinitialize R environment.
-deinitializeR :: IO ()
-deinitializeR = R.endEmbeddedR 0
+-- | Finalize R environment.
+finalize :: IO ()
+finalize = R.endEmbeddedR 0
 
--- | Initialize R runtime in the main thread and automatically deinitilize in on
--- exit from the function scope.
-withR :: Maybe RConfig -- ^ R configuration options.
+-- | Properly acquire the R runtime, initializing R and ensuring that it is
+-- finalized before returning.
+with :: Config -- ^ R configuration options.
       -> IO a
       -> IO a
-withR cfg = bracket (initializeR cfg) (const deinitializeR) . const
+with cfg = bracket (initialize cfg) (const finalize) . const
 
 -- | Initialize all R constants in haskell.
 --

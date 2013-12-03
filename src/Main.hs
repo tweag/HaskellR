@@ -5,7 +5,7 @@
 module Main where
 
 import           H.Module
-import           Language.R.Interpreter ( withR )
+import qualified Language.R.Interpreter as R ( defaultConfig, with )
 import           Language.R ( parseFile )
 
 import           Distribution.System (OS(..), buildOS)
@@ -23,16 +23,16 @@ import qualified Paths_H
 data Config = Config
     { configFiles :: [String]
     , configGhci  :: Bool
-    , configRepl  :: Bool
-    , configReplCommand :: FilePath
+    , configInteractive  :: Bool
+    , configInteractiveCommand :: FilePath
     } deriving (Eq, Data, Typeable, Show)
 
 cmdSpec :: Config
 cmdSpec = Config
   { configFiles = def &= args &= typ "FILES/DIRS"
   , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output"
-  , configRepl  = def &= explicit &= name "repl" &= help "Run interpreter"
-  , configReplCommand = case buildOS of
+  , configInteractive  = def &= explicit &= name "interactive" &= help "Run interpreter"
+  , configInteractiveCommand = case buildOS of
       Windows -> "ghcii.sh"
       _ -> "ghci"
   }
@@ -47,11 +47,11 @@ main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-      Config {configFiles, configRepl = True, configReplCommand} -> do
+      Config {configFiles, configInteractive = True, configInteractiveCommand} -> do
         cfg <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
         (_,_,_,ph) <-
-            createProcess (proc configReplCommand argv)
+            createProcess (proc configInteractiveCommand argv)
             { std_in = Inherit
             , std_out = Inherit
             }
@@ -59,10 +59,10 @@ main = do
       Config {configFiles = []} -> do
         putStrLn "no input files"
         exitFailure
-      Config {configFiles = [file], configGhci = True} -> withR Nothing $ do
+      Config {configFiles = [file], configGhci = True} -> R.with R.defaultConfig $ do
         print =<< parseFile file (\x ->
           prettyGhci <$> translate x (mkMod Nothing "Test"))
-      Config {configFiles} -> withR Nothing $ do
+      Config {configFiles} -> R.with R.defaultConfig $ do
         ms <- mapM (`parseFile` (`translate` mkMod Nothing "Test")) configFiles
         mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $
           zip configFiles (map prettyModule ms)

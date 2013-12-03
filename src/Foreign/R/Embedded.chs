@@ -1,6 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- Bindings for @<R/Rembedded.h>@.
 
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 

@@ -61,6 +61,8 @@ library
                        LambdaCase
                        KindSignatures
                        MultiParamTypeClasses
+                       NamedFieldPuns
+                       RecordWildCards
                        StandaloneDeriving
                        TypeOperators
                        OverloadedStrings

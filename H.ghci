@@ -18,5 +18,5 @@ import Language.R.Runtime.QQ as QQ
      )
 :}
 
-Language.R.Interpreter.initializeR Nothing
+Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig
 :updateR

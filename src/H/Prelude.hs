@@ -4,7 +4,6 @@
 {-# Language GADTs #-}
 module H.Prelude
   ( module Data.IORef
-  , module Foreign
   , module H.HVal
   , module Language.R.Interpreter
   , print
@@ -18,8 +17,6 @@ module H.Prelude
 
 import           H.HVal
 import qualified Foreign.R as R
-
-import           Foreign hiding ( unsafePerformIO, void )
 
 -- Reexported modules.
 import           H.Prelude.Reexports
