@@ -82,7 +82,6 @@ executable H
                      , base >= 4.6 && < 4.7
                      , bytestring >= 0.10
                      , cmdargs >= 0.10.5
-                     , Cabal >= 1.16
                      , pretty >= 1.1
                      , process >= 1.0
                      , vector >= 0.10

@@ -8,8 +8,6 @@ import           H.Module
 import qualified Language.R.Interpreter as R ( defaultConfig, with )
 import           Language.R ( parseFile )
 
-import           Distribution.System (OS(..), buildOS)
-
 import           Control.Applicative
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
@@ -32,9 +30,7 @@ cmdSpec = Config
   { configFiles = def &= args &= typ "FILES/DIRS"
   , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output"
   , configInteractive  = def &= explicit &= name "interactive" &= help "Run interpreter"
-  , configInteractiveCommand = case buildOS of
-      Windows -> "ghcii.sh"
-      _ -> "ghci"
+  , configInteractiveCommand = "ghci"
   }
   &=
   verbosity &=
