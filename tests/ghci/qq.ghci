@@ -44,4 +44,3 @@ H.print [r| xs_hs |]
 
 -- Should be [1] 8
 H.print [r| foo1_hs(7) |]
-

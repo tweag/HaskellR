@@ -15,17 +15,16 @@ import qualified H.Prelude as H
 import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import qualified Foreign.R.Parse as R
-import Language.R ( withProtected )
+import Language.R ( withProtected, parseText )
 
+import Control.Exception ( evaluate )
+import Control.Monad ( void, unless )
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
-import Foreign ( alloca
-               , ptrToIntPtr, intPtrToPtr )
-import Foreign.C.String ( withCString )
+import Foreign ( ptrToIntPtr, intPtrToPtr )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -------------------------------------------------------------------------------
@@ -54,10 +53,10 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ withCString txt $ \ctxt ->
-            withProtected (R.mkString ctxt) $ \rtxt ->
-              alloca $ \status ->
-                R.parseVector rtxt (-1) status H.nilValue
+    ex <- runIO $ do
+      x <- parseText txt
+      force x
+      return x
     let l = RuntimeSEXP ex
     case attachHs ex of
       [] -> [| unRuntimeSEXP l |]
@@ -94,8 +93,8 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
         rp = RuntimeSEXP params
     in Just (\e ->
-         [| withProtected (return $ H.install ".Call") $ \call ->
-              withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
+         [| withProtected (evaluate $ H.install ".Call") $ \call ->
+              withProtected (evaluate $ H.mkSEXP $(varE hname)) $ \l -> do
                 injectCar (unRuntimeSEXP rs) call
                 injectCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
                 $e
@@ -103,7 +102,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> injectCar (unRuntimeSEXP rs) l >> $e |])
+         [| withProtected (evaluate $ H.mkSEXP $(varE hname)) $ \l -> injectCar (unRuntimeSEXP rs) l >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: R.SEXP a -> Maybe Name
@@ -112,6 +111,17 @@ haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     then Just . mkName $ take (length name - 3) name 
     else Nothing
 haskellName _ = Nothing
+
+force :: R.SEXP a -> IO () 
+force (hexp -> Expr v) = mapM_ force (Vector.toList v)
+force (hexp -> Lang x ls) = force x >> force ls
+force (hexp -> List a b c) = force a >> maybe (return ()) force b >> maybe (return()) force c
+force h@(hexp -> Symbol a b c)  = do
+    unless (R.unsexp h == R.unsexp a) (force a)
+    unless (R.unsexp h == R.unsexp b) (force b)
+    maybe (return ()) force c
+force h@(hexp -> Promise{}) = void (H.evalIO h)
+force _ = return ()
 
 newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
 

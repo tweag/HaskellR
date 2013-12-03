@@ -6,6 +6,7 @@ module H.Prelude
   ( module Data.IORef
   , module H.HVal
   , module Language.R.Interpreter
+  , module Foreign.R.Error
   , print
   -- * Evaluation constructs
   , module H.Prelude.Eval
@@ -24,6 +25,7 @@ import           H.Prelude.Eval
 import           H.Prelude.Globals
 import Data.IORef
 import Language.R.Interpreter
+import Foreign.R.Error
 
 import Prelude hiding (print)
 

@@ -113,16 +113,18 @@ ghciSession name scriptPath =
       (liftIO $ T.readFile $ scriptPath ++ ".golden.output")
       (invokeGHCi scriptPath)
       (\goldenOutput outputH ->
-         if goldenOutput == outputH then return Nothing
-         else return $ Just $
-           unlines ["Outputs don't match."
-                   , "expected: "
-                   , T.unpack goldenOutput
-                   , "H: "
-                   , T.unpack outputH
-                   ])
+         let a = T.replace "\r\n" "\n" goldenOutput
+             b = T.replace "\r\n" "\n" outputH
+         in if a == b 
+            then return Nothing
+            else return $ Just $
+              unlines ["Outputs don't match."
+                      , "expected: "
+                      , show $ T.unpack a
+                      , "H: "
+                      , show $ T.unpack b
+                      ])
       (const $ return ())
-
 
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
@@ -146,6 +148,8 @@ integrationTests = testGroup "Integration tests"
        "tests" </> "R" </> "arith-vector.R"
   , ghciSession "qq.ghci" $
        "tests" </> "ghci" </> "qq.ghci"
+  , ghciSession "qq-stderr.ghci" $
+       "tests" </> "ghci" </> "qq-stderr.ghci"
   -- , scriptCase "Functions - factorial" $
   --     "tests" </> "R" </> "fact.R"
   -- , scriptCase "Functions - Fibonacci sequence" $

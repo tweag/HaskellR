@@ -6,12 +6,14 @@ module Language.R
   ( r1
   , r2
   , parseFile
+  , parseText
   , withProtected
   , symbol
   , install
   , string
   , strings
   , eval
+  , evalEnv
   -- * R global constants
   -- $ghci-bug
   , globalEnv
@@ -22,17 +24,20 @@ module Language.R
   ) where
 
 
+import Control.Applicative
 import Control.Exception ( bracket )
-import Control.Monad ( (<=<) )
+import Control.Monad ( (<=<), when, unless )
 import Data.ByteString as B
-import Data.ByteString.Char8 as C8 ( pack )
+import Data.ByteString.Char8 as C8 ( pack, unpack )
 import Data.IORef ( IORef, newIORef, readIORef )
 import Data.Word
-import Foreign ( alloca, nullPtr)
+import Foreign ( alloca, nullPtr, peek )
 import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
+import qualified Foreign.R.Parse as R
+import qualified Foreign.R.Error as R
 
 -- $ghci-bug
 -- The main reason to have all constant be presented as IORef in a global
@@ -57,6 +62,18 @@ unboundValue = unsafePerformIO $ newIORef nullPtr
 missingArg :: IORef (R.SEXP R.Symbol)
 missingArg = unsafePerformIO $ newIORef nullPtr
 
+-- | Parse and then evaluate expression.
+parseEval :: ByteString -> IO (R.SEXP a)
+parseEval txt = useAsCString txt $ \ctxt ->
+  withProtected (R.mkString ctxt) $ \rtxt ->
+    alloca $ \status -> do
+      nil <- readIORef nilValue
+      withProtected (R.parseVector rtxt 1 status nil) $ \ex -> do
+        e <- fromIntegral <$> peek status
+        unless (R.PARSE_OK == toEnum e) $
+          R.throwRMessage $ "Parse error in: " ++ C8.unpack txt
+        eval =<< R.indexExpr ex 0
+
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
 -- function.
@@ -67,11 +84,7 @@ r1 :: ByteString -> R.SEXP a -> R.SEXP b
 r1 fn a =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
-        withProtected (R.lang2 f a) (\v -> do
-          gl <- readIORef globalEnv
-          x <- alloca $ \p -> R.tryEval v gl p
-          _ <- R.protect x
-          return x)
+        withProtected (R.lang2 f a) eval
 
 -- | Call 2-arity R function, function will be found in runtime, using
 -- global environment. See 'r1' for additional comments.
@@ -79,11 +92,7 @@ r2 :: ByteString -> R.SEXP a -> R.SEXP b -> R.SEXP c
 r2 fn a b =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      withProtected (R.lang3 f a b) (\v -> do
-        gl <- readIORef globalEnv
-        x <- alloca $ \p -> R.tryEval v gl p
-        _ <- R.protect x
-        return x)
+      withProtected (R.lang3 f a b) eval
 
 -- | Perform an action with resource while protecting it from the garbage
 -- collection.
@@ -106,6 +115,9 @@ parseFile fl f = do
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
 
+parseText :: String -> IO (R.SEXP a)
+parseText txt = parseEval (C8.pack $ "parse(text="++show txt++")")
+
 install :: String -> IO (R.SEXP R.Symbol)
 install str = withCString str (R.protect <=< R.install)
 
@@ -122,7 +134,16 @@ string str = withCString str (R.protect <=< R.mkChar)
 strings :: String -> IO (R.SEXP (R.String))
 strings str = withCString str (R.protect <=< R.mkString)
 
+-- | Evaluate expression in given environment.
+evalEnv :: R.SEXP a -> R.SEXP R.Env -> IO (R.SEXP b)
+evalEnv x rho = 
+    alloca $ \p -> do
+        v <- R.tryEvalSilent x rho p
+        e <- peek p
+        when (e /= 0) $ do
+          R.throwR rho
+        return v
+
+-- | Evaluate expression in global environment.
 eval :: R.SEXP a -> IO (R.SEXP b)
-eval x = do
-    gl <- readIORef globalEnv
-    alloca $ \p -> R.tryEval x gl p
+eval x = readIORef globalEnv >>= evalEnv x

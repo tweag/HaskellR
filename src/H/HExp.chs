@@ -15,6 +15,7 @@ module H.HExp
   -- * Low level access
   , injectCar
   , injectCdr
+  , injectTag
   , symbolLoop
   ) where
 
@@ -112,8 +113,7 @@ data HExp :: SEXPTYPE -> * where
             -> HExp R.List
   Any       :: HExp a
   -- Fields: truelength, content.
-  Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
+  Vector    :: {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
             -> HExp (R.Vector (SEXP R.Any))
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
@@ -203,7 +203,7 @@ peekHExp s = do
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
       R.Any       -> return Any
-      R.Vector _  -> coerce $ error "peekHExp: Unimplemented. (Vector)"
+      R.Vector _  -> coerce $ Vector  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Expr      -> coerce $ Expr    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Bytecode  -> coerce $ error "peekHExp: Unimplemented."
       R.ExtPtr    -> coerce $ error "peekHExp: Unimplemented."
@@ -254,7 +254,7 @@ pokeHExp s h = do
          Real _vt     -> error "Unimplemented (vector)"
          String _vt   -> error "Unimplemented (vector)"
          Complex _vt  -> error "Unimplemented (vector)"
-         Vector _v _  -> error "Unimplemented (vector)"
+         Vector  _    -> error "Unimplemented (vector)"
          Bytecode     -> error "Unimplemented."
          ExtPtr _ _ _ -> error "Unimplemented."
          WeakRef _ _ _ _ -> error "Unimplemented."
@@ -290,7 +290,7 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
     unhexpIO (Int vt)      = return $ Vector.toSEXP vt
     unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
-    unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
+    unhexpIO (Vector vt)   = return $ Vector.toSEXP vt
     unhexpIO (Char vt)     = return $ Vector.toSEXP vt
     unhexpIO (String vt)   = return $ Vector.toSEXP vt
     unhexpIO Raw{}        = error "Unimplemented."
@@ -325,3 +325,6 @@ injectCar s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
 -- | Inject object inside cdr field.
 injectCdr :: SEXP a -> SEXP b -> IO ()
 injectCdr s cr = {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
+
+injectTag :: SEXP a -> SEXP b -> IO ()
+injectTag s tg = {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)

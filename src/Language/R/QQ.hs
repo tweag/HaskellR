@@ -15,18 +15,13 @@ import qualified H.Prelude as H
 import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import qualified Foreign.R.Parse as R
-import Language.R ( nilValue )
-import qualified Language.R.Interpreter as R
+import           Language.R ( parseText )
 
 import Data.List ( isSuffixOf )
-import Data.IORef ( readIORef )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
-import Foreign ( alloca )
-import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -------------------------------------------------------------------------------
@@ -44,14 +39,8 @@ r = QuasiQuoter
 parseExpCompile :: String -> ExpQ
 parseExpCompile txt = do
      vs <- runIO $ do
-       R.initialize R.defaultConfig
-       ex <- withCString txt $ \ctxt -> do
-         rtxt <- R.mkString ctxt
-         -- XXX: this is a hack due to incorrect address mapping in ghci
-         --      it requires Language.R.nilValue to be set before running
-         nil <- readIORef nilValue
-         alloca $ \status ->
-           R.parseVector rtxt (-1) status nil
+       H.initialize H.defaultConfig
+       ex <- parseText txt
        let (Expr v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
      let v = head vs
