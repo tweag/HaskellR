@@ -1,6 +1,6 @@
 // Copyright: (C) 2013 Amgen, Inc.
 #define USE_RINTERNALS
-#include <missing_r.h>
+#include "missing_r.h"
 #include <R.h>
 
 SEXP * INNER_VECTOR(SEXP x) {
@@ -37,5 +37,6 @@ SEXP funPtrToSEXP(DL_FUNC pf) {
 
 int isRInitialized = 0;
 HsStablePtr rVariables;
+HsStablePtr interpreterChan;
 
 #undef USE_RINTERNALS

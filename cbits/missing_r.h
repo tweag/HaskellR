@@ -17,4 +17,7 @@ extern int isRInitialized;
 // R global variables for GHCi.
 extern HsStablePtr rVariables;
 
+// Pointer to the channel used for communication with the R thread.
+extern HsStablePtr interpreterChan;
+
 #endif

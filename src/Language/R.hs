@@ -26,6 +26,7 @@ module Language.R
   , unboundValuePtr
   , missingArgPtr
   , rInteractive
+  , rCStackLimitPtr
   ) where
 
 
@@ -51,6 +52,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
+import qualified Foreign.R.Interface as R ( StackSize )
 
 -- $ghci-bug
 -- The main reason to have all R constants referenced with a StablePtr
@@ -69,6 +71,7 @@ type RVariables =
     , Ptr (R.SEXP R.Symbol)
     , Ptr (R.SEXP R.Symbol)
     , Ptr CInt
+    , Ptr R.StackSize
     )
 
 -- | Stores R variables in a static location. This has the variables addresses
@@ -86,6 +89,7 @@ peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
  , unboundValuePtr
  , missingArgPtr
  , rInteractive
+ , rCStackLimitPtr
  ) = peekRVariables
 
 foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
