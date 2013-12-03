@@ -15,16 +15,13 @@ import qualified H.Prelude as H
 import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import qualified Foreign.R.Parse as R
+import           Language.R ( parseText )
 
-import Control.Applicative
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
-import Foreign ( alloca, peek )
-import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -------------------------------------------------------------------------------
@@ -43,15 +40,7 @@ parseExpCompile :: String -> ExpQ
 parseExpCompile txt = do
      vs <- runIO $ do
        H.initialize H.defaultConfig
-       ex <- withCString txt $ \ctxt -> do
-         rtxt <- R.mkString ctxt
-         alloca $ \status -> do
-           x <- R.parseVector rtxt (-1) status H.nilValue
-           v <- fromIntegral <$> peek status
-           case toEnum v of
-             R.PARSE_INCOMPLETE -> H.throwRMessage "Incomplete parse"
-             R.PARSE_ERROR -> H.throwRMessage $ "Error parsing: "++txt
-             _ -> return x
+       ex <- parseText txt
        let (Expr v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
      let v = head vs
