@@ -15,3 +15,6 @@ function (y)
 [1] 43
 [1] 1 2 3
 [1] 8
+Error in xy.coords(x, y, xlabel, ylabel, log) : 
+  argument "x" is missing, with no default
+

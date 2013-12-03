@@ -36,6 +36,7 @@ library
                        Foreign.R.Embedded
                        Foreign.R.Interface
                        Foreign.R.Parse
+                       Foreign.R.Error
                        Language.R
                        Language.R.Interpreter
                        Language.R.QQ

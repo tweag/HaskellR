@@ -23,16 +23,17 @@ module Language.R
 
 
 import Control.Exception ( bracket )
-import Control.Monad ( (<=<) )
+import Control.Monad ( (<=<), when )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack )
 import Data.IORef ( IORef, newIORef, readIORef )
 import Data.Word
-import Foreign ( alloca, nullPtr)
+import Foreign ( alloca, nullPtr, peek )
 import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
+import qualified Foreign.R.Error as R
 
 -- $ghci-bug
 -- The main reason to have all constant be presented as IORef in a global
@@ -125,4 +126,9 @@ strings str = withCString str (R.protect <=< R.mkString)
 eval :: R.SEXP a -> IO (R.SEXP b)
 eval x = do
     gl <- readIORef globalEnv
-    alloca $ \p -> R.tryEval x gl p
+    alloca $ \p -> do
+        v <- R.tryEvalSilent x gl p
+        e <- peek p
+        when (e /= 0) $ do
+          R.throwR gl
+        return v
