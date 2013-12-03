@@ -369,4 +369,120 @@ apply](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/Fun
 H implementation naming conventions
 ===================================
 
+
+H Memory system
+===============
+
+H manages system with two garbage collectors one on the R side and another
+on the Haskell side. As a result it require to be very carefull with memory
+allocations and protection. H provides a wide list of features and mechanism
+for safe and easy memory management
+
+Description of a garbage collection systems
+-------------------------------------------
+
+### Haskell garbage collection system
+
+Haskell has concurrent stop the world moving garbage collector this means
+that all evaluation will stopped while GC is performed. And Haskell data 
+structures can`t be used transparently in foreign code, as garbage collector
+may move them. However haskell supports pinned memory that is not relocable.
+
+To check objects being used Haskell GC traverses objects starting from the 
+top level (root) objects memory Haskell and relocates usable objects, so no
+additional protection required. For protection of the foreign memory Haskell
+uses Foreign.Ptr that contains cleanup function that is called when object
+is not used in haskell.
+
+### R garbage collection system.
+
+R uses single thread garbage collector that uses pinned memory.
+
+For protection R uses following mechanisms:
+  
+  * `PROTECT`, and `PROTECT_PTR` macros for protection
+  * `REPROTECT` for protection of the updated object
+  * `UNPROTECT` and `UNPROTECT_PTR` for removing protection.
+
+Every object that is reachable from protected variable is also protected.
+
+Basic strategy of H
+-------------------
+
+To keep object safe from GC H implements following strategy.
+Every object that may be reachable from R is allocated in R
+space memory space so R is capable for deallocating and protection
+of values. For programmer H provides additional functionality
+that help to keep values safe.
+
+### Low level functions.
+
+Low level functions may be used inside IO or R monad to protect variables
+H. The best examples for such functions is callbacks in haskell that uses
+direct work with SEXPs or lowlevel work with bindings that is not lifted
+to high level.
+
+  * `protect`   -- synonym for PROTECT macros
+
+  * `unprotect` -- synonym for UNPROTECT_PTR macros
+
+  * `withProtected` -- bracket function that protects variable and
+      unprotect it at the end. Usage example:
+
+    ```haskell
+    withProtected (mkString "H.Home") $ \sexp -> 
+      withProtected (R.lang1 sexp) H.eval
+    ```
+
+### Allocating SEXP. 
+
+SEXP allocation can be done using next ways:
+
+  1. Low-level with `alloc*` functions. Such variables are not protected.
+
+  2. With `unhexp` functions. See SEXP introspection and construction section. Such variables require explicit protection.
+
+  3. Using quasi-quotation. Such variables are automatically protected by 
+  generating code that uses withProtected, so only toplevel expression 
+  should be protected.
+
+### Function parameters
+
+Most of parameters types do not cross memory boundaries and explicitly coerced when are passed to and from functions. However it possible to use some 
+types with zero-copying from R to Haskell:
+
+  * `SEXP a` -> `SEXP b`
+  * `SEXP (Vector Real)` -> Vector.Storable Double
+  * `SEXP (Vector Int)`  -> Vector.Storable Int
+  * `SEXP (Vector Logical)` -> Vector.Storable Bool
+  * `SEXP (Vector Char)`    -> Vector.Storable Word8
+  * `SEXP (Vector Char)`    -> Vector.Storable ByteString
+
+However in opposite direction it's the only possible conversion is:
+  
+  * `SEXP a` -> `SEXP b`
+
+### Toplevel expressions
+
+Toplevel R expressions should be protected by hiding them in RVal
+
+```haskell
+newtype RVal a = RVal { unRVal :: ForeignPtr (SEXP a) }
+```
+
+With following API:
+
+  * `newRVal` - create new wrapper
+  * `withRVal` - run continuation with rvalue.
+  * `peekRVal` - noop function that may be used to
+        protect for early collection of protection variable.
+
+Toplevel haskell expressions are protected by using ExtPtr in R.
+For example this is done automatically for function wrappers that
+are used internally to call haskell code.
+
+To protect Haskell variables from garbage corrector global registry is
+used, global registry is a global mutable variable that maintains 
+list of variables that are used by R code.
+
 [R-ints]: http://cran.r-project.org/doc/manuals/R-ints.html
