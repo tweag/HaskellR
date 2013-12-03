@@ -146,6 +146,8 @@ integrationTests = testGroup "Integration tests"
        "tests" </> "R" </> "arith-vector.R"
   , ghciSession "qq.ghci" $
        "tests" </> "ghci" </> "qq.ghci"
+  , ghciSession "qq-stderr.ghci" $
+       "tests" </> "ghci" </> "qq-stderr.ghci"
   -- , scriptCase "Functions - factorial" $
   --     "tests" </> "R" </> "fact.R"
   -- , scriptCase "Functions - Fibonacci sequence" $

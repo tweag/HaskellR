@@ -1,5 +1,3 @@
-:m +Control.Exception
-
 -- Should be: [1] 1
 H.print [r| 1 |]
 
@@ -46,9 +44,3 @@ H.print [r| xs_hs |]
 
 -- Should be [1] 8
 H.print [r| foo1_hs(7) |]
-
-(Control.Exception.evaluate [r| plot() |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
-
-(Control.Exception.evaluate [r| plot( |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
-
-(Control.Exception.evaluate [r| 1+()-2 |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)

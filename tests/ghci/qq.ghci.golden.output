@@ -13,22 +13,3 @@ function(y) y_hs + y
 [1] 43
 [1] 1 2 3
 [1] 8
-Error in xy.coords(x, y, xlabel, ylabel, log) : 
-  argument "x" is missing, with no default
-
-
-<interactive>:53:29:
-    Exception when trying to run compile-time code:
-      RError: Error in parse(text = " plot( ") : <text>:2:0: unexpected end of input
-1:  plot( 
-   ^
-
-      Code: Language.Haskell.TH.Quote.quoteExp r " plot( "
-
-<interactive>:55:29:
-    Exception when trying to run compile-time code:
-      RError: Error in parse(text = " 1+()-2 ") : <text>:1:5: unexpected ')'
-1:  1+()
-        ^
-
-      Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2 "
