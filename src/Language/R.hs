@@ -6,6 +6,7 @@ module Language.R
   ( r1
   , r2
   , parseFile
+  , parseText
   , withProtected
   , symbol
   , install
@@ -22,10 +23,11 @@ module Language.R
   ) where
 
 
+import Control.Applicative
 import Control.Exception ( bracket )
-import Control.Monad ( (<=<), when )
+import Control.Monad ( (<=<), when, unless )
 import Data.ByteString as B
-import Data.ByteString.Char8 as C8 ( pack )
+import Data.ByteString.Char8 as C8 ( pack, unpack )
 import Data.IORef ( IORef, newIORef, readIORef )
 import Data.Word
 import Foreign ( alloca, nullPtr, peek )
@@ -33,6 +35,7 @@ import Foreign.C.String ( withCString )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
+import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
 
 -- $ghci-bug
@@ -57,6 +60,19 @@ unboundValue = unsafePerformIO $ newIORef nullPtr
 
 missingArg :: IORef (R.SEXP R.Symbol)
 missingArg = unsafePerformIO $ newIORef nullPtr
+
+-- | Parse and then evaluate expression.
+parseEval :: ByteString -> IO (R.SEXP a)
+parseEval txt = useAsCString txt $ \ctxt ->
+  withProtected (R.mkString ctxt) $ \rtxt ->
+    alloca $ \status -> do
+      nil <- readIORef nilValue
+      z <- withProtected (R.parseVector rtxt 1 status nil) $ \ex -> 
+             eval =<< R.indexExpr ex 0
+      e <- fromIntegral <$> peek status
+      unless (R.PARSE_OK == toEnum e) $
+        R.throwRMessage $ "Parse error in: " ++ C8.unpack txt
+      return z
 
 -- | Call 1-arity R function by name, function will be found in runtime,
 -- using global environment, no additional environment is provided to
@@ -98,6 +114,9 @@ parseFile fl f = do
     withCString fl $ \cfl ->
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
+
+parseText :: String -> IO (R.SEXP a)
+parseText txt = parseEval (C8.pack $ "parse(text="++show txt++")")
 
 install :: String -> IO (R.SEXP R.Symbol)
 install str = withCString str (R.protect <=< R.install)
