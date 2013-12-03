@@ -15,6 +15,7 @@ module H.HExp
   -- * Low level access
   , injectCar
   , injectCdr
+  , injectTag
   , symbolLoop
   ) where
 
@@ -324,3 +325,6 @@ injectCar s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
 -- | Inject object inside cdr field.
 injectCdr :: SEXP a -> SEXP b -> IO ()
 injectCdr s cr = {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
+
+injectTag :: SEXP a -> SEXP b -> IO ()
+injectTag s tg = {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)
