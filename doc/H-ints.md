@@ -388,6 +388,13 @@ that all evaluation will stopped while GC is performed. And Haskell data
 structures can`t be used transparently in foreign code, as garbage collector
 may move them. However haskell supports pinned memory that is not relocable.
 
+Another option for make haskell structures usage in foreign runtime is using
+of the [StablePtr](http://hackage.haskell.org/package/base-4.6.0.1/docs/Foreign-StablePtr.html).
+A stable pointer is a reference to a Haskell expression that is guaranteed not
+to be affected by garbage collection, i.e., it will neither be deallocated nor
+will the value of the stable pointer itself change during garbage collection
+(ordinary references may be relocated during garbage collection).
+
 To check objects being used Haskell GC traverses objects starting from the 
 top level (root) objects memory Haskell and relocates usable objects, so no
 additional protection required. For protection of the foreign memory Haskell
