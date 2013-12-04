@@ -19,7 +19,7 @@ import Language.R ( withProtected, parseText )
 import Language.R.Interpreter ( runInRThread )
 
 import Control.Exception ( evaluate )
-import Control.Monad ( void, unless )
+-- import Control.Monad ( void, unless )
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
@@ -56,7 +56,7 @@ parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
     ex <- runIO $ runInRThread $ do
       x <- parseText txt
-      force x
+--      force x
       return x
     let l = RuntimeSEXP ex
     case attachHs ex of
@@ -113,7 +113,8 @@ haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     else Nothing
 haskellName _ = Nothing
 
-force :: R.SEXP a -> IO ()
+{-
+force :: R.SEXP a -> IO () 
 force (hexp -> Expr _ v) = mapM_ force (Vector.toList v)
 force (hexp -> Lang x ls) = force x >> force ls
 force (hexp -> List a b c) = force a >> maybe (return ()) force b >> maybe (return()) force c
@@ -121,8 +122,9 @@ force h@(hexp -> Symbol a b c)  = do
     unless (R.unsexp h == R.unsexp a) (force a)
     unless (R.unsexp h == R.unsexp b) (force b)
     maybe (return ()) force c
-force h@(hexp -> Promise{}) = void (H.evalIO h)
+force h@(hexp -> Promise{}) = void (H.evalR h)
 force _ = return ()
+-}
 
 newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
 
