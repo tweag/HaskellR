@@ -11,19 +11,19 @@ module H.Prelude.Globals
   , missingArg
   ) where
 
+import Foreign ( peek )
 import Foreign.R  (SEXP, SEXPTYPE(..))
 import qualified Language.R as R
-import Data.IORef ( readIORef )
 import System.IO.Unsafe ( unsafePerformIO )
 
 unboundValue :: SEXP Symbol
-unboundValue = unsafePerformIO $ readIORef R.unboundValue
+unboundValue = unsafePerformIO $ peek R.unboundValuePtr
 
 globalEnv :: SEXP Env
-globalEnv = unsafePerformIO $ readIORef R.globalEnv
+globalEnv = unsafePerformIO $ peek R.globalEnvPtr
 
 nilValue :: SEXP Nil
-nilValue = unsafePerformIO $ readIORef R.nilValue
+nilValue = unsafePerformIO $ peek R.nilValuePtr
 
 missingArg :: SEXP Symbol
-missingArg = unsafePerformIO $ readIORef R.missingArg
+missingArg = unsafePerformIO $ peek R.missingArgPtr
