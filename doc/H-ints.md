@@ -437,9 +437,14 @@ to high level.
       unprotect it at the end. Usage example:
 
     ```haskell
-    withProtected (mkString "H.Home") $ \sexp -> 
-      withProtected (R.lang1 sexp) H.eval
+    H.eval =<< withProtected (mkString "H.Home") R.lang1
     ```
+
+    Here String SEXP "H.Home" is protected until it will be a part of LangSEXP,
+    created by `R.lang1`. Then `R.lang1` becomes unprotected, but it's normal
+    as it immediately inters in evaluation where it can't be freed until end
+    of the execution. If resulting SEXP doesn't enter evaluation you'll need
+    to protect it in the toplevel, see Toplevel expression section.
 
 ### Allocating SEXP. 
 
