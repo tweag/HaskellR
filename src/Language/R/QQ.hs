@@ -16,7 +16,7 @@ import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import           Language.R ( parseText )
-import           Language.R.Interpreter ( evaluateInInterpreterThread )
+import           Language.R.Interpreter ( runInRThread )
 
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
@@ -41,7 +41,7 @@ parseExpCompile :: String -> ExpQ
 parseExpCompile txt = do
      vs <- runIO $ do
        H.initialize H.defaultConfig
-       ex <- evaluateInInterpreterThread $ parseText txt
+       ex <- runInRThread $ parseText txt
        let (Expr v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
      let v = head vs

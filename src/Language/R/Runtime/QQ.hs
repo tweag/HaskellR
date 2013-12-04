@@ -16,7 +16,7 @@ import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import Language.R ( withProtected, parseText )
-import Language.R.Interpreter ( evaluateInInterpreterThread )
+import Language.R.Interpreter ( runInRThread )
 
 import Control.Exception ( evaluate )
 import Control.Monad ( void, unless )
@@ -54,7 +54,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ evaluateInInterpreterThread $ do
+    ex <- runIO $ runInRThread $ do
       x <- parseText txt
       force x
       return x

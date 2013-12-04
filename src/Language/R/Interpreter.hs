@@ -9,6 +9,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE RecursiveDo #-}
 
 module Language.R.Interpreter
   ( Config(..)
@@ -19,8 +20,8 @@ module Language.R.Interpreter
   , finalize
   -- * helpers
   , with
-  , evaluateInInterpreterThread
-  , postToInterpreterThread
+  , runInRThread
+  , postToRThread
   ) where
 
 import qualified Foreign.R as R
@@ -38,12 +39,24 @@ import Control.Concurrent
     , putMVar
     , newEmptyMVar
     , myThreadId
+    , ThreadId
+    , newEmptyMVar
+    , takeMVar
+    , putMVar
+    , killThread
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
-import Control.Exception ( bracket, catch, SomeException, throwTo )
-import Control.Monad ( unless, when, zipWithM_, forever, void )
+import Control.Exception ( bracket, catch, SomeException, throwTo, finally )
+import Control.Monad ( unless, when, zipWithM_, forever, void, join )
 
-import Foreign ( Ptr, allocaArray, StablePtr, newStablePtr, deRefStablePtr )
+import Foreign
+    ( Ptr
+    , allocaArray
+    , StablePtr
+    , newStablePtr
+    , deRefStablePtr
+    , freeStablePtr
+    )
 import Foreign.C.Types ( CInt(..) )
 import Foreign.Storable (Storable(..))
 import System.Environment ( getProgName, lookupEnv )
@@ -90,14 +103,22 @@ initialize :: Config
            -> IO ()
 initialize Config{..} = do
     initialized <- isInitialized
-    unless initialized $ do
+    unless initialized $ mdo
       -- Grab addresses of R global variables
       LR.pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
         , R.rInteractive, R.rCStackLimit, R.rInputHandlers
         )
-      startInterpreterThread
-      evaluateInInterpreterThread $ do
+      startRThread eventLoopThread
+      eventLoopThread <- forkIO $ forever $ do
+        threadDelay 30000
+#ifdef H_ARCH_WINDOWS
+        runInRThread R.processEvents
+#else
+        runInRThread $
+          R.processGUIEventsUnix LR.rInputHandlersPtr
+#endif
+      runInRThread $ do
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
@@ -107,19 +128,17 @@ initialize Config{..} = do
         poke LR.rInteractive 0
         -- setting the stack limit seems to only be required in Windows
         poke LR.rCStackLimitPtr (-1)
-        void $ forkIO $ forever $ do
-          threadDelay 30000
-#ifdef H_ARCH_WINDOWS
-          evaluateInInterpreterThread R.processEvents
-#else
-          evaluateInInterpreterThread $
-            R.processGUIEventsUnix LR.rInputHandlersPtr
-#endif
         poke isRInitializedPtr 1
 
 -- | Finalize R environment.
 finalize :: IO ()
-finalize = R.endEmbeddedR 0
+finalize = do
+    runInRThread $ do
+      R.endEmbeddedR 0
+      peek interpreterChanPtr >>= freeStablePtr
+      poke isRInitializedPtr 0
+    stopRThread
+
 
 -- | Properly acquire the R runtime, initializing R and ensuring that it is
 -- finalized before returning.
@@ -128,20 +147,26 @@ with :: Config -- ^ R configuration options.
       -> IO a
 with cfg = bracket (initialize cfg) (const finalize) . const
 
--- | Starts the interpreter thread.
-startInterpreterThread :: IO ()
-startInterpreterThread = do
+-- | Starts the R thread.
+startRThread :: ThreadId -> IO ()
+startRThread eventLoopThread = do
     chan <- newChan
     newStablePtr chan >>= poke interpreterChanPtr
-    void $ forkOS $ forever $
-      catch (readChan chan >>= id) $ \e -> const (return ()) (e :: SomeException)
+    void $ forkOS $
+      forever (join $ readChan chan) `finally` killThread eventLoopThread
 
 -- | Posts a computation to perform in the interpreter thread.
 --
 -- Returns immediately without waiting for the action to be computed.
 --
-postToInterpreterThread :: IO () -> IO ()
-postToInterpreterThread = writeChan interpreterChan
+postToRThread :: IO () -> IO ()
+postToRThread =
+    postToRThread_ . (`catch` (const (return ()) :: SomeException -> IO ()))
+
+-- | Like postToRThread_ but does not swallow exceptions thrown by the
+-- computation.
+postToRThread_ :: IO () -> IO ()
+postToRThread_ = writeChan interpreterChan
   where
     interpreterChan = unsafePerformIO $
       peek interpreterChanPtr >>= deRefStablePtr
@@ -150,13 +175,17 @@ postToInterpreterThread = writeChan interpreterChan
 --
 -- Waits until the computation is complete and returns back the result.
 --
-evaluateInInterpreterThread :: IO a -> IO a
-evaluateInInterpreterThread action = do
+runInRThread :: IO a -> IO a
+runInRThread action = do
     mv <- newEmptyMVar
     tid <- myThreadId
-    postToInterpreterThread $ catch (action >>= putMVar mv) $ \e ->
-      throwTo tid (e :: SomeException)
+    postToRThread $
+      (action >>= putMVar mv) `catch` (\e -> throwTo tid (e :: SomeException))
     takeMVar mv
+
+-- | Stops the R thread.
+stopRThread :: IO ()
+stopRThread = postToRThread_ $ myThreadId >>= killThread
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (Chan (IO ())))
