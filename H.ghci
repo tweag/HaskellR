@@ -6,17 +6,13 @@ import qualified H.Prelude as H
 import Language.R.Runtime.QQ as QQ
 
 :{
-:def updateR
-     (\_ -> return
-        $ ":cmd (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
-       ++ ">> (Data.IORef.writeIORef Language.R.globalEnv =<< Foreign.peek Foreign.R.globalEnv) "
-       ++ ">> (Data.IORef.writeIORef Language.R.nilValue =<< Foreign.peek Foreign.R.nilValue) "
-       ++ ">> (Data.IORef.writeIORef Language.R.unboundValue =<< Foreign.peek Foreign.R.unboundValue) "
-       ++ ">> (Data.IORef.writeIORef Language.R.baseEnv =<< Foreign.peek Foreign.R.baseEnv) "
-       ++ ">> (Foreign.poke Foreign.R.rInteractive 0) "
-       ++ ">> return \"\""
-     )
+Language.R.pokeRVariables
+    ( Foreign.R.globalEnv
+    , Foreign.R.baseEnv
+    , Foreign.R.nilValue
+    , Foreign.R.unboundValue
+    , Foreign.R.missingArg
+    , Foreign.R.rInteractive
+    )
 :}
-
 Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig
-:updateR

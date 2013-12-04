@@ -2,6 +2,8 @@
 -- Copyright: 2013 (C) Amgen, Inc
 --
 -- Wrappers for low level R functions
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Language.R
   ( r1
   , r2
@@ -16,11 +18,14 @@ module Language.R
   , evalEnv
   -- * R global constants
   -- $ghci-bug
-  , globalEnv
-  , baseEnv
-  , nilValue
-  , unboundValue
-  , missingArg
+  , pokeRVariables
+  , peekRVariables
+  , globalEnvPtr
+  , baseEnvPtr
+  , nilValuePtr
+  , unboundValuePtr
+  , missingArgPtr
+  , rInteractive
   ) where
 
 
@@ -29,10 +34,18 @@ import Control.Exception ( bracket )
 import Control.Monad ( (<=<), when, unless )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
-import Data.IORef ( IORef, newIORef, readIORef )
 import Data.Word
-import Foreign ( alloca, nullPtr, peek )
+import Foreign
+    ( alloca
+    , peek
+    , Ptr
+    , poke
+    , newStablePtr
+    , deRefStablePtr
+    , StablePtr
+    )
 import Foreign.C.String ( withCString )
+import Foreign.C.Types ( CInt(..) )
 import System.IO.Unsafe ( unsafePerformIO )
 
 import qualified Foreign.R as R
@@ -40,34 +53,49 @@ import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
 
 -- $ghci-bug
--- The main reason to have all constant be presented as IORef in a global
--- scope is that peeking variable in ghci doesn't work as excepted an
--- returns incorrect address. The workaround is to populate all variables
--- in the ghci session, that is done automatically by the .ghci script.
+-- The main reason to have all R constants referenced with a StablePtr
+-- is that variables in shared libraries are linked incorrectly by GHCi with
+-- loaded code.
+--
+-- The workaround is to grab all variables in the ghci session for the loaded
+-- code to use them, that is currently done by the H.ghci script.
 --
 -- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
 
-globalEnv :: IORef (R.SEXP R.Env)
-globalEnv = unsafePerformIO $ newIORef nullPtr
+type RVariables =
+    ( Ptr (R.SEXP R.Env)
+    , Ptr (R.SEXP R.Env)
+    , Ptr (R.SEXP R.Nil)
+    , Ptr (R.SEXP R.Symbol)
+    , Ptr (R.SEXP R.Symbol)
+    , Ptr CInt
+    )
 
-baseEnv :: IORef (R.SEXP R.Env)
-baseEnv = unsafePerformIO $ newIORef nullPtr
+-- | Stores R variables in a static location. This has the variables addresses
+-- accesible after GHCi reloadings.
+pokeRVariables :: RVariables -> IO ()
+pokeRVariables = poke rVariables <=< newStablePtr
 
-nilValue :: IORef (R.SEXP R.Nil)
-nilValue = unsafePerformIO $ newIORef nullPtr
+-- | Retrieves R variables.
+peekRVariables :: RVariables
+peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
-unboundValue :: IORef (R.SEXP R.Symbol)
-unboundValue = unsafePerformIO $ newIORef nullPtr
+(  globalEnvPtr
+ , baseEnvPtr
+ , nilValuePtr
+ , unboundValuePtr
+ , missingArgPtr
+ , rInteractive
+ ) = peekRVariables
 
-missingArg :: IORef (R.SEXP R.Symbol)
-missingArg = unsafePerformIO $ newIORef nullPtr
+foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
 
 -- | Parse and then evaluate expression.
 parseEval :: ByteString -> IO (R.SEXP a)
 parseEval txt = useAsCString txt $ \ctxt ->
   withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
-      nil <- readIORef nilValue
+      nil <- peek nilValuePtr
       withProtected (R.parseVector rtxt 1 status nil) $ \ex -> do
         e <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum e) $
@@ -123,7 +151,7 @@ install str = withCString str (R.protect <=< R.install)
 
 symbol :: String -> IO (R.SEXP R.Symbol)
 symbol str = do
-    gl <- readIORef globalEnv
+    gl <- peek globalEnvPtr
     withCString str $ \cstr ->
       withProtected (R.install cstr) $
         flip R.findVar gl
@@ -146,4 +174,4 @@ evalEnv x rho =
 
 -- | Evaluate expression in global environment.
 eval :: R.SEXP a -> IO (R.SEXP b)
-eval x = readIORef globalEnv >>= evalEnv x
+eval x = peek globalEnvPtr >>= evalEnv x
