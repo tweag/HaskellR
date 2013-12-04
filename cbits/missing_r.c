@@ -35,6 +35,16 @@ SEXP funPtrToSEXP(DL_FUNC pf) {
     return Rf_MakeNativeSymbolRef(pf);
 };
 
+#ifdef H_ARCH_UNIX
+#include <R_ext/eventloop.h>
+
+void processGUIEventsUnix(InputHandler** inputHandlers) {
+  if (*inputHandlers == NULL)
+      initStdinHandler();
+  R_runHandlers(*inputHandlers, R_checkActivityEx(1000, 0, NULL));
+}
+#endif
+
 int isRInitialized = 0;
 HsStablePtr rVariables;
 HsStablePtr interpreterChan;

@@ -6,6 +6,7 @@
 --
 -- This module is intended to be imported qualified.
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
@@ -31,6 +32,8 @@ import           Foreign.C.String
 import Control.Applicative
 import Control.Concurrent
     ( forkOS
+    , forkIO
+    , threadDelay
     , takeMVar
     , putMVar
     , newEmptyMVar
@@ -89,9 +92,10 @@ initialize Config{..} = do
     initialized <- isInitialized
     unless initialized $ do
       -- Grab addresses of R global variables
-      LR.pokeRVariables ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue
-                        , R.missingArg, R.rInteractive, R.rCStackLimit
-                        )
+      LR.pokeRVariables
+        ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
+        , R.rInteractive, R.rCStackLimit, R.rInputHandlers
+        )
       startInterpreterThread
       evaluateInInterpreterThread $ do
         populateEnv
@@ -101,8 +105,16 @@ initialize Config{..} = do
         let argc = length argv
         newCArray argv $ R.initEmbeddedR argc
         poke LR.rInteractive 0
-        -- setting the stack limit seems only required in Windows
+        -- setting the stack limit seems to only be required in Windows
         poke LR.rCStackLimitPtr (-1)
+        void $ forkIO $ forever $ do
+          threadDelay 30000
+#ifdef H_ARCH_WINDOWS
+          evaluateInInterpreterThread R.processEvents
+#else
+          evaluateInInterpreterThread $
+            R.processGUIEventsUnix LR.rInputHandlersPtr
+#endif
         poke isRInitializedPtr 1
 
 -- | Finalize R environment.

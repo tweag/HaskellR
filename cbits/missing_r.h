@@ -11,6 +11,11 @@ SEXP * INNER_VECTOR(SEXP);
 
 SEXP funPtrToSEXP(DL_FUNC pf);
 
+#ifdef H_ARCH_UNIX
+#include <R_ext/eventloop.h>
+void processGUIEventsUnix(InputHandler** inputHandlers);
+#endif
+
 // Indicates whether R has been initialized.
 extern int isRInitialized;
 

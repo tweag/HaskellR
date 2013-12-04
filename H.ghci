@@ -14,6 +14,7 @@ Language.R.pokeRVariables
     , Foreign.R.missingArg
     , Foreign.R.rInteractive
     , Foreign.R.Interface.rCStackLimit
+    , Foreign.R.rInputHandlers
     )
 :}
 Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig

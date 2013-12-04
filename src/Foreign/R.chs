@@ -85,8 +85,13 @@ module Foreign.R
   , unboundValue
   , missingArg
   , rInteractive
+  , rInputHandlers
     -- * Communication with runtime
   , printValue
+  , processEvents
+#ifdef H_ARCH_UNIX
+  , processGUIEventsUnix
+#endif
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
@@ -284,6 +289,12 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 {#fun Rf_PrintValue as printValue { unsexp `SEXP a'} -> `()' #}
 
+{#fun R_ProcessEvents as processEvents {} -> `()' #}
+
+#ifdef H_ARCH_UNIX
+{#fun processGUIEventsUnix { id `Ptr (Ptr ())' } -> `()' #}
+#endif
+
 --------------------------------------------------------------------------------
 -- Garbage collection                                                         --
 --------------------------------------------------------------------------------
@@ -344,6 +355,14 @@ foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP R.Env)
 
 -- | Missing argument marker.
 foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP R.Symbol)
+
+-- | Input handlers used in event loops.
+#ifdef H_ARCH_UNIX
+foreign import ccall "&R_InputHandlers" rInputHandlers :: Ptr (Ptr ())
+#else
+rInputHandlers :: Ptr (Ptr ())
+rInputHandlers = nullPtr
+#endif
 
 ----------------------------------------------------------------------------------
 -- Structure header                                                             --

@@ -72,8 +72,12 @@ library
   build-tools:         c2hs
   if os(windows)
     extra-libraries:   R
+    cpp-options:       -DH_ARCH_WINDOWS
+    cc-options:        -DH_ARCH_WINDOWS
   else
     pkgconfig-depends: libR >= 3.0
+    cpp-options:       -DH_ARCH_UNIX
+    cc-options:        -DH_ARCH_UNIX
   ghc-options:         -Wall -Werror
 
 executable H
