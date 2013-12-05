@@ -24,6 +24,7 @@ module Language.R.Interpreter
   , postToRThread
   ) where
 
+import           H.Internal.REnv
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Interface as R
@@ -103,10 +104,10 @@ newCArray xs k =
 
 -- | Initialize the R environment.
 initialize :: Config
-           -> IO ()
+           -> IO REnv
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    unless initialized $ mdo
+    (>> return REnv) $ unless initialized $ mdo
       -- Grab addresses of R global variables
       LR.pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
