@@ -9,7 +9,7 @@ module H.Prelude.Eval
   ) where
 
 import           H.HExp
-import           H.Prelude.Globals as H
+-- import           H.Prelude.Globals as H
 import qualified Foreign.R as R
 import qualified Language.R as LR
 import qualified Data.Vector.SEXP as Vector
@@ -25,6 +25,7 @@ eval = unsafePerformIO . evalIO
 
 -- | Evaluate inside IO monad
 evalIO :: R.SEXP a -> IO (R.SEXP b)
+{-
 evalIO h@(hexp -> Promise s ex rho)
     | R.unsexp s == R.unsexp H.unboundValue = do
       val <- LR.evalEnv ex rho
@@ -32,6 +33,7 @@ evalIO h@(hexp -> Promise s ex rho)
       injectTag h H.nilValue
       return val
     | otherwise = return (R.sexp . R.unsexp $ s)
+-}
 evalIO (hexp -> Expr _ v) =
     last <$> mapM LR.eval (Vector.toList v)
 evalIO x = LR.eval x
