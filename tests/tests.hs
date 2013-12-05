@@ -162,5 +162,5 @@ tests = testGroup "Tests" [unitTests, integrationTests]
 
 main :: IO ()
 main = do
-    R.initialize R.defaultConfig
+    _ <- R.initialize R.defaultConfig
     defaultMain tests
