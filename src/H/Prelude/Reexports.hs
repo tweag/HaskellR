@@ -10,7 +10,7 @@ module H.Prelude.Reexports
 import qualified Foreign.R as R
 import qualified Language.R as LR
 
-import           Foreign hiding ( unsafePerformIO )
+import           Data.Word
 import           System.IO.Unsafe ( unsafePerformIO )
 
 symbol :: String -> R.SEXP R.Symbol
