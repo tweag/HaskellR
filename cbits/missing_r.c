@@ -30,9 +30,14 @@ static inline SEXP Rf_MakeNativeSymbolRef(DL_FUNC f)
     return R_MakeExternalPtrFn(f, install("native symbol"), NULL);
 }
 
+void freeHsSEXP(SEXP extPtr) {
+    hs_free_fun_ptr(R_ExternalPtrAddr(extPtr));
+}
 
 SEXP funPtrToSEXP(DL_FUNC pf) {
-    return Rf_MakeNativeSymbolRef(pf);
+    SEXP value = Rf_MakeNativeSymbolRef(pf);
+    R_RegisterCFinalizerEx(value, freeHsSEXP, 1);
+    return value;
 };
 
 #ifdef H_ARCH_UNIX
