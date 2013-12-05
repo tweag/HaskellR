@@ -10,6 +10,8 @@ module H.Prelude
   , print
   -- * Evaluation constructs
   , module H.Prelude.Eval
+  -- * R Value
+  , module H.Prelude.RVal
   -- * Language.R functions
   , module H.Prelude.Reexports
   -- * Globals
@@ -29,6 +31,7 @@ import qualified Foreign.R as R
 import           H.Prelude.Reexports
 import           H.Prelude.Eval
 import           H.Prelude.Globals
+import           H.Prelude.RVal
 import Data.IORef
 import Language.R.Interpreter
 import Foreign.R.Error

@@ -28,6 +28,7 @@ library
                        H.Prelude.Globals
                        H.Prelude.Reexports
                        H.Prelude.Eval
+                       H.Prelude.RVal
                        H.Value
                        H.Internal.Literal
                        H.Internal.FunWrappers
