@@ -22,6 +22,8 @@ library
                        H.HExp
                        H.HVal
                        H.Module
+                       H.Monad
+                       H.Class.Ghci
                        H.Prelude
                        H.Prelude.Globals
                        H.Prelude.Reexports
@@ -41,6 +43,7 @@ library
                        Language.R.Interpreter
                        Language.R.QQ
                        Language.R.Runtime.QQ
+  other-modules:       H.Internal.REnv
   build-depends:       base >= 4.6 && < 4.7
                      , aeson >= 0.6
                      , bytestring >= 0.10
@@ -50,6 +53,8 @@ library
                      , text >= 0.11
                      , vector >= 0.10
                      , template-haskell >= 2.8
+                     , exceptions >= 0.3
+                     , mtl >= 2.1
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
