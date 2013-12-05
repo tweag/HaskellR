@@ -15,9 +15,9 @@ module Language.R.Interpreter
   ( Config(..)
   , defaultConfig
   -- * Initialization
-  , isInitialized
   , initialize
   , finalize
+  , isRInitializedPtr
   -- * helpers
   , with
   , runInRThread
@@ -81,12 +81,9 @@ populateEnv = do
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
--- | A static address that survives GHCi reloadings.
+-- | A static address that survives GHCi reloadings which indicates
+-- whether R has been initialized.
 foreign import ccall "missing_r.h &isRInitialized" isRInitializedPtr :: Ptr CInt
-
--- | Status of initialization.
-isInitialized :: IO Bool
-isInitialized = fmap (toEnum . fromIntegral) $ peek isRInitializedPtr
 
 -- | Allocate and initialize a new array of elements.
 newCArray :: Storable a
@@ -102,7 +99,7 @@ newCArray xs k =
 initialize :: Config
            -> IO ()
 initialize Config{..} = do
-    initialized <- isInitialized
+    initialized <- fmap (==1) $ peek isRInitializedPtr
     unless initialized $ mdo
       -- Grab addresses of R global variables
       LR.pokeRVariables
