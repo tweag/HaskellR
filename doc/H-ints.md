@@ -220,3 +220,42 @@ apply](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/Fun
 
 H naming conventions
 ====================
+
+Threads in H
+============
+
+When H is used in GHCi the following threads materialize:
+
+ The R thread
+  : The only thread that can execute calls of the R API.
+
+ The GHCi thread
+  : A thread that reads commands from the GHCi prompt.
+
+ The GHCi command threads
+  : Ephemeral GHCi threads, with each being spawned to evaluate one
+    GHCi command.
+
+ The GUI timer thread
+  : A thread that periodically produces requests to handle GUI events
+    in the R thread.
+
+When the user types a command in GHCi, the GHCi thread spawns a GHCi
+command thread that evaluates the command. This command may require in
+turn calls to the R API which will be posted to the R thread. Usually
+the GHCi command thread would block until the R thread completes
+execution of one or more calls and sends back a reply.
+
+The R thread receives requests through a channel. Each request is
+represented as an action of type `IO ()`. If the request is supposed
+to produce a reply, the sender will block while waiting for the reply.
+
+The interface to the R thread:
+
+    postToRThread :: IO ()    -> IO ()  -- Non-blocking
+    runInRThread  :: IO a     -> IO a   -- Blocking
+    startRThread  :: ThreadId -> IO ()  -- Takes the id of the GUI timer thread.
+    stopRThread   :: IO ()              -- Blocking
+
+If the action of a request throws an exception, the R thread would
+continue to evaluate subsequent requests.

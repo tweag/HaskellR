@@ -30,4 +30,4 @@ import Foreign.R.Error
 import Prelude hiding (print)
 
 print :: R.SEXP a -> IO ()
-print = R.printValue
+print = runInRThread . R.printValue
