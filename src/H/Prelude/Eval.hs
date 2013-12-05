@@ -3,27 +3,25 @@
 {-# Language ViewPatterns #-}
 {-# Language GADTs #-}
 module H.Prelude.Eval
-  ( eval
-  , evalIO
+  ( evalH
   , eval_
   ) where
 
 import           H.HExp
 -- import           H.Prelude.Globals as H
+import           H.Monad
 import qualified Foreign.R as R
 import qualified Language.R as LR
 import qualified Data.Vector.SEXP as Vector
 
 import           Control.Applicative
 import           Control.Monad ( void )
-import           System.IO.Unsafe ( unsafePerformIO )
 
--- | Evaluate R expression. Purely this function
--- may be usefull inside fully pure code
-eval :: R.SEXP a -> R.SEXP b
-eval = unsafePerformIO . evalIO
+-- | Evaluate expression.
+evalH :: R.SEXP a -> R (R.SEXP b)
+evalH = io . evalIO
 
--- | Evaluate inside IO monad
+-- | Evaluate inside IO monad.
 evalIO :: R.SEXP a -> IO (R.SEXP b)
 {-
 evalIO h@(hexp -> Promise s ex rho)
@@ -39,5 +37,5 @@ evalIO (hexp -> Expr _ v) =
 evalIO x = LR.eval x
 
 -- | Silent version of 'evalIO' function. Discards result
-eval_ :: R.SEXP a -> IO ()
-eval_ = void . evalIO
+eval_ :: R.SEXP a -> R ()
+eval_ = void . evalH

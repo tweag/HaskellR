@@ -4,6 +4,8 @@
 :set -XTemplateHaskell
 import qualified H.Prelude as H
 import Language.R.Runtime.QQ as QQ
+:m +H.Class.Ghci
+let runH = H.runH :: H.H a -> IO a
 
 :{
 Language.R.pokeRVariables
