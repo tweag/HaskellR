@@ -78,6 +78,7 @@ module Foreign.R
     -- * GC functions
   , protect
   , unprotect
+  , unprotectPtr
   , gc
     -- * Globals
   , globalEnv
@@ -305,6 +306,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | Protect variable from the garbage collector.
 {#fun Rf_protect as protect { unsexp `SEXP a'} -> `SEXP a' sexp #}
 {#fun Rf_unprotect as unprotect { `Int' } -> `()' #}
+{#fun Rf_unprotect_ptr as unprotectPtr { unsexp `SEXP a' } -> `()' #}
 {#fun R_gc as gc { } -> `()' #}
 
 --------------------------------------------------------------------------------
