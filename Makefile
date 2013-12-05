@@ -31,3 +31,7 @@ doc-haddock: install
 	$(CABAL) haddock
 
 doc: doc-haddock doc-internals
+
+.PHONY: coverage
+coverage:
+	sh tests/coverage-ghci.sh
