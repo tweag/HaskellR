@@ -1,8 +1,7 @@
 // Copyright: (C) 2013 Amgen, Inc.
-#include <R.h>
-
 #define USE_RINTERNALS
-#include <Rinternals.h>
+#include <missing_r.h>
+#include <R.h>
 
 SEXP * INNER_VECTOR(SEXP x) {
     return VECTOR_PTR(x);
@@ -35,5 +34,8 @@ static inline SEXP Rf_MakeNativeSymbolRef(DL_FUNC f)
 SEXP funPtrToSEXP(DL_FUNC pf) {
     return Rf_MakeNativeSymbolRef(pf);
 };
+
+int isRInitialized = 0;
+HsStablePtr rVariables;
 
 #undef USE_RINTERNALS

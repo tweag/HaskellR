@@ -31,7 +31,6 @@ import           Data.ByteString (ByteString)
 import Control.Applicative
 import Data.Int (Int32)
 import Data.Word (Word8)
-import Data.IORef ( readIORef )
 import Data.Complex
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
@@ -215,7 +214,7 @@ peekHExp s = do
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do
-    nil <- readIORef LR.nilValue
+    nil <- peek LR.nilValuePtr
     let s' = castPtr s
     case h of
          Nil -> return ()
@@ -304,7 +303,7 @@ unhexp = unsafePerformIO . unhexpIO
 maybeNil :: SEXP a
          -> IO (Maybe (SEXP a))
 maybeNil s = do
-  nil <- readIORef LR.nilValue
+  nil <- peek LR.nilValuePtr
   return $
     if R.unsexp s == R.unsexp nil
       then Nothing

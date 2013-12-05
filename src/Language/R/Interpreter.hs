@@ -17,7 +17,6 @@ module Language.R.Interpreter
   , finalize
   -- * helpers
   , with
-  , initializeConstants
   ) where
 
 import qualified Foreign.R as R
@@ -29,14 +28,12 @@ import Control.Applicative
 import Control.Exception ( bracket )
 import Control.Monad ( unless, when, zipWithM_ )
 
-import Data.IORef
-
 import Foreign ( Ptr, allocaArray )
+import Foreign.C.Types ( CInt(..) )
 import Foreign.Storable (Storable(..))
 import System.Environment ( getProgName, lookupEnv )
 import System.Process     ( readProcess )
 import System.SetEnv
-import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Configuration options for R runtime.
 data Config = Config
@@ -55,9 +52,12 @@ populateEnv = do
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
+-- | A static address that survives GHCi reloadings.
+foreign import ccall "missing_r.h &isRInitialized" isRInitializedPtr :: Ptr CInt
+
 -- | Status of initialization.
-isInitialized :: IORef Bool
-isInitialized = unsafePerformIO $ newIORef False
+isInitialized :: IO Bool
+isInitialized = fmap (toEnum . fromIntegral) $ peek isRInitializedPtr
 
 -- | Allocate and initialize a new array of elements.
 newCArray :: Storable a
@@ -72,18 +72,21 @@ newCArray xs k =
 -- | Initialize the R environment.
 initialize :: Config
            -> IO ()
-initialize Config{..} = readIORef isInitialized >>= (`unless` go)
+initialize Config{..} = isInitialized >>= (`unless` go)
   where
     go = do
+        -- Grab addresses of R global variables
+        LR.pokeRVariables ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue
+                          , R.missingArg, R.rInteractive
+                          )
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
         newCArray argv $ R.initEmbeddedR argc
-        poke R.rInteractive 0
-        initializeConstants
-        writeIORef isInitialized True
+        poke LR.rInteractive 0
+        poke isRInitializedPtr 1
 
 -- | Finalize R environment.
 finalize :: IO ()
@@ -95,13 +98,3 @@ with :: Config -- ^ R configuration options.
       -> IO a
       -> IO a
 with cfg = bracket (initialize cfg) (const finalize) . const
-
--- | Initialize all R constants in haskell.
---
--- Required in compiled files due to GHCi linking bug.
-initializeConstants :: IO ()
-initializeConstants = do
-    writeIORef LR.globalEnv =<< peek R.globalEnv
-    writeIORef LR.nilValue =<< peek R.nilValue
-    writeIORef LR.unboundValue =<< peek R.unboundValue
-    writeIORef LR.baseEnv =<< peek R.baseEnv
