@@ -34,4 +34,4 @@ doc: doc-haddock doc-internals
 
 .PHONY: coverage
 coverage:
-	sh tests/run-coverage.sh
+	sh tests/coverage-ghci.sh

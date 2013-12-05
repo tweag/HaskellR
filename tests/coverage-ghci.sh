@@ -1,4 +1,8 @@
-#!/bin/sh -d
+#!/bin/sh
+# Basically cabal support --enable-library-profiling option to 
+# generate hpc reports. However our test do not use library 
+# directly, but H --interactive as a result we have to introduce
+# this machinery. 
 [ -d .hpc ] || rm -rf .hpc
 cabal clean
 cabal configure --enable-tests --ghc-options -fhpc
