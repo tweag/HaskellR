@@ -1,28 +1,48 @@
 #!/bin/bash -eux
 #
-# test-pull-requet.sh <branch>
+# test-pull-requet.sh [-s <sandbox>] <branch>
 #
 # Merges master and <branch> into a new branch <branch>-merged
 # and then builds and runs tests.
 #
-cd "$(dirname "$0")/.."
+# If -s <sandbox> is specified cabal-dev will be used to
+# configure the build using the provided sandbox folder.
+#
+
+if [[ "-s" == "$1" ]]
+then
+    CABAL="cabal-dev -s $2"
+    BRANCH=$3
+    export GHCi_H_ARGS="-package-db=$2/packages-7.6.3.conf"
+else
+    CABAL=cabal
+    BRANCH=$1
+fi
+
+if ghc --info | grep ArchX86_64 > /dev/null
+then
+    ARCH=x64
+else
+    ARCH=i386
+fi
+
 git fetch origin
 # bulldoze preexisting branch if any
-if [[ $(git branch | grep $1-merged) ]]
+if [[ $(git branch | grep $BRANCH-merged) ]]
 then
 	git checkout master
-	git branch -D $1-merged || true
+	git branch -D $BRANCH-merged || true
 fi
 # merge, build and test
-git checkout -b $1-merged origin/$1
+git checkout -b $BRANCH-merged origin/$BRANCH
 git merge origin/master
 export RH=$(R RHOME)
 cabal clean
 if [[ "$(uname)" == CYGWIN* ]]
 then
-    cabal configure --enable-tests --extra-include-dirs=$RH/include --extra-lib-dirs=$RH/bin/i386
+    $CABAL configure --with-c2hs=$(cygpath -w $(command -v c2hs)) --enable-tests --extra-include-dirs=$RH\\include --extra-lib-dirs=$RH\\bin\\$ARCH
 else
-	cabal configure
+	$CABAL configure
 fi
 cabal build
 cabal test

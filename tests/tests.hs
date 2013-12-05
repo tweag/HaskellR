@@ -128,8 +128,9 @@ ghciSession name scriptPath =
 
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
-  [ testCase "Haskell function from R" $ do
-      R.initialize R.defaultConfig
+  [ testCase "fromSEXP . mkSEXP" $
+      (2 :: Double) @=? fromSEXP (mkSEXP (2 :: Double))
+  , testCase "Haskell function from R" $ do
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
           e <- peek R.globalEnv
@@ -160,4 +161,6 @@ tests :: TestTree
 tests = testGroup "Tests" [unitTests, integrationTests]
 
 main :: IO ()
-main = defaultMain tests
+main = do
+    R.initialize R.defaultConfig
+    defaultMain tests

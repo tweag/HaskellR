@@ -17,4 +17,5 @@ Language.R.pokeRVariables
     , Foreign.R.rInputHandlers
     )
 :}
+Foreign.poke Language.R.Interpreter.isRInitializedPtr 0
 Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig

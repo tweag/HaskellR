@@ -45,7 +45,11 @@ void processGUIEventsUnix(InputHandler** inputHandlers) {
 }
 #endif
 
-int isRInitialized = 0;
+// Initializing isRInitialized to 0 here causes GHCi to fail with
+// a linking error in Windows x64. Therefore, initialization is done
+// in H.ghci.
+int isRInitialized;
+
 HsStablePtr rVariables;
 HsStablePtr interpreterChan;
 
