@@ -14,9 +14,15 @@ module H.Prelude
   , module H.Prelude.Reexports
   -- * Globals
   , module H.Prelude.Globals
+  , R
+  , MonadR(..)
+  , withProtected
   ) where
 
+import Control.Monad.Catch
+
 import           H.HVal
+import           H.Monad
 import qualified Foreign.R as R
 
 -- Reexported modules.
@@ -27,7 +33,13 @@ import Data.IORef
 import Language.R.Interpreter
 import Foreign.R.Error
 
+
 import Prelude hiding (print)
 
-print :: R.SEXP a -> IO ()
-print = runInRThread . R.printValue
+print :: R.SEXP a -> R ()
+print = io . R.printValue
+
+withProtected :: R (R.SEXP a) -> ((R.SEXP a) -> R b) -> R b
+withProtected accure =
+    bracket (accure >>= \x -> io $ R.protect x >> return x)
+            (const (io $ R.unprotect 1))

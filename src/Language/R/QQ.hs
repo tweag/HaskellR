@@ -40,8 +40,8 @@ r = QuasiQuoter
 parseExpCompile :: String -> ExpQ
 parseExpCompile txt = do
      vs <- runIO $ do
-       H.initialize H.defaultConfig
-       ex <- runInRThread $ parseText txt
+       _   <- H.initialize H.defaultConfig
+       ex  <- parseText txt
        let (Expr _ v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
      let v = head vs
@@ -58,13 +58,15 @@ instance Lift (R.SEXP a) where
       case name of
         "function" -> unsafePerformIO $ do
             error "under construction"
-        _          -> [| unhexp (Lang (H.install name) $([| ls |])) |]
+        _          -> [| do lng <- H.install name
+                            return $ unhexp (Lang lng $([| ls |])) |]
     lift (hexp -> Lang (hexp -> Symbol (hexp -> Char (Vector.toString -> name))
                                        (hexp -> Builtin _)
                                         g) ls) =
       -- XXX: it seems that we may assume that builtin ordering is not
       -- changed and use builtin construct instread on installing symbol
-      [| unhexp (Lang (H.install name) $([| ls |])) |]
+      [| do lng <- H.install name
+            return $ unhexp (Lang lng $([| ls |])) |]
     lift (hexp -> Lang _ _) =
       error "emit/Lang: Unsupported."
     lift x@(hexp -> Symbol _n@(hexp -> Char (Vector.toString -> name)) _b c) =
@@ -72,10 +74,8 @@ instance Lift (R.SEXP a) where
       then
         let hname = take (length name - 3) name
         in [| H.mkSEXP $(varE (mkName hname)) |]
-      else [| {-H.nameded (H.marked-} (unhexp (Symbol (H.string name) H.unboundValue Nothing)){-)-} |] --
---        if name == ""
---        then [| unhexp (Symbol (H.string "") H.unboundValue Nothing) |]
---        else [| H.install name |]
+      else [| do nm <- H.string name
+                 return $ unhexp (Symbol nm H.unboundValue Nothing) |]
     lift (hexp -> List x mxs mtg) =
       [| unhexp (List $([| x |]) $([|mxs|]) $([|mtg|]))|]
     lift (hexp -> Char (Vector.toString -> value)) =

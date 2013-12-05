@@ -7,20 +7,20 @@ module H.Prelude.Reexports
   , install
   ) where
 
+import           H.Monad
 import qualified Foreign.R as R
 import qualified Language.R as LR
 
 import           Data.Word
-import           System.IO.Unsafe ( unsafePerformIO )
 
-symbol :: String -> R.SEXP R.Symbol
-symbol = unsafePerformIO . LR.symbol
+symbol :: String -> R (R.SEXP R.Symbol)
+symbol = io . LR.symbol
 
-install :: String -> R.SEXP R.Symbol
-install = unsafePerformIO . LR.install
+install :: String -> R (R.SEXP R.Symbol)
+install = io . LR.install
 
-string :: String -> R.SEXP (R.Vector Word8)
-string = unsafePerformIO . LR.string
+string :: String -> R (R.SEXP (R.Vector Word8))
+string = io . LR.string
 
-strings :: String -> R.SEXP (R.String)
-strings = unsafePerformIO . LR.strings
+strings :: String -> R (R.SEXP (R.String))
+strings = io . LR.strings
