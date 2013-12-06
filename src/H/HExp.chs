@@ -204,8 +204,10 @@ peekHExp s = do
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
       R.Any       -> return Any
-      R.Vector _  -> coerce $ error "peekHExp: Unimplemented. (Vector)"
-      R.Expr      -> coerce $ error "peekHExp: Unimplemented."
+      R.Vector _  -> coerce $ Vector  <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+                                      <*> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Expr      -> coerce $ Expr    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+                                      <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Bytecode  -> coerce $ error "peekHExp: Unimplemented."
       R.ExtPtr    -> coerce $ error "peekHExp: Unimplemented."
       R.WeakRef   -> coerce $ error "peekHExp: Unimplemented."
