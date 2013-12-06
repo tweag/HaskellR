@@ -13,7 +13,9 @@ if [[ "-s" == "$1" ]]
 then
     CABAL="cabal-dev -s $2"
     BRANCH=$3
-    export GHCi_H_ARGS="-package-db=$2/packages-$(ghc --numeric-version).conf"
+    # sed is necessary here or the \r which appears in cygwin
+    # would break the string.
+    export GHCi_H_ARGS="-package-db=$2/packages-$(ghc --numeric-version | tr -d \\r).conf"
 else
     CABAL=cabal
     BRANCH=$1
