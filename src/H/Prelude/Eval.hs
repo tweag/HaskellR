@@ -12,7 +12,7 @@ import           H.HExp
 import           H.Prelude.Globals as H
 import qualified Foreign.R as R
 import qualified Language.R as LR
-import qualified Data.Vector.SEXP as Vector   
+import qualified Data.Vector.SEXP as Vector
 
 import           Control.Applicative
 import           Control.Monad ( void )
@@ -32,7 +32,7 @@ evalIO h@(hexp -> Promise s ex rho)
       injectTag h H.nilValue
       return val
     | otherwise = return (R.sexp . R.unsexp $ s)
-evalIO (hexp -> Expr v) =
+evalIO (hexp -> Expr _ v) =
     last <$> mapM LR.eval (Vector.toList v)
 evalIO x = LR.eval x
 

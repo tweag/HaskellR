@@ -71,11 +71,11 @@ parseExpRuntimeEval txt = [| H.eval $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
-attachHs h@(hexp -> Expr v) =
+attachHs h@(hexp -> Expr _ v) =
     concat (map (\(i,t) ->
       let tl = attachHs t
       in case haskellName t of
-           Just hname -> 
+           Just hname ->
              [\e -> [| R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname)) >> $e |]]
            Nothing -> tl)
                 $ zip [(0::Int)..] (Vector.toList v))
@@ -109,12 +109,12 @@ attachSymbol _ _ = Nothing
 haskellName :: R.SEXP a -> Maybe Name
 haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
-    then Just . mkName $ take (length name - 3) name 
+    then Just . mkName $ take (length name - 3) name
     else Nothing
 haskellName _ = Nothing
 
-force :: R.SEXP a -> IO () 
-force (hexp -> Expr v) = mapM_ force (Vector.toList v)
+force :: R.SEXP a -> IO ()
+force (hexp -> Expr _ v) = mapM_ force (Vector.toList v)
 force (hexp -> Lang x ls) = force x >> force ls
 force (hexp -> List a b c) = force a >> maybe (return ()) force b >> maybe (return()) force c
 force h@(hexp -> Symbol a b c)  = do
