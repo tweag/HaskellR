@@ -42,7 +42,7 @@ parseExpCompile txt = do
      vs <- runIO $ do
        H.initialize H.defaultConfig
        ex <- runInRThread $ parseText txt
-       let (Expr v) = hexp ex
+       let (Expr _ v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
      let v = head vs
      [| v |] -- XXX: fix me allow working with lists

@@ -112,10 +112,12 @@ data HExp :: SEXPTYPE -> * where
             -> HExp R.List
   Any       :: HExp a
   -- Fields: truelength, content.
-  Vector    :: {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
+  Vector    :: {-# UNPACK #-} !Int32
+            -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
             -> HExp (R.Vector (SEXP R.Any))
   -- Fields: truelength, content.
-  Expr      :: {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
+  Expr      :: {-# UNPACK #-} !Int32
+            -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
             -> HExp R.Expr
   Bytecode  :: HExp a -- XXX
   -- Fields: pointer, protectionValue, tagval
@@ -202,8 +204,10 @@ peekHExp s = do
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
       R.Any       -> return Any
-      R.Vector _  -> coerce $ Vector  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Expr      -> coerce $ Expr    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Vector _  -> coerce $ Vector  <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+                                      <*> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Expr      -> coerce $ Expr    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+                                      <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Bytecode  -> coerce $ error "peekHExp: Unimplemented."
       R.ExtPtr    -> coerce $ error "peekHExp: Unimplemented."
       R.WeakRef   -> coerce $ error "peekHExp: Unimplemented."
@@ -253,14 +257,14 @@ pokeHExp s h = do
          Real _vt     -> error "Unimplemented (vector)"
          String _vt   -> error "Unimplemented (vector)"
          Complex _vt  -> error "Unimplemented (vector)"
-         Vector  _    -> error "Unimplemented (vector)"
+         Vector _v _  -> error "Unimplemented (vector)"
          Bytecode     -> error "Unimplemented."
          ExtPtr _ _ _ -> error "Unimplemented."
          WeakRef _ _ _ _ -> error "Unimplemented."
          Raw     _    -> error "Unimplemented (vector)"
          S4      _    -> error "Unimplemented."
          DotDotDot _  -> error "Unimplemented."
-         Expr _      -> error "Unimplemented (vector)"
+         Expr _ _     -> error "Unimplemented (vector)"
          Any          -> return ()
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
@@ -289,7 +293,7 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
     unhexpIO (Int vt)      = return $ Vector.toSEXP vt
     unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
-    unhexpIO (Vector vt)   = return $ Vector.toSEXP vt
+    unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
     unhexpIO (Char vt)     = return $ Vector.toSEXP vt
     unhexpIO (String vt)   = return $ Vector.toSEXP vt
     unhexpIO Raw{}        = error "Unimplemented."
