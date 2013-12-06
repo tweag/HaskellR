@@ -64,6 +64,8 @@ import System.IO.Unsafe   ( unsafePerformIO )
 import System.Process     ( readProcess )
 import System.SetEnv
 #ifdef H_ARCH_UNIX
+import Control.Exception ( onException )
+import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
 
@@ -152,7 +154,12 @@ with cfg = bracket (initialize cfg) (const finalize) . const
 startRThread :: ThreadId -> IO ()
 startRThread eventLoopThread = do
 #ifdef H_ARCH_UNIX
-    setResourceLimit ResourceStackSize (ResourceLimits ResourceLimitInfinity ResourceLimitInfinity)
+    setResourceLimit ResourceStackSize (ResourceLimits ResourceLimitUnknown ResourceLimitUnknown)
+      `onException` (hPutStrLn stderr $
+                       "Language.R.Interpreter: "
+                       ++ "Oops, cannot set stack size limit. "
+                       ++ "Maybe try setting in your shell: ulimit -s unlimited"
+                    )
 #endif
     chan <- newChan
     newStablePtr chan >>= poke interpreterChanPtr
