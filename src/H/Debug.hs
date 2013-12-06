@@ -87,7 +87,7 @@ instance ToJSON (R.SEXP a) where
       go (hexp -> Int v) = A.Array (vector v)
       go (hexp -> Real v) = A.Array (vector v)
       go (hexp -> Complex v) = A.Array (vector v)
-      go (hexp -> Vector v) = A.Array (vector v)
+      go (hexp -> Vector _ v) = A.Array (vector v)
 --  String    :: {-# UNPACK #-} !(Vector.Vector (SEXP (R.Vector Word8)))
 --            -> HExp (R.Vector (SEXP (R.Vector Word8)))
       go (hexp -> List i j k) =
