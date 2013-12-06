@@ -63,6 +63,10 @@ import System.Environment ( getProgName, lookupEnv )
 import System.IO.Unsafe   ( unsafePerformIO )
 import System.Process     ( readProcess )
 import System.SetEnv
+#ifdef H_ARCH_UNIX
+import System.Posix.Resource
+#endif
+
 
 -- | Configuration options for R runtime.
 data Config = Config
@@ -147,6 +151,9 @@ with cfg = bracket (initialize cfg) (const finalize) . const
 -- | Starts the R thread.
 startRThread :: ThreadId -> IO ()
 startRThread eventLoopThread = do
+#ifdef H_ARCH_UNIX
+    setResourceLimit ResourceStackSize (ResourceLimits ResourceLimitInfinity ResourceLimitInfinity)
+#endif
     chan <- newChan
     newStablePtr chan >>= poke interpreterChanPtr
     void $ forkOS $
