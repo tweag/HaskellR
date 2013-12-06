@@ -13,7 +13,7 @@ if [[ "-s" == "$1" ]]
 then
     CABAL="cabal-dev -s $2"
     BRANCH=$3
-    export GHCi_H_ARGS="-package-db=$2/packages-7.6.3.conf"
+    export GHCi_H_ARGS="-package-db=$2/packages-$(ghc --numeric-version).conf"
 else
     CABAL=cabal
     BRANCH=$1
