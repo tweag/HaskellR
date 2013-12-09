@@ -96,7 +96,6 @@ instance ToJSON (R.SEXP a) where
                  , "next"  .= j
                  , "tag"   .= k
                  ]
-      go (hexp -> Any) = A.String "Any"
       go (hexp -> Env _ _ _) = A.String "Environment"
       go (hexp -> Closure f b e) =
          object [ "formals" .= f

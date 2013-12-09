@@ -118,7 +118,6 @@ data HExp :: SEXPTYPE -> * where
   -- Fields: pairlist of promises.
   DotDotDot :: SEXP R.PairList
             -> HExp R.List
-  Any       :: HExp a
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
             -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
@@ -281,7 +280,6 @@ peekHExp s = do
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
-      R.Any       -> return Any
       R.Vector _  -> coerce $
         Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
@@ -349,7 +347,6 @@ pokeHExp s h = do
          S4      _       -> error "pokeHExp: Unimplemented."
          DotDotDot _     -> error "pokeHExp: Unimplemented."
          Expr _ _        -> error "pokeHExp: Unimplemented."
-         Any             -> return ()
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
@@ -373,7 +370,6 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
     unhexpIO s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
     unhexpIO  (Bytecode{}) = error "unhexp: Unimplemented."
-    unhexpIO Any           = R.allocSEXP R.Any
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
     unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
     unhexpIO (Int vt)      = return $ Vector.toSEXP vt
