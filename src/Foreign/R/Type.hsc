@@ -43,7 +43,7 @@ data SEXPTYPE
     | Special
     | Builtin
     | Char
-    | Long
+    | Logical
     | Int
     | Real
     | Complex
@@ -72,7 +72,7 @@ instance Enum SEXPTYPE where
   fromEnum Special    = #const SPECIALSXP
   fromEnum Builtin    = #const BUILTINSXP
   fromEnum Char       = #const CHARSXP
-  fromEnum Long       = #const LGLSXP
+  fromEnum Logical    = #const LGLSXP
   fromEnum Int        = #const INTSXP
   fromEnum Real       = #const REALSXP
   fromEnum Complex    = #const CPLXSXP
@@ -100,7 +100,7 @@ instance Enum SEXPTYPE where
   toEnum (#const SPECIALSXP) = Special
   toEnum (#const BUILTINSXP) = Builtin
   toEnum (#const CHARSXP)    = Char
-  toEnum (#const LGLSXP)     = Long
+  toEnum (#const LGLSXP)     = Logical
   toEnum (#const INTSXP)     = Int
   toEnum (#const REALSXP)    = Real
   toEnum (#const CPLXSXP)    = Complex
@@ -130,7 +130,7 @@ instance Show SEXPTYPE where
   show Special    = "Special"
   show Builtin    = "Builin"
   show Char       = "Char"
-  show Long       = "Long"
+  show Logical    = "Logical"
   show Int        = "Int"
   show Real       = "Real"
   show Complex    = "Complex"

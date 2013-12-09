@@ -105,6 +105,8 @@ data HExp :: SEXPTYPE -> * where
             -> HExp R.Builtin
   Char      :: {-# UNPACK #-} !(Vector.Vector Word8)
             -> HExp (R.Vector Word8)
+  Logical   :: {-# UNPACK #-} !(Vector.Vector Bool)
+            -> HExp (R.Vector Bool)
   Int       :: {-# UNPACK #-} !(Vector.Vector Int32)
             -> HExp (R.Vector Int32)
   Real      :: {-# UNPACK #-} !(Vector.Vector Double)
@@ -273,6 +275,7 @@ peekHExp s = do
       R.Builtin   -> coerce $
         Builtin   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
       R.Char      -> coerce $ Char    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Logical   -> coerce $ Logical <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Int       -> coerce $ Int     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Real      -> coerce $ Real    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
@@ -371,6 +374,7 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO  (Bytecode{}) = error "unhexp: Unimplemented."
     unhexpIO Any           = R.allocSEXP R.Any
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
+    unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
     unhexpIO (Int vt)      = return $ Vector.toSEXP vt
     unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
     unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
