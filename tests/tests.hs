@@ -7,6 +7,8 @@
 module Main where
 
 import H.Prelude
+import H.Constraints
+import qualified H.HExp as H
 import qualified Foreign.R as R
 import qualified Language.R.Interpreter as R (initialize, defaultConfig)
 import qualified Language.R as R (withProtected, r2)
@@ -117,7 +119,7 @@ ghciSession name scriptPath =
       (\goldenOutput outputH ->
          let a = T.replace "\r\n" "\n" goldenOutput
              b = T.replace "\r\n" "\n" outputH
-         in if a == b 
+         in if a == b
             then return Nothing
             else return $ Just $
               unlines ["Outputs don't match."
@@ -132,6 +134,20 @@ unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "fromSEXP . mkSEXP" $
       (2 :: Double) @=? fromSEXP (mkSEXP (2 :: Double))
+  , testCase "HEq HExp" $ do
+      -- XXX ideally randomly generate input.
+      let x = 2 :: Double
+      assertBool "reflexive" $
+          let s = H.hexp $ mkSEXP x in s === s
+      assertBool "symmetric" $
+          let s1 = H.hexp $ mkSEXP x
+              s2 = H.hexp $ mkSEXP x
+          in s1 === s2 && s2 === s1
+      assertBool "transitive" $
+          let s1 = H.hexp $ mkSEXP x
+              s2 = H.hexp $ mkSEXP x
+              s3 = H.hexp $ mkSEXP x
+          in s1 === s2 && s2 === s3 && s1 === s3
   , testCase "Haskell function from R" $ do
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do

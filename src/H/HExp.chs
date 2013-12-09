@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module H.HExp
@@ -30,7 +31,9 @@ import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
 
 import Control.Applicative
+import Data.Function (on)
 import Data.Int (Int32)
+import Data.Maybe (fromJust)
 import Data.Word (Word8)
 import Data.Complex
 import GHC.Ptr (Ptr(..))
@@ -138,6 +141,75 @@ data HExp :: SEXPTYPE -> * where
   -- Fields: tagval.
   S4        :: SEXP R.Symbol
             -> HExp R.S4
+
+-- | Wrapper for partially applying a type synonym.
+newtype E a = E (SEXP a)
+
+instance HEq E where
+  E (hexp -> t1) === E (hexp -> t2) = t1 === t2
+
+instance HEq HExp where
+  Nil === Nil = True
+  Symbol pname1 value1 internal1 === Symbol pname2 value2 internal2 =
+      E pname1 === E pname2 &&
+      E value1 === E value2 &&
+      (fromJust $ (===) <$> fmap E internal1 <*> fmap E internal2 <|> return True)
+  List carval1 cdrval1 tagval1 === List carval2 cdrval2 tagval2 =
+      E carval1 === E carval2 &&
+      (fromJust $ (===) <$> fmap E cdrval1 <*> fmap E cdrval2 <|> return True) &&
+      (fromJust $ (===) <$> fmap E tagval1 <*> fmap E tagval2 <|> return True)
+  Env frame1 enclos1 hashtab1 === Env frame2 enclos2 hashtab2 =
+      E frame1 === E frame2 &&
+      E enclos1 === E enclos2 &&
+      E hashtab1 === E hashtab2
+  Closure formals1 body1 env1 === Closure formals2 body2 env2 =
+      E formals1 === E formals2 &&
+      E body1 === E body2 &&
+      E env1 === E env2
+  Promise value1 expr1 env1 === Promise value2 expr2 env2 =
+      E value1 === E value2 &&
+      E expr1 === E expr2 &&
+      E env1 === E env2
+  Lang carval1 cdrval1 === Lang carval2 cdrval2 =
+      E carval1 === E carval2 &&
+      E cdrval1 === E cdrval2
+  Special offset1 === Special offset2 =
+      offset1 ==  offset2
+  Builtin offset1 === Builtin offset2 =
+      offset1 == offset2
+  Char vec1 === Char vec2 =
+      vec1 == vec2
+  Int vec1 === Int vec2 =
+      vec1 == vec2
+  Real vec1 === Real vec2 =
+      vec1 == vec2
+  String vec1 === String vec2 =
+      vec1 == vec2
+  Complex vec1 === Complex vec2 =
+      vec1 == vec2
+  DotDotDot pairlist1 === DotDotDot pairlist2 =
+      E pairlist1 === E pairlist2
+  Vector truelength1 vec1 === Vector truelength2 vec2 =
+      truelength1 == truelength2 &&
+      and (zipWith ((===) `on` E) (Vector.toList vec1) (Vector.toList vec2))
+  Expr truelength1 vec1 === Expr truelength2 vec2 =
+      truelength1 == truelength2 &&
+      and (zipWith ((===) `on` E) (Vector.toList vec1) (Vector.toList vec2))
+  Bytecode === Bytecode = True
+  ExtPtr pointer1 protectionValue1 tagval1 === ExtPtr pointer2 protectionValue2 tagval2 =
+      castPtr pointer1 == castPtr pointer2 &&
+      E protectionValue1 === E protectionValue2 &&
+      E tagval1 === E tagval2
+  WeakRef key1 value1 finalizer1 next1 === WeakRef key2 value2 finalizer2 next2 =
+      E key1 === E key2 &&
+      E value1 === E value2 &&
+      E finalizer1 === E finalizer2 &&
+      E next1 === E next2
+  Raw vec1 === Raw vec2 =
+      vec1 == vec2
+  S4 tagval1 === S4 tagval2 =
+      E tagval1 === E tagval2
+  _ === _ = False
 
 -- XXX Orphan instance. Could find a better place to put it.
 instance (Fractional a, Real a, Storable a) => Storable (Complex a) where

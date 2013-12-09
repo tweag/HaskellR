@@ -36,6 +36,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 #include <Rinternals.h>
 
 newtype Vector a = Vector { unVector :: Vector.Vector a }
+    deriving (Eq, Show)
 
 -- | Create Vectro from SEXP value.
 unsafeFromSEXP :: Storable a => SEXP (R.Vector a) -> IO (Vector a)
