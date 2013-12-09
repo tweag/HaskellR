@@ -11,6 +11,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module H.Debug
   ( inspect )

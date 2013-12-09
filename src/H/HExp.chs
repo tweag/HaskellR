@@ -13,6 +13,8 @@ module H.HExp
   ( HExp(..)
   , hexp
   , unhexp
+  , vector
+  , expression
   -- * Low level access
   , injectCar
   , injectCdr
@@ -380,6 +382,23 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO WeakRef{}     = error "unhexp: Unimplemented."
     unhexpIO DotDotDot{}   = error "unhexp: Unimplemented."
     unhexpIO ExtPtr{}      = error "unhexp: Unimplemented."
+
+-- | Project the vector out of 'SEXP's.
+vector :: SEXP (R.Vector a) -> Vector.Vector a
+vector (hexp -> Char vec)     = vec
+vector (hexp -> Logical vec)  = vec
+vector (hexp -> Int vec)      = vec
+vector (hexp -> Real vec)     = vec
+vector (hexp -> Complex vec)  = vec
+vector (hexp -> String vec)   = vec
+vector (hexp -> Vector _ vec) = vec
+vector _ = error "vector: Not a vector."
+
+-- | Like 'vector', but for expression vectors, whose type index differs from
+-- that of other vectors.
+expression :: SEXP R.Expr -> Vector.Vector (SEXP R.Any)
+expression (hexp -> Expr _ vec) = vec
+expression _ = error "expr: Not an expression."
 
 -- | Check if SEXP is nill
 maybeNil :: SEXP a
