@@ -9,6 +9,7 @@ module H.Class.Ghci
   ) where
 
 import Control.Monad.Reader
+import Language.R.Interpreter ( runInRThread )
 
 import H.Monad
 import H.Internal.REnv
@@ -19,4 +20,4 @@ class MonadR m where
   runR :: R a -> m a
 
 instance MonadR IO where
-  runR (R x) = runReaderT x REnv
+  runR (R x) = runInRThread $ runReaderT x REnv

@@ -37,7 +37,7 @@ import Foreign.R.Error
 import Prelude hiding (print)
 
 print :: R.SEXP a -> R ()
-print = io . runInRThread . R.printValue
+print = io . R.printValue
 
 withProtected :: R (R.SEXP a) -> ((R.SEXP a) -> R b) -> R b
 withProtected accure =
