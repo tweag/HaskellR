@@ -224,13 +224,13 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 {#fun REAL as real { unsexp `SEXP (R.Vector Double)' } -> `Ptr Double' castPtr #}
 
 -- | Read integer vector data.
-{#fun INTEGER as integer { unsexp `SEXP (R.Vector Int32)' } -> `Ptr CInt' id #}
+{#fun INTEGER as integer { unsexp `SEXP (R.Vector Int32)' } -> `Ptr Int32' castPtr #}
 
 -- | Read raw data.
 {#fun RAW as raw { unsexp `SEXP (R.Vector Word8)' } -> `Ptr CChar' castPtr #}
 
 -- | Read logical vector data.
-{#fun LOGICAL as logical { unsexp `SEXP (R.Vector Bool)' } -> `Ptr CInt' id #}
+{#fun LOGICAL as logical { unsexp `SEXP (R.Vector Bool)' } -> `Ptr Bool' castPtr #}
 
 -- | Read complex vector data.
 {#fun COMPLEX as complex { unsexp `SEXP (R.Vector (Complex Double))' }
