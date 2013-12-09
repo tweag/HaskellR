@@ -10,6 +10,7 @@ import H.Prelude
 import qualified Foreign.R as R
 import qualified Language.R.Interpreter as R (initialize, defaultConfig)
 import qualified Language.R as R (withProtected, r2)
+import qualified Test.FunPtr
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
@@ -136,6 +137,7 @@ unitTests = testGroup "Unit tests"
           e <- peek R.globalEnv
           R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: IO Double))) $
             \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
+  , Test.FunPtr.tests
   ]
 
 integrationTests :: TestTree
