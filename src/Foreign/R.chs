@@ -7,6 +7,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
@@ -97,6 +98,7 @@ module Foreign.R
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
+  , pokeInfo
   , mark
   , named
   ) where
@@ -403,6 +405,19 @@ peekInfo ts =
       <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gccls #} s)
   where
     s = unsexp ts
+
+pokeInfo :: SEXP a -> SEXPInfo -> IO ()
+pokeInfo (unsexp -> s) i = do
+    {#set SEXP->sxpinfo.type  #} s (fromIntegral.fromEnum $ infoType i)
+    {#set SEXP->sxpinfo.obj   #} s (if infoObj  i then 1 else 0)
+    {#set SEXP->sxpinfo.named #} s (fromIntegral $ infoNamed i)
+    {#set SEXP->sxpinfo.gp    #} s (fromIntegral $ infoGp i)
+    {#set SEXP->sxpinfo.mark  #} s (if infoMark i  then 1 else 0)
+    {#set SEXP->sxpinfo.debug #} s (if infoDebug i then 1 else 0)
+    {#set SEXP->sxpinfo.trace #} s (if infoTrace i then 1 else 0)
+    {#set SEXP->sxpinfo.spare #} s (if infoSpare i then 1 else 0)
+    {#set SEXP->sxpinfo.gcgen #} s (fromIntegral $ infoGcGen i)
+    {#set SEXP->sxpinfo.gccls #} s (fromIntegral $ infoGcCls i)
 
 -- | Set GC mark.
 mark :: Bool -> SEXP a -> IO ()
