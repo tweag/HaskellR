@@ -51,9 +51,12 @@ unsafeFromSEXP s = do
                        (fromIntegral len)
 
 toSEXP :: Storable a => Vector a -> SEXP (R.Vector a)
-toSEXP (Vector v) = castPtr (unsafeForeignPtrToPtr p)
-  where
-    (p,_) = Vector.unsafeToForeignPtr0 v
+toSEXP = (`plusPtr` (-{#sizeof SEXPREC_ALIGN #}))
+       . castPtr
+       . unsafeForeignPtrToPtr
+       . fst
+       . Vector.unsafeToForeignPtr0
+       . unVector
 
 length :: (Storable a) => Vector a -> Int
 length = Vector.length . unVector
