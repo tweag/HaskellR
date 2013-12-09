@@ -44,7 +44,7 @@ mkSEXPVector ty xs = unsafePerformIO $ do
     zipWithM_ (pokeElemOff ptr) [0..] xs
     return vec
 
-instance Literal [Bool] (R.Vector Bool) where
+instance Literal [R.Logical] (R.Vector R.Logical) where
     mkSEXP = mkSEXPVector R.Logical
     fromSEXP (hexp -> Logical (SVector.Vector v)) = V.toList v
     fromSEXP _ = error "[Logical] expected where some other expression appeared."
@@ -70,7 +70,7 @@ the (fromSEXP -> xs)
   | length xs == 1 = head xs
   | otherwise = error "Not a singleton vector."
 
-instance Literal Bool (R.Vector Bool) where
+instance Literal R.Logical (R.Vector R.Logical) where
     mkSEXP x = mkSEXP [x]
     fromSEXP = the
 

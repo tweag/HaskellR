@@ -105,8 +105,8 @@ data HExp :: SEXPTYPE -> * where
             -> HExp R.Builtin
   Char      :: {-# UNPACK #-} !(Vector.Vector Word8)
             -> HExp (R.Vector Word8)
-  Logical   :: {-# UNPACK #-} !(Vector.Vector Bool)
-            -> HExp (R.Vector Bool)
+  Logical   :: {-# UNPACK #-} !(Vector.Vector R.Logical)
+            -> HExp (R.Vector R.Logical)
   Int       :: {-# UNPACK #-} !(Vector.Vector Int32)
             -> HExp (R.Vector Int32)
   Real      :: {-# UNPACK #-} !(Vector.Vector Double)

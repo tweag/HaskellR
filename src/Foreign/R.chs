@@ -14,6 +14,7 @@ module Foreign.R
   ( module Foreign.R.Type
     -- * Internal R structures
   , SEXPTYPE(..)
+  , R.Logical(..)
   , SEXP
   , SEXPREC
   , SEXP0
@@ -232,7 +233,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 {#fun RAW as raw { unsexp `SEXP (R.Vector Word8)' } -> `Ptr CChar' castPtr #}
 
 -- | Read logical vector data.
-{#fun LOGICAL as logical { unsexp `SEXP (R.Vector Bool)' } -> `Ptr Bool' castPtr #}
+{#fun LOGICAL as logical { unsexp `SEXP (R.Vector R.Logical)' } -> `Ptr R.Logical' castPtr #}
 
 -- | Read complex vector data.
 {#fun COMPLEX as complex { unsexp `SEXP (R.Vector (Complex Double))' }
