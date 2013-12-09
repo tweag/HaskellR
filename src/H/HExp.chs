@@ -24,6 +24,7 @@ module H.HExp
 
 import H.Constraints
 import H.Monad
+import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
@@ -64,7 +65,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- when using the GADT syntax.
 data HExp :: SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
-  Nil       :: HExp a
+  Nil       :: HExp R.Nil
   -- Fields: pname, value, internal.
   Symbol    :: SEXP (R.Vector Word8)
             -> SEXP a
@@ -360,7 +361,7 @@ unhexp :: HExp a -> SEXP a
 unhexp = unsafePerformIO . unhexpIO
   where
     unhexpIO :: HExp a -> IO (SEXP a)
-    unhexpIO   Nil = R.allocSEXP R.Nil
+    unhexpIO   Nil         = return H.nilValue
     unhexpIO s@(Symbol{})  = R.allocSEXP R.Symbol >>= \x -> poke x s >> return x
     unhexpIO s@(List{})    = R.allocSEXP R.List >>= \x -> poke x s >> return x
     unhexpIO s@(Lang{})    = R.allocSEXP R.Lang >>= \x -> poke x s >> return x
