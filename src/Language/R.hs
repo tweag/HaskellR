@@ -171,7 +171,7 @@ strings str = withCString str (R.protect <=< R.mkString)
 
 -- | Evaluate expression in given environment.
 evalEnv :: R.SEXP a -> R.SEXP R.Env -> IO (R.SEXP b)
-evalEnv x rho = 
+evalEnv x rho =
     alloca $ \p -> do
         v <- R.tryEvalSilent x rho p
         e <- peek p

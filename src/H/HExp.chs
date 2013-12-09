@@ -277,11 +277,13 @@ peekHExp s = do
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
       R.Any       -> return Any
-      R.Vector _  -> coerce $ Vector  <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
-                                      <*> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Expr      -> coerce $ Expr    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
-                                      <*> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Bytecode  -> coerce $ error "peekHExp: Unimplemented."
+      R.Vector _  -> coerce $
+        Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+                  <*> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Expr      -> coerce $
+        Expr      <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+                  <*> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Bytecode  -> return $ Bytecode
       R.ExtPtr    -> coerce $
         ExtPtr    <$> {#get SEXP->u.listsxp.carval #} s
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
@@ -290,7 +292,6 @@ peekHExp s = do
       R.Raw       -> coerce $ error "peekHExp: Unimplemented."
       R.S4        -> coerce $ error "peekHExp: Unimplemented."
       _           -> coerce $ error "peekHExp: Unimplemented."
-
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do

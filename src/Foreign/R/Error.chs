@@ -17,7 +17,7 @@ import Data.Typeable
 import Foreign ( peek )
 import Foreign.C.String ( withCString, peekCString )
 
-data RError = RError 
+data RError = RError
       { rerrorMsg  :: String
       } deriving ( Typeable )
 
@@ -35,7 +35,7 @@ getErrMsg e = do
 -- | Throw R exception.
 throwR :: R.SEXP R.Env  -- Environment to search error.
        -> IO a
-throwR x = getErrMsg x >>= throwIO . RError 
+throwR x = getErrMsg x >>= throwIO . RError
 
 -- | Throw R exception with specified message.
 throwRMessage :: String -> IO a

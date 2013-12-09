@@ -59,7 +59,7 @@ instance ToJSON (R.SEXP a) where
         , tp .= go x
         ]
     where
-      vector :: (ToJSON a,Storable a) => Vector.Vector a -> V.Vector Value
+      vector :: (ToJSON a, Storable a) => Vector.Vector a -> V.Vector Value
       vector = V.fromList . map toJSON . Vector.toList -- XXX: do not use lists
       ub = R.unsexp H.unboundValue
       nil = R.unsexp H.nilValue

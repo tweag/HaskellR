@@ -6,7 +6,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE PolyKinds  #-}
+{-# LANGUAGE PolyKinds #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
@@ -237,7 +237,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
       -> `Ptr (Complex Double)' castPtr #}
 
 -- | Read string vector data.
-{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'} 
+{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'}
       -> `Ptr (SEXP (R.Vector Word8))' castPtr #}
 
 -- | Read any SEXP vector data.
@@ -287,7 +287,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | Allocate List.
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
 
--- | Allocate Vecto.r
+-- | Allocate Vector.
 {#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' sexp #}
 
 {#fun Rf_PrintValue as printValue { unsexp `SEXP a'} -> `()' #}
