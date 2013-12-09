@@ -7,6 +7,7 @@
 {-# Language ViewPatterns #-}
 module H.Internal.Literal
   ( Literal(..)
+  , mkSEXPVector
   , HFunWrap(..)
   , funToSEXP
     -- * wrapper helpers

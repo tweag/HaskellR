@@ -11,12 +11,16 @@
 -- dealing with that.
 
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Foreign.R.Type where
 
 #include <Rinternals.h>
 
 import H.Constraints
+
+import qualified Language.Haskell.TH.Syntax as Hs
+import qualified Language.Haskell.TH.Lib as Hs
 
 import Foreign (castPtr)
 import Foreign.C (CInt)
@@ -152,6 +156,9 @@ instance Show SEXPTYPE where
   show New        = "New"
   show Free       = "Free"
   show Fun        = "Fun"
+
+instance Hs.Lift SEXPTYPE where
+    lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
 
 -- | R uses three-valued logic.
 data Logical = False

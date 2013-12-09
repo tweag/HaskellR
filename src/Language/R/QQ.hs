@@ -1,29 +1,42 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module is intended to be imported qualified.
+
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
+-- For the 'Vector' instance of 'Lift'.
+{-# LANGUAGE OverlappingInstances #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Language.R.QQ
   ( r
   ) where
 
 import qualified H.Prelude as H
-import           H.HExp
+import           H.HExp as H
+import           H.Internal.Literal as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import           Language.R ( parseText )
-import           Language.R.Interpreter ( runInRThread )
+import           Language.R (parseText, string)
+import           Language.R.Interpreter (runInRThread)
 
-import Data.List ( isSuffixOf )
-import Language.Haskell.TH
+import qualified Data.ByteString.Char8 as BS
+
+import Language.Haskell.TH (Q, runIO)
+import Language.Haskell.TH.Lift (deriveLift)
 import Language.Haskell.TH.Quote
-import Language.Haskell.TH.Syntax
+import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Haskell.TH.Lib as TH
 
-import System.IO.Unsafe ( unsafePerformIO )
+import Data.List (isSuffixOf)
+import Data.Complex (Complex)
+import Data.Int (Int32)
+import Data.Word (Word8)
+import Foreign (Ptr)
+import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
@@ -31,65 +44,93 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 r :: QuasiQuoter
 r = QuasiQuoter
-      { quoteExp  = parseExpCompile
+      { quoteExp  = parseExp
       , quotePat  = error "QuasiQuoter for patterns is not yet implemented"  -- XXX: implement
       , quoteType = error "QuasiQuoter for types is not supported"
       , quoteDec  = error "QuasiQuoter for declaration is not yet implemented"  -- XXX: implement
       }
 
-parseExpCompile :: String -> ExpQ
-parseExpCompile txt = do
-     vs <- runIO $ do
-       _  <- H.initialize H.defaultConfig
-       ex <- runInRThread $ parseText txt
-       let (Expr _ v) = hexp ex
-       return $ map (R.sexp . R.unsexp) (Vector.toList v)
-     let v = head vs
-     [| v |] -- XXX: fix me allow working with lists
+parseExp :: String -> Q TH.Exp
+parseExp txt = do
+    sexp <- runIO $ do
+       _ <- H.initialize H.defaultConfig
+       runInRThread $ parseText txt
+    let !(H.Expr _ exps) = hexp sexp
+    TH.lift $ head $ Vector.toList exps -- FIXME: allow working with lists
 
-instance Lift (R.SEXP a) where
-    -- XXX: it's possible that we may want to create HVal with correct
-    --      ForeignPtr that will block SEXP deallocation in R
-    lift (hexp -> Nil) = [| unhexp Nil |]
-    lift (hexp -> Real vs) = [| H.mkSEXP $(return (ListE $ map (\t -> ConE (mkName "GHC.Exts.D#") `AppE` (LitE . DoublePrimL . toRational $ t)) (Vector.toList vs))) |]
-    lift h@(hexp -> Lang (hexp -> Symbol (hexp -> Char (Vector.toString -> name))
-                                         (hexp -> Special _)
-                                         g) ls) =
-      case name of
-        "function" -> unsafePerformIO $ do
-            error "under construction"
-        _          -> [| do lng <- H.install name
-                            return $ unhexp (Lang lng $([| ls |])) |]
-    lift (hexp -> Lang (hexp -> Symbol (hexp -> Char (Vector.toString -> name))
-                                       (hexp -> Builtin _)
-                                        g) ls) =
-      -- XXX: it seems that we may assume that builtin ordering is not
-      -- changed and use builtin construct instread on installing symbol
-      [| do lng <- H.install name
-            return $ unhexp (Lang lng $([| ls |])) |]
-    lift (hexp -> Lang _ _) =
-      error "emit/Lang: Unsupported."
-    lift x@(hexp -> Symbol _n@(hexp -> Char (Vector.toString -> name)) _b c) =
-      if "_hs" `isSuffixOf` name
-      then
-        let hname = take (length name - 3) name
-        in [| H.mkSEXP $(varE (mkName hname)) |]
-      else [| do nm <- H.string name
-                 return $ unhexp (Symbol nm H.unboundValue Nothing) |]
-    lift (hexp -> List x mxs mtg) =
-      [| unhexp (List $([| x |]) $([|mxs|]) $([|mtg|]))|]
-    lift (hexp -> Char (Vector.toString -> value)) =
-      -- XXX: we want somehow to reduce overhead in Ghci as this variant
-      -- leads to a symbol copying
-      [| H.string value |]
-    lift (hexp -> String x) =
-      let l = Vector.length x
-      in if l == 1
-         then case hexp (Vector.head x) of
-                (Char v) -> let h = Vector.toString v
-                            in [| H.strings h |]
-                _ -> error "emit/String/1: incorrect type"
-         else error "emit/String/many: not yet implemented"
-    lift x = unsafePerformIO $ do
-      ty <- R.typeOf x
-      error $ "emit: not yet implemented ("++ show ty ++")"
+-- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
+deriveLift ''R.SEXPInfo
+deriveLift ''Complex
+deriveLift ''R.Logical
+deriveLift ''H.HExp
+
+instance TH.Lift BS.ByteString where
+    lift bs = let s = BS.unpack bs in [| BS.pack s |]
+
+instance TH.Lift Int32 where
+    lift x = let x' = fromIntegral x :: Int in [| fromIntegral x' :: Int32 |]
+
+instance TH.Lift Word8 where
+    lift x = let x' = fromIntegral x :: Int in [| fromIntegral x' :: Word8 |]
+
+instance TH.Lift Double where
+    lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
+
+instance TH.Lift (Vector.Vector Word8) where
+    -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
+    -- type. So we have to use some bespoke function.
+    lift v = let xs :: String
+                 xs = map (toEnum . fromIntegral) $ Vector.toList v
+             in [| vector $ unsafePerformIO $ string xs |]
+
+instance TH.Lift (Vector.Vector R.Logical) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Logical xs |]
+
+instance TH.Lift (Vector.Vector Int32) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Int xs |]
+
+instance TH.Lift (Vector.Vector Double) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Real xs |]
+
+instance TH.Lift (Vector.Vector (Complex Double)) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Complex xs |]
+
+-- TODO Special case for R.Expr.
+instance TH.Lift (Vector.Vector (R.SEXP (R.Vector Word8))) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.String xs |]
+
+instance TH.Lift (Vector.Vector (R.SEXP a)) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+
+-- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
+-- with 'H.ExtPtr' when this is in fact not possible.
+instance TH.Lift (Ptr ()) where
+    lift _ = error "Cannot lift pointers."
+
+-- | Returns 'True' if the variable name is in fact a Haskell value splice.
+isSplice :: String -> Bool
+isSplice = ("_hs" `isSuffixOf`)
+
+-- | Chop a splice variable in order to obtain the name of the haskell variable
+-- to splice.
+spliceNameChop :: String -> String
+spliceNameChop name = take (length name - 3) name
+
+instance TH.Lift (R.SEXP a) where
+    -- Special case some forms, rather than relying on the default code
+    -- generated by 'deriveLift'.
+    lift s@(hexp -> Symbol pname value internal)
+      | R.unsexp s == R.unsexp value =
+        [| let s' = unhexp $ Symbol pname s' internal in s' |]
+    lift   (hexp -> Symbol pname _ Nothing)
+      | Char (Vector.toString -> name) <- hexp pname
+      , isSplice name = do
+        let hvar = TH.varE $ TH.mkName $ spliceNameChop name
+        [| H.mkSEXP $hvar |]
+      | otherwise =
+        [| H.install xs |]
+      where
+        xs :: String
+        xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
+    lift (hexp -> t) =
+        [| unhexp t |]
