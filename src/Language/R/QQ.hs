@@ -41,7 +41,7 @@ parseExpCompile :: String -> ExpQ
 parseExpCompile txt = do
      vs <- runIO $ do
        _   <- H.initialize H.defaultConfig
-       ex  <- parseText txt
+       ex  <- runInRThread $ parseText txt
        let (Expr _ v) = hexp ex
        return $ map (R.sexp . R.unsexp) (Vector.toList v)
      let v = head vs

@@ -74,13 +74,8 @@ attachHs h@(hexp -> Expr _ v) =
     concat (map (\(i,t) ->
       let tl = attachHs t
       in case haskellName t of
-<<<<<<< HEAD
-           Just hname ->
-             [\e -> [| R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname)) >> $e |]]
-=======
            Just hname -> 
              [\e -> [| io (R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname))) >> $e |]]
->>>>>>> Port API on MonadR.
            Nothing -> tl)
                 $ zip [(0::Int)..] (Vector.toList v))
   where
