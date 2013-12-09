@@ -2,9 +2,9 @@
 :set -fno-ghci-sandbox
 :set -XQuasiQuotes
 :set -XTemplateHaskell
-import qualified H.Prelude as H
+import qualified H.Prelude as H hiding ( runR )
 import Language.R.Runtime.QQ as QQ
-
+:m +H.Class.Ghci
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv

@@ -2,7 +2,7 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
   argument "x" is missing, with no default
 
 
-<interactive>:6:29:
+<interactive>:6:9:
     Exception when trying to run compile-time code:
       RError: Error in parse(text = " plot( ") : <text>:2:0: unexpected end of input
 1:  plot( 
@@ -10,7 +10,7 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
 
       Code: Language.Haskell.TH.Quote.quoteExp r " plot( "
 
-<interactive>:8:29:
+<interactive>:8:9:
     Exception when trying to run compile-time code:
       RError: Error in parse(text = " 1+()-2 ") : <text>:1:5: unexpected ')'
 1:  1+()

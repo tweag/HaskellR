@@ -20,6 +20,7 @@ module H.HExp
   ) where
 
 import H.Constraints
+import H.Monad
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
@@ -317,20 +318,20 @@ maybeNil s = do
       else Just s
 
 -- | Create a symbol that loops on itself.
-symbolLoop :: SEXP R.Symbol
-symbolLoop = unsafePerformIO $ do
+symbolLoop :: R (SEXP R.Symbol)
+symbolLoop = io $ do
   chr <- withCString "" R.mkChar
   let x = unhexp $ Symbol chr nullPtr Nothing
   x `seq` {#set SEXP->u.symsxp.value #} (R.unsexp x) (R.unsexp x)
   return x
 
 -- | Inject object inside car field.
-injectCar :: SEXP a -> SEXP b -> IO ()
-injectCar s cr = {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
+injectCar :: SEXP a -> SEXP b -> R ()
+injectCar s cr = io $ {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
 
 -- | Inject object inside cdr field.
-injectCdr :: SEXP a -> SEXP b -> IO ()
-injectCdr s cr = {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
+injectCdr :: SEXP a -> SEXP b -> R ()
+injectCdr s cr = io $ {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
 
-injectTag :: SEXP a -> SEXP b -> IO ()
-injectTag s tg = {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)
+injectTag :: SEXP a -> SEXP b -> R ()
+injectTag s tg = io $ {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)

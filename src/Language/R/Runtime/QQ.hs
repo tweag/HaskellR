@@ -12,21 +12,20 @@ module Language.R.Runtime.QQ
   ) where
 
 import qualified H.Prelude as H
+import           H.Monad
 import           H.HExp
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import Language.R ( withProtected, parseText )
+import Language.R ( parseText )
 import Language.R.Interpreter ( runInRThread )
 
-import Control.Exception ( evaluate )
-import Control.Monad ( void, unless )
+-- import Control.Monad ( void, unless )
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
 import Foreign ( ptrToIntPtr, intPtrToPtr )
-import System.IO.Unsafe ( unsafePerformIO )
 
 -------------------------------------------------------------------------------
 -- Runtime Quasi-Quoter                                                      --
@@ -56,18 +55,18 @@ parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
     ex <- runIO $ runInRThread $ do
       x <- parseText txt
-      force x
+--      force x
       return x
     let l = RuntimeSEXP ex
     case attachHs ex of
-      [] -> [| unRuntimeSEXP l |]
-      x  -> [| unsafePerformIO $(gather x l) |]
+      [] -> [| return (unRuntimeSEXP l) |]
+      x  -> [| $(gather x l) |]
   where
     gather :: [ExpQ -> ExpQ] -> (RuntimeSEXP a) -> ExpQ
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = [| H.eval $(parseExpRuntime txt) |]
+parseExpRuntimeEval txt = [| H.evalH =<< $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
@@ -76,7 +75,7 @@ attachHs h@(hexp -> Expr _ v) =
       let tl = attachHs t
       in case haskellName t of
            Just hname ->
-             [\e -> [| R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname)) >> $e |]]
+             [\e -> [| io (R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname))) >> $e |]]
            Nothing -> tl)
                 $ zip [(0::Int)..] (Vector.toList v))
   where
@@ -94,8 +93,8 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
         rp = RuntimeSEXP params
     in Just (\e ->
-         [| withProtected (evaluate $ H.install ".Call") $ \call ->
-              withProtected (evaluate $ H.mkSEXP $(varE hname)) $ \l -> do
+         [| H.withProtected (H.install ".Call") $ \call ->
+              H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
                 injectCar (unRuntimeSEXP rs) call
                 injectCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
                 $e
@@ -103,7 +102,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| withProtected (evaluate $ H.mkSEXP $(varE hname)) $ \l -> injectCar (unRuntimeSEXP rs) l >> $e |])
+         [| H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> injectCar (unRuntimeSEXP rs) l >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: R.SEXP a -> Maybe Name
@@ -113,6 +112,7 @@ haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     else Nothing
 haskellName _ = Nothing
 
+{-
 force :: R.SEXP a -> IO ()
 force (hexp -> Expr _ v) = mapM_ force (Vector.toList v)
 force (hexp -> Lang x ls) = force x >> force ls
@@ -121,8 +121,9 @@ force h@(hexp -> Symbol a b c)  = do
     unless (R.unsexp h == R.unsexp a) (force a)
     unless (R.unsexp h == R.unsexp b) (force b)
     maybe (return ()) force c
-force h@(hexp -> Promise{}) = void (H.evalIO h)
+force h@(hexp -> Promise{}) = void (H.evalR h)
 force _ = return ()
+-}
 
 newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
 
