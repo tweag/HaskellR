@@ -150,7 +150,7 @@ parseFile fl f = do
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
 
-parseText :: String -> IO (R.SEXP a)
+parseText :: String -> IO (R.SEXP R.Expr)
 parseText txt = parseEval (C8.pack $ "parse(text="++show txt++")")
 
 install :: String -> IO (R.SEXP R.Symbol)
