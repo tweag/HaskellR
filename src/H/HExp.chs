@@ -129,7 +129,7 @@ data HExp :: SEXPTYPE -> * where
             -> HExp R.Expr
   Bytecode  :: HExp a -- XXX
   -- Fields: pointer, protectionValue, tagval
-  ExtPtr    :: Ptr a
+  ExtPtr    :: Ptr ()
             -> SEXP b
             -> SEXP R.Symbol
             -> HExp R.ExtPtr
@@ -290,7 +290,7 @@ peekHExp s = do
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Bytecode  -> return $ Bytecode
       R.ExtPtr    -> coerce $
-        ExtPtr    <$> {#get SEXP->u.listsxp.carval #} s
+        ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
       R.WeakRef   -> coerce $ error "peekHExp: Unimplemented."
