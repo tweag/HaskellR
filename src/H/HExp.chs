@@ -303,46 +303,47 @@ pokeHExp s h = do
            {#set SEXP->u.symsxp.pname #} s' (R.unsexp nm)
            {#set SEXP->u.symsxp.value #} s' (R.unsexp vl)
            maybe ({#set SEXP->u.symsxp.internal#} s' (R.unsexp nil))
-                 ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) int
-         List cr cd tg -> do
-           {#set SEXP->u.listsxp.carval #} s' (R.unsexp cr)
+                 ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) internal
+         List carval cdrval tagval -> do
+           {#set SEXP->u.listsxp.carval #} s' (R.unsexp carval)
            maybe ({#set SEXP->u.listsxp.cdrval#} s' (R.unsexp nil))
-                 ({#set SEXP->u.listsxp.cdrval#} s' . R.unsexp) cd
+                 ({#set SEXP->u.listsxp.cdrval#} s' . R.unsexp) cdrval
            maybe ({#set SEXP->u.listsxp.tagval#} s' (R.unsexp nil))
-                 ({#set SEXP->u.listsxp.tagval#} s' . R.unsexp) tg
-         Env fr en ht -> do
-           {#set SEXP->u.envsxp.frame #} s' (R.unsexp fr)
-           {#set SEXP->u.envsxp.enclos #} s' (R.unsexp en)
-           {#set SEXP->u.envsxp.hashtab #} s' (R.unsexp ht)
-         Closure fo bo en -> do
-           {#set SEXP->u.closxp.formals #} s' (R.unsexp fo)
-           {#set SEXP->u.closxp.body #} s' (R.unsexp bo)
-           {#set SEXP->u.closxp.env #} s' (R.unsexp en)
-         Promise vl ex en -> do
-           {#set SEXP->u.promsxp.value #} s' (R.unsexp vl)
-           {#set SEXP->u.promsxp.expr #} s' (R.unsexp ex)
-           {#set SEXP->u.promsxp.env #} s' (R.unsexp en)
-         Lang cr cd -> do
-           {#set SEXP->u.listsxp.carval #} s' (R.unsexp cr)
-           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cd)
-         Special o -> do
-           {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
-         Builtin o -> do
-           {#set SEXP->u.primsxp.offset #} s' (fromIntegral o)
-         Char _vc     -> error "Unimplemented (vector)"
-         Int  _vt     -> error "Unimplemented (vector)"
-         Real _vt     -> error "Unimplemented (vector)"
-         String _vt   -> error "Unimplemented (vector)"
-         Complex _vt  -> error "Unimplemented (vector)"
-         Vector _v _  -> error "Unimplemented (vector)"
-         Bytecode     -> error "Unimplemented."
-         ExtPtr _ _ _ -> error "Unimplemented."
-         WeakRef _ _ _ _ -> error "Unimplemented."
-         Raw     _    -> error "Unimplemented (vector)"
-         S4      _    -> error "Unimplemented."
-         DotDotDot _  -> error "Unimplemented."
-         Expr _ _     -> error "Unimplemented (vector)"
-         Any          -> return ()
+                 ({#set SEXP->u.listsxp.tagval#} s' . R.unsexp) tagval
+         Env frame enclos hashtab -> do
+           {#set SEXP->u.envsxp.frame #} s' (R.unsexp frame)
+           {#set SEXP->u.envsxp.enclos #} s' (R.unsexp enclos)
+           {#set SEXP->u.envsxp.hashtab #} s' (R.unsexp hashtab)
+         Closure formals body env -> do
+           {#set SEXP->u.closxp.formals #} s' (R.unsexp formals)
+           {#set SEXP->u.closxp.body #} s' (R.unsexp body)
+           {#set SEXP->u.closxp.env #} s' (R.unsexp env)
+         Promise value expr env -> do
+           {#set SEXP->u.promsxp.value #} s' (R.unsexp value)
+           {#set SEXP->u.promsxp.expr #} s' (R.unsexp expr)
+           {#set SEXP->u.promsxp.env #} s' (R.unsexp env)
+         Lang carval cdrval -> do
+           {#set SEXP->u.listsxp.carval #} s' (R.unsexp carval)
+           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cdrval)
+         Special offset -> do
+           {#set SEXP->u.primsxp.offset #} s' (fromIntegral offset)
+         Builtin offset -> do
+           {#set SEXP->u.primsxp.offset #} s' (fromIntegral offset)
+         Char _vc        -> error "pokeHExp: Unimplemented."
+         Logical  _vt    -> error "pokeHExp: Unimplemented."
+         Int  _vt        -> error "pokeHExp: Unimplemented."
+         Real _vt        -> error "pokeHExp: Unimplemented."
+         String _vt      -> error "pokeHExp: Unimplemented."
+         Complex _vt     -> error "pokeHExp: Unimplemented."
+         Vector _v _     -> error "pokeHExp: Unimplemented."
+         Bytecode        -> error "pokeHExp: Unimplemented."
+         ExtPtr _ _ _    -> error "pokeHExp: Unimplemented."
+         WeakRef _ _ _ _ -> error "pokeHExp: Unimplemented."
+         Raw     _       -> error "pokeHExp: Unimplemented."
+         S4      _       -> error "pokeHExp: Unimplemented."
+         DotDotDot _     -> error "pokeHExp: Unimplemented."
+         Expr _ _        -> error "pokeHExp: Unimplemented."
+         Any             -> return ()
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
@@ -365,20 +366,20 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO s@(Special{}) = R.allocSEXP R.Special >>= \x -> poke x s >> return x
     unhexpIO s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
     unhexpIO s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
-    unhexpIO  (Bytecode{}) = error "Unimplemented."
-    unhexpIO Any         = R.allocSEXP R.Any
+    unhexpIO  (Bytecode{}) = error "unhexp: Unimplemented."
+    unhexpIO Any           = R.allocSEXP R.Any
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
     unhexpIO (Int vt)      = return $ Vector.toSEXP vt
     unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
     unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
     unhexpIO (Char vt)     = return $ Vector.toSEXP vt
     unhexpIO (String vt)   = return $ Vector.toSEXP vt
-    unhexpIO Raw{}        = error "Unimplemented."
-    unhexpIO S4{}         = error "Unimplemented."
-    unhexpIO Expr{}       = error "Unimplemented."
-    unhexpIO WeakRef{}    = error "Unimplemented."
-    unhexpIO DotDotDot{}  = error "Unimplemented."
-    unhexpIO ExtPtr{}     = error "Unimplemented."
+    unhexpIO Raw{}         = error "unhexp: Unimplemented."
+    unhexpIO S4{}          = error "unhexp: Unimplemented."
+    unhexpIO Expr{}        = error "unhexp: Unimplemented."
+    unhexpIO WeakRef{}     = error "unhexp: Unimplemented."
+    unhexpIO DotDotDot{}   = error "unhexp: Unimplemented."
+    unhexpIO ExtPtr{}      = error "unhexp: Unimplemented."
 
 -- | Check if SEXP is nill
 maybeNil :: SEXP a
