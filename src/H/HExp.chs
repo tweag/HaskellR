@@ -42,7 +42,7 @@ import GHC.Ptr (Ptr(..))
 import Foreign.Storable
 import Foreign.C
 import Foreign ( castPtr, nullPtr )
-import System.IO.Unsafe (unsafePerformIO)
+import System.IO.Unsafe (unsafePerformIO, unsafeInterleaveIO)
 import Unsafe.Coerce (unsafeCoerce)
 
 
@@ -304,9 +304,10 @@ pokeHExp s h = do
     let s' = castPtr s
     case h of
          Nil -> return ()
-         Symbol nm vl int -> do
-           {#set SEXP->u.symsxp.pname #} s' (R.unsexp nm)
-           {#set SEXP->u.symsxp.value #} s' (R.unsexp vl)
+         Symbol pname value internal -> do
+           {#set SEXP->u.symsxp.pname #} s' (R.unsexp pname)
+           -- Set the value lazily to deal with self valued symbols.
+           unsafeInterleaveIO $ {#set SEXP->u.symsxp.value #} s' (R.unsexp value)
            maybe ({#set SEXP->u.symsxp.internal#} s' (R.unsexp nil))
                  ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) internal
          List carval cdrval tagval -> do
