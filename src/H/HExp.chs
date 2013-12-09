@@ -209,7 +209,10 @@ peekHExp s = do
       R.Expr      -> coerce $ Expr    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
                                       <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Bytecode  -> coerce $ error "peekHExp: Unimplemented."
-      R.ExtPtr    -> coerce $ error "peekHExp: Unimplemented."
+      R.ExtPtr    -> coerce $
+        ExtPtr    <$> {#get SEXP->u.listsxp.carval #} s
+                  <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
+                  <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
       R.WeakRef   -> coerce $ error "peekHExp: Unimplemented."
       R.Raw       -> coerce $ error "peekHExp: Unimplemented."
       R.S4        -> coerce $ error "peekHExp: Unimplemented."

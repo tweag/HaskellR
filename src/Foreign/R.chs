@@ -78,6 +78,7 @@ module Foreign.R
     -- * GC functions
   , protect
   , unprotect
+  , gc
     -- * Globals
   , globalEnv
   , baseEnv
@@ -112,6 +113,7 @@ import Prelude hiding (length)
 #include <R.h>
 #define USE_RINTERNALS
 #include <Rinternals.h>
+#include <R_ext/Memory.h>
 #include "missing_r.h"
 
 -- XXX temp workaround due to R bug: doesn't export R_CHAR when USE_RINTERNALS
@@ -303,6 +305,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | Protect variable from the garbage collector.
 {#fun Rf_protect as protect { unsexp `SEXP a'} -> `SEXP a' sexp #}
 {#fun Rf_unprotect as unprotect { `Int' } -> `()' #}
+{#fun R_gc as gc { } -> `()' #}
 
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
