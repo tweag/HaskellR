@@ -13,6 +13,7 @@
 
 module Language.R.QQ
   ( r
+  , rexp
   ) where
 
 import qualified H.Prelude as H
@@ -44,11 +45,19 @@ import System.IO.Unsafe (unsafePerformIO)
 
 r :: QuasiQuoter
 r = QuasiQuoter
-      { quoteExp  = parseExp
-      , quotePat  = error "QuasiQuoter for patterns is not yet implemented"  -- XXX: implement
-      , quoteType = error "QuasiQuoter for types is not supported"
-      , quoteDec  = error "QuasiQuoter for declaration is not yet implemented"  -- XXX: implement
-      }
+    { quoteExp  = \txt -> [| H.eval $(parseExp txt) |]
+      , quotePat  = error "Unimplemented: quotePat."
+      , quoteType = error "Unimplemented: quoteType."
+      , quoteDec  = error "Unimplemented: quoteDec."
+    }
+
+rexp :: QuasiQuoter
+rexp = QuasiQuoter
+    { quoteExp  = \txt -> [| return $(parseExp txt) |]
+    , quotePat  = error "Unimplemented: quotePat."
+    , quoteType = error "Unimplemented: quoteType."
+    , quoteDec  = error "Unimplemented: quoteDec."
+    }
 
 parseExp :: String -> Q TH.Exp
 parseExp txt = do
