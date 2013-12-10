@@ -141,5 +141,13 @@ instance TH.Lift (R.SEXP a) where
       where
         xs :: String
         xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
-    lift (hexp -> t) =
+    lift s@(hexp -> Lang (hexp -> Symbol pname _ Nothing) rands)
+      | Char (Vector.toString -> name) <- hexp pname
+      , isSplice name = do
+        let hvar = TH.varE $ TH.mkName $ spliceNameChop name
+        [| unsafePerformIO $ do
+             call <- install ".Call"
+             f <- return $ H.mkSEXP $hvar
+             return $ unhexp $ Lang call (unhexp $ List f (Just rands) Nothing) |]
+    lift   (hexp -> t) =
         [| unhexp t |]
