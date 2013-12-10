@@ -305,8 +305,7 @@ pokeHExp s h = do
          Nil -> return ()
          Symbol pname value internal -> do
            {#set SEXP->u.symsxp.pname #} s' (R.unsexp pname)
-           -- Set the value lazily to deal with self valued symbols.
-           unsafeInterleaveIO $ {#set SEXP->u.symsxp.value #} s' (R.unsexp value)
+           {#set SEXP->u.symsxp.value #} s' (R.unsexp value)
            maybe ({#set SEXP->u.symsxp.internal#} s' (R.unsexp nil))
                  ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) internal
          List carval cdrval tagval -> do
