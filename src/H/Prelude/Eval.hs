@@ -10,13 +10,11 @@ module H.Prelude.Eval
 import           H.HExp
 import           H.Monad
 import qualified Foreign.R as R
-import           Language.R ( MonadR )
 import qualified Language.R as LR
 import qualified Data.Vector.SEXP as Vector
 
 import           Control.Applicative
 import           Control.Monad ( void )
-import           Control.Monad.IO.Class ( liftIO )
 
 -- | Evaluate expression.
 evalH :: (MonadR m) => R.SEXP a -> m (R.SEXP b)
