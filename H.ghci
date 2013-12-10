@@ -4,7 +4,7 @@
 :set -XTemplateHaskell
 import qualified H.Prelude as H hiding ( runR )
 import Language.R.Runtime.QQ as QQ
-:m +H.Class.Ghci
+:m +Language.R.Ghci
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv

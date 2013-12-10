@@ -1,7 +1,7 @@
 :m +Control.Exception
 
-(runR $ [r| plot() |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+([r| plot() |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
-(runR $ [r| plot( |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+([r| plot( |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
-(runR $ [r| 1+()-2 |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+([r| 1+()-2 |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)

@@ -39,10 +39,10 @@ import Foreign.R.Error
 
 import Prelude hiding (print)
 
-print :: R.SEXP a -> R ()
+print :: (MonadR m) => R.SEXP a -> m ()
 print = io . R.printValue
 
-withProtected :: R (R.SEXP a) -> ((R.SEXP a) -> R b) -> R b
+withProtected :: (MonadR m, MonadCatch m) => m (R.SEXP a) -> ((R.SEXP a) -> m b) -> m b
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
             (const (io $ R.unprotect 1))

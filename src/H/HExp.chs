@@ -420,12 +420,12 @@ symbolLoop = io $ do
   return x
 
 -- | Inject object inside car field.
-injectCar :: SEXP a -> SEXP b -> R ()
+injectCar :: MonadR m => SEXP a -> SEXP b -> m ()
 injectCar s cr = io $ {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
 
 -- | Inject object inside cdr field.
-injectCdr :: SEXP a -> SEXP b -> R ()
+injectCdr :: MonadR m => SEXP a -> SEXP b -> m ()
 injectCdr s cr = io $ {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
 
-injectTag :: SEXP a -> SEXP b -> R ()
+injectTag :: MonadR m => SEXP a -> SEXP b -> m ()
 injectTag s tg = io $ {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)

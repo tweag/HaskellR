@@ -13,14 +13,14 @@ import qualified Language.R as LR
 
 import           Data.Word
 
-symbol :: String -> R (R.SEXP R.Symbol)
+symbol :: MonadR m => String -> m (R.SEXP R.Symbol)
 symbol = io . LR.symbol
 
-install :: String -> R (R.SEXP R.Symbol)
+install :: MonadR m => String -> m (R.SEXP R.Symbol)
 install = io . LR.install
 
-string :: String -> R (R.SEXP (R.Vector Word8))
+string :: MonadR m => String -> m (R.SEXP (R.Vector Word8))
 string = io . LR.string
 
-strings :: String -> R (R.SEXP (R.String))
+strings :: MonadR m => String -> m (R.SEXP (R.String))
 strings = io . LR.strings

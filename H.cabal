@@ -23,7 +23,6 @@ library
                        H.HVal
                        H.Module
                        H.Monad
-                       H.Class.Ghci
                        H.Prelude
                        H.Prelude.Globals
                        H.Prelude.Reexports
@@ -43,6 +42,7 @@ library
                        Language.R
                        Language.R.Interpreter
                        Language.R.QQ
+                       Language.R.Ghci
                        Language.R.Runtime.QQ
   other-modules:       H.Internal.REnv
   build-depends:       base >= 4.6 && < 4.7
@@ -57,6 +57,7 @@ library
                      , exceptions >= 0.3
                      , mtl >= 2.1
                      , th-lift >= 0.6
+                     , transformers >= 0.3
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits

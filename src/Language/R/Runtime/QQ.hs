@@ -66,7 +66,7 @@ parseExpRuntime txt = do
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = [| H.evalH =<< $(parseExpRuntime txt) |]
+parseExpRuntimeEval txt = [| H.eval =<< $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
@@ -111,19 +111,6 @@ haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     then Just . mkName $ take (length name - 3) name
     else Nothing
 haskellName _ = Nothing
-
-{-
-force :: R.SEXP a -> IO ()
-force (hexp -> Expr _ v) = mapM_ force (Vector.toList v)
-force (hexp -> Lang x ls) = force x >> force ls
-force (hexp -> List a b c) = force a >> maybe (return ()) force b >> maybe (return()) force c
-force h@(hexp -> Symbol a b c)  = do
-    unless (R.unsexp h == R.unsexp a) (force a)
-    unless (R.unsexp h == R.unsexp b) (force b)
-    maybe (return ()) force c
-force h@(hexp -> Promise{}) = void (H.evalR h)
-force _ = return ()
--}
 
 newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
 
