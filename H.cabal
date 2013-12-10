@@ -56,6 +56,7 @@ library
                      , template-haskell >= 2.8
                      , exceptions >= 0.3
                      , mtl >= 2.1
+                     , th-lift >= 0.6
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits

@@ -6,13 +6,15 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE PolyKinds  #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
   ( module Foreign.R.Type
     -- * Internal R structures
   , SEXPTYPE(..)
+  , R.Logical(..)
   , SEXP
   , SEXPREC
   , SEXP0
@@ -97,6 +99,7 @@ module Foreign.R
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
+  , pokeInfo
   , mark
   , named
   ) where
@@ -224,20 +227,20 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 {#fun REAL as real { unsexp `SEXP (R.Vector Double)' } -> `Ptr Double' castPtr #}
 
 -- | Read integer vector data.
-{#fun INTEGER as integer { unsexp `SEXP (R.Vector Int32)' } -> `Ptr CInt' id #}
+{#fun INTEGER as integer { unsexp `SEXP (R.Vector Int32)' } -> `Ptr Int32' castPtr #}
 
 -- | Read raw data.
 {#fun RAW as raw { unsexp `SEXP (R.Vector Word8)' } -> `Ptr CChar' castPtr #}
 
 -- | Read logical vector data.
-{#fun LOGICAL as logical { unsexp `SEXP (R.Vector Bool)' } -> `Ptr CInt' id #}
+{#fun LOGICAL as logical { unsexp `SEXP (R.Vector R.Logical)' } -> `Ptr R.Logical' castPtr #}
 
 -- | Read complex vector data.
 {#fun COMPLEX as complex { unsexp `SEXP (R.Vector (Complex Double))' }
       -> `Ptr (Complex Double)' castPtr #}
 
 -- | Read string vector data.
-{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'} 
+{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'}
       -> `Ptr (SEXP (R.Vector Word8))' castPtr #}
 
 -- | Read any SEXP vector data.
@@ -287,7 +290,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | Allocate List.
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
 
--- | Allocate Vecto.r
+-- | Allocate Vector.
 {#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' sexp #}
 
 {#fun Rf_PrintValue as printValue { unsexp `SEXP a'} -> `()' #}
@@ -403,6 +406,19 @@ peekInfo ts =
       <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gccls #} s)
   where
     s = unsexp ts
+
+pokeInfo :: SEXP a -> SEXPInfo -> IO ()
+pokeInfo (unsexp -> s) i = do
+    {#set SEXP->sxpinfo.type  #} s (fromIntegral.fromEnum $ infoType i)
+    {#set SEXP->sxpinfo.obj   #} s (if infoObj  i then 1 else 0)
+    {#set SEXP->sxpinfo.named #} s (fromIntegral $ infoNamed i)
+    {#set SEXP->sxpinfo.gp    #} s (fromIntegral $ infoGp i)
+    {#set SEXP->sxpinfo.mark  #} s (if infoMark i  then 1 else 0)
+    {#set SEXP->sxpinfo.debug #} s (if infoDebug i then 1 else 0)
+    {#set SEXP->sxpinfo.trace #} s (if infoTrace i then 1 else 0)
+    {#set SEXP->sxpinfo.spare #} s (if infoSpare i then 1 else 0)
+    {#set SEXP->sxpinfo.gcgen #} s (fromIntegral $ infoGcGen i)
+    {#set SEXP->sxpinfo.gccls #} s (fromIntegral $ infoGcCls i)
 
 -- | Set GC mark.
 mark :: Bool -> SEXP a -> IO ()

@@ -7,6 +7,7 @@
 {-# Language ViewPatterns #-}
 module H.Internal.Literal
   ( Literal(..)
+  , mkSEXPVector
   , HFunWrap(..)
   , funToSEXP
     -- * wrapper helpers
@@ -19,44 +20,72 @@ import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
 
 import qualified Data.Vector.Storable as V
-import Control.Monad ( forM_ )
+
+import Control.Applicative ((<$>))
+import Control.Monad ( zipWithM_ )
+import Data.Int (Int32)
+import Data.Complex (Complex)
 import Foreign          ( FunPtr, castFunPtr, castPtr )
 import Foreign.C.String ( newCString )
-import Foreign.Storable ( pokeElemOff )
+import Foreign.Storable ( Storable, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
--- | Represents a value that can be converted into S Expression
+-- | Values that can be converted to 'R.SEXP'.
 class Literal a b | a -> b where
     mkSEXP :: a -> R.SEXP b
-    fromSEXP :: R.SEXP c -> a
+    fromSEXP :: R.SEXP b -> a
 
-instance Literal Double (R.Vector Double) where
-    mkSEXP x = unsafePerformIO $ do
-      v  <- R.allocVector R.Real 1
-      pt <- R.real v
-      pokeElemOff pt 0 (fromRational . toRational $ x)
-      return v
+mkSEXPVector :: Storable a
+             => R.SEXPTYPE
+             -> [a]
+             -> R.SEXP (R.Vector a)
+mkSEXPVector ty xs = unsafePerformIO $ do
+    vec <- R.allocVector ty $ length xs
+    ptr <- castPtr <$> R.vector (castPtr vec)
+    zipWithM_ (pokeElemOff ptr) [0..] xs
+    return vec
 
-    fromSEXP s =
-      case hexp s of
-        Real (SVector.Vector v) | V.length v == 1 -> v V.! 0
-        Int  (SVector.Vector v) | V.length v == 1 -> fromIntegral (v V.! 0)
-        _ -> error "Double expected where some other expression appeared."
+instance Literal [R.Logical] (R.Vector R.Logical) where
+    mkSEXP = mkSEXPVector R.Logical
+    fromSEXP (hexp -> Logical (SVector.Vector v)) = V.toList v
+    fromSEXP _ = error "[Logical] expected where some other expression appeared."
+
+instance Literal [Int32] (R.Vector Int32) where
+    mkSEXP = mkSEXPVector R.Int
+    fromSEXP (hexp -> Int (SVector.Vector v)) = V.toList v
+    fromSEXP _ = error "[Int32] expected where some other expression appeared."
 
 instance Literal [Double] (R.Vector Double) where
-    mkSEXP x = unsafePerformIO $ do
-        v  <- R.allocVector R.Real l
-        pt <- R.real v
-        forM_ (zip x [0..]) $ \(g,i) -> do
-          pokeElemOff pt i g
-        return v
-      where
-        l = length x
-    fromSEXP s =
-      case hexp s of
-        Real (SVector.Vector v) -> V.toList v
-        Int  (SVector.Vector v) -> map fromIntegral $ V.toList v
-        _ -> error "[Double] expected where some other expression appeared."
+    mkSEXP = mkSEXPVector R.Real
+    fromSEXP (hexp -> Real (SVector.Vector v)) = V.toList v
+    fromSEXP _ = error "[Double] expected where some other expression appeared."
+
+instance Literal [Complex Double] (R.Vector (Complex Double)) where
+    mkSEXP = mkSEXPVector R.Complex
+    fromSEXP (hexp -> Complex (SVector.Vector v)) = V.toList v
+    fromSEXP _ = error "[Complex Double] expected where some other expression appeared."
+
+-- | Named after eponymous "GHC.Exts" function.
+the :: Literal [a] (R.Vector a) => R.SEXP (R.Vector a) -> a
+the (fromSEXP -> xs)
+  | length xs == 1 = head xs
+  | otherwise = error "Not a singleton vector."
+
+instance Literal R.Logical (R.Vector R.Logical) where
+    mkSEXP x = mkSEXP [x]
+    fromSEXP = the
+
+instance Literal Int32 (R.Vector Int32) where
+    mkSEXP x = mkSEXP [x]
+    fromSEXP = the
+
+instance Literal Double (R.Vector Double) where
+    mkSEXP x = mkSEXP [x]
+    fromSEXP = the
+
+instance Literal (Complex Double) (R.Vector (Complex Double)) where
+    mkSEXP x = mkSEXP [x]
+    fromSEXP = the
 
 instance Literal (R.SEXP a) b where
     mkSEXP = R.sexp . R.unsexp
