@@ -12,7 +12,6 @@ import Control.Monad.Reader
 import Language.R.Interpreter ( runInRThread )
 
 import H.Monad
-import H.Internal.REnv
 
 -- This class is intendent for creation and running
 -- H code.

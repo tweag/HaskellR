@@ -43,7 +43,7 @@ import GHC.Ptr (Ptr(..))
 import Foreign.Storable
 import Foreign.C
 import Foreign ( castPtr, nullPtr )
-import System.IO.Unsafe (unsafePerformIO, unsafeInterleaveIO)
+import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
 

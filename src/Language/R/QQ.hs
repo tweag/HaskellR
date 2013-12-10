@@ -16,11 +16,11 @@ module Language.R.QQ
   ) where
 
 import qualified H.Prelude as H
-import           H.HExp as H
-import           H.Internal.Literal as H
+import           H.HExp
+import           H.Internal.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import           Language.R (parseText, string)
+import           Language.R (parseText, install, string)
 import           Language.R.Interpreter (runInRThread)
 
 import qualified Data.ByteString.Char8 as BS
@@ -55,14 +55,14 @@ parseExp txt = do
     sexp <- runIO $ do
        _ <- H.initialize H.defaultConfig
        runInRThread $ parseText txt
-    let !(H.Expr _ exps) = hexp sexp
+    let !(Expr _ exps) = hexp sexp
     TH.lift $ head $ Vector.toList exps -- FIXME: allow working with lists
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
 deriveLift ''R.SEXPInfo
 deriveLift ''Complex
 deriveLift ''R.Logical
-deriveLift ''H.HExp
+deriveLift ''HExp
 
 instance TH.Lift BS.ByteString where
     lift bs = let s = BS.unpack bs in [| BS.pack s |]
@@ -128,7 +128,7 @@ instance TH.Lift (R.SEXP a) where
         let hvar = TH.varE $ TH.mkName $ spliceNameChop name
         [| H.mkSEXP $hvar |]
       | otherwise =
-        [| H.install xs |]
+        [| unsafePerformIO $ install xs |]        -- FIXME
       where
         xs :: String
         xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname

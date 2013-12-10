@@ -2,7 +2,7 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 module H.Monad
   ( R(..)
-  , REnv
+  , REnv(..)
   , runR
   , io
   ) where
