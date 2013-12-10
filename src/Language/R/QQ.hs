@@ -77,10 +77,10 @@ instance TH.Lift BS.ByteString where
     lift bs = let s = BS.unpack bs in [| BS.pack s |]
 
 instance TH.Lift Int32 where
-    lift x = let x' = fromIntegral x :: Int in [| fromIntegral x' :: Int32 |]
+    lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Int32 |]
 
 instance TH.Lift Word8 where
-    lift x = let x' = fromIntegral x :: Int in [| fromIntegral x' :: Word8 |]
+    lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Word8 |]
 
 instance TH.Lift Double where
     lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
