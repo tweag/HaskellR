@@ -412,8 +412,8 @@ maybeNil s = do
       else Just s
 
 -- | Create a symbol that loops on itself.
-symbolLoop :: R (SEXP R.Symbol)
-symbolLoop = io $ do
+symbolLoop :: IO (SEXP R.Symbol)
+symbolLoop = do
   chr <- withCString "" R.mkChar
   let x = unhexp $ Symbol chr nullPtr Nothing
   x `seq` {#set SEXP->u.symsxp.value #} (R.unsexp x) (R.unsexp x)
