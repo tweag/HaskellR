@@ -1,3 +1,4 @@
+:m +Data.Int
 -- Should be: [1] 1
 runR $ H.print =<< [r| 1 |]
 
@@ -27,7 +28,7 @@ runR $ H.print =<< [r| z(3) |]
 -- Should be [1] 1 2 3 4 5 6 7 8 9 10
 runR $ H.print =<< [r| y <- c(1:10) |]
 let foo1 = (\x -> (return $ x+1 :: IO Double))
-let foo2 = (\x -> (return $ map (+1) x :: IO [Double]))
+let foo2 = (\x -> (return $ map (+1) x :: IO [Int32]))
 
 -- Should be [1] 2
 runR $ H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
