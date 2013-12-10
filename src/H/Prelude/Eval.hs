@@ -3,7 +3,7 @@
 {-# Language ViewPatterns #-}
 {-# Language GADTs #-}
 module H.Prelude.Eval
-  ( evalH
+  ( eval
   , eval_
   ) where
 
@@ -17,15 +17,14 @@ import           Control.Applicative
 import           Control.Monad ( void )
 
 -- | Evaluate expression.
-evalH :: (MonadR m) => R.SEXP a -> m (R.SEXP b)
-evalH = io . evalIO
-
--- | Evaluate inside IO monad.
-evalIO :: R.SEXP a -> IO (R.SEXP b)
-evalIO (hexp -> Expr _ v) =
-    last <$> mapM LR.eval (Vector.toList v)
-evalIO x = LR.eval x
+eval :: (MonadR m) => R.SEXP a -> m (R.SEXP b)
+eval = io . evalIO
+  where
+    evalIO :: R.SEXP a -> IO (R.SEXP b)
+    evalIO (hexp -> Expr _ v) =
+      last <$> mapM LR.eval (Vector.toList v)
+    evalIO x = LR.eval x
 
 -- | Silent version of 'evalIO' function. Discards result
 eval_ :: (MonadR m, Functor m) => R.SEXP a -> m ()
-eval_ = void . evalH
+eval_ = void . eval

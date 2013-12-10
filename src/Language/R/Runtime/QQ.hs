@@ -66,7 +66,7 @@ parseExpRuntime txt = do
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = [| H.evalH =<< $(parseExpRuntime txt) |]
+parseExpRuntimeEval txt = [| H.eval =<< $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
