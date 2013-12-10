@@ -17,7 +17,7 @@ import           Control.Applicative
 import           Control.Monad ( void )
 
 -- | Evaluate expression.
-eval :: (MonadR m) => R.SEXP a -> m (R.SEXP b)
+eval :: MonadR m => R.SEXP a -> m (R.SEXP b)
 eval = io . evalIO
   where
     evalIO :: R.SEXP a -> IO (R.SEXP b)
@@ -26,5 +26,5 @@ eval = io . evalIO
     evalIO x = LR.eval x
 
 -- | Silent version of 'evalIO' function. Discards result
-eval_ :: (MonadR m, Functor m) => R.SEXP a -> m ()
+eval_ :: MonadR m => R.SEXP a -> m ()
 eval_ = void . eval

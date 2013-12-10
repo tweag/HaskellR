@@ -185,7 +185,7 @@ evalEnv x rho =
 eval :: R.SEXP a -> IO (R.SEXP b)
 eval x = peek globalEnvPtr >>= evalEnv x
 
-class MonadIO m => MonadR m where
+class (Applicative m, MonadIO m) => MonadR m where
   -- | Prepare unsafe action for execution
   io :: IO a -> m a
   io = liftIO
