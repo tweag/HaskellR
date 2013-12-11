@@ -51,10 +51,8 @@ putStrLn $
           , "But we wil use separate file for it"
           , "We are generating function x^2+2*x+5 with some random noise"
           , "with standart distribution (using mwc-random package)."
-          , "Print 10 examples for x=10:"
           ]
 :}
-replicateM 10 (generate 10)
 next
 :{
 putStrLn $ 
@@ -66,7 +64,7 @@ putStrLn "[r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]"
 H.print =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
 next
 putStrLn "[r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]"
-print  =<< [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
+H.print  =<< [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
 next
 [r| plot(xs,ys,main="nls") |]
 [r| lines(xs,predict(nlmod), col = 2)|]
