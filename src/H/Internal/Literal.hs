@@ -55,11 +55,13 @@ instance Literal [R.Logical] (R.Vector R.Logical) where
 instance Literal [Int32] (R.Vector Int32) where
     mkSEXP = mkSEXPVector R.Int
     fromSEXP (hexp -> Int (SVector.Vector v)) = V.toList v
+    fromSEXP (hexp -> Real (SVector.Vector v)) = map round (V.toList v)
     fromSEXP _ = error "[Int32] expected where some other expression appeared."
 
 instance Literal [Double] (R.Vector Double) where
     mkSEXP = mkSEXPVector R.Real
     fromSEXP (hexp -> Real (SVector.Vector v)) = V.toList v
+    fromSEXP (hexp -> Int (SVector.Vector v)) = map fromIntegral (V.toList v)
     fromSEXP _ = error "[Double] expected where some other expression appeared."
 
 instance Literal [Complex Double] (R.Vector (Complex Double)) where
@@ -81,11 +83,13 @@ instance Literal R.Logical (R.Vector R.Logical) where
 instance Literal Int32 (R.Vector Int32) where
     mkSEXP x = mkSEXP [x]
     fromSEXP x@(hexp -> Int{}) = the x
+    fromSEXP x@(hexp -> Real{}) = round (the x)
     fromSEXP _ = error "fromSEXP: Int32 expected where some other expression appeared."
 
 instance Literal Double (R.Vector Double) where
     mkSEXP x = mkSEXP [x]
     fromSEXP x@(hexp -> Real{}) = the x
+    fromSEXP x@(hexp -> Int{})  = fromIntegral (the x)
     fromSEXP _ = error "fromSEXP: Double expected where some other expression appeared."
 
 instance Literal (Complex Double) (R.Vector (Complex Double)) where

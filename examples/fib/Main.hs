@@ -34,18 +34,18 @@ main = do
         H.print =<< [r| "test" |]
         H.print =<< [r| 1+2 |]
         io $ putStrLn "[r| neg_hs(TRUE, 5) |]"
-        H.print =<< [r| neg_hs(TRUE, as.integer(5)) |]
+        H.print =<< [r| neg_hs(TRUE, 5) |]
         io $ putStrLn "[r| neg_hs(FALSE, 6) |]"
-        H.print =<< [r| neg_hs(FALSE, as.integer(6)) |]
+        H.print =<< [r| neg_hs(FALSE, 6) |]
         io $ putStrLn "[r| neg_hs(NA, 7) |]"
-        H.print =<< [r| neg_hs(NA, as.integer(7)) |]
+        H.print =<< [r| neg_hs(NA, 7) |]
         io $ putStrLn "[r| fib_hs(1) |]"
-        H.print =<< [r| fib_hs(as.integer(1)) |]
+        H.print =<< [r| fib_hs(1) |]
         io $ putStrLn "[r| fib_hs(10) |]"
-        H.print =<< [r| fib_hs(as.integer(10)) |]
+        H.print =<< [r| fib_hs(10) |]
         io $ putStrLn "[r| fact_hs(0) |]"
-        H.print =<< [r| fact_hs(as.integer(0)) |]
+        H.print =<< [r| fact_hs(0) |]
         io $ putStrLn "[r| fact_hs(7) |]"
-        H.print =<< [r| fact_hs(as.integer(7)) |]
+        H.print =<< [r| fact_hs(7) |]
         io $ putStrLn "[r| factSexp_hs(7) |]"
-        H.print =<< [r| factSexp_hs(as.integer(7)) |]
+        H.print =<< [r| factSexp_hs(7) |]
