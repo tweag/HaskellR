@@ -31,6 +31,7 @@ library
                        H.Value
                        H.Internal.Literal
                        H.Internal.FunWrappers
+                       H.Internal.OSThreads
                        H.Internal.TH
                        Data.Vector.SEXP
                        Foreign.R

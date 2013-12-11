@@ -25,6 +25,7 @@ module Language.R.Interpreter
   ) where
 
 import           H.Internal.REnv
+import           H.Internal.OSThreads
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Interface as R
@@ -40,6 +41,7 @@ import Control.Concurrent
     , putMVar
     , newEmptyMVar
     , myThreadId
+    , isCurrentThreadBound
     , ThreadId
     , newEmptyMVar
     , takeMVar
@@ -163,9 +165,12 @@ startRThread eventLoopThread = do
                     )
 #endif
     chan <- newChan
-    newStablePtr chan >>= poke interpreterChanPtr
-    void $ forkOS $
+    mv <- newEmptyMVar
+    void $ forkOS $ do
+      osThreadId >>= putMVar mv
       forever (join $ readChan chan) `finally` killThread eventLoopThread
+    rOSThreadId <- takeMVar mv
+    newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
 
 -- | Posts a computation to perform in the interpreter thread.
 --
@@ -178,9 +183,14 @@ postToRThread =
 -- | Like postToRThread_ but does not swallow exceptions thrown by the
 -- computation.
 postToRThread_ :: IO () -> IO ()
-postToRThread_ = writeChan interpreterChan
+postToRThread_ action = do
+    tid <- osThreadId
+    isBound <- isCurrentThreadBound
+    if tid == rOSThreadId && isBound
+      then action
+      else writeChan interpreterChan action
   where
-    interpreterChan = unsafePerformIO $
+    (rOSThreadId, interpreterChan) = unsafePerformIO $
       peek interpreterChanPtr >>= deRefStablePtr
 
 -- | Evaluates a computation in the interpreter thread.
@@ -200,4 +210,4 @@ stopRThread :: IO ()
 stopRThread = postToRThread_ $ myThreadId >>= killThread
 
 -- | A static address that survives GHCi reloadings.
-foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (Chan (IO ())))
+foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
