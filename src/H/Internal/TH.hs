@@ -67,7 +67,7 @@ thWrapperLiteral n = instanceD ctx typ funs
     vars0 :: [Name]
     vars0 = take (n+1) $ map (\i -> mkName [i,'0']) ['a'..]
     tps []  = error "impossible happened"
-    tps [x] = conT (mkName "IO") `appT` (varT x)
+    tps [x] = conT (mkName "R") `appT` (varT x)
     tps (x:xs) = (appT arrowT (varT x)) `appT` tps xs
     -- context
     ctx = cxt (map go (zip vars vars0))

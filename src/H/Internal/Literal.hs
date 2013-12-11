@@ -14,7 +14,9 @@ module H.Internal.Literal
   ) where
 
 import           H.HExp as HExp
+import           H.Monad
 import           H.Internal.FunWrappers
+import           H.Internal.REnv ( REnv(..) )
 import           H.Internal.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
@@ -95,24 +97,24 @@ instance Literal String (R.String) where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
     fromSEXP  = error "Unimplemented. fromSEXP (String)"
 
-instance Literal a b => Literal (IO a) R.ExtPtr where
-    mkSEXP = funToSEXP wrap0
-    fromSEXP = error "Unimplemented. fromSEXP (IO a)"
+instance Literal a b => Literal (R a) R.ExtPtr where
+    mkSEXP   = funToSEXP wrap0
+    fromSEXP = error "Unimplemented. fromSEXP (R a)"
 
-instance (Literal a a0, Literal b b0) => Literal (a -> IO b) R.ExtPtr where
-    mkSEXP = funToSEXP wrap1
-    fromSEXP = error "Unimplemented. fromSEXP (a -> IO b)"
+instance (Literal a a0, Literal b b0) => Literal (a -> R b) R.ExtPtr where
+    mkSEXP   = funToSEXP wrap1
+    fromSEXP = error "Unimplemented. fromSEXP (a -> R b)"
 
 instance (Literal a a0, Literal b b0, Literal c c0)
-         => Literal (a -> b -> IO c) R.ExtPtr where
-    mkSEXP = funToSEXP wrap2
+         => Literal (a -> b -> R c) R.ExtPtr where
+    mkSEXP   = funToSEXP wrap2
     fromSEXP = error "Unimplemented. fromSEXP (a -> b -> IO c)"
 
 class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
-instance Literal a la => HFunWrap (IO a) (IO (R.SEXP la)) where
-    hFunWrap a = fmap mkSEXP a
+instance Literal a la => HFunWrap (R a) (IO (R.SEXP la)) where
+    hFunWrap a = fmap mkSEXP (runR REnv a)
 
 -- | A class for functions that can be converted to functions on SEXPs.
 instance (Literal a la, HFunWrap b wb)

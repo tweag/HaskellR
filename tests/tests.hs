@@ -152,7 +152,7 @@ unitTests = testGroup "Unit tests"
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
           e <- peek R.globalEnv
-          R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: IO Double))) $
+          R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: R Double))) $
             \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
   , Test.FunPtr.tests
   , Test.RVal.tests
