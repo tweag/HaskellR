@@ -16,7 +16,7 @@ generate ix =
     let r = (x-10)*(x-20)*(x-40)*(x-70)
           + 28*x*(log x)
     in do v <- standard gen
-          return $ r * (1 + 0.10 * v)
+          return $ r * (1 + 0.01 * v)
   where x = fromIntegral ix
 
 generate_lifted :: [Int32] -> R [Double]
