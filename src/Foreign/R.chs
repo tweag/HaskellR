@@ -20,6 +20,7 @@ module Foreign.R
   , SEXP0
   , sexp
   , unsexp
+  , coerce
   , SomeSEXP(..)
     -- * Node creation
   , allocSEXP
@@ -148,6 +149,9 @@ sexp = castPtr
 
 unsexp :: SEXP a -> SEXP0
 unsexp = castPtr
+
+coerce :: SEXP a -> SEXP b
+coerce = sexp . unsexp
 
 data SomeSEXP = forall a. SomeSEXP (SEXP a)
 
