@@ -300,39 +300,38 @@ peekHExp s = do
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do
     nil <- peek LR.nilValuePtr
-    let s' = castPtr s
     case h of
          Nil -> return ()
          Symbol pname value internal -> do
-           {#set SEXP->u.symsxp.pname #} s' (R.unsexp pname)
-           {#set SEXP->u.symsxp.value #} s' (R.unsexp value)
-           maybe ({#set SEXP->u.symsxp.internal#} s' (R.unsexp nil))
-                 ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) internal
+           {#set SEXP->u.symsxp.pname #} s (R.unsexp pname)
+           {#set SEXP->u.symsxp.value #} s (R.unsexp value)
+           maybe ({#set SEXP->u.symsxp.internal#} s (R.unsexp nil))
+                 ({#set SEXP->u.symsxp.internal#} s . R.unsexp) internal
          List carval cdrval tagval -> do
-           {#set SEXP->u.listsxp.carval #} s' (R.unsexp carval)
-           maybe ({#set SEXP->u.listsxp.cdrval#} s' (R.unsexp nil))
-                 ({#set SEXP->u.listsxp.cdrval#} s' . R.unsexp) cdrval
-           maybe ({#set SEXP->u.listsxp.tagval#} s' (R.unsexp nil))
-                 ({#set SEXP->u.listsxp.tagval#} s' . R.unsexp) tagval
+           {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
+           maybe ({#set SEXP->u.listsxp.cdrval#} s (R.unsexp nil))
+                 ({#set SEXP->u.listsxp.cdrval#} s . R.unsexp) cdrval
+           maybe ({#set SEXP->u.listsxp.tagval#} s (R.unsexp nil))
+                 ({#set SEXP->u.listsxp.tagval#} s . R.unsexp) tagval
          Env frame enclos hashtab -> do
-           {#set SEXP->u.envsxp.frame #} s' (R.unsexp frame)
-           {#set SEXP->u.envsxp.enclos #} s' (R.unsexp enclos)
-           {#set SEXP->u.envsxp.hashtab #} s' (R.unsexp hashtab)
+           {#set SEXP->u.envsxp.frame #} s (R.unsexp frame)
+           {#set SEXP->u.envsxp.enclos #} s (R.unsexp enclos)
+           {#set SEXP->u.envsxp.hashtab #} s (R.unsexp hashtab)
          Closure formals body env -> do
-           {#set SEXP->u.closxp.formals #} s' (R.unsexp formals)
-           {#set SEXP->u.closxp.body #} s' (R.unsexp body)
-           {#set SEXP->u.closxp.env #} s' (R.unsexp env)
+           {#set SEXP->u.closxp.formals #} s (R.unsexp formals)
+           {#set SEXP->u.closxp.body #} s (R.unsexp body)
+           {#set SEXP->u.closxp.env #} s (R.unsexp env)
          Promise value expr env -> do
-           {#set SEXP->u.promsxp.value #} s' (R.unsexp value)
-           {#set SEXP->u.promsxp.expr #} s' (R.unsexp expr)
-           {#set SEXP->u.promsxp.env #} s' (R.unsexp env)
+           {#set SEXP->u.promsxp.value #} s (R.unsexp value)
+           {#set SEXP->u.promsxp.expr #} s (R.unsexp expr)
+           {#set SEXP->u.promsxp.env #} s (R.unsexp env)
          Lang carval cdrval -> do
-           {#set SEXP->u.listsxp.carval #} s' (R.unsexp carval)
-           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cdrval)
+           {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
+           {#set SEXP->u.listsxp.cdrval #} s (R.unsexp cdrval)
          Special offset -> do
-           {#set SEXP->u.primsxp.offset #} s' (fromIntegral offset)
+           {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
          Builtin offset -> do
-           {#set SEXP->u.primsxp.offset #} s' (fromIntegral offset)
+           {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
          Char _vc        -> error "pokeHExp: Unimplemented."
          Logical  _vt    -> error "pokeHExp: Unimplemented."
          Int  _vt        -> error "pokeHExp: Unimplemented."
