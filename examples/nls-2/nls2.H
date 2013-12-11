@@ -81,7 +81,7 @@ putStrLn "head $ H.fromSEXP (R.coerce val) :: Double"
 head $ H.fromSEXP (R.coerce val) :: Double
 
 :{
-putstrln $ unlines ["now we may want to run different polynomial"
+putStrLn $ unlines ["now we may want to run different polynomial"
                    , "but now things got more interesting because we allocate much memory"
                    , "r starts garbage collection process"
                    , "so we need to protect all variables"
