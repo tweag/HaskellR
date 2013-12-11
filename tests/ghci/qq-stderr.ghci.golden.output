@@ -17,5 +17,3 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
         ^
 
       Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2 "
-caught [Double] expected where some other expression appeared.
-[]
