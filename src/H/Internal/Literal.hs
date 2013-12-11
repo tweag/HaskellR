@@ -35,7 +35,7 @@ import System.IO.Unsafe ( unsafePerformIO )
 -- | Values that can be converted to 'R.SEXP'.
 class Literal a b | a -> b where
     mkSEXP :: a -> R.SEXP b
-    fromSEXP :: R.SEXP b -> a
+    fromSEXP :: R.SEXP c -> a
 
 mkSEXPVector :: Storable a
              => R.SEXPTYPE
@@ -75,19 +75,23 @@ the (fromSEXP -> xs)
 
 instance Literal R.Logical (R.Vector R.Logical) where
     mkSEXP x = mkSEXP [x]
-    fromSEXP = the
+    fromSEXP x@(hexp -> Logical{}) = the x
+    fromSEXP _ = error "fromSEXP: Logical expected where some other expression appeared."
 
 instance Literal Int32 (R.Vector Int32) where
     mkSEXP x = mkSEXP [x]
-    fromSEXP = the
+    fromSEXP x@(hexp -> Int{}) = the x
+    fromSEXP _ = error "fromSEXP: Int32 expected where some other expression appeared."
 
 instance Literal Double (R.Vector Double) where
     mkSEXP x = mkSEXP [x]
-    fromSEXP = the
+    fromSEXP x@(hexp -> Real{}) = the x
+    fromSEXP _ = error "fromSEXP: Double expected where some other expression appeared."
 
 instance Literal (Complex Double) (R.Vector (Complex Double)) where
     mkSEXP x = mkSEXP [x]
-    fromSEXP = the
+    fromSEXP x@(hexp -> Complex{}) = the x
+    fromSEXP _ = error "fromSEXP: Complex Double expected where some other expression appeared."
 
 instance Literal (R.SEXP a) b where
     mkSEXP = R.sexp . R.unsexp

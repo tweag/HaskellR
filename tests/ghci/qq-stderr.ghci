@@ -5,3 +5,7 @@
 ([r| plot( |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
 ([r| 1+()-2 |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+
+-- Should be exception
+x <- [r| c(1:10) |]
+Control.Exception.catch (Control.Exception.evaluate (H.fromSEXP x) :: IO [Double]) (\msg -> putStrLn ("caught " ++ show (msg::Control.Exception.SomeException)) >> return [])

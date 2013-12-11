@@ -1,12 +1,14 @@
+import Data.Int
 import System.Random.MWC
 import System.Random.MWC.Distributions
 
-generate :: Double -> IO Double
+generate :: Int32 -> IO Double
 generate x =
   withSystemRandom . asGenIO $ \gen -> 
-    let r = x*x+2*x
+    let r = dx*dx+2*dx
     in do v <- standard gen
           return $ r*(1+0.05*v)
+  where dx = fromIntegral x
 
-generate_lifted :: [Double] -> IO [Double]
+generate_lifted :: [Int32] -> IO [Double]
 generate_lifted = mapM generate
