@@ -1,4 +1,5 @@
 :m +Data.Int
+import qualified Foreign.R as R
 -- Should be: [1] 1
 H.print =<< [r| 1 |]
 
@@ -53,6 +54,16 @@ H.runInRThread (H.runInRThread $ H.print H.nilValue)
 let foo3 = (\n -> fmap H.fromSEXP [r| n_hs |]) :: Int32 -> H.R Int32
 H.print =<< [r| foo3_hs(as.integer(3)) |]
 
+-- | should be 3
+let foo4 = (\n m -> return $ n + m) :: Double -> Double -> H.R Double
+H.print =<< [r| foo4_hs(33, 66) |]
+
 -- Should be [1] 120 but it doesn't work
-let fact n = if n == (0 :: Int32) then (return 1 :: H.R Int32) else fmap H.fromSEXP [r| as.integer(n_hs * fact_hs(n_hs - 1)) |]
+let fact n = if n == (0 :: Int32) then (return 1 :: H.R Int32) else fmap H.fromSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
 H.print =<< [r| fact_hs(as.integer(5)) |]
+
+:set -XDataKinds
+-- Should be [1] 29
+let foo5  = (\n -> return (n+1)) :: Int32 -> R Int32
+let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Double -> R (R.SEXP b)
+H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
