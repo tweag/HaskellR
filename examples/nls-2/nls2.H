@@ -27,7 +27,7 @@ next
 
 
 putStrLn "let mkFormula i = H.eval =<< Language.R.parseText (formula i \"xs\" \"ys\")"
-let mkFormula i = H.eval =<< Language.R.parseText (formula i "ys" "xs")
+let mkFormula i = eval =<< Language.R.parseText (formula i "ys" "xs")
 
 putStrLn $ unlines [ "Now we may easily inpect our data" ]
 -- val1 <- mkFormula 1
@@ -102,12 +102,13 @@ H.withRVal val6 $ \y -> do
 :}
 putStrLn "7:"
 val7 <- H.newRVal =<< mkFormula 7
-:{
-H.withRVal val7 $ \y -> do
-     H.print y 
-     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
-:}
-getLine
+
+-- :{
+-- H.withRVal val7 $ \y -> do
+--      H.print y 
+--      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+-- :}
+-- getLine
 
 :m +Control.Applicative
 putStrLn "now we can analyse it"
@@ -130,7 +131,7 @@ putStrLn "plots"
       H.withRVal val4 $ \v4 ->
         H.withRVal val5 $ \v5 ->
           H.withRVal val6 $ \v6 ->
-            [r| plot(xs,ys,main="nls") 
+            [r| plot(xs,ys) 
                 lines(xs,predict(v2_hs), col = 2)
                 lines(xs,predict(v3_hs), col = 3)
                 lines(xs,predict(v4_hs), col = 4)

@@ -1,4 +1,5 @@
 {-# LANGUAGE ViewPatterns, GADTs #-}
+import H.Prelude
 import System.Random.MWC
 import System.Random.MWC.Distributions
 import qualified Foreign.R as R
@@ -18,20 +19,20 @@ generate ix =
           return $ r * (1 + 0.10 * v)
   where x = fromIntegral ix
 
-generate_lifted :: [Int32] -> IO [Double]
-generate_lifted = mapM generate
+generate_lifted :: [Int32] -> R [Double]
+generate_lifted = io .  (mapM generate)
 
 analyse :: R.SEXP a -> IO ()
 analyse (hexp -> Nil) = putStrLn "nil"
 analyse x@(hexp -> Vector _ v) = do
     putStrLn "vector"
-    print $ Vector.length v
+    Prelude.print $ Vector.length v
     putStrLn $ D.inspect x
 --    H.print $ dimgets
 analyse x@(hexp -> Real v) = do
     putStrLn "real"
     putStrLn $ D.inspect x
-analyse x = print =<< R.typeOf x
+analyse x = Prelude.print =<< R.typeOf x
 
 data Poly = Poly [Int]
 
