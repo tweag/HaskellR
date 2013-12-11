@@ -11,7 +11,6 @@ module Language.R.Ghci
   where
 
 import H.Prelude hiding ( runR )
-import Language.R ( MonadR(..) )
 import Language.R.Runtime.QQ
 
 instance MonadR IO where

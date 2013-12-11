@@ -17,6 +17,7 @@ module H.Prelude
   -- * Globals
   , module H.Prelude.Globals
   , R
+  , MonadR(..)
   , runR
   , withProtected
   ) where
