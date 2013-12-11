@@ -65,5 +65,5 @@ H.print =<< [r| fact_hs(as.integer(5)) |]
 :set -XDataKinds
 -- Should be [1] 29
 let foo5  = (\n -> return (n+1)) :: Int32 -> R Int32
-let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Double -> R (R.SEXP b)
+let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Int32 -> R (R.SEXP b)
 H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
