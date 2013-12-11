@@ -74,9 +74,9 @@ Using H in GHCi
 
 Now expressions can be evaluated with the r quasi-quoter.
 
-    H QQ> H.print [r| 1 + 1 |]
+    H> H.print =<< [r| 1 + 1 |]
     [1] 2
-    H QQ> H.print [r| R.home() |]
+    H> H.print =<< [r| R.home() |]
     [1] "/usr/lib/R"
 
 The r quasi-quoter will pass expressions to the R
@@ -85,9 +85,9 @@ interpreter and return the result that is printed.
 Because expressions are passed to the R interpreter, the
 effect of assignments is remembered.
 
-    H QQ> H.print [r| x <- 1 |]
+    H> H.print =<< [r| x <- 1 |]
     [1] 1
-    H QQ> H.print [r| x |]
+    H> H.print =<< [r| x |]
     [1] 1
 
 Quasiquotes can refer to values bound in Haskell in the
@@ -96,12 +96,12 @@ lexical scope surrounding it, through _splicing_.
 Splicing Haskell values is denoted by appending the "_hs" to
 the name of the Haskell variable that ought to be spliced.
 
-    H QQ> let x = 2 :: Double
-    H QQ> H.print [r| x_hs + x_hs |]
+    H> let x = 2 :: Double
+    H> H.print =<< [r| x_hs + x_hs |]
     [1] 4
 
 And we mean even functions can be passed:
 
-    H QQ> let f = (\x -> return (x + 1)) :: Double -> IO Double
-    H QQ> H.print [r| f_hs(1) |]
+    H> let f = (\x -> return (x + 1)) :: Double -> IO Double
+    H> H.print =<< [r| f_hs(1) |]
     [1] 2
