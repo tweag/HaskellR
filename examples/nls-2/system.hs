@@ -6,17 +6,19 @@ import H.HExp
 import qualified Data.Vector.SEXP as Vector
 import H.Debug as D
 import Data.List
+import Data.Int
 
-generate :: Double -> IO Double
-generate x =
+generate :: Int32 -> IO Double
+generate ix =
   withSystemRandom . asGenIO $ \gen -> 
     -- Lets make some more interesting distribution:
     let r = (x-10)*(x-20)*(x-40)*(x-70)
           + 28*x*(log x)
     in do v <- standard gen
           return $ r * (1 + 0.10 * v)
+  where x = fromIntegral ix
 
-generate_lifted :: [Double] -> IO [Double]
+generate_lifted :: [Int32] -> IO [Double]
 generate_lifted = mapM generate
 
 analyse :: R.SEXP a -> IO ()
