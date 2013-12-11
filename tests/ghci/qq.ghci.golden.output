@@ -15,5 +15,4 @@ function(y) y_hs + y
 [1] 8
 NULL
 [1] 3
-Warning: stack imbalance in '.Call', 6 then 7
 [1] 5

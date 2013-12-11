@@ -156,7 +156,7 @@ parseText :: String -> IO (R.SEXP R.Expr)
 parseText txt = parseEval (C8.pack $ "parse(text="++show txt++")")
 
 install :: String -> IO (R.SEXP R.Symbol)
-install str = withCString str (R.protect <=< R.install)
+install str = withCString str R.install
 
 symbol :: String -> IO (R.SEXP R.Symbol)
 symbol str = do
@@ -166,10 +166,10 @@ symbol str = do
         flip R.findVar gl
 
 string :: String -> IO (R.SEXP (R.Vector Word8))
-string str = withCString str (R.protect <=< R.mkChar)
+string str = withCString str R.mkChar
 
 strings :: String -> IO (R.SEXP (R.String))
-strings str = withCString str (R.protect <=< R.mkString)
+strings str = withCString str R.mkString
 
 -- | Evaluate expression in given environment.
 evalEnv :: R.SEXP a -> R.SEXP R.Env -> IO (R.SEXP b)
