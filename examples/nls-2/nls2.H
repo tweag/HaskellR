@@ -174,8 +174,8 @@ getLine
 
 :m +Control.Applicative
 putStrLn "now we can analyse it"
-H.withRVal val6 $ \y -> do H.print =<< [r| coef(y_hs) |]
-cfs <- H.fromSEXP <$> (H.withRVal val6 $ \y -> [r| coef(y_hs) |]) :: IO [Double]
+H.withRVal val5 $ \y -> do H.print =<< [r| coef(y_hs) |]
+cfs <- H.fromSEXP <$> (H.withRVal val5 $ \y -> [r| coef(y_hs) |]) :: IO [Double]
  
 putStrLn "create a function from coeffs"
 let fn x = sum $ zipWith (*) cfs (iterate (*x) 1)
