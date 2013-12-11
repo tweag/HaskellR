@@ -28,7 +28,6 @@ import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
-import qualified Language.R     as LR
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
@@ -299,19 +298,18 @@ peekHExp s = do
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do
-    nil <- peek LR.nilValuePtr
     case h of
          Nil -> return ()
          Symbol pname value internal -> do
            {#set SEXP->u.symsxp.pname #} s (R.unsexp pname)
            {#set SEXP->u.symsxp.value #} s (R.unsexp value)
-           maybe ({#set SEXP->u.symsxp.internal#} s (R.unsexp nil))
+           maybe ({#set SEXP->u.symsxp.internal#} s (R.unsexp H.nilValue))
                  ({#set SEXP->u.symsxp.internal#} s . R.unsexp) internal
          List carval cdrval tagval -> do
            {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
-           maybe ({#set SEXP->u.listsxp.cdrval#} s (R.unsexp nil))
+           maybe ({#set SEXP->u.listsxp.cdrval#} s (R.unsexp H.nilValue))
                  ({#set SEXP->u.listsxp.cdrval#} s . R.unsexp) cdrval
-           maybe ({#set SEXP->u.listsxp.tagval#} s (R.unsexp nil))
+           maybe ({#set SEXP->u.listsxp.tagval#} s (R.unsexp H.nilValue))
                  ({#set SEXP->u.listsxp.tagval#} s . R.unsexp) tagval
          Env frame enclos hashtab -> do
            {#set SEXP->u.envsxp.frame #} s (R.unsexp frame)
@@ -404,9 +402,8 @@ expression _ = error "expr: Not an expression."
 maybeNil :: SEXP a
          -> IO (Maybe (SEXP a))
 maybeNil s = do
-  nil <- peek LR.nilValuePtr
   return $
-    if R.unsexp s == R.unsexp nil
+    if R.unsexp s == R.unsexp H.nilValue
       then Nothing
       else Just s
 
