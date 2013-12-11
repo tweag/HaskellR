@@ -95,14 +95,14 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     in Just (\e ->
          [| H.withProtected (H.install ".Call") $ \call ->
               H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
-                injectCar (unRuntimeSEXP rs) call
-                injectCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
+                io $ R.setCar (unRuntimeSEXP rs) call
+                io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
                 $e
          |])
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> injectCar (unRuntimeSEXP rs) l >> $e |])
+         [| H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> io $ R.setCar (unRuntimeSEXP rs) l >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: R.SEXP a -> Maybe Name

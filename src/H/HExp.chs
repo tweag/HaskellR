@@ -15,15 +15,10 @@ module H.HExp
   , unhexp
   , vector
   , expression
-  -- * Low level access
-  , injectCar
-  , injectCdr
-  , injectTag
-  , symbolLoop
+  , selfSymbol
   ) where
 
 import H.Constraints
-import H.Monad
 import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
@@ -407,21 +402,10 @@ maybeNil s = do
       then Nothing
       else Just s
 
--- | Create a symbol that loops on itself.
-symbolLoop :: R (SEXP R.Symbol)
-symbolLoop = io $ do
-  chr <- withCString "" R.mkChar
-  let x = unhexp $ Symbol chr nullPtr Nothing
-  x `seq` {#set SEXP->u.symsxp.value #} (R.unsexp x) (R.unsexp x)
-  return x
-
--- | Inject object inside car field.
-injectCar :: MonadR m => SEXP a -> SEXP b -> m ()
-injectCar s cr = io $ {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
-
--- | Inject object inside cdr field.
-injectCdr :: MonadR m => SEXP a -> SEXP b -> m ()
-injectCdr s cr = io $ {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
-
-injectTag :: MonadR m => SEXP a -> SEXP b -> m ()
-injectTag s tg = io $ {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)
+-- | Symbols can have values attached to them. This function creates a symbol
+-- whose value is itself.
+selfSymbol :: R.SEXP (R.Vector Word8) -> IO (R.SEXP R.Symbol)
+selfSymbol pname = do
+    let s = unhexp $ Symbol pname nullPtr Nothing
+    R.setCdr s s
+    return s
