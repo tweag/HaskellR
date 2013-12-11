@@ -14,7 +14,7 @@ putStrLn $ unlines
 next
 
 H.print =<< [r| xs <- c(1:100) |]
-store <- H.newRVal =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
+store <- H.newRVal =<< [r| ys <- generate_lifted_hs(xs) |]
 
 :{
 putStrLn $ unlines 
@@ -137,14 +137,14 @@ getLine
 putStrLn "3:"
 val3 <- H.newRVal =<< mkFormula 3
 :{
-H.withRVal val2 $ \y -> do
+H.withRVal val3 $ \y -> do
      H.print y 
      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
 :}
 putStrLn "4:"
 val4 <- H.newRVal =<< mkFormula 4
 :{
-H.withRVal val2 $ \y -> do
+H.withRVal val4 $ \y -> do
      H.print y 
      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
 :}
@@ -198,6 +198,7 @@ putStrLn "plots"
                 lines(xs,predict(v3_hs), col = 3)
                 lines(xs,predict(v4_hs), col = 4)
                 lines(xs,predict(v5_hs), col = 5)
-                lines(xs,predict(v6_hs), col = 5)
+                lines(xs,predict(v6_hs), col = 6)
+                plot(fn_hs,ys)
             |]
 :}
