@@ -8,7 +8,7 @@ putStrLn $ unlines
     [ "Next task will be testing our facilities to inspect values"
     , "As in previous demo we will use haskell functions to create data set:"
     , " H.print =<< [r| xs <- c(1:100) |]"
-    , " store <- H.newRVal =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]"
+    , " store <- H.newRVal =<< [r| ys <- generate_lifted_hs(xs) |]"
     ]
 :}
 next
