@@ -6,59 +6,91 @@ let next = getLine >> return ()
 :{
 putStrLn $ unlines 
     [ "Next task will be testing our facilities to inspect values"
-    , "As in previous demo we will use haskell functions to create data set"
+    , "As in previous demo we will use haskell functions to create data set:"
+    , " H.print =<< [r| xs <- c(1:100) |]"
+    , " store <- H.newRVal =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]"
     ]
 :}
 next
 
 H.print =<< [r| xs <- c(1:100) |]
 store <- H.newRVal =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
+
+:{
+putStrLn $ unlines 
+    [ "Lets discuss it a but now we have used more compicated code"
+    , "This is required because this demo uses more memory then previous one"
+    , "And R starts garbage collection process"
+    , "To protect variables from garbage collection we place them inside protection box"
+    , "With API similar to ForeignPtr"
+    ]
+:}
+next
+
 :{
 putStrLn $ unlines
   [ "Now we want to aproximate this function by polinomial"
-  , "For this purpose we created a function that creates R expression with formula given"
+  , "For this purpose we created a Haskell xfunction that creates R expression with formula given"
+  , ""
   , "For example:"
-  , formula 3 "x" "y"
-  , "We want to parse this expression by R and execute it, let's introduce haskell function"
-  , "for this"
+  , formula 3 "y" "x"
+  , ""
+  , "We want to parse this expression by R (using Language.R.parseText) and execute it"
+  , "using H.eval"
+  , ""
+  , "let's introduce haskell function that automate this"
   ]
 :}
 next
 
-
-putStrLn "let mkFormula i = H.eval =<< Language.R.parseText (formula i \"xs\" \"ys\")"
+putStrLn "let mkFormula i = eval =<< Language.R.parseText (formula i \"xs\" \"ys\")"
 let mkFormula i = eval =<< Language.R.parseText (formula i "ys" "xs")
-
-putStrLn $ unlines [ "Now we may easily inpect our data" ]
--- val1 <- mkFormula 1
--- H.print val1
+ 
+:{
+putStrLn $ unlines [ "Now we may easily inpect our data: (we don't interested in this value so we don't protect it)" 
+                   , "val1 <- mkFormula 1"
+                   , "H.print val1"
+                   ]
+:}
+val1 <- mkFormula 1
+H.print val1
 
 :{
 putStrLn $ unlines ["But this approach is not straighforward as we want"
                    , "To analyze haskell value"
                    , "We can access that value by calling:"
                    , "[r| summary(x_hs)$sigma|]"
-                   , "Here we provide a mechanism to inspect R values"
-                   , "its fairy lowlevel and result may be big, but helpful sometimes"
                    ]
 :}
 next
 
+putStrLn "val <- (\\x -> [r| summary(x_hs)$sigma |]) =<< mkFormula 1"
 val <- (\x -> [r| summary(x_hs)$sigma |]) =<< mkFormula 1
+:{
+putStrLn $ unlines [ "Here we provide a mechanism to inspect R values"
+                   , "its fairy lowlevel and result may be big, but helpful sometimes"
+                   , "especially in debugging purposes"
+                   ]
+:}
+
+putStrLn "putStrLn $ D.inspect val"
 putStrLn $ D.inspect val
+
+putStrLn "Sometimes H may be too restricting so we have R.coerce function to 'fix' types"
+putStrLn "head $ H.fromSEXP (R.coerce val) :: Double"
 head $ H.fromSEXP (R.coerce val) :: Double
 
 :{
-putStrLn $ unlines ["Now we may want to run different polynomial"
-                   , "But now things got more interesting because we allocate much memory"
-                   , "R starts garbage collection process"
-                   , "So we need to protect all variables"
-                   , "H provides RVal mechanism with API similar to ForeignPtr"
-                   , "val2 <- H.newRVal =<< mkFormula 2"
+putstrln $ unlines ["now we may want to run different polynomial"
+                   , "but now things got more interesting because we allocate much memory"
+                   , "r starts garbage collection process"
+                   , "so we need to protect all variables"
+                   , "h provides rval mechanism with api similar to foreignptr"
+                   , "val2 <- h.newrval =<< mkformula 2"
                    , ":{"
-                   , "H.withRVal val2 $ \\y -> do"
-                   , "    H.print y "
-                   , "    H.print =<< [r| summary(y_hs)$sigma |]"
+                   , "h.withrval val2 $ \\y -> do"
+                   , "    h.print y "
+                   , "    h.print =<< [r| summary(y_hs)$sigma |]"
                    , ":}"
                    ]
 :}
@@ -70,8 +102,38 @@ H.withRVal val2 $ \y -> do
      H.print y 
      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
 :}
-putStrLn "new plot"
+
 getLine
+
+-- :{
+-- putStrLn $ unlines 
+--    [ "generally we are too lazy to write big functions by hands so introducing a function:"
+--    , "let go n = do"
+--    , "    valN <- H.newRVal =<< mkFormula n"
+--    , "    H.withRVal valN $ \\y -> do"
+--    , "       H.print y"
+--    , "       v <- fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double"
+--    , "       Prelude.print v"
+--    , "       return valN"
+--    ]
+-- :}
+-- :{
+--let go n = do
+--    valN <- H.newRVal =<< mkFormula n
+--    H.withRVal valN $ \y -> do
+--       H.print y 
+--       v <- fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+--       Prelude.print v
+--       return valN
+-- :}
+-- val3 <- go 3
+-- getLine
+-- putStrLn "run it for 4,5,6,7"
+-- val4 <- go 4
+-- val5 <- go 5
+-- val6 <- go 6
+-- val7 <- go 7
+
 putStrLn "3:"
 val3 <- H.newRVal =<< mkFormula 3
 :{
@@ -103,12 +165,12 @@ H.withRVal val6 $ \y -> do
 putStrLn "7:"
 val7 <- H.newRVal =<< mkFormula 7
 
--- :{
--- H.withRVal val7 $ \y -> do
---      H.print y 
---      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
--- :}
--- getLine
+:{
+H.withRVal val7 $ \y -> do
+     H.print y 
+     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+:}
+getLine
 
 :m +Control.Applicative
 putStrLn "now we can analyse it"
