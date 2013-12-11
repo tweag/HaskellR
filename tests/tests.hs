@@ -132,9 +132,9 @@ ghciSession name scriptPath =
 
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
-  [ testCase "fromSEXP . mkSEXP" $
+  [ testCase "fromSEXP . mkSEXP" $ runInRThread $
       (2 :: Double) @=? fromSEXP (mkSEXP (2 :: Double))
-  , testCase "HEq HExp" $ do
+  , testCase "HEq HExp" $ runInRThread $ do
       -- XXX ideally randomly generate input.
       let x = 2 :: Double
       assertBool "reflexive" $
@@ -148,7 +148,7 @@ unitTests = testGroup "Unit tests"
               s2 = H.hexp $ mkSEXP x
               s3 = H.hexp $ mkSEXP x
           in s1 === s2 && s2 === s3 && s1 === s3
-  , testCase "Haskell function from R" $ do
+  , testCase "Haskell function from R" $ runInRThread $ do
       (("[1] 3.0" @=?) =<<) $
         fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
           e <- peek R.globalEnv
