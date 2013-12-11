@@ -7,11 +7,19 @@
 module Language.R.Ghci
   ( module H.Prelude
   , module Language.R.Runtime.QQ
+  , runR
   )
   where
 
 import H.Prelude hiding ( runR )
 import Language.R.Runtime.QQ
+import qualified H.Monad ( runR )
+import H.Internal.REnv ( REnv(..) )
+
 
 instance MonadR IO where
   io = runInRThread
+
+-- | Execute R monad.
+runR :: R a -> IO a
+runR = H.Monad.runR REnv

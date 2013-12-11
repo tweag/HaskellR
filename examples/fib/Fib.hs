@@ -6,7 +6,7 @@
 module Fib
   where
 
-import H.Prelude as H
+import H.Prelude as H hiding ( runR )
 import qualified Foreign.R as R
 import Foreign.R (SEXP)
 import Data.Int
