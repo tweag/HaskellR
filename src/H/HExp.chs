@@ -15,20 +15,14 @@ module H.HExp
   , unhexp
   , vector
   , expression
-  -- * Low level access
-  , injectCar
-  , injectCdr
-  , injectTag
-  , symbolLoop
+  , selfSymbol
   ) where
 
 import H.Constraints
-import H.Monad
 import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
-import qualified Language.R     as LR
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
@@ -299,40 +293,38 @@ peekHExp s = do
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do
-    nil <- peek LR.nilValuePtr
-    let s' = castPtr s
     case h of
          Nil -> return ()
          Symbol pname value internal -> do
-           {#set SEXP->u.symsxp.pname #} s' (R.unsexp pname)
-           {#set SEXP->u.symsxp.value #} s' (R.unsexp value)
-           maybe ({#set SEXP->u.symsxp.internal#} s' (R.unsexp nil))
-                 ({#set SEXP->u.symsxp.internal#} s' . R.unsexp) internal
+           {#set SEXP->u.symsxp.pname #} s (R.unsexp pname)
+           {#set SEXP->u.symsxp.value #} s (R.unsexp value)
+           maybe ({#set SEXP->u.symsxp.internal#} s (R.unsexp H.nilValue))
+                 ({#set SEXP->u.symsxp.internal#} s . R.unsexp) internal
          List carval cdrval tagval -> do
-           {#set SEXP->u.listsxp.carval #} s' (R.unsexp carval)
-           maybe ({#set SEXP->u.listsxp.cdrval#} s' (R.unsexp nil))
-                 ({#set SEXP->u.listsxp.cdrval#} s' . R.unsexp) cdrval
-           maybe ({#set SEXP->u.listsxp.tagval#} s' (R.unsexp nil))
-                 ({#set SEXP->u.listsxp.tagval#} s' . R.unsexp) tagval
+           {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
+           maybe ({#set SEXP->u.listsxp.cdrval#} s (R.unsexp H.nilValue))
+                 ({#set SEXP->u.listsxp.cdrval#} s . R.unsexp) cdrval
+           maybe ({#set SEXP->u.listsxp.tagval#} s (R.unsexp H.nilValue))
+                 ({#set SEXP->u.listsxp.tagval#} s . R.unsexp) tagval
          Env frame enclos hashtab -> do
-           {#set SEXP->u.envsxp.frame #} s' (R.unsexp frame)
-           {#set SEXP->u.envsxp.enclos #} s' (R.unsexp enclos)
-           {#set SEXP->u.envsxp.hashtab #} s' (R.unsexp hashtab)
+           {#set SEXP->u.envsxp.frame #} s (R.unsexp frame)
+           {#set SEXP->u.envsxp.enclos #} s (R.unsexp enclos)
+           {#set SEXP->u.envsxp.hashtab #} s (R.unsexp hashtab)
          Closure formals body env -> do
-           {#set SEXP->u.closxp.formals #} s' (R.unsexp formals)
-           {#set SEXP->u.closxp.body #} s' (R.unsexp body)
-           {#set SEXP->u.closxp.env #} s' (R.unsexp env)
+           {#set SEXP->u.closxp.formals #} s (R.unsexp formals)
+           {#set SEXP->u.closxp.body #} s (R.unsexp body)
+           {#set SEXP->u.closxp.env #} s (R.unsexp env)
          Promise value expr env -> do
-           {#set SEXP->u.promsxp.value #} s' (R.unsexp value)
-           {#set SEXP->u.promsxp.expr #} s' (R.unsexp expr)
-           {#set SEXP->u.promsxp.env #} s' (R.unsexp env)
+           {#set SEXP->u.promsxp.value #} s (R.unsexp value)
+           {#set SEXP->u.promsxp.expr #} s (R.unsexp expr)
+           {#set SEXP->u.promsxp.env #} s (R.unsexp env)
          Lang carval cdrval -> do
-           {#set SEXP->u.listsxp.carval #} s' (R.unsexp carval)
-           {#set SEXP->u.listsxp.cdrval #} s' (R.unsexp cdrval)
+           {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
+           {#set SEXP->u.listsxp.cdrval #} s (R.unsexp cdrval)
          Special offset -> do
-           {#set SEXP->u.primsxp.offset #} s' (fromIntegral offset)
+           {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
          Builtin offset -> do
-           {#set SEXP->u.primsxp.offset #} s' (fromIntegral offset)
+           {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
          Char _vc        -> error "pokeHExp: Unimplemented."
          Logical  _vt    -> error "pokeHExp: Unimplemented."
          Int  _vt        -> error "pokeHExp: Unimplemented."
@@ -405,27 +397,15 @@ expression _ = error "expr: Not an expression."
 maybeNil :: SEXP a
          -> IO (Maybe (SEXP a))
 maybeNil s = do
-  nil <- peek LR.nilValuePtr
   return $
-    if R.unsexp s == R.unsexp nil
+    if R.unsexp s == R.unsexp H.nilValue
       then Nothing
       else Just s
 
--- | Create a symbol that loops on itself.
-symbolLoop :: R (SEXP R.Symbol)
-symbolLoop = io $ do
-  chr <- withCString "" R.mkChar
-  let x = unhexp $ Symbol chr nullPtr Nothing
-  x `seq` {#set SEXP->u.symsxp.value #} (R.unsexp x) (R.unsexp x)
-  return x
-
--- | Inject object inside car field.
-injectCar :: MonadR m => SEXP a -> SEXP b -> m ()
-injectCar s cr = io $ {#set SEXP->u.listsxp.carval #} (R.unsexp s) (R.unsexp cr)
-
--- | Inject object inside cdr field.
-injectCdr :: MonadR m => SEXP a -> SEXP b -> m ()
-injectCdr s cr = io $ {#set SEXP->u.listsxp.cdrval #} (R.unsexp s) (R.unsexp cr)
-
-injectTag :: MonadR m => SEXP a -> SEXP b -> m ()
-injectTag s tg = io $ {#set SEXP->u.listsxp.tagval #} (R.unsexp s) (R.unsexp tg)
+-- | Symbols can have values attached to them. This function creates a symbol
+-- whose value is itself.
+selfSymbol :: R.SEXP (R.Vector Word8) -> IO (R.SEXP R.Symbol)
+selfSymbol pname = do
+    let s = unhexp $ Symbol pname nullPtr Nothing
+    R.setCdr s s
+    return s

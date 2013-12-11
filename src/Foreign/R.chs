@@ -37,6 +37,9 @@ module Foreign.R
   , car
   , cdr
   , tag
+  , setCar
+  , setCdr
+  , setTag
     -- ** Environments
   , envFrame
   , envClosure
@@ -173,6 +176,18 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | read object`s Tag
 {# fun TAG as tag { unsexp `SEXP a' } -> `SEXP b' sexp #}  --- XXX: add better constraint
 
+-- | Set CAR field of object.
+setCar :: SEXP a -> SEXP b -> IO ()
+setCar s s' = {#set SEXP->u.listsxp.carval #} (castPtr s) (castPtr s')
+
+-- | Set CDR field of object.
+setCdr :: SEXP a -> SEXP b -> IO ()
+setCdr s s' = {#set SEXP->u.listsxp.cdrval #} (castPtr s) (castPtr s')
+
+-- | Set TAG field of object.
+setTag :: SEXP a -> SEXP b -> IO ()
+setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
+
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
 --------------------------------------------------------------------------------
@@ -220,7 +235,7 @@ typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 -- | Read character vector data
 {#fun R_CHAR as char { unsexp `SEXP (R.Vector Word8)' } -> `CString' id #}
--- XXX: check if we really need Word8 here, maybe some better handling of 
+-- XXX: check if we really need Word8 here, maybe some better handling of
 -- encoding
 
 -- | Read real vector data.
