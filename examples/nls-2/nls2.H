@@ -199,6 +199,5 @@ putStrLn "plots"
                 lines(xs,predict(v4_hs), col = 4)
                 lines(xs,predict(v5_hs), col = 5)
                 lines(xs,predict(v6_hs), col = 6)
-                plot(fn_hs,ys)
             |]
 :}
