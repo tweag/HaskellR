@@ -2,7 +2,6 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 :m +Control.Monad
 :l system.hs
-:updateR
 let next = putStrLn "<Press enter to continue>" >> void (getLine)
 :{
 putStrLn $
@@ -41,9 +40,9 @@ putStrLn $
 :}
 next
 putStrLn "printValue [rexp| xs <- c(1:100) |] - expression"
-H.print [rexp| xs <- c(1:100) |]
+H.print =<< [rexp| xs <- c(1:100) |]
 putStrLn "printValue $ eval [r| xs <- c(1:100) |] - result"
-H.print [r| xs <- c(1:100) |]
+H.print =<< [r| xs <- c(1:100) |]
 next
 :{
 putStrLn $ 
@@ -64,10 +63,10 @@ putStrLn $
           ]
 :}
 putStrLn "[r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]"
-[r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
+H.print =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
 next
 putStrLn "[r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]"
-print  [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
+print  =<< [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
 next
 [r| plot(xs,ys,main="nls") |]
 [r| lines(xs,predict(nlmod), col = 2)|]
