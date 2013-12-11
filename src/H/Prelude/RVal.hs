@@ -35,18 +35,18 @@ data RVal :: R.SEXPTYPE -> * where
         RVal :: ForeignPtr R.SEXPREC -> RVal a
 
 -- | Create R value and automatically protect it
-newRVal :: SEXP a -> R (RVal a)
+newRVal :: MonadR m => SEXP a -> m (RVal a)
 newRVal s = io $ do
     _ <- R.protect s
     fp <- newForeignPtr (R.unsexp s) (R.unprotectPtr s)
     return (RVal fp)
 
 -- | Keep SEXP value from the garbage collection
-touchRVal :: RVal a -> R ()
+touchRVal :: MonadR m => RVal a -> m ()
 touchRVal (RVal s) = io (touchForeignPtr s)
 
 -- | This is a way to look inside RValue object
-withRVal :: RVal a -> (R.SEXP a -> R b) -> R b
+withRVal :: MonadR m => RVal a -> (R.SEXP a -> m b) -> m b
 withRVal (RVal s) f = do
         let s' = unsafeForeignPtrToPtr s
         x <- f (R.sexp s')
@@ -55,5 +55,5 @@ withRVal (RVal s) f = do
 
 -- | Unprotect "SEXP" in R memory. This doesn't mean that value will be
 -- immideately deallocated, just that it may be deallocated on the next GC.
-unprotectRVal :: RVal a -> R ()
+unprotectRVal :: MonadR m => RVal a -> m ()
 unprotectRVal (RVal s) = io (finalizeForeignPtr s)
