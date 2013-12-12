@@ -2,6 +2,9 @@
 :set -fno-ghci-sandbox
 :set -XQuasiQuotes
 :set -XTemplateHaskell
+:set -XViewPatterns
+:set -XGADTs
+import H.HExp
 import Language.R.Ghci as H
 :{
 Language.R.pokeRVariables
