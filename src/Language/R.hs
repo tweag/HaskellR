@@ -159,11 +159,7 @@ install :: String -> IO (R.SEXP R.Symbol)
 install str = withCString str R.install
 
 symbol :: String -> IO (R.SEXP R.Symbol)
-symbol str = do
-    gl <- peek globalEnvPtr
-    withCString str $ \cstr ->
-      withProtected (R.install cstr) $
-        flip R.findVar gl
+symbol str = withCString str $ \cstr -> R.install cstr
 
 string :: String -> IO (R.SEXP (R.Vector Word8))
 string str = withCString str R.mkChar
