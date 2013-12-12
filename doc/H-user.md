@@ -49,7 +49,7 @@ The `r` quasiquoter hides much of the heavy lifting of building
 expressions ourselves, allowing us to conveniently use R syntax to
 denote R expressions. The next sections document some advanced uses of
 quasiquotes. But for now, note that `r` is not the only quasiquoter
-and one is free to implement [mainland-quasiquote][new quasiquoters]
+and one is free to implement new quasiquoters[[1]](#mainland-quasiquotes)
 if needed. One such alternative quasiquoter is `rexp`, also defined in
 H, which acts in much the same way as `r`, except that it returns
 R expressions unevaluated:
@@ -113,7 +113,7 @@ instance ( Literal a_0 a_0’, ..., Literal a_n a_n’)
 both sides share memory or the data is copied. When memory is shared,
 special care is needed to prevent garbage collection on either Haskell
 or R sides to invalidate values pointed by the other side. See
-[Constructing R values in Haskell](#constructing-r-values-in-haskell).
+[Constructing R expressions with explicit calls].
 
 How to analyze R values in Haskell
 ----------------------------------
@@ -128,7 +128,7 @@ matched, provided a *view function* constructing a *view* of any given
 R value as an algebraic datatype. H provides one such view function:
 
 ```Haskell
-    hexp :: SEXP a -> HExp a
+hexp :: SEXP a -> HExp a
 ```
 
 The `HExp` datatype is a *view type* for `SEXP`. Matching on a value
@@ -141,8 +141,8 @@ using one-level unfoldings and their relevance for performance.
 We have for example that:
 
 ```Haskell
-    hexp H.nilValue == Nil
-    hexp (mkSEXP ([ 2, 3 ] :: [Double])) == Real (fromList ([ 2.0, 3.0 ] :: [Double]))
+hexp H.nilValue == Nil
+hexp (mkSEXP ([ 2, 3 ] :: [Double])) == Real (fromList ([ 2.0, 3.0 ] :: [Double]))
 ```
 
 Where `H.nilValue` is the result of evaluating `[r| NULL |]`
@@ -151,7 +151,7 @@ Using a language extension known as `ViewPatterns` one could use
 `hexp` to examine an expression to any depth in a rather compact form.
 For instance:
 
- ```Haskell
+```Haskell
 f (hexp -> Real xs) = …
 f (hexp -> Lang rand (hexp -> List x0 (hexp -> List x1 _ _) _) = …
 f (hexp -> Closure args body@(hexp -> Lang _ _) env) = ...
@@ -247,5 +247,7 @@ To be implemented.
 References
 ----------
 
-[mainland-quasiquotes]: https://www.cs.drexel.edu/~mainland/publications/mainland07quasiquoting.pdf
-   "Geoffrey B. Mainland, Why it’s nice to be quoted: Quasiquoting for Haskell"
+[1]
+   <a name=mainland-quasiquotes></a>
+   Geoffrey B. Mainland. _Why it’s nice to be quoted: Quasiquoting for Haskell_.
+   Proceedings of the ACM SIGPLAN workshop on Haskell workshop, Pages 73-82, ACM New York, NY, 2007.

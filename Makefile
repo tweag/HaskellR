@@ -25,12 +25,18 @@ dist/pandoc/H-ints.html: doc/H-ints.md doc/pandoc.css
 	cp doc/pandoc.css dist/pandoc
 	$(PANDOC) -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
 
+dist/pandoc/H-user.html: doc/H-user.md doc/pandoc.css
+	mkdir -p dist/pandoc
+	cp doc/pandoc.css dist/pandoc
+	$(PANDOC) -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
+
 doc-internals: dist/pandoc/H-ints.html
+doc-users-guide: dist/pandoc/H-user.html
 
 doc-haddock: install
 	$(CABAL) haddock
 
-doc: doc-haddock doc-internals
+doc: doc-haddock doc-internals doc-users-guide
 
 .PHONY: coverage
 coverage:
