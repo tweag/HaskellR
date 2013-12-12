@@ -22,6 +22,7 @@ module Foreign.R
   , unsexp
   , coerce
   , SomeSEXP(..)
+  , CEType(..)
     -- * Node creation
   , allocSEXP
   , allocList
@@ -29,6 +30,7 @@ module Foreign.R
   , install
   , mkString
   , mkChar
+  , mkCharCE
     -- * Node attributes
   , typeOf
   , setAttribute
@@ -164,6 +166,9 @@ cUIntToEnum = toEnum . cIntConv
 cUIntFromEnum :: Enum a => a -> CUInt
 cUIntFromEnum = cIntConv . fromEnum
 
+cIntFromEnum :: Enum a => a -> CInt
+cIntFromEnum = cIntConv . fromEnum
+
 --------------------------------------------------------------------------------
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
@@ -297,6 +302,9 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 
 {#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP (R.Vector Word8)' sexp #}
 
+-- | Create Character value with specified encoding
+{#fun Rf_mkCharCE as mkCharCE { id `CString', cIntFromEnum `CEType' } -> `SEXP (R.Vector Word8)' sexp #}
+
 -- | Probe the symbol table
 --
 -- If "name" is not found, it is installed in the symbol table.
@@ -323,7 +331,6 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 --------------------------------------------------------------------------------
 -- Garbage collection                                                         --
 --------------------------------------------------------------------------------
-
 
 -- | Protect variable from the garbage collector.
 {#fun Rf_protect as protect { unsexp `SEXP a'} -> `SEXP a' sexp #}
@@ -455,3 +462,9 @@ getAttribute s = castPtr <$> ({#get SEXP->attrib #} (unsexp s))
 
 setAttribute :: SEXP a -> SEXP b -> IO ()
 setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
+
+-------------------------------------------------------------------------------
+-- Encoding                                                                  --
+-------------------------------------------------------------------------------
+
+{#enum cetype_t as CEType {} deriving (Eq, Show) #}
