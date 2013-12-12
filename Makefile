@@ -40,4 +40,4 @@ doc: doc-haddock doc-internals doc-users-guide
 
 .PHONY: coverage
 coverage:
-	sh tests/coverage-ghci.sh
+	sh tests/coverage-ghci.sh $(ARGS)
