@@ -118,3 +118,14 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
 
     sym <- H.symbol "blah"
     H.print sym
+
+    -- Should be [1] 100
+    _ <- [r| `+` <- function(x,y) x * y |]
+    H.print =<< [r| 10 + 10 |]
+
+    -- Should be [1] 20
+    H.print =<< [r| base::`+`(10,10) |]
+
+    -- restore usual meaning of `+`
+    _ <- [r| `+` <- base::`+` |]
+    return ()
