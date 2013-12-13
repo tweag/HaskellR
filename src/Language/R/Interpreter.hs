@@ -17,7 +17,6 @@ module Language.R.Interpreter
   -- * Initialization
   , initialize
   , finalize
-  , isRInitializedPtr
   -- * helpers
   , with
   , runInRThread
