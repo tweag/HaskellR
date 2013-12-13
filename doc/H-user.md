@@ -15,8 +15,8 @@ Haskell source files as well as from GHCi. The command is a wrapper
 script that fires up a GHCi session set up just the right way for
 interacting with R.
 
-Evaluating R expressions
-------------------------
+Evaluating R expressions in GHCi
+--------------------------------
 
 Using H, the most convenient way to interact with R is through
 quasiquotation. `r` is a quasiquoter that constructs an R expression,
@@ -101,6 +101,8 @@ Some predefined instances are:
 ```Haskell
 instance Literal      Double (R.Vector Double)
 instance Literal    [Double] (R.Vector Double)
+instance Literal       Int32  (R.Vector Int32)
+instance Literal     [Int32]  (R.Vector Int32)
 instance Literal    (SEXP a)                 b
 instance Literal      String        (R.String)
 
@@ -114,6 +116,55 @@ both sides share memory or the data is copied. When memory is shared,
 special care is needed to prevent garbage collection on either Haskell
 or R sides to invalidate values pointed by the other side. See
 [Constructing R expressions with explicit calls].
+
+
+The R monad
+-----------
+
+All expressions like
+```Haskell
+[r| ... |]   :: MonadR m => m (SEXP b)
+H.print sexp :: MonadR m => m ()
+H.eval sexp  :: MonadR m => m (SEXP b)
+```
+are computations in a monad instantiating `MonadR`.
+```Haskell
+class (Applicative m, MonadIO m) => MonadR m where
+  io :: IO a -> m a
+```
+
+These monads ensure that:
+
+ 1. the R interpreter is initialized, and
+
+ 2. the computations run in a special OS thread reserved for R calls
+    (so called the R thread).
+
+There are two instances of `MonadR`, which are `IO` and `R`.
+
+The `R` monad is intended to be used in compiled code. Functions are
+provided to initialize R and to run `R` computations in the `IO` monad.
+```Haskell
+initialize :: Config -> IO REnv
+finalize   :: IO ()
+runR       :: REnv -> R a -> IO a
+```
+
+The `IO` monad is used in GHCi, and it allows to evaluate expressions
+without the need to wrap every command at the prompt with the function
+`runR`.
+
+The `io` method of `MonadR` is used in both monads to bring
+computations to the R thread.
+
+Additionally, callback functions passed from Haskell to R are expected
+to produce computations in the `R` monad, as in the example shown in
+the previous section:
+
+    H> let f = (\x -> return (x + 1)) :: Double -> R Double
+    H> H.print =<< [r| f_hs(1) |]
+    [1] 2
+
 
 How to analyze R values in Haskell
 ----------------------------------
@@ -223,11 +274,6 @@ instead of R monad.
 
 Are there any exposed functions that we want the user to run in the
 R thread only?
-
-The R monad
------------
-
-TODO
 
 Constructing R expressions with explicit calls
 ----------------------------------------------
