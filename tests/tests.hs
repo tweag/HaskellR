@@ -124,8 +124,13 @@ ghciSession name scriptPath =
             else return $ Just $
               unlines ["Outputs don't match."
                       , "expected: "
+                      , T.unpack a
+                      , ""
                       , show $ T.unpack a
+                      , ""
                       , "H: "
+                      , T.unpack b
+                      , ""
                       , show $ T.unpack b
                       ])
       (const $ return ())
