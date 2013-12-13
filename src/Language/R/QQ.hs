@@ -64,8 +64,7 @@ parseExp txt = do
     sexp <- runIO $ do
        _ <- H.initialize H.defaultConfig
        runInRThread $ parseText txt
-    let !(Expr _ exps) = hexp sexp
-    TH.lift $ head $ Vector.toList exps -- FIXME: allow working with lists
+    TH.lift sexp
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
 deriveLift ''R.SEXPInfo
@@ -108,8 +107,13 @@ instance TH.Lift (Vector.Vector (Complex Double)) where
 instance TH.Lift (Vector.Vector (R.SEXP (R.Vector Word8))) where
     lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.String xs |]
 
+instance TH.Lift (Vector.Vector (R.SEXP R.Any)) where
+    lift v = let xs = TH.listE (map (\t -> [| R.coerce t|]) $ Vector.toList v) in
+      [| vector $ mkSEXPVector (R.Vector R.Any) $xs |]
+
 instance TH.Lift (Vector.Vector (R.SEXP a)) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+    lift v = let xs = Vector.toList v in
+      [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
 
 -- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
 -- with 'H.ExtPtr' when this is in fact not possible.
