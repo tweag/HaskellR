@@ -9,6 +9,7 @@ import qualified Language.R.Interpreter as R ( defaultConfig, with )
 import           Language.R ( parseFile )
 
 import           Control.Applicative
+import           Control.Exception
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
@@ -51,7 +52,7 @@ main = do
             { std_in = Inherit
             , std_out = Inherit
             }
-        void $ waitForProcess ph
+        void $ waitForProcess ph `onException` (terminateProcess ph)
       Config {configFiles = []} -> do
         putStrLn "no input files"
         exitFailure
