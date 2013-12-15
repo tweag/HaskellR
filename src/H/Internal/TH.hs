@@ -21,11 +21,11 @@ thWrappers n m = mapM thWrapper [n..m]
 --
 -- @
 -- foreign import ccall \"wrapper\" wrap5
---    :: (  R.SEXP a -> R.SEXP b -> R.SEXP c
---       -> R.SEXP d -> R.SEXP e -> IO (R.SEXP f)
+--    :: (  SEXP a -> SEXP b -> SEXP c
+--       -> SEXP d -> SEXP e -> IO (SEXP f)
 --       )
---    -> IO (FunPtr (  R.SEXP a -> R.SEXP b -> R.SEXP c
---                  -> R.SEXP d -> R.SEXP e -> IO (R.SEXP f)
+--    -> IO (FunPtr (  SEXP a -> SEXP b -> SEXP c
+--                  -> SEXP d -> SEXP e -> IO (SEXP f)
 --                  )
 --          )
 -- @
@@ -41,9 +41,9 @@ thWrapper n = do
     go :: [Name] -> TypeQ
     go [] = impossible "thWrapper"
     go [x] =
-      conT (mkName "IO") `appT` (conT (mkName "R.SEXP") `appT` (varT x))
+      conT (mkName "IO") `appT` (conT (mkName "SEXP") `appT` (varT x))
     go (x:xs) =
-      (appT arrowT (conT (mkName "R.SEXP") `appT` (varT x)))
+      (appT arrowT (conT (mkName "SEXP") `appT` (varT x)))
         `appT` (go xs)
 
 thWrapperLiterals :: Int -> Int -> DecsQ

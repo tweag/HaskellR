@@ -34,12 +34,12 @@ import qualified Data.Vector.Storable as V
 import Data.List ( intercalate )
 
 -- | Runtime universe of R Values
-data HVal = forall a . SEXP (R.SEXP a)
+data HVal = forall a . SEXP (SEXP a)
           | HLam2 (HVal -> HVal)
 
 instance Show HVal where
     show (SEXP s)  = unsafePerformIO $ do
-      let s' = castPtr s :: R.SEXP (R.Vector Double)
+      let s' = castPtr s :: SEXP (R.Vector Double)
       l <- R.length s'
       v <- flip V.unsafeFromForeignPtr0 l <$> (newForeignPtr_ =<< R.real s')
       return $ "[1] " ++ (intercalate " " (map show $ V.toList v))
@@ -60,7 +60,7 @@ safeFromHVal _        = Nothing
 someHVal :: R.SomeSEXP -> HVal
 someHVal (R.SomeSEXP x) = SEXP x
 
-toHVal :: R.SEXP a -> HVal
+toHVal :: SEXP a -> HVal
 toHVal x = SEXP x
 
 --------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ instance Fractional HVal where
     a / b = SEXP (rfrac (fromHVal a) (fromHVal b))
 -}
 
-rplus, rminus, rmult, rfrac :: R.SEXP a -> R.SEXP a -> R.SEXP a
+rplus, rminus, rmult, rfrac :: SEXP a -> SEXP a -> SEXP a
 rplus  x y = R.r2 "+" x y
 rminus x y = R.r2 "-" x y
 rmult  x y = R.r2 "*" x y

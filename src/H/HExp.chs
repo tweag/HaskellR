@@ -410,7 +410,7 @@ maybeNil s = do
 
 -- | Symbols can have values attached to them. This function creates a symbol
 -- whose value is itself.
-selfSymbol :: R.SEXP (R.Vector Word8) -> IO (R.SEXP R.Symbol)
+selfSymbol :: SEXP (R.Vector Word8) -> IO (SEXP R.Symbol)
 selfSymbol pname = do
     let s = unhexp $ Symbol pname nullPtr Nothing
     R.setCdr s s

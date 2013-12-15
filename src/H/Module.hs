@@ -12,7 +12,7 @@ module H.Module
   , translate
   ) where
 
-import H.Internal.Error
+import H.Internal.Prelude
 import H.Value
 import qualified Foreign.R as R
 
@@ -63,7 +63,7 @@ prettyGhci rmod =
     functions = modFunctions rmod
 
 -- | Translate R expression to the module
-translate :: R.SEXP (R.Vector (R.SEXP R.Any)) -> RModule -> IO RModule
+translate :: SEXP (R.Vector (SEXP R.Any)) -> RModule -> IO RModule
 translate x rmod = do
     -- XXX: currently we have hardcoded ghci but it's not right
     ls <- translate2ghci <$> emit <$> translate0 x
@@ -74,7 +74,7 @@ translate x rmod = do
 -- optimize/rewrite R language.
 --
 -- This is the only step where we will need interpreter
-translate0 :: R.SEXP (R.Vector (R.SEXP R.Any)) -> IO [RValue]
+translate0 :: SEXP (R.Vector (SEXP R.Any)) -> IO [RValue]
 translate0 x = do
     l <- R.length x
     -- TODO create hi-level wrapper
@@ -82,7 +82,7 @@ translate0 x = do
        e <- R.index x i
        translateValue e
   where
-    translateValue :: R.SEXP a -> IO RValue
+    translateValue :: SEXP a -> IO RValue
     translateValue y = do
         ty <- R.typeOf y
         case ty of
@@ -92,22 +92,22 @@ translate0 x = do
           R.Symbol-> RVar  <$> translateSym (castPtr y)
           R.List  -> RList <$> translateList (castPtr y)
           _       -> unimplemented "translateValue"
-    translateLang :: R.SEXP R.Lang -> IO RValue
+    translateLang :: SEXP R.Lang -> IO RValue
     translateLang y = do
         vl <- translateSym =<< R.car y
         ls <- translateList =<< R.cdr y
         return $ RLang vl ls
-    translateSym :: R.SEXP R.Symbol -> IO String
+    translateSym :: SEXP R.Symbol -> IO String
     translateSym y = do
         nm  <- R.char =<< R.symbolPrintName y
         peekCString nm         -- TODO: this is not correct (!)
-    translateReal :: R.SEXP (R.Vector Double) -> IO RValue
+    translateReal :: SEXP (R.Vector Double) -> IO RValue
     translateReal y = do
         l    <- R.length y
         cptr <- R.real y
         v <- U.generateM l (\i -> peekElemOff cptr i)
         return $ RReal v
-    translateList :: R.SEXP R.List -> IO [RValue]
+    translateList :: SEXP R.List -> IO [RValue]
     translateList y = do
         ty <- R.typeOf y
         case ty of

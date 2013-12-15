@@ -66,7 +66,7 @@ parseExpRuntimeEval :: String -> Q Exp
 parseExpRuntimeEval txt = [| H.eval =<< $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
-attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
+attachHs :: SEXP a -> [ExpQ -> ExpQ]
 attachHs h@(hexp -> Expr _ v) =
     concat (map (\(i,t) ->
       let tl = attachHs t
@@ -85,7 +85,7 @@ attachHs h@(hexp -> List x tl _) =
   in maybe tls (:tls) (attachSymbol h x)
 attachHs _ = []
 
-attachSymbol :: R.SEXP a -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
+attachSymbol :: SEXP a -> SEXP b -> Maybe (ExpQ -> ExpQ)
 attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
         rp = maybe (RuntimeSEXP (R.coerce H.nilValue)) RuntimeSEXP params
@@ -102,14 +102,14 @@ attachSymbol s (haskellName -> Just hname) =
          [| H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> io $ R.setCar (unRuntimeSEXP rs) l >> $e |])
 attachSymbol _ _ = Nothing
 
-haskellName :: R.SEXP a -> Maybe Name
+haskellName :: SEXP a -> Maybe Name
 haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
     then Just . mkName $ take (length name - 3) name
     else Nothing
 haskellName _ = Nothing
 
-newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
+newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: SEXP a}
 
 instance Lift (RuntimeSEXP a) where
     -- XXX: it's possible that we may want to create HVal with correct

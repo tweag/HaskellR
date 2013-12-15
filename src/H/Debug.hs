@@ -17,6 +17,7 @@ module H.Debug
   ( inspect )
   where
 
+import H.Internal.Prelude
 import H.HExp
 import H.Prelude.Globals as H
 import Foreign.Storable
@@ -30,10 +31,10 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Data.ByteString.Lazy.Char8 as LBS
 
-instance ToJSON R.SEXPTYPE where
+instance ToJSON SEXPTYPE where
   toJSON = A.String . T.pack . show
 
-instance ToJSON R.SEXPInfo where
+instance ToJSON SEXPInfo where
   toJSON x =
     object
       [ "type"  .= R.infoType x
@@ -52,7 +53,7 @@ instance ToJSON a => ToJSON (Complex a) where
   toJSON (x :+ y) =
     object ["Re" .= x, "Im" .= y]
 
-instance ToJSON (R.SEXP a) where
+instance ToJSON (SEXP a) where
   toJSON x =
       object
         [ "header" .= info
@@ -68,7 +69,7 @@ instance ToJSON (R.SEXP a) where
       info = unsafePerformIO $ R.peekInfo x
       attr = unsafePerformIO $ R.getAttribute x
       tp = T.pack . show $ R.infoType info
-      go :: R.SEXP a -> Value
+      go :: SEXP a -> Value
       go y | R.unsexp y == ub   = A.String "UnboundValue"
            | R.unsexp y == nil  = A.String "NilValue"
            | R.unsexp y == miss = A.String "MissingArg"
@@ -127,5 +128,5 @@ instance ToJSON (R.SEXP a) where
           object [ "tagval" .= s ]
       go _ = A.String "Unimplemented."
 
-inspect :: R.SEXP a -> String
+inspect :: SEXP a -> String
 inspect = LBS.unpack . A.encode

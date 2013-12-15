@@ -32,15 +32,15 @@ import Foreign.C.String ( newCString )
 import Foreign.Storable ( Storable, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
--- | Values that can be converted to 'R.SEXP'.
+-- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    mkSEXP :: a -> R.SEXP b
-    fromSEXP :: R.SEXP c -> a
+    mkSEXP :: a -> SEXP b
+    fromSEXP :: SEXP c -> a
 
 mkSEXPVector :: Storable a
-             => R.SEXPTYPE
+             => SEXPTYPE
              -> [a]
-             -> R.SEXP (R.Vector a)
+             -> SEXP (R.Vector a)
 mkSEXPVector ty xs = unsafePerformIO $ do
     vec <- R.allocVector ty $ length xs
     ptr <- castPtr <$> R.vector (castPtr vec)
@@ -74,7 +74,7 @@ instance Literal [Complex Double] (R.Vector (Complex Double)) where
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
 -- | Named after eponymous "GHC.Exts" function.
-the :: Literal [a] (R.Vector a) => R.SEXP (R.Vector a) -> a
+the :: Literal [a] (R.Vector a) => SEXP (R.Vector a) -> a
 the (fromSEXP -> xs)
   | length xs == 1 = head xs
   | otherwise = failure "the" "Not a singleton vector."
@@ -105,7 +105,7 @@ instance Literal (Complex Double) (R.Vector (Complex Double)) where
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
-instance Literal (R.SEXP a) b where
+instance Literal (SEXP a) b where
     mkSEXP = R.sexp . R.unsexp
     fromSEXP = R.sexp . R.unsexp
 
@@ -129,19 +129,19 @@ instance (Literal a a0, Literal b b0, Literal c c0)
 class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
-instance Literal a la => HFunWrap (R a) (IO (R.SEXP la)) where
+instance Literal a la => HFunWrap (R a) (IO (SEXP la)) where
     hFunWrap a = fmap mkSEXP (runR REnv a)
 
 -- | A class for functions that can be converted to functions on SEXPs.
 instance (Literal a la, HFunWrap b wb)
-         => HFunWrap (a -> b) (R.SEXP la -> wb) where
+         => HFunWrap (a -> b) (SEXP la -> wb) where
     hFunWrap f a = hFunWrap $ f $ fromSEXP a
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
-    :: FunPtr () -> IO (R.SEXP R.Any)
+    :: FunPtr () -> IO (SEXP R.Any)
 
 
-funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> R.SEXP c
+funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> SEXP c
 funToSEXP w x = unsafePerformIO $ fmap castPtr . funPtrToSEXP . castFunPtr
                 =<< w (hFunWrap x)
 
