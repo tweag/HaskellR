@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 module Main where
 
 import           H.Module
@@ -16,8 +16,11 @@ import           System.Console.CmdArgs
 import           System.Exit (exitFailure)
 import           System.Process
 
-import qualified Paths_H
+#ifdef H_ARCH_UNIX
+import           System.Posix.Signals
+#endif
 
+import qualified Paths_H
 
 data Config = Config
     { configFiles :: [String]
@@ -45,6 +48,10 @@ main = do
     config <- cmdArgs cmdSpec
     case config of
       Config {configFiles, configInteractive = True, configInteractiveCommand} -> do
+#ifdef H_ARCH_UNIX
+        _ <- installHandler sigINT Ignore Nothing
+        _ <- installHandler sigQUIT Ignore Nothing
+#endif
         cfg <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
         (_,_,_,ph) <-
@@ -52,7 +59,9 @@ main = do
             { std_in = Inherit
             , std_out = Inherit
             }
-        void $ waitForProcess ph `onException` (terminateProcess ph)
+        let loop = (void $ waitForProcess ph) `onException` (putStrLn "exception" >> loop)
+        loop
+        putStrLn "Bye!"
       Config {configFiles = []} -> do
         putStrLn "no input files"
         exitFailure
