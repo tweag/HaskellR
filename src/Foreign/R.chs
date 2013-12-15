@@ -33,7 +33,6 @@ module Foreign.R
   , mkCharCE
     -- * Node attributes
   , typeOf
-  , setTypeOf
   , setAttribute
   , getAttribute
     -- * Node accessor functions
@@ -116,9 +115,13 @@ import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)
 
 import Control.Applicative
+import Data.Bits
 import Data.Complex
-import Foreign
+import Data.Word (Word8)
+import Data.Int (Int32)
+import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
+import System.IO.Unsafe (unsafePerformIO)
 import Prelude hiding (length)
 
 #include <R.h>
@@ -174,12 +177,8 @@ cIntFromEnum = cIntConv . fromEnum
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
 
-typeOf :: SEXP a -> IO SEXPTYPE
-typeOf s = cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
-
---- XXX: it would be nice to set 'b' constraint to dependent one
-setTypeOf :: SEXPTYPE -> SEXP a -> IO (SEXP b)
-setTypeOf t s = ({#set SEXP->sxpinfo.type #} s (cUIntFromEnum t)) >> return (coerce s)
+typeOf :: SEXP a -> SEXPTYPE
+typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
