@@ -23,6 +23,7 @@ import Foreign.R.Error
 import qualified Language.Haskell.TH.Syntax as Hs
 import qualified Language.Haskell.TH.Lib as Hs
 
+import Data.Function (on)
 import Foreign (castPtr)
 import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
@@ -70,6 +71,9 @@ data SEXPTYPE
     | New
     | Free
     | Fun
+
+instance Eq SEXPTYPE where
+  (==) = (==) `on` fromEnum
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
