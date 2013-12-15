@@ -18,6 +18,7 @@ module Foreign.R.Type where
 #include <Rinternals.h>
 
 import H.Constraints
+import H.Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
 import qualified Language.Haskell.TH.Lib as Hs
@@ -126,7 +127,7 @@ instance Enum SEXPTYPE where
   toEnum (#const NEWSXP)     = New
   toEnum (#const FREESXP)    = Free
   toEnum (#const FUNSXP)     = Fun
-  toEnum _                   = error "Unknown R type."
+  toEnum _                   = violation "toEnum" "Unknown R type."
 
 instance Show SEXPTYPE where
   show Nil        = "Nil"
@@ -181,7 +182,7 @@ instance Storable Logical where
           0 -> return False
           1 -> return True
           #{const INT_MIN} -> return NA
-          _ -> error "Not a Logical."
+          _ -> failure "Storable Logical peek" "Not a Logical."
 
 
 -- | Used where the R documentation speaks of "pairlists", which are really just
