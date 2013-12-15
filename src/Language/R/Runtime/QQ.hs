@@ -11,14 +11,13 @@ module Language.R.Runtime.QQ
   , rexp
   ) where
 
-import H.Internal.Error
-import qualified H.Prelude as H
-import           H.Monad
+import           H.Internal.Prelude
 import           H.HExp
+import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import Language.R ( parseText )
-import Language.R.Interpreter ( runInRThread )
+import           Language.R ( parseText )
+import           Language.R.Interpreter ( runInRThread )
 
 -- import Control.Monad ( void, unless )
 import Data.List ( isSuffixOf )

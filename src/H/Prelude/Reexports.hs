@@ -7,7 +7,7 @@ module H.Prelude.Reexports
   , install
   ) where
 
-import           H.Monad
+import           H.Internal.Prelude
 import qualified Foreign.R as R
 import qualified Language.R as LR
 

@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
--- 
--- RVal is a value supposed to hold SEXP that are in haskell 
+--
+-- RVal is a value supposed to hold SEXP that are in haskell
 -- memory from garbage collection on in R.
 {-# LANGUAGE GADTs #-}
 module H.Prelude.RVal
@@ -12,16 +12,15 @@ module H.Prelude.RVal
   , unprotectRVal
   ) where
 
-import         H.Monad
+import H.Internal.Prelude
 import Foreign hiding ( newForeignPtr, unsafeForeignPtrToPtr )
 import Foreign.Concurrent
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
-import Foreign.R ( SEXP )
 import qualified Foreign.R as R
 
 {-
 - We are switching to Foreign.Concurrent instead on Foreign.ForeignPtr
-foreign import ccall "wrapper" mkUnprotect :: 
+foreign import ccall "wrapper" mkUnprotect ::
   (Ptr a -> IO ()) -> IO (FinalizerPtr a)
 
 unprotectSEXP :: SEXP

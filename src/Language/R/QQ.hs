@@ -16,7 +16,7 @@ module Language.R.QQ
   , rexp
   ) where
 
-import H.Internal.Error
+import H.Internal.Prelude
 import qualified H.Prelude as H
 import           H.HExp
 import           H.Internal.Literal

@@ -2,8 +2,11 @@
 -- Copyright: 2013 (C) Amgen, Inc
 --
 -- Wrappers for low level R functions
+
 {-# LANGUAGE ForeignFunctionInterface #-}
+
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module Language.R
   ( r1
   , r2
@@ -34,6 +37,11 @@ module Language.R
   ) where
 
 
+import qualified Foreign.R as R
+import qualified Foreign.R.Parse as R
+import qualified Foreign.R.Error as R
+import qualified Foreign.R.Interface as R ( StackSize )
+
 import Control.Applicative
 import Control.Exception ( bracket, throwIO )
 import Control.Monad ( (<=<), (>=>), when, unless )
@@ -53,11 +61,6 @@ import Foreign
 import Foreign.C.String ( withCString, peekCString )
 import Foreign.C.Types ( CInt(..) )
 import System.IO.Unsafe ( unsafePerformIO )
-
-import qualified Foreign.R as R
-import qualified Foreign.R.Parse as R
-import qualified Foreign.R.Error as R
-import qualified Foreign.R.Interface as R ( StackSize )
 
 -- $ghci-bug
 -- The main reason to have all R constants referenced with a StablePtr

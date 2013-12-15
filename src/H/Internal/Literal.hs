@@ -13,9 +13,8 @@ module H.Internal.Literal
     -- * wrapper helpers
   ) where
 
-import           H.Internal.Error
+import           H.Internal.Prelude
 import           H.HExp as HExp
-import           H.Monad
 import           H.Internal.FunWrappers
 import           H.Internal.REnv ( REnv(..) )
 import           H.Internal.TH

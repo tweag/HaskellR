@@ -18,12 +18,11 @@ module H.HExp
   , selfSymbol
   ) where
 
-import H.Constraints
-import H.Internal.Error
+import H.Internal.Prelude
 import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
-import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
+import           Foreign.R (SEXPREC)
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)

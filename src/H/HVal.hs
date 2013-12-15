@@ -20,7 +20,7 @@ module H.HVal
   , rfrac
   ) where
 
-import H.Internal.Error
+import H.Internal.Prelude
 import H.Internal.Literal
 import qualified Language.R as R
 import qualified Foreign.R  as R

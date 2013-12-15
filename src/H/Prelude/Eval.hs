@@ -8,7 +8,7 @@ module H.Prelude.Eval
   ) where
 
 import           H.HExp
-import           H.Monad
+import           H.Internal.Prelude
 import qualified Foreign.R as R
 import qualified Language.R as LR
 import qualified Data.Vector.SEXP as Vector
