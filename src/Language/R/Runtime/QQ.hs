@@ -11,6 +11,7 @@ module Language.R.Runtime.QQ
   , rexp
   ) where
 
+import H.Internal.Error
 import qualified H.Prelude as H
 import           H.Monad
 import           H.HExp
@@ -35,21 +36,21 @@ import Foreign ( ptrToIntPtr, intPtrToPtr )
 -- substitutions, and finally evaluates the resulting expression.
 r :: QuasiQuoter
 r = QuasiQuoter
-      { quoteExp  = parseExpRuntimeEval
-      , quotePat  = error "rr/Pat: Unimplemented."
-      , quoteType = error "rr/Type: Unimplemented."
-      , quoteDec  = error "rr/Dec: Unimplemented."
-      }
+    { quoteExp  = parseExpRuntimeEval
+    , quotePat  = unimplemented "quotePat"
+    , quoteType = unimplemented "quoteType"
+    , quoteDec  = unimplemented "quoteDec"
+    }
 
 -- | Runtime R quasiquoter. Same as 'r', except that it doesn't evaluate the
 -- expression.
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
-      { quoteExp  = parseExpRuntime
-      , quotePat  = error "rr/Pat: Unimplemented."
-      , quoteType = error "rr/Type: Unimplemented."
-      , quoteDec  = error "rr/Dec: Unimplemented."
-      }
+    { quoteExp  = parseExpRuntime
+    , quotePat  = unimplemented "quotePat"
+    , quoteType = unimplemented "quoteType"
+    , quoteDec  = unimplemented "quoteDec"
+    }
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do

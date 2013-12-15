@@ -7,6 +7,7 @@ module H.Internal.TH
   , thWrapperLiterals
   ) where
 
+import H.Internal.Error
 import Language.Haskell.TH
 
 
@@ -38,7 +39,7 @@ thWrapper n = do
     vars :: [Name]
     vars = take (n+1) $ map (mkName.return) ['a'..]
     go :: [Name] -> TypeQ
-    go [] = error "thWrapper: impossible happened"
+    go [] = impossible "thWrapper"
     go [x] =
       conT (mkName "IO") `appT` (conT (mkName "R.SEXP") `appT` (varT x))
     go (x:xs) =
@@ -66,7 +67,7 @@ thWrapperLiteral n = instanceD ctx typ funs
     vars = take (n+1) $ map (mkName.return) ['a'..]
     vars0 :: [Name]
     vars0 = take (n+1) $ map (\i -> mkName [i,'0']) ['a'..]
-    tps []  = error "impossible happened"
+    tps []  = impossible "thWrapperLiteral"
     tps [x] = conT (mkName "R") `appT` (varT x)
     tps (x:xs) = (appT arrowT (varT x)) `appT` tps xs
     -- context
@@ -78,4 +79,4 @@ thWrapperLiteral n = instanceD ctx typ funs
     -- funs
     funs = [ mk, from ]
     mk = funD (mkName "mkSEXP") [clause [] (normalB $ appE  (varE (mkName "H.Internal.Literal.funToSEXP")) (varE (mkName ("wrap"++show n)))) []]
-    from = funD (mkName "fromSEXP") [clause [] (normalB $ appE (varE (mkName "error")) (litE (stringL "Unimplemented."))) []]
+    from = funD (mkName "fromSEXP") [clause [] (normalB $ appE (varE (mkName "unimplemented")) (litE (stringL "thWrapperLiteral fromSEXP"))) []]

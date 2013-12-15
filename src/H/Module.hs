@@ -12,17 +12,19 @@ module H.Module
   , translate
   ) where
 
+import H.Internal.Error
+import H.Value
+import qualified Foreign.R as R
+
 import Control.Applicative
 import Control.Monad ( forM )
 import qualified Data.Vector.Unboxed as U
 import Foreign ( castPtr, peekElemOff )
 import Foreign.C
-import H.Value
 
 import Text.PrettyPrint ( Doc, ($$), (<+>) )
 import qualified Text.PrettyPrint as P
 
-import qualified Foreign.R as R
 
 -- | Generic structure of the haskell module that is created from R module.
 data RModule = RModule
@@ -184,6 +186,3 @@ value (RReal v)
   | U.length v == 1 = P.parens $ P.text "mkSEXP" <+> P.parens (P.text (show $ U.head v) <+> P.text "::Double")
 --value y@(RReal x) = "(mkRTDouble " ++ (show $ U.toList x) ++ ")"
 value y = error $ "value: unsupported argument " ++ show y
-
-unimplemented :: String -> b
-unimplemented f = error $ f ++ ": unimplemented "
