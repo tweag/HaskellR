@@ -16,14 +16,14 @@ tests = testGroup "HVal"
         ((assertBool "SEXP was not collected" . not . isInt) =<<) $ do
           x <- R.allocVector R.Int 1024
           R.gc
-          R.typeOf x
+          return $ R.typeOf x
     , testCase "RVal is not collected by R GC" $ do
         ((assertBool "RVal was collected" . isInt) =<<) $ do
             -- double initialization, but it's safe
             witness <- R.initialize R.defaultConfig
             x <- runR witness $ newRVal =<< io (R.allocVector R.Int 1024)
             R.gc
-            runR witness $ withRVal x (io . R.typeOf)
+            runR witness $ withRVal x (return . R.typeOf)
     ]
   where
     isInt (R.Int) = True

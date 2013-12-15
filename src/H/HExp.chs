@@ -245,7 +245,7 @@ peekHExp s = do
           BS.unsafePackAddressLen (fromIntegral len) addr#
 -}
 
-    R.typeOf s >>= \case
+    case R.typeOf s of
       R.Nil       -> coerce $ return Nil
       R.Symbol    -> coerce $
         Symbol    <$> (R.sexp <$> {#get SEXP->u.symsxp.pname #} s)
@@ -382,7 +382,10 @@ unhexpIO (Char vt)     = return $ Vector.toSEXP vt
 unhexpIO (String vt)   = return $ Vector.toSEXP vt
 unhexpIO Raw{}         = unimplemented "unhexp"
 unhexpIO S4{}          = unimplemented "unhexp"
-unhexpIO (Expr _ vt)   = R.setTypeOf R.Expr (Vector.toSEXP vt)
+unhexpIO (Expr _ vt)
+  | s <- Vector.toSEXP vt
+  , R.typeOf s == R.Expr = return $ R.coerce $ Vector.toSEXP vt
+  | otherwise          = error "unhexp: Vector not an expression."
 unhexpIO WeakRef{}     = unimplemented "unhexp"
 unhexpIO DotDotDot{}   = unimplemented "unhexp"
 unhexpIO ExtPtr{}      = unimplemented "unhexp"
