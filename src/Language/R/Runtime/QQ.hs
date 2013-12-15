@@ -53,10 +53,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ runInRThread $ do
-      x <- parseText txt
---      force x
-      return x
+    ex <- runIO $ runInRThread $ parseText txt True
     let l = RuntimeSEXP ex
     case attachHs ex of
       [] -> [| return (unRuntimeSEXP l) |]

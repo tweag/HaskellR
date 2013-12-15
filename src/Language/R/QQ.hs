@@ -63,7 +63,7 @@ parseExp :: String -> Q TH.Exp
 parseExp txt = do
     sexp <- runIO $ do
        _ <- H.initialize H.defaultConfig
-       runInRThread $ parseText txt
+       runInRThread $ parseText txt False
     TH.lift sexp
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.

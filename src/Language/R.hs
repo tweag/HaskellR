@@ -152,8 +152,11 @@ parseFile fl f = do
       withProtected (R.mkString cfl) $ \rfl ->
         withProtected (return $ r1 (C8.pack "parse") rfl) f
 
-parseText :: String -> IO (R.SEXP R.Expr)
-parseText txt = parseEval (C8.pack $ "parse(text="++show txt++")")
+parseText :: String -> Bool -> IO (R.SEXP R.Expr)
+parseText txt b = parseEval (C8.pack $ "parse(text="++show txt++",keep.source="++keep++")")
+  where
+    keep | b         = "TRUE"
+         | otherwise = "FALSE"
 
 install :: String -> IO (R.SEXP R.Symbol)
 install str = withCString str R.install
