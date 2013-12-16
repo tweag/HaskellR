@@ -20,6 +20,7 @@ import           H.Internal.REnv ( REnv(..) )
 import           H.Internal.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
+import           Language.R ( withProtected )
 
 import qualified Data.Vector.Storable as V
 
@@ -41,11 +42,11 @@ mkSEXPVector :: Storable a
              => SEXPTYPE
              -> [a]
              -> SEXP (R.Vector a)
-mkSEXPVector ty xs = unsafePerformIO $ do
-    vec <- R.allocVector ty $ length xs
-    ptr <- castPtr <$> R.vector (castPtr vec)
-    zipWithM_ (pokeElemOff ptr) [0..] xs
-    return vec
+mkSEXPVector ty xs = unsafePerformIO $
+    withProtected (R.allocVector ty $ length xs) $ \vec -> do
+      ptr <- castPtr <$> R.vector (castPtr vec)
+      zipWithM_ (pokeElemOff ptr) [0..] xs
+      return vec
 
 instance Literal [R.Logical] (R.Vector R.Logical) where
     mkSEXP = mkSEXPVector R.Logical
