@@ -46,6 +46,8 @@ library
                        Language.R.Ghci
                        Language.R.Runtime.QQ
   other-modules:       H.Internal.REnv
+                       H.Internal.Error
+                       H.Internal.Prelude
   build-depends:       base >= 4.6 && < 4.7
                      , aeson >= 0.6
                      , bytestring >= 0.10

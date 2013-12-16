@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
--- 
--- RVal is a value supposed to hold SEXP that are in haskell 
+--
+-- RVal is a value supposed to hold SEXP that are in haskell
 -- memory from garbage collection on in R.
 {-# LANGUAGE GADTs #-}
 module H.Prelude.RVal
@@ -12,16 +12,15 @@ module H.Prelude.RVal
   , unprotectRVal
   ) where
 
-import         H.Monad
+import H.Internal.Prelude
 import Foreign hiding ( newForeignPtr, unsafeForeignPtrToPtr )
 import Foreign.Concurrent
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
-import Foreign.R ( SEXP )
 import qualified Foreign.R as R
 
 {-
 - We are switching to Foreign.Concurrent instead on Foreign.ForeignPtr
-foreign import ccall "wrapper" mkUnprotect :: 
+foreign import ccall "wrapper" mkUnprotect ::
   (Ptr a -> IO ()) -> IO (FinalizerPtr a)
 
 unprotectSEXP :: SEXP
@@ -31,7 +30,7 @@ unprotectSEXP = unsafePerformIO $ mkUnprotect (R.unprotectPtr . R.unsexp)
 -- | The type "RVal" represent reference to R object that is
 -- maintained by R storage memory. RValue automatically 'Foreign.R.protect'
 -- object and 'Foreign.R.unprotectPtr' it when it becomes unavailable.
-data RVal :: R.SEXPTYPE -> * where
+data RVal :: SEXPTYPE -> * where
         RVal :: ForeignPtr R.SEXPREC -> RVal a
 
 -- | Create R value and automatically protect it
@@ -46,7 +45,7 @@ touchRVal :: MonadR m => RVal a -> m ()
 touchRVal (RVal s) = io (touchForeignPtr s)
 
 -- | This is a way to look inside RValue object
-withRVal :: MonadR m => RVal a -> (R.SEXP a -> m b) -> m b
+withRVal :: MonadR m => RVal a -> (SEXP a -> m b) -> m b
 withRVal (RVal s) f = do
         let s' = unsafeForeignPtrToPtr s
         x <- f (R.sexp s')

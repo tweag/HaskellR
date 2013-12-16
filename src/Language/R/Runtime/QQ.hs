@@ -11,13 +11,13 @@ module Language.R.Runtime.QQ
   , rexp
   ) where
 
-import qualified H.Prelude as H
-import           H.Monad
+import           H.Internal.Prelude
 import           H.HExp
+import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import Language.R ( parseText )
-import Language.R.Interpreter ( runInRThread )
+import           Language.R ( parseText )
+import           Language.R.Interpreter ( runInRThread )
 
 -- import Control.Monad ( void, unless )
 import Data.List ( isSuffixOf )
@@ -35,21 +35,21 @@ import Foreign ( ptrToIntPtr, intPtrToPtr )
 -- substitutions, and finally evaluates the resulting expression.
 r :: QuasiQuoter
 r = QuasiQuoter
-      { quoteExp  = parseExpRuntimeEval
-      , quotePat  = error "rr/Pat: Unimplemented."
-      , quoteType = error "rr/Type: Unimplemented."
-      , quoteDec  = error "rr/Dec: Unimplemented."
-      }
+    { quoteExp  = parseExpRuntimeEval
+    , quotePat  = unimplemented "quotePat"
+    , quoteType = unimplemented "quoteType"
+    , quoteDec  = unimplemented "quoteDec"
+    }
 
 -- | Runtime R quasiquoter. Same as 'r', except that it doesn't evaluate the
 -- expression.
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
-      { quoteExp  = parseExpRuntime
-      , quotePat  = error "rr/Pat: Unimplemented."
-      , quoteType = error "rr/Type: Unimplemented."
-      , quoteDec  = error "rr/Dec: Unimplemented."
-      }
+    { quoteExp  = parseExpRuntime
+    , quotePat  = unimplemented "quotePat"
+    , quoteType = unimplemented "quoteType"
+    , quoteDec  = unimplemented "quoteDec"
+    }
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
@@ -66,7 +66,7 @@ parseExpRuntimeEval :: String -> Q Exp
 parseExpRuntimeEval txt = [| H.eval =<< $(parseExpRuntime txt) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
-attachHs :: R.SEXP a -> [ExpQ -> ExpQ]
+attachHs :: SEXP a -> [ExpQ -> ExpQ]
 attachHs h@(hexp -> Expr _ v) =
     concat (map (\(i,t) ->
       let tl = attachHs t
@@ -85,7 +85,7 @@ attachHs h@(hexp -> List x tl _) =
   in maybe tls (:tls) (attachSymbol h x)
 attachHs _ = []
 
-attachSymbol :: R.SEXP a -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
+attachSymbol :: SEXP a -> SEXP b -> Maybe (ExpQ -> ExpQ)
 attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
         rp = maybe (RuntimeSEXP (R.coerce H.nilValue)) RuntimeSEXP params
@@ -102,14 +102,14 @@ attachSymbol s (haskellName -> Just hname) =
          [| H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> io $ R.setCar (unRuntimeSEXP rs) l >> $e |])
 attachSymbol _ _ = Nothing
 
-haskellName :: R.SEXP a -> Maybe Name
+haskellName :: SEXP a -> Maybe Name
 haskellName (hexp -> Symbol (hexp -> Char (Vector.toString -> name)) _ _) =
     if "_hs" `isSuffixOf` name
     then Just . mkName $ take (length name - 3) name
     else Nothing
 haskellName _ = Nothing
 
-newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: R.SEXP a}
+newtype RuntimeSEXP a = RuntimeSEXP {unRuntimeSEXP :: SEXP a}
 
 instance Lift (RuntimeSEXP a) where
     -- XXX: it's possible that we may want to create HVal with correct

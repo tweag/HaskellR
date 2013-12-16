@@ -8,23 +8,22 @@ module H.Prelude.Eval
   ) where
 
 import           H.HExp
-import           H.Monad
-import qualified Foreign.R as R
-import qualified Language.R as LR
+import           H.Internal.Prelude
+import qualified Language.R as R
 import qualified Data.Vector.SEXP as Vector
 
 import           Control.Applicative
 import           Control.Monad ( void )
 
 -- | Evaluate expression.
-eval :: MonadR m => R.SEXP a -> m (R.SEXP b)
+eval :: MonadR m => SEXP a -> m (SEXP b)
 eval = io . evalIO
   where
-    evalIO :: R.SEXP a -> IO (R.SEXP b)
+    evalIO :: SEXP a -> IO (SEXP b)
     evalIO (hexp -> Expr _ v) =
-      last <$> mapM LR.eval (Vector.toList v)
-    evalIO x = LR.eval x
+      last <$> mapM R.eval (Vector.toList v)
+    evalIO x = R.eval x
 
 -- | Silent version of 'evalIO' function. Discards result
-eval_ :: MonadR m => R.SEXP a -> m ()
+eval_ :: MonadR m => SEXP a -> m ()
 eval_ = void . eval

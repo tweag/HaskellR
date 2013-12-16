@@ -7,6 +7,7 @@ module H.Internal.TH
   , thWrapperLiterals
   ) where
 
+import H.Internal.Error
 import Language.Haskell.TH
 
 
@@ -20,11 +21,11 @@ thWrappers n m = mapM thWrapper [n..m]
 --
 -- @
 -- foreign import ccall \"wrapper\" wrap5
---    :: (  R.SEXP a -> R.SEXP b -> R.SEXP c
---       -> R.SEXP d -> R.SEXP e -> IO (R.SEXP f)
+--    :: (  SEXP a -> SEXP b -> SEXP c
+--       -> SEXP d -> SEXP e -> IO (SEXP f)
 --       )
---    -> IO (FunPtr (  R.SEXP a -> R.SEXP b -> R.SEXP c
---                  -> R.SEXP d -> R.SEXP e -> IO (R.SEXP f)
+--    -> IO (FunPtr (  SEXP a -> SEXP b -> SEXP c
+--                  -> SEXP d -> SEXP e -> IO (SEXP f)
 --                  )
 --          )
 -- @
@@ -38,11 +39,11 @@ thWrapper n = do
     vars :: [Name]
     vars = take (n+1) $ map (mkName.return) ['a'..]
     go :: [Name] -> TypeQ
-    go [] = error "thWrapper: impossible happened"
+    go [] = impossible "thWrapper"
     go [x] =
-      conT (mkName "IO") `appT` (conT (mkName "R.SEXP") `appT` (varT x))
+      conT (mkName "IO") `appT` (conT (mkName "SEXP") `appT` (varT x))
     go (x:xs) =
-      (appT arrowT (conT (mkName "R.SEXP") `appT` (varT x)))
+      (appT arrowT (conT (mkName "SEXP") `appT` (varT x)))
         `appT` (go xs)
 
 thWrapperLiterals :: Int -> Int -> DecsQ
@@ -66,7 +67,7 @@ thWrapperLiteral n = instanceD ctx typ funs
     vars = take (n+1) $ map (mkName.return) ['a'..]
     vars0 :: [Name]
     vars0 = take (n+1) $ map (\i -> mkName [i,'0']) ['a'..]
-    tps []  = error "impossible happened"
+    tps []  = impossible "thWrapperLiteral"
     tps [x] = conT (mkName "R") `appT` (varT x)
     tps (x:xs) = (appT arrowT (varT x)) `appT` tps xs
     -- context
@@ -78,4 +79,4 @@ thWrapperLiteral n = instanceD ctx typ funs
     -- funs
     funs = [ mk, from ]
     mk = funD (mkName "mkSEXP") [clause [] (normalB $ appE  (varE (mkName "H.Internal.Literal.funToSEXP")) (varE (mkName ("wrap"++show n)))) []]
-    from = funD (mkName "fromSEXP") [clause [] (normalB $ appE (varE (mkName "error")) (litE (stringL "Unimplemented."))) []]
+    from = funD (mkName "fromSEXP") [clause [] (normalB $ appE (varE (mkName "unimplemented")) (litE (stringL "thWrapperLiteral fromSEXP"))) []]

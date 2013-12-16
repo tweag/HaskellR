@@ -18,11 +18,11 @@ module H.HExp
   , selfSymbol
   ) where
 
-import H.Constraints
+import H.Internal.Prelude
 import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
-import           Foreign.R (SEXP, SEXPREC, SEXPTYPE)
+import           Foreign.R (SEXPREC)
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
@@ -279,7 +279,7 @@ peekHExp s = do
       R.Real      -> coerce $ Real    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.DotDotDot -> coerce $ error "peekHExp: Unimplemented."
+      R.DotDotDot -> unimplemented "peekHExp"
       R.Vector _  -> coerce $
         Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
@@ -291,10 +291,10 @@ peekHExp s = do
         ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
-      R.WeakRef   -> coerce $ error "peekHExp: Unimplemented."
-      R.Raw       -> coerce $ error "peekHExp: Unimplemented."
-      R.S4        -> coerce $ error "peekHExp: Unimplemented."
-      _           -> coerce $ error "peekHExp: Unimplemented."
+      R.WeakRef   -> unimplemented "peekHExp"
+      R.Raw       -> unimplemented "peekHExp"
+      R.S4        -> unimplemented "peekHExp"
+      _           -> unimplemented "peekHExp"
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do
@@ -331,20 +331,20 @@ pokeHExp s h = do
            {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
          Builtin offset -> do
            {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
-         Char _vc        -> error "pokeHExp: Unimplemented."
-         Logical  _vt    -> error "pokeHExp: Unimplemented."
-         Int  _vt        -> error "pokeHExp: Unimplemented."
-         Real _vt        -> error "pokeHExp: Unimplemented."
-         String _vt      -> error "pokeHExp: Unimplemented."
-         Complex _vt     -> error "pokeHExp: Unimplemented."
-         Vector _v _     -> error "pokeHExp: Unimplemented."
-         Bytecode        -> error "pokeHExp: Unimplemented."
-         ExtPtr _ _ _    -> error "pokeHExp: Unimplemented."
-         WeakRef _ _ _ _ -> error "pokeHExp: Unimplemented."
-         Raw     _       -> error "pokeHExp: Unimplemented."
-         S4      _       -> error "pokeHExp: Unimplemented."
-         DotDotDot _     -> error "pokeHExp: Unimplemented."
-         Expr _ _        -> error "pokeHExp: Unimplemented."
+         Char _vc        -> unimplemented "pokeHExp"
+         Logical  _vt    -> unimplemented "pokeHExp"
+         Int  _vt        -> unimplemented "pokeHExp"
+         Real _vt        -> unimplemented "pokeHExp"
+         String _vt      -> unimplemented "pokeHExp"
+         Complex _vt     -> unimplemented "pokeHExp"
+         Vector _v _     -> unimplemented "pokeHExp"
+         Bytecode        -> unimplemented "pokeHExp"
+         ExtPtr _ _ _    -> unimplemented "pokeHExp"
+         WeakRef _ _ _ _ -> unimplemented "pokeHExp"
+         Raw     _       -> unimplemented "pokeHExp"
+         S4      _       -> unimplemented "pokeHExp"
+         DotDotDot _     -> unimplemented "pokeHExp"
+         Expr _ _        -> unimplemented "pokeHExp"
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
@@ -367,7 +367,7 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO s@(Special{}) = R.allocSEXP R.Special >>= \x -> poke x s >> return x
     unhexpIO s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
     unhexpIO s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
-    unhexpIO  (Bytecode{}) = error "unhexp: Unimplemented."
+    unhexpIO  (Bytecode{}) = unimplemented "unhexp"
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
     unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
     unhexpIO (Int vt)      = return $ Vector.toSEXP vt
@@ -375,12 +375,12 @@ unhexp = unsafePerformIO . unhexpIO
     unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
     unhexpIO (Char vt)     = return $ Vector.toSEXP vt
     unhexpIO (String vt)   = return $ Vector.toSEXP vt
-    unhexpIO Raw{}         = error "unhexp: Unimplemented."
-    unhexpIO S4{}          = error "unhexp: Unimplemented."
+    unhexpIO Raw{}         = unimplemented "unhexp"
+    unhexpIO S4{}          = unimplemented "unhexp"
     unhexpIO (Expr _ vt)   = R.setTypeOf R.Expr (Vector.toSEXP vt)
-    unhexpIO WeakRef{}     = error "unhexp: Unimplemented."
-    unhexpIO DotDotDot{}   = error "unhexp: Unimplemented."
-    unhexpIO ExtPtr{}      = error "unhexp: Unimplemented."
+    unhexpIO WeakRef{}     = unimplemented "unhexp"
+    unhexpIO DotDotDot{}   = unimplemented "unhexp"
+    unhexpIO ExtPtr{}      = unimplemented "unhexp"
 
 -- | Project the vector out of 'SEXP's.
 vector :: SEXP (R.Vector a) -> Vector.Vector a
@@ -391,13 +391,13 @@ vector (hexp -> Real vec)     = vec
 vector (hexp -> Complex vec)  = vec
 vector (hexp -> String vec)   = vec
 vector (hexp -> Vector _ vec) = vec
-vector _ = error "vector: Not a vector."
+vector _ = failure "vector" "Not a vector."
 
 -- | Like 'vector', but for expression vectors, whose type index differs from
 -- that of other vectors.
 expression :: SEXP R.Expr -> Vector.Vector (SEXP R.Any)
 expression (hexp -> Expr _ vec) = vec
-expression _ = error "expr: Not an expression."
+expression _ = failure "expression" "Not an expression."
 
 -- | Check if SEXP is nill
 maybeNil :: SEXP a
@@ -410,7 +410,7 @@ maybeNil s = do
 
 -- | Symbols can have values attached to them. This function creates a symbol
 -- whose value is itself.
-selfSymbol :: R.SEXP (R.Vector Word8) -> IO (R.SEXP R.Symbol)
+selfSymbol :: SEXP (R.Vector Word8) -> IO (SEXP R.Symbol)
 selfSymbol pname = do
     let s = unhexp $ Symbol pname nullPtr Nothing
     R.setCdr s s

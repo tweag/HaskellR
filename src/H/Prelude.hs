@@ -22,10 +22,9 @@ module H.Prelude
   , withProtected
   ) where
 
-import Control.Monad.Catch
 
+import           H.Internal.Prelude
 import           H.HVal
-import           H.Monad
 import qualified Foreign.R as R
 
 -- Reexported modules.
@@ -37,13 +36,14 @@ import Data.IORef
 import Language.R.Interpreter
 import Foreign.R.Error
 
+import Control.Monad.Catch
 
 import Prelude hiding (print)
 
-print :: (MonadR m) => R.SEXP a -> m ()
+print :: (MonadR m) => SEXP a -> m ()
 print = io . R.printValue
 
-withProtected :: (MonadR m, MonadCatch m) => m (R.SEXP a) -> ((R.SEXP a) -> m b) -> m b
+withProtected :: (MonadR m, MonadCatch m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
             (const (io $ R.unprotect 1))
