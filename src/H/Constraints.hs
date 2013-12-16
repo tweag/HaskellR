@@ -23,7 +23,7 @@ data a :+: b
 class a :∈ b
 instance a :∈ a
 instance a :∈ (a :+: b)
-instance (a :∈ c) => a :∈ (b :+: c)
+instance (a :∈ c) => a :∈ (c :+: b)
 
 -- | Class alias used for c2hs @fun@ hooks, since it currently does not like
 -- Unicode operators.
