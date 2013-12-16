@@ -29,8 +29,6 @@ import Control.Monad (guard)
 import Control.Monad.Trans
 import Control.Applicative ((<$>))
 
-import Debug.Trace
-
 import Foreign
 
 import System.IO
@@ -154,25 +152,20 @@ unitTests = testGroup "Unit tests"
               s3 = H.hexp $ mkSEXP x
           in s1 === s2 && s2 === s3 && s1 === s3
   , testCase "Haskell function from R" $ runInRThread $ do
-      (("[1] 3.0" @=?) =<<) $
-        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
-          e <- peek R.globalEnv
-          R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: R Double))) $
-            \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
+--      (("[1] 3.0" @=?) =<<) $
+--        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
+      (((3::Double) @=?) =<<) $ fmap fromSEXP $ 
+          alloca $ \p -> do        
+            e <- peek R.globalEnv
+            R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: R Double))) $
+              \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
   , Test.FunPtr.tests
   , Test.RVal.tests
   ]
 
 integrationTests :: TestTree
 integrationTests = testGroup "Integration tests"
-  [ scriptCase "Trivial (empty) script" $
-      "tests" </> "R" </> "empty.R"
-  -- TODO: enable in relevant topic branches.
-  , scriptCase "Simple arithmetic" $
-       "tests" </> "R" </> "arith.R"
-  , scriptCase "Simple arithmetic on vectors" $
-       "tests" </> "R" </> "arith-vector.R"
-  , ghciSession "qq.ghci" $
+  [ ghciSession "qq.ghci" $
        "tests" </> "ghci" </> "qq.ghci"
   , ghciSession "qq-stderr.ghci" $
        "tests" </> "ghci" </> "qq-stderr.ghci"

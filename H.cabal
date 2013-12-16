@@ -20,15 +20,12 @@ library
                        H.Constraints
                        H.Debug
                        H.HExp
-                       H.HVal
-                       H.Module
                        H.Monad
                        H.Prelude
                        H.Prelude.Globals
                        H.Prelude.Reexports
                        H.Prelude.Eval
                        H.Prelude.RVal
-                       H.Value
                        H.Internal.Literal
                        H.Internal.FunWrappers
                        H.Internal.OSThreads
