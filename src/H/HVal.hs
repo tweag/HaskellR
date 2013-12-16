@@ -20,6 +20,7 @@ module H.HVal
   , rfrac
   ) where
 
+import H.Internal.Error
 import H.Internal.Literal
 import qualified Language.R as R
 import qualified Foreign.R  as R
@@ -49,7 +50,7 @@ instance Show HVal where
 -- Note that this function is partial.
 fromHVal :: HVal -> R.SomeSEXP
 fromHVal (SEXP x) = R.SomeSEXP x
-fromHVal _        = error "toSEXP: not an SEXP"
+fromHVal _        = failure "toSEXP" "Not a SEXP."
 
 -- | Safe version of 'toSEXP'.
 safeFromHVal :: HVal -> Maybe (R.SomeSEXP)
