@@ -91,7 +91,7 @@ data HExp :: SEXPTYPE -> * where
   -- Fields: function, args.
   Lang      :: () -- (a :∈ R.Symbol :+: R.Lang)         -- XXX R.Closure also?
             => SEXP a
-            -> SEXP R.List
+            -> Maybe (SEXP R.List)
             -> HExp R.List
   -- Fields: offset.
   Special   :: {-# UNPACK #-} !Int32
@@ -147,6 +147,11 @@ newtype E a = E (SEXP a)
 instance HEq E where
   E (hexp -> t1) === E (hexp -> t2) = t1 === t2
 
+heqMaybe :: Maybe (SEXP a) -> Maybe (SEXP b) -> Bool
+heqMaybe (Just x) (Just y) = E x === E y
+heqMaybe Nothing Nothing = True
+heqMaybe _ _  = False
+
 instance HEq HExp where
   Nil === Nil = True
   Symbol pname1 value1 internal1 === Symbol pname2 value2 internal2 =
@@ -171,7 +176,7 @@ instance HEq HExp where
       E env1 === E env2
   Lang carval1 cdrval1 === Lang carval2 cdrval2 =
       E carval1 === E carval2 &&
-      E cdrval1 === E cdrval2
+      (cdrval1 `heqMaybe` cdrval2)
   Special offset1 === Special offset2 =
       offset1 ==  offset2
   Builtin offset1 === Builtin offset2 =
@@ -264,7 +269,7 @@ peekHExp s = do
                   <*> (R.sexp <$> {#get SEXP->u.promsxp.env #} s)
       R.Lang      -> coerce $
         Lang      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
+                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s))
       R.Special   -> coerce $
         Special   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
       R.Builtin   -> coerce $
@@ -321,7 +326,8 @@ pokeHExp s h = do
            {#set SEXP->u.promsxp.env #} s (R.unsexp env)
          Lang carval cdrval -> do
            {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
-           {#set SEXP->u.listsxp.cdrval #} s (R.unsexp cdrval)
+           maybe ({#set SEXP->u.listsxp.cdrval#} s (R.unsexp H.nilValue))
+                 ({#set SEXP->u.listsxp.cdrval #} s . R.unsexp) cdrval
          Special offset -> do
            {#set SEXP->u.primsxp.offset #} s (fromIntegral offset)
          Builtin offset -> do

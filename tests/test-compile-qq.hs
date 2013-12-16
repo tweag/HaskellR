@@ -69,10 +69,10 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
     H.print =<< [r| y_hs + 1 |]
 
     -- Should be: Closure ???
-    _ <- [r| function(y) y_hs + y |]
+    H.print =<< [r| function(y) y_hs + y |]
 
     -- Should be 8
-    _ <- [r| z <- function(y) y_hs + y |]
+    H.print =<< [r| z <- function(y) y_hs + y |]
     H.print =<< [r| z(3) |]
 
     -- Should be [1] 1 2 3 4 5 6 7 8 9 10

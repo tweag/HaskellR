@@ -54,10 +54,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ runInRThread $ do
-      x <- parseText txt
---      force x
-      return x
+    ex <- runIO $ runInRThread $ parseText txt True
     let l = RuntimeSEXP ex
     case attachHs ex of
       [] -> [| return (unRuntimeSEXP l) |]
@@ -82,7 +79,7 @@ attachHs h@(hexp -> Expr _ v) =
   where
     s = RuntimeSEXP (R.sexp . R.unsexp $ h)
 attachHs h@(hexp -> Lang x ls) =
-  let tl = attachHs x ++ attachHs ls
+  let tl = attachHs x ++ (maybe [] attachHs ls)
   in maybe tl (:tl) (attachSymbol h x)
 attachHs h@(hexp -> List x tl _) =
   let tls = (attachHs x) ++ (maybe [] attachHs tl)
@@ -92,7 +89,7 @@ attachHs _ = []
 attachSymbol :: R.SEXP a -> R.SEXP b -> Maybe (ExpQ -> ExpQ)
 attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
-        rp = RuntimeSEXP params
+        rp = maybe (RuntimeSEXP (R.coerce H.nilValue)) RuntimeSEXP params
     in Just (\e ->
          [| H.withProtected (H.install ".Call") $ \call ->
               H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do

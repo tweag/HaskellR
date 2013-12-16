@@ -11,8 +11,6 @@ import qualified Language.R.Interpreter
 import qualified Foreign.R
 import qualified Foreign.R.Interface
 
-import qualified Foreign
-
 io :: IO a -> H.R a
 io = Language.R.io
 
@@ -28,7 +26,6 @@ main = do
         , Foreign.R.Interface.rCStackLimit
         , Foreign.R.rInputHandlers
         )
-    Foreign.poke Language.R.Interpreter.isRInitializedPtr 0
     renv <- Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig
     H.runR renv $ do
         H.print =<< [r| "test" |]
@@ -49,3 +46,5 @@ main = do
         H.print =<< [r| fact_hs(7) |]
         io $ putStrLn "[r| factSexp_hs(7) |]"
         H.print =<< [r| factSexp_hs(7) |]
+        io $ putStrLn "[r| function(x) x |]"
+        H.print =<< [r| function(x) x |]
