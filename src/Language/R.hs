@@ -29,12 +29,14 @@ module Language.R
   , rCStackLimitPtr
   , rInputHandlersPtr
   , MonadR(..)
+  , throwR
+  , throwRMessage
   ) where
 
 
 import Control.Applicative
-import Control.Exception ( bracket )
-import Control.Monad ( (<=<), when, unless )
+import Control.Exception ( bracket, throwIO )
+import Control.Monad ( (<=<), (>=>), when, unless )
 import Control.Monad.IO.Class
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
@@ -48,7 +50,7 @@ import Foreign
     , deRefStablePtr
     , StablePtr
     )
-import Foreign.C.String ( withCString )
+import Foreign.C.String ( withCString, peekCString )
 import Foreign.C.Types ( CInt(..) )
 import System.IO.Unsafe ( unsafePerformIO )
 
@@ -108,7 +110,7 @@ parseEval txt = useAsCString txt $ \ctxt ->
       withProtected (R.parseVector rtxt 1 status nil) $ \ex -> do
         e <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum e) $
-          R.throwRMessage $ "Parse error in: " ++ C8.unpack txt
+          throwRMessage $ "Parse error in: " ++ C8.unpack txt
         eval =<< R.indexExpr ex 0
 
 -- | Call 1-arity R function by name, function will be found in runtime,
@@ -174,7 +176,7 @@ evalEnv x rho =
         v <- R.tryEvalSilent x rho p
         e <- peek p
         when (e /= 0) $ do
-          R.throwR rho
+          throwR rho
         return v
 
 -- | Evaluate expression in global environment.
@@ -185,3 +187,18 @@ class (Applicative m, MonadIO m) => MonadR m where
   -- | Prepare unsafe action for execution
   io :: IO a -> m a
   io = liftIO
+
+-- | Throw R exception.
+throwR :: R.SEXP R.Env  -- Environment to search error.
+       -> IO a
+throwR x = getErrMsg x >>= throwIO . R.RError
+
+-- | Throw R exception with specified message.
+throwRMessage :: String -> IO a
+throwRMessage = throwIO . R.RError
+
+-- | Read last error message.
+getErrMsg :: R.SEXP R.Env -> IO String
+getErrMsg e = do
+  f <- withCString "geterrmessage" (R.install >=> R.lang1)
+  peekCString =<< R.char =<< peek =<< R.string =<< R.eval f e
