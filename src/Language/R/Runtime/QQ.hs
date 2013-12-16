@@ -16,16 +16,18 @@ import           H.HExp
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import           Language.R ( parseText )
+import           Language.R ( parseText, withProtected )
 import           Language.R.Interpreter ( runInRThread )
+import           Control.Exception
 
--- import Control.Monad ( void, unless )
+-- import Control.Monad ( forM_, (>=>) )
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
 import Foreign ( ptrToIntPtr, intPtrToPtr )
+-- import Foreign ( ptrToIntPtr, intPtrToPtr, peekElemOff )
 
 -------------------------------------------------------------------------------
 -- Runtime Quasi-Quoter                                                      --
@@ -53,27 +55,45 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ runInRThread $ parseText txt True
+    ex <- runIO $ runInRThread $ parseText txt True >>= R.protect
+    {-
+    - Current approach to use R memory are not correct and doesn't survive
+    - gctorture(TRUE) as it has problems in convert time and compile time
+    - One thing that is definitely true is that we need to protect 'ex'.
+    - Another strange thing is that it seems that we need to protect ex
+    - internals, however if we do it in (1) it doesn't save internals
+    - from being collected. But once we use printValue (!!) there
+    - everything works as expected.
+    len <- runIO $ do
+        len <- R.length ex
+        z <-   R.expression (R.coerce ex)
+        forM_ [0..len-1] $ peekElemOff z >=> R.printValue (1)
+        return len
+    -}
     let l = RuntimeSEXP ex
-    case attachHs ex of
+    ret <- case attachHs ex of
       [] -> [| return (unRuntimeSEXP l) |]
-      x  -> [| $(gather x l) |]
+      x  -> [| H.withProtected (return (unRuntimeSEXP l)) (const $ $(gather x l)) |]
+    runIO $ R.unprotect 1
+    return ret
   where
     gather :: [ExpQ -> ExpQ] -> (RuntimeSEXP a) -> ExpQ
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = [| H.eval =<< $(parseExpRuntime txt) |]
+parseExpRuntimeEval txt = [| H.withProtected $(parseExpRuntime txt) (H.eval) |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: SEXP a -> [ExpQ -> ExpQ]
 attachHs h@(hexp -> Expr _ v) =
     concat (map (\(i,t) ->
       let tl = attachHs t
+          t' = RuntimeSEXP t
       in case haskellName t of
            Just hname ->
              [\e -> [| io (R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname))) >> $e |]]
-           Nothing -> tl)
+           Nothing ->
+             (\e -> [| io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> io (R.unprotect 1) >> return x|]):tl)
                 $ zip [(0::Int)..] (Vector.toList v))
   where
     s = RuntimeSEXP (R.sexp . R.unsexp $ h)
@@ -99,7 +119,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> io $ R.setCar (unRuntimeSEXP rs) l >> $e |])
+         [| io (withProtected (evaluate $ H.mkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs))) >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: SEXP a -> Maybe Name
