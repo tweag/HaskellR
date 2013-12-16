@@ -7,31 +7,6 @@
 -- This module should only be imported by H modules and not reexported.
 
 module H.Internal.Error
-  ( failure
-  , violation
-  , impossible
-  , unimplemented
-  ) where
+  ( module Foreign.R.Error ) where
 
--- | User error.
-failure :: String                                 -- ^ Function name
-        -> String                                 -- ^ Error message
-        -> a
-failure f msg = error $ f ++ ": " ++ msg
-
--- | An internal invariant has been violated. That's a bug.
-violation :: String                               -- ^ Function name
-          -> String                               -- ^ Error message
-          -> a
-violation f msg = error $ "Bug in " ++ f ++ ", please report: " ++ msg
-
--- | A violation that should have been made impossible by the type system was
--- not.
-impossible :: String                               -- ^ Function name
-           -> a
-impossible f = violation f "The impossible happened."
-
--- | Feature not yet implemented.
-unimplemented :: String
-              -> a
-unimplemented f = failure f "Unimplemented."
+import Foreign.R.Error
