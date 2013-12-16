@@ -5,38 +5,47 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Foreign.R.Error
   ( RError(..)
-  , throwR
-  , throwRMessage
+  , failure
+  , violation
+  , impossible
+  , unimplemented
   ) where
 
-import Foreign.R as R
-
 import Control.Exception
-import Control.Monad ( (>=>) )
 import Data.Typeable
-import Foreign ( peek )
-import Foreign.C.String ( withCString, peekCString )
 
-data RError = RError
-      { rerrorMsg  :: String
-      } deriving ( Typeable )
+data RError
+      = RError String
+      | Violation String String
+      | Failure String String
+      deriving ( Typeable )
 
 instance Show RError where
-  show (RError s) = "RError: "++s
+  show (RError s)      = "R Runtime Error: " ++ s
+  show (Failure f m)   = "User error:" ++ f ++ ":" ++ m
+  show (Violation f m) = "Bug in " ++ f ++ ", please report: " ++ m
 
 instance Exception RError
 
--- | Read last error message.
-getErrMsg :: R.SEXP R.Env -> IO String
-getErrMsg e = do
-  f <- withCString "geterrmessage" (R.install >=> R.lang1)
-  peekCString =<< char =<< peek =<< string =<< R.eval f e
+-- | User error.
+failure :: String                                 -- ^ Function name
+        -> String                                 -- ^ Error message
+        -> a
+failure f msg = throw $ Failure f msg
 
--- | Throw R exception.
-throwR :: R.SEXP R.Env  -- Environment to search error.
-       -> IO a
-throwR x = getErrMsg x >>= throwIO . RError
+-- | An internal invariant has been violated. That's a bug.
+violation :: String                               -- ^ Function name
+          -> String                               -- ^ Error message
+          -> a
+violation f msg = throw $ Violation f msg
 
--- | Throw R exception with specified message.
-throwRMessage :: String -> IO a
-throwRMessage = throwIO . RError
+-- | A violation that should have been made impossible by the type system was
+-- not.
+impossible :: String                               -- ^ Function name
+           -> a
+impossible f = violation f "The impossible happened."
+
+-- | Feature not yet implemented.
+unimplemented :: String
+              -> a
+unimplemented f = failure f "Unimplemented."
