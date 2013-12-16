@@ -23,6 +23,7 @@ import qualified H.Prelude.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXPREC)
+import           Language.R (withProtected)
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
@@ -359,14 +360,14 @@ unhexp = unsafePerformIO . unhexpIO
   where
     unhexpIO :: HExp a -> IO (SEXP a)
     unhexpIO   Nil         = return H.nilValue
-    unhexpIO s@(Symbol{})  = R.allocSEXP R.Symbol >>= \x -> poke x s >> return x
-    unhexpIO s@(List{})    = R.allocSEXP R.List >>= \x -> poke x s >> return x
-    unhexpIO s@(Lang{})    = R.allocSEXP R.Lang >>= \x -> poke x s >> return x
-    unhexpIO s@(Env{})     = R.allocSEXP R.Env >>= \x -> poke x s >> return x
-    unhexpIO s@(Closure{}) = R.allocSEXP R.Closure >>= \x -> poke x s >> return x
-    unhexpIO s@(Special{}) = R.allocSEXP R.Special >>= \x -> poke x s >> return x
-    unhexpIO s@(Builtin{}) = R.allocSEXP R.Builtin >>= \x -> poke x s >> return x
-    unhexpIO s@(Promise{}) = R.allocSEXP R.Promise >>= \x -> poke x s >> return x
+    unhexpIO s@(Symbol{})  = withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
+    unhexpIO s@(List{})    = withProtected (R.allocSEXP R.List) (\x -> poke x s >> return x)
+    unhexpIO s@(Lang{})    = withProtected (R.allocSEXP R.Lang) (\x -> poke x s >> return x)
+    unhexpIO s@(Env{})     = withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
+    unhexpIO s@(Closure{}) = withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
+    unhexpIO s@(Special{}) = withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
+    unhexpIO s@(Builtin{}) = withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
+    unhexpIO s@(Promise{}) = withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
     unhexpIO  (Bytecode{}) = unimplemented "unhexp"
     unhexpIO (Real vt)     = return $ Vector.toSEXP vt
     unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
