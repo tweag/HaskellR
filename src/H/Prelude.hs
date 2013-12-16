@@ -4,7 +4,6 @@
 {-# Language GADTs #-}
 module H.Prelude
   ( module Data.IORef
-  , module H.HVal
   , module Language.R.Interpreter
   , module Foreign.R.Error
   , print
@@ -14,6 +13,8 @@ module H.Prelude
   , module H.Prelude.RVal
   -- * Language.R functions
   , module H.Prelude.Reexports
+  -- * Literals
+  , module H.Internal.Literal
   -- * Globals
   , module H.Prelude.Globals
   , R
@@ -24,7 +25,6 @@ module H.Prelude
 
 
 import           H.Internal.Prelude
-import           H.HVal
 import qualified Foreign.R as R
 
 -- Reexported modules.
@@ -32,6 +32,7 @@ import           H.Prelude.Reexports
 import           H.Prelude.Eval
 import           H.Prelude.Globals
 import           H.Prelude.RVal
+import           H.Internal.Literal
 import Data.IORef
 import Language.R.Interpreter
 import Foreign.R.Error

@@ -4,11 +4,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Main where
 
-import           H.Module
-import qualified Language.R.Interpreter as R ( defaultConfig, with )
-import           Language.R ( parseFile )
-
-import           Control.Applicative
 import           Control.Exception
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
@@ -56,10 +51,6 @@ main = do
       Config {configFiles = []} -> do
         putStrLn "no input files"
         exitFailure
-      Config {configFiles = [file], configGhci = True} -> R.with R.defaultConfig $ do
-        print =<< parseFile file (\x ->
-          prettyGhci <$> translate x (mkMod Nothing "Test"))
-      Config {configFiles} -> R.with R.defaultConfig $ do
-        ms <- mapM (`parseFile` (`translate` mkMod Nothing "Test")) configFiles
-        mapM_ (\(x,y) -> putStrLn (x ++ ":") >> print y) $
-          zip configFiles (map prettyModule ms)
+      _ -> do
+        putStrLn "translation is not supported yet"
+        exitFailure
