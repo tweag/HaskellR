@@ -34,6 +34,8 @@ module Language.R
   , MonadR(..)
   , throwR
   , throwRMessage
+  -- * Helpers
+  -- $helpers
   ) where
 
 
@@ -117,16 +119,19 @@ parseEval txt = useAsCString txt $ \ctxt ->
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
         eval =<< R.indexExpr ex 0
 
--- | Call 1-arity R function by name, function will be found in runtime,
--- using global environment, no additional environment is provided to
--- function.
+-- $helpers
+-- This section contains a bunch of functions that are used internally on
+-- a low level and wraps are simple that are too cheap to run under high
+-- level interface.
+
+-- | Call 1-arity R function by name in a global environment.
 --
 -- This function is done mainly for testing purposes, and execution of R
 -- code in case that we can't construct symbol by other methods.
 r1 :: ByteString -> SEXP a -> SEXP b
 r1 fn a =
     unsafePerformIO $
-      useAsCString fn $ \cfn -> R.install cfn >>= \f -> do
+      useAsCString fn $ \cfn -> R.install cfn >>= \f ->
         withProtected (R.lang2 f a) eval
 
 -- | Call 2-arity R function, function will be found in runtime, using
