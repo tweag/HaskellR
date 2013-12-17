@@ -44,7 +44,7 @@ putStrLn $ unlines
 next
 
 putStrLn "let mkFormula i = eval =<< Language.R.parseText (formula i \"xs\" \"ys\")"
-let mkFormula i = eval =<< Language.R.parseText (formula i "ys" "xs")
+let mkFormula i = eval =<< Language.R.parseText (formula i "ys" "xs") True
  
 :{
 putStrLn $ unlines [ "Now we may easily inpect our data: (we don't interested in this value so we don't protect it)" 
