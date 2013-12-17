@@ -16,6 +16,7 @@ then
     # sed is necessary here or the \r which appears in cygwin
     # would break the string.
     export GHCi_H_ARGS="-package-db=$2/packages-$(ghc --numeric-version | tr -d \\r).conf"
+    export GHC_H_ARGS=$GHCi_H_ARGS
 else
     CABAL=cabal
     BRANCH=$1
