@@ -35,6 +35,7 @@ module Foreign.R
   , mkCharCE
     -- * Node attributes
   , typeOf
+  , asTypeOf
   , setAttribute
   , getAttribute
     -- * Node accessor functions
@@ -125,7 +126,7 @@ import Data.Int (Int32)
 import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
 import System.IO.Unsafe (unsafePerformIO)
-import Prelude hiding (length)
+import Prelude hiding (asTypeOf, length)
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -193,6 +194,12 @@ cIntFromEnum = cIntConv . fromEnum
 
 typeOf :: SEXP a -> SEXPTYPE
 typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
+
+-- | Cast form of first argument to that of the second argument.
+asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
+asTypeOf (SomeSEXP s) s'
+  | typeOf s == typeOf s' = castPtr s
+  | otherwise = error "asTypeOf: Dynamic type cast failed."
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
