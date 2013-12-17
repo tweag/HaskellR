@@ -357,31 +357,35 @@ hexp = unsafePerformIO . peek
 -- however for vector types it will return original SEXP.
 unhexp :: HExp a -> SEXP a
 unhexp = unsafePerformIO . unhexpIO
-  where
-    unhexpIO :: HExp a -> IO (SEXP a)
-    unhexpIO   Nil         = return H.nilValue
-    unhexpIO s@(Symbol{})  = withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
-    unhexpIO s@(List{})    = withProtected (R.allocSEXP R.List) (\x -> poke x s >> return x)
-    unhexpIO s@(Lang{})    = withProtected (R.allocSEXP R.Lang) (\x -> poke x s >> return x)
-    unhexpIO s@(Env{})     = withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
-    unhexpIO s@(Closure{}) = withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
-    unhexpIO s@(Special{}) = withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
-    unhexpIO s@(Builtin{}) = withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
-    unhexpIO s@(Promise{}) = withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
-    unhexpIO  (Bytecode{}) = unimplemented "unhexp"
-    unhexpIO (Real vt)     = return $ Vector.toSEXP vt
-    unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
-    unhexpIO (Int vt)      = return $ Vector.toSEXP vt
-    unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
-    unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
-    unhexpIO (Char vt)     = return $ Vector.toSEXP vt
-    unhexpIO (String vt)   = return $ Vector.toSEXP vt
-    unhexpIO Raw{}         = unimplemented "unhexp"
-    unhexpIO S4{}          = unimplemented "unhexp"
-    unhexpIO (Expr _ vt)   = R.setTypeOf R.Expr (Vector.toSEXP vt)
-    unhexpIO WeakRef{}     = unimplemented "unhexp"
-    unhexpIO DotDotDot{}   = unimplemented "unhexp"
-    unhexpIO ExtPtr{}      = unimplemented "unhexp"
+{-# NOINLINE unhexp #-}
+
+-- The basic idea over unhexpIO is that fields of non vector elements are lazy
+-- so they will be forced in poke (so inside withProtected object) this guarantees
+-- the safeness of memory allocation.
+unhexpIO :: HExp a -> IO (SEXP a)
+unhexpIO   Nil         = return H.nilValue
+unhexpIO s@(Symbol{})  = withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
+unhexpIO s@(List{})    = withProtected (R.allocSEXP R.List) (\x -> poke x s >> return x)
+unhexpIO s@(Lang{})    = withProtected (R.allocSEXP R.Lang) (\x -> poke x s >> return x)
+unhexpIO s@(Env{})     = withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
+unhexpIO s@(Closure{}) = withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
+unhexpIO s@(Special{}) = withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
+unhexpIO s@(Builtin{}) = withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
+unhexpIO s@(Promise{}) = withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
+unhexpIO  (Bytecode{}) = unimplemented "unhexp"
+unhexpIO (Real vt)     = return $ Vector.toSEXP vt
+unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
+unhexpIO (Int vt)      = return $ Vector.toSEXP vt
+unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
+unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
+unhexpIO (Char vt)     = return $ Vector.toSEXP vt
+unhexpIO (String vt)   = return $ Vector.toSEXP vt
+unhexpIO Raw{}         = unimplemented "unhexp"
+unhexpIO S4{}          = unimplemented "unhexp"
+unhexpIO (Expr _ vt)   = R.setTypeOf R.Expr (Vector.toSEXP vt)
+unhexpIO WeakRef{}     = unimplemented "unhexp"
+unhexpIO DotDotDot{}   = unimplemented "unhexp"
+unhexpIO ExtPtr{}      = unimplemented "unhexp"
 
 -- | Project the vector out of 'SEXP's.
 vector :: SEXP (R.Vector a) -> Vector.Vector a
