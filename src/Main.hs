@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 module Main where
 
 import           Control.Exception
@@ -12,7 +12,9 @@ import           System.Exit (exitFailure)
 import           System.Process
 
 import qualified Paths_H
-
+#ifdef H_ARCH_UNIX
+import           System.Posix.Signals
+#endif
 
 data Config = Config
     { configFiles :: [String]
@@ -42,12 +44,33 @@ main = do
       Config {configFiles, configInteractive = True, configInteractiveCommand} -> do
         cfg <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
+#if MIN_VERSION_process(1,2,0)
+#ifdef H_ARCH_UNIX
+        _ <- installHandler sigINT Ignore Nothing
+        _ <- installHandler sigTERM Ignore Nothing
+        _ <- installHandler sigQUIT Ignore Nothing
+#endif
+        (_,_,_,ph) <-
+            createProcess (proc configInteractiveCommand argv)
+            { std_in = Inherit
+            , std_out = Inherit
+            , delegate_ctlc = False
+            }
+#else
+#ifdef H_ARCH_UNIX
+        _ <- installHandler sigINT Ignore Nothing
+        _ <- installHandler sigTERM Ignore Nothing
+        _ <- installHandler sigQUIT Ignore Nothing
+#endif
         (_,_,_,ph) <-
             createProcess (proc configInteractiveCommand argv)
             { std_in = Inherit
             , std_out = Inherit
             }
-        void $ waitForProcess ph `onException` (terminateProcess ph)
+#endif
+        let loop = (void $ waitForProcess ph) `onException` (putStrLn "exception" >> loop)
+        loop
+        putStrLn "Bye!"
       Config {configFiles = []} -> do
         putStrLn "no input files"
         exitFailure
