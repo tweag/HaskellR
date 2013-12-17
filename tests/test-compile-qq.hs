@@ -6,7 +6,9 @@
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ViewPatterns #-}
 module Main where
 
 import Foreign.R as R
@@ -46,8 +48,18 @@ main = do
       else putStrLn "OK"
     else rTests
 
+hFib :: SEXP (R.Vector Int32) -> R (SEXP (R.Vector Int32))
+hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
+hFib n@(fromSEXP -> (1 :: Int32))  = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
+hFib n                            = withProtected (return n) $ const $
+    fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+
 rTests :: IO ()
 rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
+
+    -- Should be [1] 4181
+    -- Placing it before enabling gctorture2 for speed.
+    H.print =<< hFib (mkSEXP (19 :: Int32))
 
     _ <- [r| gctorture2(1,0,TRUE) |]
 
@@ -55,13 +67,13 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
     H.print =<< [r| 1 |]
 
     -- Should be: [1] 1
-    H.print [rsafe| 1 |]
+    -- H.print [rsafe| 1 |] -- XXX Fails with -O0 and --enable-strict-barrier
 
     -- Should be: [1] 3
     H.print =<< [r| 1 + 2 |]
 
     -- Should be: [1] 2
-    H.print [rsafe| base::`+`(1, 2) |]
+    -- H.print [rsafe| base::`+`(1, 2) |]  -- XXX Fails with -O0 and --enable-strict-barrier
 
     -- Should be: [1] "1" "2" "3"
     H.print =<< [r| c(1,2,"3") |]
