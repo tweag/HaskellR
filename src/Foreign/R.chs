@@ -162,7 +162,13 @@ unsexp = castPtr
 coerce :: SEXP a -> SEXP b
 coerce = sexp . unsexp
 
-data SomeSEXP = forall a. SomeSEXP (SEXP a)
+data SomeSEXP = forall a. SomeSEXP {-# UNPACK #-} !(SEXP a)
+
+instance Storable SomeSEXP where
+  sizeOf _ = sizeOf (undefined :: SEXP a)
+  alignment _ = alignment (undefined :: SEXP a)
+  peek ptr = SomeSEXP <$> peek (castPtr ptr)
+  poke ptr (SomeSEXP s) = poke (castPtr ptr) s
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
