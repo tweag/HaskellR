@@ -52,8 +52,14 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
     -- Should be: [1] 1
     H.print =<< [r| 1 |]
 
+    -- Should be: [1] 1
+    H.print [rsafe| 1 |]
+
     -- Should be: [1] 2
     H.print =<< [r| 1 + 1 |]
+
+    -- Should be: [1] 2
+    H.print [rsafe| base::`+`(1, 1) |]
 
     -- Should be: [1] "1" "2" "3"
     H.print =<< [r| c(1,2,"3") |]

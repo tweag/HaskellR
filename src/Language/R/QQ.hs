@@ -14,9 +14,11 @@
 module Language.R.QQ
   ( r
   , rexp
+  , rsafe
   ) where
 
 import H.Internal.Prelude
+import H.Internal.REnv
 import qualified H.Prelude as H
 import           H.HExp
 import           H.Internal.Literal
@@ -55,6 +57,21 @@ r = QuasiQuoter
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
     { quoteExp  = \txt -> [| return $(parseExp txt) |]
+    , quotePat  = unimplemented "quotePat"
+    , quoteType = unimplemented "quoteType"
+    , quoteDec  = unimplemented "quoteDec"
+    }
+
+-- | Quasiquoter for pure R code (no side effects) and that does not depend on
+-- the global environment (referential transparency). This means that all
+-- symbols must appear qualified with a package namespace (whose bindings are
+-- locked by default), the code must not affect R shared state in any way,
+-- including the global environment, and must not perform I/O.
+
+-- TODO some of the above invariants can be checked statically. Do so.
+rsafe :: QuasiQuoter
+rsafe = QuasiQuoter
+    { quoteExp  = \txt -> [| unsafePerformIO $ runR REnv $ H.eval $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
