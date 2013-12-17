@@ -164,9 +164,9 @@ instance TH.Lift (SEXP a) where
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
         let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-        [| unsafePerformIO $ do
-             call <- install ".Call"
-             f <- return $ H.mkSEXP $hvar
-             return $ unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
+        [| unsafePerformIO $
+             let call = unsafePerformIO (install ".Call")
+                 f    = H.mkSEXP $hvar
+             in return $ unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
     lift   (hexp -> t) =
         [| unhexp t |] 

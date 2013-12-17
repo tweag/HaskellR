@@ -112,6 +112,7 @@ module Foreign.R
   ) where
 
 import {-# SOURCE #-} H.HExp
+import                H.Constraints
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)
 
@@ -233,7 +234,7 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 --------------------------------------------------------------------------------
 
 -- | Length of the vector.
-{#fun LENGTH as length { unsexp `SEXP (R.Vector a)' } -> `Int' #}
+{#fun LENGTH as length `(In a (R.Vector b :+: R.Expr))' => { unsexp `SEXP a' } -> `Int' #}
 
 -- | A vector element.
 {#fun VECTOR_ELT as index { unsexp `SEXP (R.Vector (SEXP a))', `Int'} -> `SEXP a' sexp #}

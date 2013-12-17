@@ -35,8 +35,10 @@ void freeHsSEXP(SEXP extPtr) {
 }
 
 SEXP funPtrToSEXP(DL_FUNC pf) {
-    SEXP value = Rf_MakeNativeSymbolRef(pf);
+    SEXP value;
+    PROTECT(value = Rf_MakeNativeSymbolRef(pf));
     R_RegisterCFinalizerEx(value, freeHsSEXP, 1);
+    UNPROTECT(1);
     return value;
 };
 
