@@ -43,10 +43,31 @@ SEXP funPtrToSEXP(DL_FUNC pf) {
 #ifdef H_ARCH_UNIX
 #include <R_ext/eventloop.h>
 
+// pasted an modified from R_checkActivityEx and setSelectMask
+//
+// The implementation of R_checkActivityEx would try to handle
+// the sigint signal, which would interfere with the behavior we want.
+//
+fd_set * dummy_R_checkActivityEx ( InputHandler* inputHandlers
+                                 , int usec, int ignore_stdin, void (*intr)(void)) {
+
+  static fd_set readMask;
+
+  FD_ZERO(&readMask);
+  InputHandler *tmp = inputHandlers;
+  int maxfd = -1;
+  while(tmp) {
+      FD_SET(tmp->fileDescriptor, &readMask);
+      tmp = tmp->next;
+  }
+
+  return &readMask;
+}
+
 void processGUIEventsUnix(InputHandler** inputHandlers) {
   if (*inputHandlers == NULL)
       initStdinHandler();
-  R_runHandlers(*inputHandlers, R_checkActivityEx(1000, 0, NULL));
+  R_runHandlers(*inputHandlers, dummy_R_checkActivityEx(*inputHandlers,1000,0,NULL));
 }
 #endif
 
