@@ -48,12 +48,13 @@ main = do
     config <- cmdArgs cmdSpec
     case config of
       Config {configFiles, configInteractive = True, configInteractiveCommand} -> do
-#ifdef H_ARCH_UNIX
-        _ <- installHandler sigINT Ignore Nothing
-        _ <- installHandler sigQUIT Ignore Nothing
-#endif
         cfg <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
+#ifdef H_ARCH_UNIX
+        _ <- installHandler sigINT Ignore Nothing
+        _ <- installHandler sigTERM Ignore Nothing
+        _ <- installHandler sigQUIT Ignore Nothing
+#endif
         (_,_,_,ph) <-
             createProcess (proc configInteractiveCommand argv)
             { std_in = Inherit
