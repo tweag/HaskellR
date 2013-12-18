@@ -37,11 +37,13 @@ module Foreign.R
   , mkCharCE
     -- * Node attributes
   , typeOf
+  , setTypeOf
   , asTypeOf
   , setAttribute
   , getAttribute
     -- * Node accessor functions
     -- ** Lists
+  , cons
   , car
   , cdr
   , tag
@@ -193,6 +195,9 @@ cIntFromEnum = cIntConv . fromEnum
 
 typeOf :: SEXP a -> SEXPTYPE
 typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
+
+setTypeOf :: SEXPTYPE -> SEXP a -> IO (SEXP b)
+setTypeOf t s = ({#set SEXP->sxpinfo.type #} s (cUIntFromEnum t)) >> return (unsafeCoerce s)
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
@@ -362,6 +367,8 @@ asTypeOf (SomeSEXP s) s' = typeOf s' `cast` s
 
 -- | Allocate Vector.
 {#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' sexp #}
+
+{#fun Rf_cons as cons { unsexp `SEXP a', unsexp `SEXP b' } -> `SEXP R.List' sexp #}
 
 {#fun Rf_PrintValue as printValue { unsexp `SEXP a'} -> `()' #}
 

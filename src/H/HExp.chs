@@ -29,6 +29,7 @@ import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
 
 import Control.Applicative
+import Control.Monad ( void )
 import Data.Int (Int32)
 import Data.Maybe (fromJust)
 import Data.Word (Word8)
@@ -366,8 +367,26 @@ unhexp = unsafePerformIO . unhexpIO
 unhexpIO :: HExp a -> IO (SEXP a)
 unhexpIO   Nil         = return H.nilValue
 unhexpIO s@(Symbol{})  = withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
-unhexpIO s@(List{})    = withProtected (R.allocSEXP R.List) (\x -> poke x s >> return x)
-unhexpIO s@(Lang{})    = withProtected (R.allocSEXP R.Lang) (\x -> poke x s >> return x)
+unhexpIO (List c md mt) = do
+    void $ R.protect c
+    void $ R.protect d
+    void $ R.protect t
+    z <- R.cons c d
+    {# set SEXP->u.listsxp.tagval#} z (R.unsexp t)
+    R.unprotect 3 -- $ maybe 2 (const 3) mt
+    return z
+  where
+    d = maybe (R.unsafeCoerce H.nilValue) id md
+    t = maybe (R.unsafeCoerce H.nilValue) id mt
+unhexpIO (Lang a mb)    = do
+    void $ R.protect a
+    void $ R.protect b
+    z <- R.cons a b
+    _ <- R.setTypeOf R.Lang z
+    R.unprotect 2
+    return z
+  where
+    b = maybe (R.unsafeCoerce H.nilValue) id mb
 unhexpIO s@(Env{})     = withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
 unhexpIO s@(Closure{}) = withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
 unhexpIO s@(Special{}) = withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
