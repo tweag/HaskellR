@@ -5,7 +5,7 @@ import qualified Foreign.R as R
 H.print =<< [r| 1 |]
 
 -- Should be: [1] 2
-H.print =<< [r| 1 + 1 |]
+H.print =<< [r| 1 + 2 |]
 
 -- Should be: [1] "1" "2" "3"
 H.print =<< [r| c(1,2,"3") |] :: IO ()
