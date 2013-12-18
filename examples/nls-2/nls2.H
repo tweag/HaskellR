@@ -167,8 +167,8 @@ next
 putStrLn ":m +Control.Exception"
 :m +Control.Exception
 putStrLn "6:"
-putStrLn "eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal R.Any))"
-eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal R.Any))
+putStrLn "eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))"
+eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))
 :{
 case eval6 of
     Right val6 -> H.withRVal val6 $ \y -> do
@@ -177,8 +177,8 @@ case eval6 of
     Left e -> Prelude.print e >> return 0
 :}
 putStrLn "7:"
-putStrLn "eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal R.Any))"
-eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal R.Any))
+putStrLn "eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal Foreign.R.Any))"
+eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal Foreign.R.Any))
 :{
 case eval7 of
     Right val7 -> H.withRVal val7 $ \y -> do
