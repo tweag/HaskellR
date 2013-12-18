@@ -14,9 +14,6 @@
 module Language.R.QQ
   ( r
   , rexp
-    -- File base quasi-quoter
-  , rFile
-  , rexpFile
   ) where
 
 import H.Internal.Prelude
@@ -55,9 +52,6 @@ r = QuasiQuoter
     , quoteDec  = unimplemented "quoteDec"
     }
 
-rFile :: QuasiQuoter
-rFile = quoteFile r
-
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
     { quoteExp  = \txt -> [| return $(parseExp txt) |]
@@ -65,9 +59,6 @@ rexp = QuasiQuoter
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
     }
-
-rexpFile :: QuasiQuoter
-rexpFile = quoteFile r
 
 parseExp :: String -> Q TH.Exp
 parseExp txt = do
