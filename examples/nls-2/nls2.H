@@ -13,7 +13,7 @@ putStrLn $ unlines
 :}
 next
 
-H.print =<< [r| xs <- c(1:100) |]
+rx <- H.newRVal =<< [r| xs <- c(1:100) |]
 store <- H.newRVal =<< [r| ys <- generate_lifted_hs(xs) |]
 
 :{
@@ -142,16 +142,9 @@ H.withRVal val3 $ \y -> do
      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
 :}
 putStrLn "4:"
-val4 <- H.newRVal =<< mkFormula 4
+val4 <- H.newRVal =<< mkFormula 4 :: IO (RVal R.Any)
 :{
 H.withRVal val4 $ \y -> do
-     H.print y 
-     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
-:}
-putStrLn "5:"
-val5 <- H.newRVal =<< mkFormula 5
-:{
-H.withRVal val5 $ \y -> do
      H.print y 
      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
 :}
@@ -166,6 +159,16 @@ putStrLn $ unlines
 next
 putStrLn ":m +Control.Exception"
 :m +Control.Exception
+putStrLn "5:"
+putStrLn "eval5 <- try (H.newRVal =<< mkFormula 5) :: IO (Either SomeException (RVal R.Any))"
+eval5 <- try (H.newRVal =<< mkFormula 5) :: IO (Either SomeException (RVal R.Any))
+:{
+case eval5 of
+    Right val5 -> H.withRVal val5 $ \y -> do
+                     H.print y 
+                     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+    Left e -> Prelude.print e >> return 0
+:}
 putStrLn "6:"
 putStrLn "eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))"
 eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))
@@ -189,11 +192,19 @@ case eval7 of
 getLine
 
 :m +Control.Applicative
+:{
+let cval = case eval7 of
+            Right x -> x
+            Left _ -> case eval6 of
+              Right x -> x
+              Left _ -> case eval5 of
+                Right x -> x
+                Left _ -> val4
+:}
 putStrLn "now we can analyse it"
-H.withRVal val5 $ \y -> do H.print =<< [r| coef(y_hs) |]
-cfs <- H.fromSEXP <$> (H.withRVal val5 $ \y -> [r| coef(y_hs) |]) :: IO [Double]
+H.withRVal cval $ \y -> do H.print =<< [r| coef(y_hs) |]
+cfs <- H.withRVal cval $ \y -> H.fromSEXP <$> [r| coef(y_hs) |] :: IO [Double]
  
-putStrLn "create a function from coeffs"
 let fn x = sum $ zipWith (*) cfs (iterate (*x) 1)
 putStrLn "value in a point 7"
 fn 7
@@ -202,27 +213,19 @@ map fn [1..100]
 putStrLn "calculate difference (x-y)^2"
 H.withRVal store $ \yhs -> return $ sum $ zipWith (\a b -> (a-b)*(a-b)) (H.fromSEXP (R.coerce yhs)) (map  fn [1..100])
 
+:m +Control.Monad
+let isRight ex = case ex of { Right x -> True ; _ -> False}
 putStrLn "plots"
 :{
+H.withRVal rx $ \x ->
   H.withRVal val2 $ \v2 ->
     H.withRVal val3 $ \v3 ->
-      H.withRVal val4 $ \v4 ->
-        H.withRVal val5 $ \v5 ->
-          case eval6 of
-            Right val6 ->
-              H.withRVal val6 $ \v6 ->
-                [r| plot(xs,ys) 
-                    lines(xs,predict(v2_hs), col = 2)
-                    lines(xs,predict(v3_hs), col = 3)
-                    lines(xs,predict(v4_hs), col = 4)
-                    lines(xs,predict(v5_hs), col = 5)
-                    lines(xs,predict(v6_hs), col = 6)
-                |]
-            Left _ ->
-                [r| plot(xs,ys) 
-                    lines(xs,predict(v2_hs), col = 2)
-                    lines(xs,predict(v3_hs), col = 3)
-                    lines(xs,predict(v4_hs), col = 4)
-                    lines(xs,predict(v5_hs), col = 5)
-                |]
+      H.withRVal val4 $ \v4 -> do
+       [r| plot(xs,ys) 
+           lines(xs,predict(v2_hs), col = 2)
+           lines(xs,predict(v3_hs), col = 3)
+           lines(xs,predict(v4_hs), col = 4) |]
+       case eval5 of
+         Right val5 -> void $ H.withRVal val5 $ \v5 -> [r| lines(x_hs,predict(v5_hs), col = 5) |]
+         _ -> return ()
 :}
