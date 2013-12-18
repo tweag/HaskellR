@@ -39,7 +39,7 @@ import Data.List (isSuffixOf)
 import Data.Complex (Complex)
 import Data.Int (Int32)
 import Data.Word (Word8)
-import Foreign (Ptr)
+import Foreign (Ptr, castPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
@@ -124,14 +124,15 @@ instance TH.Lift (Vector.Vector (Complex Double)) where
 
 -- TODO Special case for R.Expr.
 instance TH.Lift (Vector.Vector (SEXP (R.Vector Word8))) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.String xs |]
+    lift v = let xs = Vector.toList v in [| vector $ mkProtectedSEXPVector R.String xs |]
 
 instance TH.Lift (Vector.Vector SomeSEXP) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
+              in [| vector $ mkProtectedSEXPVector (R.Vector R.Any) xs |]
 
 instance TH.Lift (Vector.Vector (SEXP a)) where
     lift v = let xs = Vector.toList v
-             in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+              in [| vector $ mkProtectedSEXPVector (R.Vector R.Any) xs |]
 
 -- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
 -- with 'H.ExtPtr' when this is in fact not possible.
