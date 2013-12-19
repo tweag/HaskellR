@@ -86,17 +86,16 @@ parseExpRuntimeEval txt = [| H.withProtected $(parseExpRuntime txt) (H.eval) |]
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: SEXP a -> [ExpQ -> ExpQ]
 attachHs h@(hexp -> Expr _ v) =
-    concat (map (\(i,t) ->
+    concat (map (\(i, SomeSEXP t) ->
       let tl = attachHs t
           t' = RuntimeSEXP t
+          s = RuntimeSEXP (R.unsafeCoerce h)
       in case haskellName t of
            Just hname ->
-             [\e -> [| io (R.setExprElem (unRuntimeSEXP s) i (H.mkSEXP $(varE hname))) >> $e |]]
+             [\e -> [| io (R.setExprElem (unRuntimeSEXP s) $(lift i) (H.mkSEXP $(varE hname))) >> $e |]]
            Nothing ->
              (\e -> [| io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> io (R.unprotect 1) >> return x|]):tl)
                 $ zip [(0::Int)..] (Vector.toList v))
-  where
-    s = RuntimeSEXP (R.sexp . R.unsexp $ h)
 attachHs h@(hexp -> Lang x ls) =
   let tl = attachHs x ++ (maybe [] attachHs ls)
   in maybe tl (:tl) (attachSymbol h x)

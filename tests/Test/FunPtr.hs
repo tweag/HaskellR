@@ -44,16 +44,15 @@ instance Literal (HaveWeak a b) R.ExtPtr where
   fromSEXP = error "not now"
 
 tests :: TestTree
-tests = testGroup "Tests" 
+tests = testGroup "Tests"
   [ testCase "funptr is freed from R" $ do
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
-         _ <- alloca $ \p -> do
-           e <- peek R.globalEnv
-           _ <- R.withProtected (return $ mkSEXP hwr) $
-             \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
-           replicateM_ 10 (R.allocVector R.Real 1024)
-           replicateM_ 10 R.gc
+         e <- peek R.globalEnv
+         _ <- R.withProtected (return $ mkSEXP hwr) $
+           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
+         replicateM_ 10 (R.allocVector R.Real 1024)
+         replicateM_ 10 R.gc
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
   ]

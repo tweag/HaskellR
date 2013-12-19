@@ -9,7 +9,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 
-import Foreign.R as R ( SEXP )
+import Foreign.R as R
 import H.Prelude as H
 import Language.R.QQ
 import Data.Int
@@ -105,8 +105,10 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
     -- Should be NULL
     io $ H.runInRThread (runR rEnv $ H.print H.nilValue)
 
+    let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
+
     -- Should be [1] 3
-    let foo3 = (\n -> fmap H.fromSEXP [r| n_hs |]) :: Int32 -> H.R Int32
+    let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> H.R Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
     -- | should be 3
@@ -114,12 +116,12 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
     H.print =<< [r| foo4_hs(33, 66) |]
 
     -- Should be [1] 120 but it doesn't work
-    let fact n = if n == (0 :: Int32) then (return 1 :: H.R Int32) else fmap H.fromSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+    let fact n = if n == (0 :: Int32) then (return 1 :: H.R Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
     H.print =<< [r| fact_hs(as.integer(5)) |]
 
     -- Should be [1] 29
     let foo5  = (\n -> return (n+1)) :: Int32 -> R Int32
-    let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Int32 -> R (R.SEXP b)
+    let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Int32 -> R R.SomeSEXP
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
     sym <- H.symbol "blah"

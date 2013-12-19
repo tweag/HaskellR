@@ -29,7 +29,6 @@ import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)
 
 import Control.Applicative
-import Data.Function (on)
 import Data.Int (Int32)
 import Data.Maybe (fromJust)
 import Data.Word (Word8)
@@ -116,11 +115,11 @@ data HExp :: SEXPTYPE -> * where
             -> HExp R.List
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
-            -> HExp (R.Vector (SEXP R.Any))
+            -> {-# UNPACK #-} !(Vector.Vector SomeSEXP)
+            -> HExp (R.Vector SomeSEXP)
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector (SEXP R.Any))
+            -> {-# UNPACK #-} !(Vector.Vector SomeSEXP)
             -> HExp R.Expr
   Bytecode  :: HExp a -- XXX
   -- Fields: pointer, protectionValue, tagval
@@ -194,11 +193,13 @@ instance HEq HExp where
   DotDotDot pairlist1 === DotDotDot pairlist2 =
       E pairlist1 === E pairlist2
   Vector truelength1 vec1 === Vector truelength2 vec2 =
-      truelength1 == truelength2 &&
-      and (zipWith ((===) `on` E) (Vector.toList vec1) (Vector.toList vec2))
+      let eq (SomeSEXP s1) (SomeSEXP s2) = E s1 === E s2
+      in truelength1 == truelength2 &&
+         and (zipWith eq  (Vector.toList vec1) (Vector.toList vec2))
   Expr truelength1 vec1 === Expr truelength2 vec2 =
-      truelength1 == truelength2 &&
-      and (zipWith ((===) `on` E) (Vector.toList vec1) (Vector.toList vec2))
+      let eq (SomeSEXP s1) (SomeSEXP s2) = E s1 === E s2
+      in truelength1 == truelength2 &&
+         and (zipWith eq (Vector.toList vec1) (Vector.toList vec2))
   Bytecode === Bytecode = True
   ExtPtr pointer1 protectionValue1 tagval1 === ExtPtr pointer2 protectionValue2 tagval2 =
       castPtr pointer1 == castPtr pointer2 &&
@@ -403,7 +404,7 @@ vector _ = failure "vector" "Not a vector."
 
 -- | Like 'vector', but for expression vectors, whose type index differs from
 -- that of other vectors.
-expression :: SEXP R.Expr -> Vector.Vector (SEXP R.Any)
+expression :: SEXP R.Expr -> Vector.Vector SomeSEXP
 expression (hexp -> Expr _ vec) = vec
 expression _ = failure "expression" "Not an expression."
 

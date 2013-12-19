@@ -110,6 +110,10 @@ instance Literal (SEXP a) b where
     mkSEXP   = R.unsafeCoerce
     fromSEXP = R.unsafeCoerce
 
+instance Literal SomeSEXP b where
+    mkSEXP s   = R.unSomeSEXP s R.unsafeCoerce
+    fromSEXP   = SomeSEXP
+
 instance Literal String (R.String) where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"

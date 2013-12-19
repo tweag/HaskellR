@@ -70,11 +70,14 @@ class Show a where
 instance Show (SEXP a) where
   show s = unsafePerformIO $
            withCString "quote" $ R.install >=> \quote ->
+           (r1 "deparse" <$> R.lang2 quote s) >>= \(SomeSEXP slang) ->
+           return .
            Text.Lazy.fromChunks .
            map (Text.pack . Vector.toString . vector) .
            Vector.toList .
-           vector <$>
-           r1 "deparse" <$> R.lang2 quote s
+           vector .
+           R.unsafeCoerce $
+           slang
 
   print = io . R.printValue
 

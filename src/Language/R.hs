@@ -41,7 +41,7 @@ module Language.R
   ) where
 
 
-import Foreign.R (SEXP)
+import Foreign.R (SEXP, SomeSEXP)
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
@@ -110,7 +110,7 @@ peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
 
 -- | Parse and then evaluate expression.
-parseEval :: ByteString -> IO (SEXP a)
+parseEval :: ByteString -> IO (SEXP R.Expr)
 parseEval txt = useAsCString txt $ \ctxt ->
   withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
@@ -119,7 +119,7 @@ parseEval txt = useAsCString txt $ \ctxt ->
         e <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum e) $
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
-        eval =<< R.indexExpr ex 0
+        R.indexExpr ex 0 >>= eval >>= \(R.SomeSEXP s) -> return (R.unsafeCoerce s)
 
 -- $helpers
 -- This section contains a bunch of functions that are used internally on
@@ -130,7 +130,7 @@ parseEval txt = useAsCString txt $ \ctxt ->
 --
 -- This function is done mainly for testing purposes, and execution of R
 -- code in case that we can't construct symbol by other methods.
-r1 :: ByteString -> SEXP a -> SEXP b
+r1 :: ByteString -> SEXP a -> SomeSEXP
 r1 fn a =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
@@ -138,7 +138,7 @@ r1 fn a =
 
 -- | Call 2-arity R function, function will be found in runtime, using
 -- global environment. See 'r1' for additional comments.
-r2 :: ByteString -> SEXP a -> SEXP b -> SEXP c
+r2 :: ByteString -> SEXP a -> SEXP b -> SomeSEXP
 r2 fn a b =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
@@ -146,7 +146,7 @@ r2 fn a b =
 
 -- | Perform an action with resource while protecting it from the garbage
 -- collection.
-withProtected :: IO (SEXP a)      -- Action to accure resource
+withProtected :: IO (SEXP a)      -- Action to acquire resource
               -> (SEXP a -> IO b) -- Action
               -> IO b
 withProtected accure =
@@ -159,11 +159,12 @@ withProtected accure =
 -- operations GC-safe.
 --
 -- This function is not safe to use inside GHCi.
-parseFile :: FilePath -> (SEXP (R.Vector (SEXP R.Any)) -> IO a) -> IO a
+parseFile :: FilePath -> (SEXP R.Expr -> IO a) -> IO a
 parseFile fl f = do
     withCString fl $ \cfl ->
       withProtected (R.mkString cfl) $ \rfl ->
-        withProtected (return $ r1 (C8.pack "parse") rfl) f
+        case r1 (C8.pack "parse") rfl of
+          R.SomeSEXP s -> return (R.unsafeCoerce s) `withProtected` f
 
 parseText :: String -> Bool -> IO (R.SEXP R.Expr)
 parseText txt b = parseEval (C8.pack $ "parse(text="++show txt++",keep.source="++keep++")")
@@ -184,17 +185,17 @@ strings :: String -> IO (SEXP (R.String))
 strings str = withCString str R.mkString
 
 -- | Evaluate expression in given environment.
-evalEnv :: SEXP a -> SEXP R.Env -> IO (SEXP b)
+evalEnv :: SEXP a -> SEXP R.Env -> IO SomeSEXP
 evalEnv x rho =
     alloca $ \p -> do
         v <- R.tryEvalSilent x rho p
         e <- peek p
         when (e /= 0) $ do
           throwR rho
-        return v
+        return $ R.SomeSEXP v
 
 -- | Evaluate expression in global environment.
-eval :: SEXP a -> IO (SEXP b)
+eval :: SEXP a -> IO SomeSEXP
 eval x = peek globalEnvPtr >>= evalEnv x
 
 class (Applicative m, MonadIO m) => MonadR m where
