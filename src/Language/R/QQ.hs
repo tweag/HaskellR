@@ -172,10 +172,9 @@ instance TH.Lift (SEXP a) where
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
         let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-        [| unsafePerformIO $
-             let call = unsafePerformIO (install ".Call")
-                 f    = H.mkSEXP $hvar
-             in return $ unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
+        [| let call = unsafePerformIO (install ".Call")
+               f    = H.mkSEXP $hvar
+             in unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
     -- Override the default for expressions because the default Lift instance
     -- for vectors will allocate a node of VECSXP type, when the node is real an
     -- EXPRSXP.
