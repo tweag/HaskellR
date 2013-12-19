@@ -41,6 +41,7 @@ import           H.Prelude.Globals
 import           H.Prelude.RVal
 import           H.Internal.Literal
 import Language.R.Interpreter
+import qualified Language.R ( withProtected )
 import Foreign.R.Error
 
 import Control.Monad.Catch
@@ -68,7 +69,7 @@ class Show a where
   print = io . Text.putStrLn . show
 
 instance Show (SEXP a) where
-  show s = unsafePerformIO $
+  show s = unsafePerformIO $ Language.R.withProtected (return s) $ \_ ->
            withCString "quote" $ R.install >=> \quote ->
            (r1 "deparse" <$> R.lang2 quote s) >>= \(SomeSEXP slang) ->
            return .
@@ -79,7 +80,7 @@ instance Show (SEXP a) where
            R.unsafeCoerce $
            slang
 
-  print = io . R.printValue
+  print e = io $ Language.R.withProtected (return e) R.printValue
 
 instance Show R.SomeSEXP where
   show s = R.unSomeSEXP s show
