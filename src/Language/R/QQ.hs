@@ -35,6 +35,7 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
+import Control.Monad ((>=>))
 import Data.List (isSuffixOf)
 import Data.Complex (Complex)
 import Data.Int (Int32)
@@ -48,7 +49,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 r :: QuasiQuoter
 r = QuasiQuoter
-    { quoteExp  = \txt -> [| H.eval $(parseExp txt) |]
+    { quoteExp  = \txt -> parseEval txt
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -76,6 +77,28 @@ rsafe = QuasiQuoter
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
     }
+
+parseEval :: String -> Q TH.Exp
+parseEval txt = do
+    sexp <- parse txt
+    case hexp sexp of
+      Expr _ v ->
+        let vs = Vector.toList v
+        in go vs
+      _ -> error "Impossible happen."
+  where
+    go :: [SomeSEXP] -> Q TH.Exp
+    go []     = error "Impossible happen."
+    go [SomeSEXP a]    = [| H.withProtected (return a) H.eval |]
+    go (SomeSEXP a:as) =
+        [| H.withProtected (return a) $ H.eval >=> \(SomeSEXP s) ->
+             H.withProtected (return s) (const $(go as))
+         |]
+
+parse :: String -> Q (R.SEXP R.Expr)
+parse txt = runIO $ do
+      _ <- H.initialize H.defaultConfig
+      runInRThread $ parseText txt False
 
 parseExp :: String -> Q TH.Exp
 parseExp txt = do
