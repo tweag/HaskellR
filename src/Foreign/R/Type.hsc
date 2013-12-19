@@ -17,7 +17,6 @@ module Foreign.R.Type where
 
 #include <Rinternals.h>
 
-import H.Constraints
 import H.Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
@@ -188,11 +187,6 @@ instance Storable Logical where
           #{const INT_MIN} -> return NA
           _ -> failure "Storable Logical peek" "Not a Logical."
 
-
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
 type PairList = List
-
--- 'Any' is the supremum of all classes (i.e. forms): all other classes are
--- contained within it.
-instance a :∈ Any
