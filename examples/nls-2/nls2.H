@@ -1,4 +1,4 @@
-:set -XBangPatterns -XGADTs
+:set -XBangPatterns -XGADTs -XDataKinds
 :l system.hs
 
 let next = getLine >> return ()
@@ -44,7 +44,7 @@ putStrLn $ unlines
 next
 
 putStrLn "let mkFormula i = eval =<< Language.R.parseText (formula i \"xs\" \"ys\")"
-let mkFormula i = eval =<< Language.R.parseText (formula i "ys" "xs")
+let mkFormula i = eval =<< Language.R.parseText (formula i "ys" "xs") True
  
 :{
 putStrLn $ unlines [ "Now we may easily inpect our data: (we don't interested in this value so we don't protect it)" 
@@ -155,20 +155,36 @@ H.withRVal val5 $ \y -> do
      H.print y 
      fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
 :}
-putStrLn "6:"
-val6 <- H.newRVal =<< mkFormula 6
 :{
-H.withRVal val6 $ \y -> do
-     H.print y 
-     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+putStrLn $ unlines
+    [ "However things may go wrong in R, this may mean that we may caught"
+    , "runtime exceptions even if code is correct, for example when method"
+    , "doesn't converge."
+    , "To prevent such things we may use native haskell exception hangling mechanisms"
+    ]
+:}
+next
+putStrLn ":m +Control.Exception"
+:m +Control.Exception
+putStrLn "6:"
+putStrLn "eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))"
+eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))
+:{
+case eval6 of
+    Right val6 -> H.withRVal val6 $ \y -> do
+                     H.print y 
+                     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+    Left e -> Prelude.print e >> return 0
 :}
 putStrLn "7:"
-val7 <- H.newRVal =<< mkFormula 7
-
+putStrLn "eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal Foreign.R.Any))"
+eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal Foreign.R.Any))
 :{
-H.withRVal val7 $ \y -> do
-     H.print y 
-     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+case eval7 of
+    Right val7 -> H.withRVal val7 $ \y -> do
+                     H.print y 
+                     fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
+    Left e -> Prelude.print e >> return 0
 :}
 getLine
 
@@ -192,12 +208,21 @@ putStrLn "plots"
     H.withRVal val3 $ \v3 ->
       H.withRVal val4 $ \v4 ->
         H.withRVal val5 $ \v5 ->
-          H.withRVal val6 $ \v6 ->
-            [r| plot(xs,ys) 
-                lines(xs,predict(v2_hs), col = 2)
-                lines(xs,predict(v3_hs), col = 3)
-                lines(xs,predict(v4_hs), col = 4)
-                lines(xs,predict(v5_hs), col = 5)
-                lines(xs,predict(v6_hs), col = 6)
-            |]
+          case eval6 of
+            Right val6 ->
+              H.withRVal val6 $ \v6 ->
+                [r| plot(xs,ys) 
+                    lines(xs,predict(v2_hs), col = 2)
+                    lines(xs,predict(v3_hs), col = 3)
+                    lines(xs,predict(v4_hs), col = 4)
+                    lines(xs,predict(v5_hs), col = 5)
+                    lines(xs,predict(v6_hs), col = 6)
+                |]
+            Left _ ->
+                [r| plot(xs,ys) 
+                    lines(xs,predict(v2_hs), col = 2)
+                    lines(xs,predict(v3_hs), col = 3)
+                    lines(xs,predict(v4_hs), col = 4)
+                    lines(xs,predict(v5_hs), col = 5)
+                |]
 :}
