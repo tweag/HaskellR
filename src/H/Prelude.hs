@@ -1,7 +1,11 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
-{-# Language ViewPatterns #-}
+
 {-# Language GADTs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# Language ViewPatterns #-}
+
 module H.Prelude
   ( module Data.IORef
   , module Language.R.Interpreter
@@ -26,6 +30,9 @@ module H.Prelude
 
 import           H.Internal.Prelude
 import qualified Foreign.R as R
+import H.HExp
+import Language.R (r1)
+import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
 import           H.Prelude.Reexports
@@ -33,16 +40,47 @@ import           H.Prelude.Eval
 import           H.Prelude.Globals
 import           H.Prelude.RVal
 import           H.Internal.Literal
-import Data.IORef
 import Language.R.Interpreter
 import Foreign.R.Error
 
 import Control.Monad.Catch
+import qualified Data.Text.Lazy.IO as Text
+import qualified Data.Text as Text
+import qualified Data.Text.Lazy as Text.Lazy
+import Data.Text.Lazy (Text)
 
-import Prelude hiding (print)
+import Control.Applicative ((<$>))
+import Control.Monad ((>=>))
+import Data.IORef
+import Foreign.C (withCString)
+import System.IO.Unsafe (unsafePerformIO)
 
-print :: (MonadR m) => SEXP a -> m ()
-print = io . R.printValue
+import Prelude hiding (Show(..), print)
+import qualified Prelude
+
+class Show a where
+  -- | Equivalent of R's @deparse()@.
+  show :: a -> Text
+
+  -- | Make this a class method to allow matching R's @print()@ behaviour, whose
+  -- output is subtly different from @deparse()@.
+  print :: MonadR m => a -> m ()
+  print = io . Text.putStrLn . show
+
+instance Show (SEXP a) where
+  show s = unsafePerformIO $
+           withCString "quote" $ R.install >=> \quote ->
+           Text.Lazy.fromChunks .
+           map (Text.pack . Vector.toString . vector) .
+           Vector.toList .
+           vector <$>
+           r1 "deparse" <$> R.lang2 quote s
+
+  print = io . R.printValue
+
+instance Show R.SomeSEXP where
+  show s = R.unSomeSEXP s show
+  print s = R.unSomeSEXP s print
 
 withProtected :: (MonadR m, MonadCatch m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
 withProtected accure =

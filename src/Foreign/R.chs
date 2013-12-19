@@ -7,6 +7,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
@@ -22,6 +23,7 @@ module Foreign.R
   , unsexp
   , coerce
   , SomeSEXP(..)
+  , unSomeSEXP
   , CEType(..)
     -- * Node creation
   , allocSEXP
@@ -158,6 +160,11 @@ coerce :: SEXP a -> SEXP b
 coerce = sexp . unsexp
 
 data SomeSEXP = forall a. SomeSEXP (SEXP a)
+
+-- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
+-- existentially quantified variable hidden inside 'SomeSEXP' would escape.
+unSomeSEXP :: SomeSEXP -> (forall a. SEXP a -> r) -> r
+unSomeSEXP (SomeSEXP s) k = k s
 
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv = fromIntegral
