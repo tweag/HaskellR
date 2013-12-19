@@ -384,7 +384,7 @@ unhexpIO Raw{}         = unimplemented "unhexp"
 unhexpIO S4{}          = unimplemented "unhexp"
 unhexpIO (Expr _ vt)
   | s <- Vector.toSEXP vt
-  , R.typeOf s == R.Expr = return $ R.coerce $ Vector.toSEXP vt
+  , R.typeOf s == R.Expr = return $ R.unsafeCoerce $ Vector.toSEXP vt
   | otherwise          = error "unhexp: Vector not an expression."
 unhexpIO WeakRef{}     = unimplemented "unhexp"
 unhexpIO DotDotDot{}   = unimplemented "unhexp"

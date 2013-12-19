@@ -21,10 +21,12 @@ module Foreign.R
   , SEXP0
   , sexp
   , unsexp
-  , coerce
   , SomeSEXP(..)
   , unSomeSEXP
   , CEType(..)
+    -- * Casts and coercions
+    -- $cast-coerce
+  , unsafeCoerce
     -- * Node creation
   , allocSEXP
   , allocList
@@ -160,9 +162,6 @@ sexp = castPtr
 unsexp :: SEXP a -> SEXP0
 unsexp = castPtr
 
-coerce :: SEXP a -> SEXP b
-coerce = sexp . unsexp
-
 data SomeSEXP = forall a. SomeSEXP {-# UNPACK #-} !(SEXP a)
 
 instance Storable SomeSEXP where
@@ -195,12 +194,6 @@ cIntFromEnum = cIntConv . fromEnum
 typeOf :: SEXP a -> SEXPTYPE
 typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
--- | Cast form of first argument to that of the second argument.
-asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
-asTypeOf (SomeSEXP s) s'
-  | typeOf s == typeOf s' = castPtr s
-  | otherwise = error "asTypeOf: Dynamic type cast failed."
-
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
 
@@ -221,6 +214,31 @@ setCdr s s' = {#set SEXP->u.listsxp.cdrval #} (castPtr s) (castPtr s')
 -- | Set TAG field of object.
 setTag :: SEXP a -> SEXP b -> IO ()
 setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
+
+--------------------------------------------------------------------------------
+-- Coercion functions                                                         --
+--------------------------------------------------------------------------------
+
+-- $cast-coerce
+--
+-- Coercions have no runtime cost, but are completely unsafe. Use with caution,
+-- only when you know that a 'SEXP' is of the target type.
+
+-- | Unsafe coercion from one form to another. This is unsafe, in the sense that
+-- using this function improperly could cause code to crash in unpredictable
+-- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
+-- any dynamic check at runtime.
+unsafeCoerce :: SEXP a -> SEXP b
+unsafeCoerce = castPtr
+
+cast :: SEXPTYPE -> SEXP a -> SEXP b
+cast ty s
+  | ty == typeOf s = unsafeCoerce s
+  | otherwise = error "cast: Dynamic type cast failed."
+
+-- | Cast form of first argument to that of the second argument.
+asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
+asTypeOf (SomeSEXP s) s' = typeOf s' `cast` s
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --

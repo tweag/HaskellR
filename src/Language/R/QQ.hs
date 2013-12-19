@@ -126,7 +126,7 @@ instance TH.Lift (Vector.Vector (SEXP (R.Vector Word8))) where
     lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.String xs |]
 
 instance TH.Lift (Vector.Vector (SEXP R.Any)) where
-    lift v = let xs = TH.listE (map (\t -> [| R.coerce t|]) $ Vector.toList v) in
+    lift v = let xs = TH.listE (map (\t -> [| R.unsafeCoerce t|]) $ Vector.toList v) in
       [| vector $ mkSEXPVector (R.Vector R.Any) $xs |]
 
 instance TH.Lift (Vector.Vector (SEXP a)) where

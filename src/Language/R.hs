@@ -1,7 +1,9 @@
 -- |
 -- Copyright: 2013 (C) Amgen, Inc
 --
--- Wrappers for low level R functions
+-- Wrappers for low level R functions. In this module, 'SEXP' values have to be
+-- coerced unsafely because this module is lower in the abstraction stack than
+-- "H.HExpr", so we can't use the type refinement facilities provided there.
 
 {-# LANGUAGE ForeignFunctionInterface #-}
 

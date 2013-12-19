@@ -108,7 +108,7 @@ attachHs _ = []
 attachSymbol :: SEXP a -> SEXP b -> Maybe (ExpQ -> ExpQ)
 attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
-        rp = maybe (RuntimeSEXP (R.coerce H.nilValue)) RuntimeSEXP params
+        rp = maybe (RuntimeSEXP (R.unsafeCoerce H.nilValue)) RuntimeSEXP params
     in Just (\e ->
          [| H.withProtected (H.install ".Call") $ \call ->
               H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
