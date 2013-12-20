@@ -35,11 +35,12 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
+import Control.Monad ((>=>))
 import Data.List (isSuffixOf)
 import Data.Complex (Complex)
 import Data.Int (Int32)
 import Data.Word (Word8)
-import Foreign (Ptr)
+import Foreign (Ptr, castPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
@@ -48,7 +49,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 r :: QuasiQuoter
 r = QuasiQuoter
-    { quoteExp  = \txt -> [| H.eval $(parseExp txt) |]
+    { quoteExp  = \txt -> parseEval txt
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -76,6 +77,28 @@ rsafe = QuasiQuoter
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
     }
+
+parseEval :: String -> Q TH.Exp
+parseEval txt = do
+    sexp <- parse txt
+    case hexp sexp of
+      Expr _ v ->
+        let vs = Vector.toList v
+        in go vs
+      _ -> error "Impossible happen."
+  where
+    go :: [SomeSEXP] -> Q TH.Exp
+    go []     = error "Impossible happen."
+    go [SomeSEXP a]    = [| H.withProtected (return a) H.eval |]
+    go (SomeSEXP a:as) =
+        [| H.withProtected (return a) $ H.eval >=> \(SomeSEXP s) ->
+             H.withProtected (return s) (const $(go as))
+         |]
+
+parse :: String -> Q (R.SEXP R.Expr)
+parse txt = runIO $ do
+      _ <- H.initialize H.defaultConfig
+      runInRThread $ parseText txt False
 
 parseExp :: String -> Q TH.Exp
 parseExp txt = do
@@ -124,14 +147,15 @@ instance TH.Lift (Vector.Vector (Complex Double)) where
 
 -- TODO Special case for R.Expr.
 instance TH.Lift (Vector.Vector (SEXP (R.Vector Word8))) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.String xs |]
+    lift v = let xs = Vector.toList v in [| vector $ mkProtectedSEXPVector R.String xs |]
 
 instance TH.Lift (Vector.Vector SomeSEXP) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
+              in [| vector $ mkProtectedSEXPVector (R.Vector R.Any) xs |]
 
 instance TH.Lift (Vector.Vector (SEXP a)) where
     lift v = let xs = Vector.toList v
-             in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+              in [| vector $ mkProtectedSEXPVector (R.Vector R.Any) xs |]
 
 -- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
 -- with 'H.ExtPtr' when this is in fact not possible.

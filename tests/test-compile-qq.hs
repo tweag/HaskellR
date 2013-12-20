@@ -49,17 +49,19 @@ main = do
 rTests :: IO ()
 rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
 
+    _ <- [r| gctorture2(1,0,TRUE) |]
+
     -- Should be: [1] 1
     H.print =<< [r| 1 |]
 
     -- Should be: [1] 1
     H.print [rsafe| 1 |]
 
-    -- Should be: [1] 2
-    H.print =<< [r| 1 + 1 |]
+    -- Should be: [1] 3
+    H.print =<< [r| 1 + 2 |]
 
     -- Should be: [1] 2
-    H.print [rsafe| base::`+`(1, 1) |]
+    H.print [rsafe| base::`+`(1, 2) |]
 
     -- Should be: [1] "1" "2" "3"
     H.print =<< [r| c(1,2,"3") |]
@@ -111,7 +113,7 @@ rTests = H.initialize H.defaultConfig >>= \rEnv -> runR rEnv $ do
     let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> H.R Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
-    -- | should be 3
+    -- | should be 99
     let foo4 = (\n m -> return $ n + m) :: Double -> Double -> H.R Double
     H.print =<< [r| foo4_hs(33, 66) |]
 

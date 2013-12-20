@@ -10,6 +10,7 @@ module H.Internal.Literal
   , mkSEXPVector
   , HFunWrap(..)
   , funToSEXP
+  , mkProtectedSEXPVector
     -- * wrapper helpers
   ) where
 
@@ -25,7 +26,7 @@ import           Language.R ( withProtected )
 import qualified Data.Vector.Storable as V
 
 import Control.Applicative ((<$>))
-import Control.Monad ( zipWithM_ )
+import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
 import Data.Complex (Complex)
 import Foreign          ( FunPtr, castFunPtr, castPtr )
@@ -47,6 +48,18 @@ mkSEXPVector ty xs = unsafePerformIO $
       ptr <- castPtr <$> R.vector (castPtr vec)
       zipWithM_ (pokeElemOff ptr) [0..] xs
       return vec
+
+mkProtectedSEXPVector :: SEXPTYPE
+                      -> [SEXP a]
+                      -> SEXP (R.Vector b)
+mkProtectedSEXPVector ty xs = unsafePerformIO $ do
+    mapM_ (void . R.protect) xs
+    z <- withProtected (R.allocVector ty $ length xs) $ \vec -> do
+           ptr <- castPtr <$> R.vector (castPtr vec)
+           zipWithM_ (pokeElemOff ptr) [0..] xs
+           return vec
+    R.unprotect (length xs)
+    return z
 
 instance Literal [R.Logical] (R.Vector R.Logical) where
     mkSEXP = mkSEXPVector R.Logical
