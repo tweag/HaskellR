@@ -69,8 +69,7 @@ compareOutputs fp = do
     hFlush stdout
     oR  <- runRTest fp
     oQQ <- runQQTest fp
-    -- oCQQ <- catch (runCompileQQTest fp) (\e -> const (return "") (e :: SomeException)) -- XXX doesn't work for all tests yet.
-    oCQQ <- return oR
+    oCQQ <- catch (runCompileQQTest fp) (\e -> const (return "") (e :: SomeException))
     if oR == oQQ
     then if oR == oCQQ
       then putStrLn "OK" >> return True
