@@ -128,6 +128,9 @@ import Data.Complex
 import Data.Word (Word8)
 import Data.Int (Int32)
 import Foreign (Ptr, castPtr, Storable(..))
+#ifdef H_ARCH_WINDOWS
+import Foreign (nullPtr)
+#endif
 import Foreign.C
 import System.IO.Unsafe (unsafePerformIO)
 import Prelude hiding (asTypeOf, length)
