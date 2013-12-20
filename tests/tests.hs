@@ -32,7 +32,6 @@ import Control.Monad.Trans
 import Control.Applicative ((<$>))
 
 import Foreign
-
 import System.IO
 import qualified System.IO.Strict as Strict (readFile)
 import System.Process
@@ -160,7 +159,7 @@ unitTests = testGroup "Unit tests"
           alloca $ \p -> do
             e <- peek R.globalEnv
             R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: R Double))) $
-              \sf -> R.tryEval (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) e p
+              \sf -> R.unSomeSEXP (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) $ \s -> R.tryEval s e p
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests

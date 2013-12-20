@@ -128,5 +128,8 @@ instance ToJSON (SEXP a) where
           object [ "tagval" .= s ]
       go _ = A.String "Unimplemented."
 
+instance ToJSON SomeSEXP where
+  toJSON (R.SomeSEXP s) = toJSON s
+
 inspect :: SEXP a -> String
 inspect = LBS.unpack . A.encode

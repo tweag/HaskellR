@@ -10,7 +10,7 @@ module H.Internal.Prelude
   , module H.Constraints
   ) where
 
-import Foreign.R (SEXP, SomeSEXP, SEXPTYPE, SEXPInfo)
+import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import H.Constraints
 import H.Internal.Error
 import H.Monad

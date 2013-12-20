@@ -86,6 +86,7 @@ parseExp txt = do
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
 deriveLift ''SEXPInfo
+deriveLift ''SomeSEXP
 deriveLift ''Complex
 deriveLift ''R.Logical
 deriveLift ''HExp
@@ -125,13 +126,12 @@ instance TH.Lift (Vector.Vector (Complex Double)) where
 instance TH.Lift (Vector.Vector (SEXP (R.Vector Word8))) where
     lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.String xs |]
 
-instance TH.Lift (Vector.Vector (SEXP R.Any)) where
-    lift v = let xs = TH.listE (map (\t -> [| R.coerce t|]) $ Vector.toList v) in
-      [| vector $ mkSEXPVector (R.Vector R.Any) $xs |]
+instance TH.Lift (Vector.Vector SomeSEXP) where
+    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
 
 instance TH.Lift (Vector.Vector (SEXP a)) where
-    lift v = let xs = Vector.toList v in
-      [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
+    lift v = let xs = Vector.toList v
+             in [| vector $ mkSEXPVector (R.Vector R.Any) xs |]
 
 -- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
 -- with 'H.ExtPtr' when this is in fact not possible.
@@ -172,9 +172,14 @@ instance TH.Lift (SEXP a) where
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
         let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-        [| unsafePerformIO $
-             let call = unsafePerformIO (install ".Call")
-                 f    = H.mkSEXP $hvar
-             in return $ unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
+        [| let call = unsafePerformIO (install ".Call")
+               f    = H.mkSEXP $hvar
+             in unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
+    -- Override the default for expressions because the default Lift instance
+    -- for vectors will allocate a node of VECSXP type, when the node is real an
+    -- EXPRSXP.
+    lift   (hexp -> Expr n v) =
+      let xs = Vector.toList v
+      in [| unhexp $ Expr n $ vector $ mkSEXPVector R.Expr xs |]
     lift   (hexp -> t) =
-        [| unhexp t |] 
+        [| unhexp t |]

@@ -17,12 +17,12 @@ module Foreign.R.Type where
 
 #include <Rinternals.h>
 
-import H.Constraints
 import H.Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
 import qualified Language.Haskell.TH.Lib as Hs
 
+import Data.Function (on)
 import Foreign (castPtr)
 import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
@@ -70,6 +70,9 @@ data SEXPTYPE
     | New
     | Free
     | Fun
+
+instance Eq SEXPTYPE where
+  (==) = (==) `on` fromEnum
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -184,11 +187,6 @@ instance Storable Logical where
           #{const INT_MIN} -> return NA
           _ -> failure "Storable Logical peek" "Not a Logical."
 
-
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
 type PairList = List
-
--- 'Any' is the supremum of all classes (i.e. forms): all other classes are
--- contained within it.
-instance a :∈ Any

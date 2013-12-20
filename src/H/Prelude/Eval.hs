@@ -16,12 +16,12 @@ import           Control.Applicative
 import           Control.Monad ( void )
 
 -- | Evaluate expression.
-eval :: MonadR m => SEXP a -> m (SEXP b)
+eval :: MonadR m => SEXP a -> m SomeSEXP
 eval = io . evalIO
   where
-    evalIO :: SEXP a -> IO (SEXP b)
+    evalIO :: SEXP a -> IO SomeSEXP
     evalIO (hexp -> Expr _ v) =
-      last <$> mapM R.eval (Vector.toList v)
+      last <$> mapM (\(SomeSEXP s) -> R.eval s) (Vector.toList v)
     evalIO x = R.eval x
 
 -- | Silent version of 'evalIO' function. Discards result
