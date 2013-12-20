@@ -200,7 +200,7 @@ runInRThread :: IO a -> IO a
 runInRThread action = do
     mv <- newEmptyMVar
     tid <- myThreadId
-    postToRThread $
+    postToRThread_ $
       (action >>= putMVar mv) `catch` (\e -> throwTo tid (e :: SomeException))
     takeMVar mv
 
