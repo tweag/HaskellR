@@ -148,7 +148,7 @@ class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
 instance Literal a la => HFunWrap (R a) (IO (SEXP la)) where
-    hFunWrap a = fmap mkSEXP (runR REnv a)
+    hFunWrap a = fmap (mkSEXP $!) (runR REnv a)
 
 -- | A class for functions that can be converted to functions on SEXPs.
 instance (Literal a la, HFunWrap b wb)
