@@ -1,3 +1,5 @@
+:set -XDataKinds
+:set -XScopedTypeVariables
 :m +Data.Int
 import qualified Foreign.R as R
 
@@ -83,3 +85,14 @@ H.print =<< [r| base::`+`(10,10) |]
 
 -- restore usual meaning of `+`
 _ <- [r| `+` <- base::`+` |]
+
+:{
+let hFib :: Foreign.R.SEXP (Foreign.R.Vector Int32) -> R (Foreign.R.SEXP (Foreign.R.Vector Int32))
+    hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
+    hFib n@(fromSEXP -> (1 :: Int32))  = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
+    hFib n                            = withProtected (return n) $ const $
+        fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+:}
+
+-- Should be [1] 4181
+-- H.print =<< runR (hFib (mkSEXP (19 :: Int32))) -- XXX produces wrong result.
