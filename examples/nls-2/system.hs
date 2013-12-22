@@ -32,7 +32,7 @@ analyse x@(hexp -> Vector _ v) = do
 analyse x@(hexp -> Real v) = do
     putStrLn "real"
     putStrLn $ D.inspect x
-analyse x = Prelude.print =<< R.typeOf x
+analyse x = Prelude.print (R.typeOf x)
 
 data Poly = Poly [Int]
 
