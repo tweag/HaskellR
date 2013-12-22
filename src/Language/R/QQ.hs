@@ -179,6 +179,9 @@ instance TH.Lift (SEXP a) where
       where
         xs :: String
         xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
+    lift (hexp -> List s Nothing Nothing)
+      | R.unsexp s == R.unsexp H.missingArg =
+        [| unsafePerformIO $ R.cons H.missingArg H.nilValue |]
     lift s@(hexp -> Symbol pname value _)
       | R.unsexp s == R.unsexp value = do
         [| unsafePerformIO $ selfSymbol pname |]    -- FIXME
