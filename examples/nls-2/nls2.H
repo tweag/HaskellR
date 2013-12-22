@@ -65,7 +65,7 @@ putStrLn $ unlines ["But this approach is not straighforward as we want"
 next
 
 putStrLn "val <- (\\x -> [r| summary(x_hs)$sigma |]) =<< mkFormula 1"
-val <- (\x -> [r| summary(x_hs)$sigma |]) =<< mkFormula 1
+val <- flip withSomeRVal (\x -> [r| summary(x_hs)$sigma |]) =<< newSomeRVal =<< mkFormula 1
 :{
 putStrLn $ unlines [ "Here we provide a mechanism to inspect R values"
                    , "its fairy lowlevel and result may be big, but helpful sometimes"
