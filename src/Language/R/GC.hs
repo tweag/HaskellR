@@ -8,19 +8,28 @@
 -- memory from garbage collection on in R.
 {-# LANGUAGE GADTs #-}
 module Language.R.GC
-  ( RVal
+  ( -- * RVal
+    RVal
   , newRVal
   , touchRVal
   , withRVal
   , unprotectRVal
+    -- * SomeRVal
+  , SomeRVal
+  , newSomeRVal
+  , touchSomeRVal
+  , withSomeRVal
+  , unprotectSomeRVal
+    -- * Helpers
   , withProtected
   ) where
 
+import H.Internal.Prelude
+import Control.Applicative
 import Foreign hiding ( newForeignPtr, unsafeForeignPtrToPtr )
 import Foreign.Concurrent
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import qualified Foreign.R as R
-import Control.Monad.R.Class
 
 import Control.Exception ( bracket )
 
@@ -64,3 +73,31 @@ withProtected :: IO (R.SEXP a)      -- Action to acquire resource
 withProtected accure =
    bracket (accure >>= \x -> R.protect x >> return x)
            (const (R.unprotect 1))
+           
+-- | The type "RVal" represent reference to R object that is
+-- maintained by R storage memory. RValue automatically 'Foreign.R.protect'
+-- object and 'Foreign.R.unprotectPtr' it when it becomes unavailable.
+data SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)
+
+-- | Create R value and automatically protect it
+newSomeRVal :: MonadR m => SomeSEXP -> m SomeRVal
+newSomeRVal (SomeSEXP s) = io $ do
+    _ <- R.protect s
+    SomeRVal <$> newForeignPtr (R.unsexp s) (R.unprotectPtr s)
+
+-- | Keep SEXP value from the garbage collection
+touchSomeRVal :: MonadR m => SomeRVal -> m ()
+touchSomeRVal (SomeRVal s) = io (touchForeignPtr s)
+
+-- | This is a way to look inside RValue object
+withSomeRVal :: MonadR m => SomeRVal -> (SomeSEXP -> m b) -> m b
+withSomeRVal (SomeRVal s) f = do 
+        let s' = unsafeForeignPtrToPtr s
+        x <- f (SomeSEXP (R.sexp s'))
+        io $ touchForeignPtr s
+        return x
+
+-- | Unprotect "SEXP" in R memory. This doesn't mean that value will be
+-- immideately deallocated, just that it may be deallocated on the next GC.
+unprotectSomeRVal :: MonadR m => SomeRVal -> m ()
+unprotectSomeRVal (SomeRVal s) = io (finalizeForeignPtr s)
