@@ -27,7 +27,6 @@ library
                        H.Prelude.RVal
                        H.Internal.Literal
                        H.Internal.FunWrappers
-                       H.Internal.OSThreads
                        H.Internal.TH
                        Data.Vector.SEXP
                        Foreign.R
@@ -41,7 +40,8 @@ library
                        Language.R.QQ
                        Language.R.Ghci
                        Language.R.Runtime.QQ
-  other-modules:       H.Internal.REnv
+  other-modules:       Control.Concurrent.OSThread
+                       H.Internal.REnv
                        H.Internal.Error
                        H.Internal.Prelude
   build-depends:       base >= 4.6 && < 4.7

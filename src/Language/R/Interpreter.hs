@@ -23,8 +23,8 @@ module Language.R.Interpreter
   , postToRThread
   ) where
 
+import           Control.Concurrent.OSThread
 import           H.Internal.REnv
-import           H.Internal.OSThreads
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Interface as R

@@ -1,12 +1,12 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Needed definitions copied from rts/[posix|win32]/OSThreads.c in ghc source.
+-- Needed definitions copied from @rts/[posix|win32]/OSThreads.c@ in GHC source.
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module H.Internal.OSThreads
+module Control.Concurrent.OSThread
   ( OSThreadId
   , myOSThreadId
   ) where
