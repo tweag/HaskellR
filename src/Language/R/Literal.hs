@@ -1,11 +1,14 @@
 -- |
 -- Copyright: 2013 (C) Amgen, Inc
+--
+
 {-# Language FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# Language GADTs #-}
 {-# Language TemplateHaskell #-}
 {-# Language ViewPatterns #-}
-module H.Internal.Literal
+
+module Language.R.Literal
   ( Literal(..)
   , mkSEXPVector
   , HFunWrap(..)
@@ -15,7 +18,7 @@ module H.Internal.Literal
   ) where
 
 import           H.Internal.Prelude
-import           Language.R.HExp as HExp
+import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import           H.Internal.REnv ( REnv(..) )

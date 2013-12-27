@@ -78,5 +78,5 @@ thWrapperLiteral n = instanceD ctx typ funs
     typ = (conT (mkName "Literal") `appT` (tps vars) `appT` (conT (mkName "R.ExtPtr")))
     -- funs
     funs = [ mk, from ]
-    mk = funD (mkName "mkSEXP") [clause [] (normalB $ appE  (varE (mkName "H.Internal.Literal.funToSEXP")) (varE (mkName ("wrap"++show n)))) []]
+    mk = funD (mkName "mkSEXP") [clause [] (normalB $ appE  (varE (mkName "Language.R.Literal.funToSEXP")) (varE (mkName ("wrap"++show n)))) []]
     from = funD (mkName "fromSEXP") [clause [] (normalB $ appE (varE (mkName "unimplemented")) (litE (stringL "thWrapperLiteral fromSEXP"))) []]

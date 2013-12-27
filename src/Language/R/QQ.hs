@@ -21,7 +21,7 @@ import H.Internal.Prelude
 import H.Internal.REnv
 import qualified H.Prelude as H
 import           Language.R.HExp
-import           H.Internal.Literal
+import           Language.R.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import           Language.R (parseText, install, string)

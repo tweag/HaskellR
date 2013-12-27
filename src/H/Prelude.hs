@@ -18,7 +18,7 @@ module H.Prelude
   -- * Language.R functions
   , module H.Prelude.Reexports
   -- * Literals
-  , module H.Internal.Literal
+  , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
   , R
@@ -39,7 +39,7 @@ import           H.Prelude.Reexports
 import           H.Prelude.Eval
 import           Language.R.Globals
 import           H.Prelude.RVal
-import           H.Internal.Literal
+import           Language.R.Literal
 import Language.R.Interpreter
 import qualified Language.R ( withProtected )
 import Foreign.R.Error

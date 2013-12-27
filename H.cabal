@@ -31,13 +31,13 @@ library
                        H.Prelude.RVal
                        Language.R
                        Language.R.Debug
-                       H.Internal.Literal
                        Language.R.Ghci
                        Language.R.Globals
                        Language.R.HExp
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
                        Language.R.Interpreter
+                       Language.R.Literal
                        Language.R.QQ
                        Language.R.Runtime.QQ
   other-modules:       Control.Concurrent.OSThread
