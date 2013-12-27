@@ -5,7 +5,7 @@
 :set -XViewPatterns
 :set -XGADTs
 import Language.R.HExp
-import Language.R.Ghci as H
+import Control.Monad.R.Interactive as H
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv

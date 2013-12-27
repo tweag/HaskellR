@@ -4,7 +4,7 @@
 -- This class is not intentent to be used outside of GHCI session.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Language.R.Ghci
+module Control.Monad.R.Interactive
   ( module H.Prelude
   , module Language.R.Runtime.QQ
   , runR

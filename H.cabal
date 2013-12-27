@@ -17,6 +17,7 @@ source-repository head
 
 library
   exposed-modules:     Control.Monad.R
+                       Control.Monad.R.Interactive
                        Data.Vector.SEXP
                        Foreign.R
                        Foreign.R.Embedded
@@ -31,7 +32,6 @@ library
                        H.Prelude.RVal
                        Language.R
                        Language.R.Debug
-                       Language.R.Ghci
                        Language.R.Globals
                        Language.R.HExp
                        Language.R.Internal.FunWrappers
