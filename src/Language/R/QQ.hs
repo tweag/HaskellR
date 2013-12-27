@@ -20,7 +20,7 @@ module Language.R.QQ
 import H.Internal.Prelude
 import H.Internal.REnv
 import qualified H.Prelude as H
-import           H.HExp
+import           Language.R.HExp
 import           H.Internal.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R

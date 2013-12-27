@@ -15,7 +15,7 @@ module H.Internal.Literal
   ) where
 
 import           H.Internal.Prelude
-import           H.HExp as HExp
+import           Language.R.HExp as HExp
 import           H.Internal.FunWrappers
 import           H.Internal.REnv ( REnv(..) )
 import           H.Internal.TH

@@ -1,4 +1,4 @@
-module H.HExp where
+module Language.R.HExp where
 
 import Foreign.R.Type (SEXPTYPE)
 

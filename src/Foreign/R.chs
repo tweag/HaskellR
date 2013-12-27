@@ -117,7 +117,7 @@ module Foreign.R
   , named
   ) where
 
-import {-# SOURCE #-} H.HExp
+import {-# SOURCE #-} Language.R.HExp
 import                H.Constraints
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)

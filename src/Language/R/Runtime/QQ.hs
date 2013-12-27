@@ -12,7 +12,7 @@ module Language.R.Runtime.QQ
   ) where
 
 import           H.Internal.Prelude
-import           H.HExp
+import           Language.R.HExp
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R

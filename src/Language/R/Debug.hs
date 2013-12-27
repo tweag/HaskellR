@@ -18,7 +18,7 @@ module Language.R.Debug
   where
 
 import H.Internal.Prelude
-import H.HExp
+import Language.R.HExp
 import H.Prelude.Globals as H
 import Foreign.Storable
 import qualified Foreign.R as R

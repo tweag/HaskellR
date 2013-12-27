@@ -9,7 +9,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module H.HExp
+module Language.R.HExp
   ( HExp(..)
   , hexp
   , unhexp

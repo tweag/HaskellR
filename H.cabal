@@ -24,7 +24,6 @@ library
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Constraints
-                       H.HExp
                        H.Monad
                        H.Internal.FunWrappers
                        H.Internal.Literal
@@ -37,6 +36,7 @@ library
                        Language.R
                        Language.R.Debug
                        Language.R.Ghci
+                       Language.R.HExp
                        Language.R.Interpreter
                        Language.R.QQ
                        Language.R.Runtime.QQ

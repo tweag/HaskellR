@@ -12,7 +12,7 @@ import qualified Test.RVal
 
 import H.Prelude
 import H.Constraints
-import qualified H.HExp as H
+import qualified Language.R.HExp as H
 import qualified Foreign.R as R
 import qualified Language.R.Interpreter as R (initialize, defaultConfig)
 import qualified Language.R as R (withProtected, r2)

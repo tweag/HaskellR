@@ -30,7 +30,7 @@ module H.Prelude
 
 import           H.Internal.Prelude
 import qualified Foreign.R as R
-import H.HExp
+import Language.R.HExp
 import Language.R (r1)
 import qualified Data.Vector.SEXP as Vector
 
