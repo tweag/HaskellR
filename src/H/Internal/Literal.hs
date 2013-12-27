@@ -16,9 +16,9 @@ module H.Internal.Literal
 
 import           H.Internal.Prelude
 import           Language.R.HExp as HExp
-import           H.Internal.FunWrappers
+import           Language.R.Internal.FunWrappers
+import           Language.R.Internal.FunWrappers.TH
 import           H.Internal.REnv ( REnv(..) )
-import           H.Internal.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
 import           Language.R ( withProtected )

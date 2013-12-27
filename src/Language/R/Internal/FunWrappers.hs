@@ -1,10 +1,12 @@
 -- |
 -- Copyright: 2013 (C) Amgen, Inc
 --
--- Helpers for passing functions pointers between Haskell and R
+-- Helpers for passing functions pointers between Haskell and R.
+
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TemplateHaskell #-}
-module H.Internal.FunWrappers
+
+module Language.R.Internal.FunWrappers
   ( wrap0
   , wrap1
   , wrap2
@@ -34,7 +36,7 @@ module H.Internal.FunWrappers
   ) where
 
 import           H.Internal.Prelude
-import           H.Internal.TH
+import           Language.R.Internal.FunWrappers.TH
 import           Foreign ( FunPtr )
 
 foreign import ccall "wrapper" wrap0 :: IO (SEXP a) -> IO (FunPtr (IO (SEXP a)))

@@ -25,9 +25,7 @@ library
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Constraints
-                       H.Internal.FunWrappers
                        H.Internal.Literal
-                       H.Internal.TH
                        H.Prelude
                        H.Prelude.Eval
                        H.Prelude.Globals
@@ -37,6 +35,8 @@ library
                        Language.R.Debug
                        Language.R.Ghci
                        Language.R.HExp
+                       Language.R.Internal.FunWrappers
+                       Language.R.Internal.FunWrappers.TH
                        Language.R.Interpreter
                        Language.R.QQ
                        Language.R.Runtime.QQ

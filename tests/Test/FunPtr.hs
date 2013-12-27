@@ -13,7 +13,7 @@ module Test.FunPtr
   where
 
 import H.Prelude
-import qualified H.Internal.FunWrappers as H
+import qualified Language.R.Internal.FunWrappers as R
 import qualified Foreign.R as R
 import qualified Language.R as R (withProtected, r2)
 
@@ -38,7 +38,7 @@ foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
 
 instance Literal (HaveWeak a b) R.ExtPtr where
   mkSEXP (HaveWeak a box) = unsafePerformIO $ do
-      z <- H.wrap1 a
+      z <- R.wrap1 a
       putMVar box =<< mkWeakPtr z Nothing
       fmap castPtr . funPtrToSEXP . castFunPtr $ z
   fromSEXP = error "not now"

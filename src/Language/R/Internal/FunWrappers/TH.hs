@@ -1,6 +1,6 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
-module H.Internal.TH
+module Language.R.Internal.FunWrappers.TH
   ( thWrappers
   , thWrapper
   , thWrapperLiteral
