@@ -1,6 +1,6 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
-module H.Monad
+module Control.Monad.R
   ( R
   , REnv
   , runR

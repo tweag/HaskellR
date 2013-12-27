@@ -2,8 +2,8 @@ module Test.RVal
   ( tests )
   where
 
+import           Control.Monad.R
 import           H.Prelude.RVal
-import           H.Monad
 import qualified Foreign.R as R
 import qualified Language.R.Interpreter as R (initialize, defaultConfig)
 
