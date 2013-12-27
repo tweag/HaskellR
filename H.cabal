@@ -24,7 +24,6 @@ library
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Constraints
-                       H.Debug
                        H.HExp
                        H.Monad
                        H.Internal.FunWrappers
@@ -36,6 +35,7 @@ library
                        H.Prelude.Reexports
                        H.Prelude.RVal
                        Language.R
+                       Language.R.Debug
                        Language.R.Ghci
                        Language.R.Interpreter
                        Language.R.QQ
