@@ -20,7 +20,7 @@ module H.Prelude
   -- * Literals
   , module H.Internal.Literal
   -- * Globals
-  , module H.Prelude.Globals
+  , module Language.R.Globals
   , R
   , MonadR(..)
   , runR
@@ -37,7 +37,7 @@ import qualified Data.Vector.SEXP as Vector
 -- Reexported modules.
 import           H.Prelude.Reexports
 import           H.Prelude.Eval
-import           H.Prelude.Globals
+import           Language.R.Globals
 import           H.Prelude.RVal
 import           H.Internal.Literal
 import Language.R.Interpreter

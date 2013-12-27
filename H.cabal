@@ -25,15 +25,15 @@ library
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Constraints
-                       H.Internal.Literal
                        H.Prelude
                        H.Prelude.Eval
-                       H.Prelude.Globals
                        H.Prelude.Reexports
                        H.Prelude.RVal
                        Language.R
                        Language.R.Debug
+                       H.Internal.Literal
                        Language.R.Ghci
+                       Language.R.Globals
                        Language.R.HExp
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH

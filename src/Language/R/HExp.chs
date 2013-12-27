@@ -19,7 +19,7 @@ module Language.R.HExp
   ) where
 
 import H.Internal.Prelude
-import qualified H.Prelude.Globals as H
+import qualified Language.R.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXPREC)

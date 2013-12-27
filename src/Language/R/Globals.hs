@@ -4,7 +4,7 @@
 -- Global variables used by the R interpreter. They are all constant, but not
 -- referentially transparent (e.g. the global environment varies over time).
 
-module H.Prelude.Globals
+module Language.R.Globals
   ( unboundValue
   , globalEnv
   , nilValue

@@ -19,7 +19,7 @@ module Language.R.Debug
 
 import H.Internal.Prelude
 import Language.R.HExp
-import H.Prelude.Globals as H
+import Language.R.Globals as H
 import Foreign.Storable
 import qualified Foreign.R as R
 import qualified Data.Vector.SEXP as Vector
