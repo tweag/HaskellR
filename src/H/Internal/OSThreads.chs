@@ -7,10 +7,9 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module H.Internal.OSThreads
-  ( osThreadId
-  , OSThreadId
-  )
-  where
+  ( OSThreadId
+  , myOSThreadId
+  ) where
 
 import Foreign.C
 
@@ -20,7 +19,7 @@ import Foreign.C
 
 type OSThreadId = {#type pthread_t #}
 
-{# fun pthread_self as osThreadId {} -> `OSThreadId' id #}
+{# fun pthread_self as myOSThreadId {} -> `OSThreadId' id #}
 
 #else
 
@@ -28,6 +27,6 @@ type OSThreadId = {#type pthread_t #}
 
 type OSThreadId = {#type DWORD #}
 
-{# fun GetCurrentThreadId as osThreadId {} -> `OSThreadId' id #}
+{# fun GetCurrentThreadId as myOSThreadId {} -> `OSThreadId' id #}
 
 #endif

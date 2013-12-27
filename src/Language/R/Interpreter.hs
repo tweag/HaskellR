@@ -166,7 +166,7 @@ startRThread eventLoopThread = do
     chan <- newChan
     mv <- newEmptyMVar
     void $ forkOS $ do
-      osThreadId >>= putMVar mv
+      myOSThreadId >>= putMVar mv
       forever (join $ readChan chan) `finally` killThread eventLoopThread
     rOSThreadId <- takeMVar mv
     newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
@@ -183,7 +183,7 @@ postToRThread =
 -- computation.
 postToRThread_ :: IO () -> IO ()
 postToRThread_ action = do
-    tid <- osThreadId
+    tid <- myOSThreadId
     isBound <- isCurrentThreadBound
     if tid == rOSThreadId && isBound
       then action
