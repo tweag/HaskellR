@@ -16,34 +16,34 @@ source-repository head
   location: git://github.com/ps-labs/H.git
 
 library
-  exposed-modules:     H.Constraints
+  exposed-modules:     Data.Vector.SEXP
+                       Foreign.R
+                       Foreign.R.Embedded
+                       Foreign.R.Error
+                       Foreign.R.Interface
+                       Foreign.R.Parse
+                       Foreign.R.Type
+                       H.Constraints
                        H.Debug
                        H.HExp
                        H.Monad
+                       H.Internal.FunWrappers
+                       H.Internal.Literal
+                       H.Internal.TH
                        H.Prelude
+                       H.Prelude.Eval
                        H.Prelude.Globals
                        H.Prelude.Reexports
-                       H.Prelude.Eval
                        H.Prelude.RVal
-                       H.Internal.Literal
-                       H.Internal.FunWrappers
-                       H.Internal.TH
-                       Data.Vector.SEXP
-                       Foreign.R
-                       Foreign.R.Type
-                       Foreign.R.Embedded
-                       Foreign.R.Interface
-                       Foreign.R.Parse
-                       Foreign.R.Error
                        Language.R
+                       Language.R.Ghci
                        Language.R.Interpreter
                        Language.R.QQ
-                       Language.R.Ghci
                        Language.R.Runtime.QQ
   other-modules:       Control.Concurrent.OSThread
-                       H.Internal.REnv
                        H.Internal.Error
                        H.Internal.Prelude
+                       H.Internal.REnv
   build-depends:       base >= 4.6 && < 4.7
                      , aeson >= 0.6
                      , bytestring >= 0.10
