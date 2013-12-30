@@ -2,10 +2,9 @@ module Test.RVal
   ( tests )
   where
 
-import           Control.Monad.R
-import           H.Prelude.RVal
+import           H.Prelude
 import qualified Foreign.R as R
-import qualified Language.R.Interpreter as R (initialize, defaultConfig)
+import qualified Language.R.Instance as R
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
@@ -21,9 +20,9 @@ tests = testGroup "HVal"
         ((assertBool "RVal was collected" . isInt) =<<) $ do
             -- double initialization, but it's safe
             witness <- R.initialize R.defaultConfig
-            x <- runR witness $ newRVal =<< io (R.allocVector R.Int 1024)
+            x <- R.runR witness $ newRVal =<< io (R.allocVector R.Int 1024)
             R.gc
-            runR witness $ withRVal x (return . R.typeOf)
+            R.runR witness $ withRVal x (return . R.typeOf)
     ]
   where
     isInt (R.Int) = True

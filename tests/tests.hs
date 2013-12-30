@@ -14,8 +14,12 @@ import H.Prelude
 import H.Constraints
 import qualified Language.R.HExp as H
 import qualified Foreign.R as R
-import qualified Language.R.Interpreter as R (initialize, defaultConfig)
-import qualified Language.R as R (withProtected, r2)
+import qualified Language.R.Instance as R
+    ( initialize
+    , defaultConfig )
+import qualified Language.R as R
+    ( withProtected
+    , r2 )
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced

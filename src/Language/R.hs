@@ -33,7 +33,6 @@ module Language.R
   , rInteractive
   , rCStackLimitPtr
   , rInputHandlersPtr
-  , MonadR(..)
   , throwR
   , throwRMessage
   -- * Helpers
@@ -50,7 +49,6 @@ import qualified Foreign.R.Interface as R ( StackSize )
 import Control.Applicative
 import Control.Exception ( bracket, throwIO )
 import Control.Monad ( (<=<), (>=>), when, unless )
-import Control.Monad.IO.Class
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
 import Data.Word
@@ -197,11 +195,6 @@ evalEnv x rho =
 -- | Evaluate expression in global environment.
 eval :: SEXP a -> IO SomeSEXP
 eval x = peek globalEnvPtr >>= evalEnv x
-
-class (Applicative m, MonadIO m) => MonadR m where
-  -- | Prepare unsafe action for execution
-  io :: IO a -> m a
-  io = liftIO
 
 -- | Throw R exception.
 throwR :: R.SEXP R.Env  -- Environment to search error.

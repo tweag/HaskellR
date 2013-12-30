@@ -17,7 +17,6 @@ import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import           Language.R ( parseText, withProtected )
-import           Language.R.Interpreter ( runInRThread )
 import           Control.Exception
 
 -- import Control.Monad ( forM_, (>=>) )

@@ -1,8 +1,10 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module provides a way to run R interpreter in a background thread and
--- interact with it.
+-- Interaction with an instance of R. The interface in this module allows for
+-- instantiating an arbitrary number of concurrent R sessions, even though
+-- currently the R library only allows for one global instance, for forward
+-- compatibility.
 --
 -- This module is intended to be imported qualified.
 
@@ -11,10 +13,16 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE RecursiveDo #-}
 
-module Language.R.Interpreter
-  ( Config(..)
+module Language.R.Instance
+  ( -- * The R monad
+    R
+  , Context
+  , runR
+  , unsafeRunR
+  , context
+  , Config(..)
   , defaultConfig
-  -- * Initialization
+  -- * R instance creation
   , initialize
   , finalize
   -- * helpers
@@ -23,8 +31,8 @@ module Language.R.Interpreter
   , postToRThread
   ) where
 
+import           Control.Monad.R.Class
 import           Control.Concurrent.OSThread
-import           H.Internal.REnv
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Interface as R
@@ -49,7 +57,8 @@ import Control.Concurrent
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception ( bracket, catch, SomeException, throwTo, finally )
-import Control.Monad ( unless, when, zipWithM_, forever, void, join )
+import Control.Monad.Catch ( MonadCatch )
+import Control.Monad.Reader
 
 import Foreign
     ( Ptr
@@ -71,6 +80,32 @@ import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
 
+-- | R execution context (/aka/ an initialization witness).
+data Context = Context
+
+-- | The 'R' monad, for sequencing actions interacting with a single instance of
+-- the R interpreter, much as the 'IO' monad sequences actions interacting with
+-- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
+-- be lifted to 'R' actions.
+newtype R a = R { unR :: ReaderT Context IO a }
+  deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
+
+instance MonadR R
+
+-- | Run an R action from the IO monad, given a reference to an R instance (the
+-- 'Context').
+runR :: Context -> R a -> IO a
+runR ctx m = runInRThread $ runReaderT (unR m) ctx
+
+-- | Run an R action in the global R instance from the IO monad. This action is
+-- unsafe because it provides no static guarantee that the R instance was indeed
+-- initialized. It is a backdoor that should not normally be used.
+unsafeRunR :: R a -> IO a
+unsafeRunR m = runInRThread $ runReaderT (unR m) Context
+
+-- | Ask for the execution context of the monad.
+context :: R Context
+context = R $ ask
 
 -- | Configuration options for R runtime.
 data Config = Config
@@ -103,12 +138,12 @@ newCArray xs k =
       zipWithM_ (pokeElemOff ptr) [0..] xs
       k ptr
 
--- | Initialize the R environment.
+-- | Create a new embedded instance of the R interpreter.
 initialize :: Config
-           -> IO REnv
+           -> IO Context
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    (>> return REnv) $ unless initialized $ mdo
+    (>> return Context) $ unless initialized $ mdo
       -- Grab addresses of R global variables
       LR.pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
@@ -143,7 +178,6 @@ finalize = do
       peek interpreterChanPtr >>= freeStablePtr
       poke isRInitializedPtr 0
     stopRThread
-
 
 -- | Properly acquire the R runtime, initializing R and ensuring that it is
 -- finalized before returning.

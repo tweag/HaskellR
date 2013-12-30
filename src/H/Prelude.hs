@@ -8,9 +8,10 @@
 
 module H.Prelude
   ( module Data.IORef
-  , module Language.R.Interpreter
+  , module Language.R.Instance
   , module Foreign.R.Error
   , print
+  , module Control.Monad.R.Class
   -- * Evaluation constructs
   , module H.Prelude.Eval
   -- * R Value
@@ -21,13 +22,11 @@ module H.Prelude
   , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
-  , R
-  , MonadR(..)
-  , runR
   , withProtected
   ) where
 
 
+import           Control.Monad.R.Class
 import           H.Internal.Prelude
 import qualified Foreign.R as R
 import Language.R.HExp
@@ -40,7 +39,7 @@ import           H.Prelude.Eval
 import           Language.R.Globals
 import           H.Prelude.RVal
 import           Language.R.Literal
-import Language.R.Interpreter
+import Language.R.Instance
 import qualified Language.R ( withProtected )
 import Foreign.R.Error
 

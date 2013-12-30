@@ -5,7 +5,7 @@
 :set -XViewPatterns
 :set -XGADTs
 import Language.R.HExp
-import Control.Monad.R.Interactive as H
+import H.Prelude.Interactive as H
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv
@@ -18,4 +18,4 @@ Language.R.pokeRVariables
     , Foreign.R.rInputHandlers
     )
 :}
-Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig
+Language.R.Instance.initialize Language.R.Instance.defaultConfig

@@ -21,7 +21,6 @@ import           H.Internal.Prelude
 import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
-import           H.Internal.REnv ( REnv(..) )
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
 import           Language.R ( withProtected )
@@ -151,7 +150,7 @@ class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
 instance Literal a la => HFunWrap (R a) (IO (SEXP la)) where
-    hFunWrap a = fmap (mkSEXP $!) (runR REnv a)
+    hFunWrap a = fmap (mkSEXP $!) (unsafeRunR a)
 
 -- | A class for functions that can be converted to functions on SEXPs.
 instance (Literal a la, HFunWrap b wb)

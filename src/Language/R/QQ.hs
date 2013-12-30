@@ -18,14 +18,12 @@ module Language.R.QQ
   ) where
 
 import H.Internal.Prelude
-import H.Internal.REnv
 import qualified H.Prelude as H
 import           Language.R.HExp
 import           Language.R.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import           Language.R (parseText, install, string)
-import           Language.R.Interpreter (runInRThread)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -72,7 +70,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ runR REnv $ H.eval $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRunR $ H.eval $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
