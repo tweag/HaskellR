@@ -86,8 +86,8 @@ type RVariables =
     , Ptr (Ptr ())
     )
 
--- | Stores R variables in a static location. This has the variables addresses
--- accesible after GHCi reloadings.
+-- | Stores R variables in a static location. This makes the variables'
+-- addresses accesible after reloading in GHCi.
 pokeRVariables :: RVariables -> IO ()
 pokeRVariables = poke rVariables <=< newStablePtr
 
