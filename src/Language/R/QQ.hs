@@ -70,7 +70,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRunR $ H.eval $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $ H.eval $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -95,15 +95,11 @@ parseEval txt = do
 
 parse :: String -> Q (R.SEXP R.Expr)
 parse txt = runIO $ do
-      _ <- H.initialize H.defaultConfig
-      runInRThread $ parseText txt False
+    H.initialize H.defaultConfig
+    parseText txt False
 
 parseExp :: String -> Q TH.Exp
-parseExp txt = do
-    sexp <- runIO $ do
-       _ <- H.initialize H.defaultConfig
-       runInRThread $ parseText txt False
-    TH.lift sexp
+parseExp txt = TH.lift =<< parse txt
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
 deriveLift ''SEXPInfo

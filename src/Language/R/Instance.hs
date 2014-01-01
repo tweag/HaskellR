@@ -11,20 +11,18 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
 
 module Language.R.Instance
   ( -- * The R monad
     R
-  , Context
   , runR
-  , unsafeRunR
-  , context
+  , unsafeRToIO
   , Config(..)
   , defaultConfig
   -- * R instance creation
   , initialize
-  , finalize
   -- * helpers
   , with
   , runInRThread
@@ -41,29 +39,35 @@ import           Foreign.C.String
 
 import Control.Applicative
 import Control.Concurrent
-    ( forkOS
+    ( ThreadId
     , forkIO
-    , threadDelay
-    , takeMVar
-    , putMVar
-    , newEmptyMVar
-    , myThreadId
+    , forkOS
     , isCurrentThreadBound
-    , ThreadId
-    , newEmptyMVar
-    , takeMVar
-    , putMVar
     , killThread
+    , myThreadId
+    , threadDelay
+    )
+import Control.Concurrent.MVar
+    ( newEmptyMVar
+    , putMVar
+    , takeMVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
-import Control.Exception ( bracket, catch, SomeException, throwTo, finally )
+import Control.Exception
+    ( SomeException
+    , bracket
+    , bracket_
+    , catch
+    , finally
+    , throwTo
+    )
 import Control.Monad.Catch ( MonadCatch )
 import Control.Monad.Reader
 
 import Foreign
     ( Ptr
-    , allocaArray
     , StablePtr
+    , allocaArray
     , newStablePtr
     , deRefStablePtr
     , freeStablePtr
@@ -80,32 +84,25 @@ import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
 
--- | R execution context (/aka/ an initialization witness).
-data Context = Context
-
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
 -- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
 -- be lifted to 'R' actions.
-newtype R a = R { unR :: ReaderT Context IO a }
+newtype R s a = R { _unR :: IO a }
   deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
 
-instance MonadR R
+instance MonadR (R s)
 
--- | Run an R action from the IO monad, given a reference to an R instance (the
--- 'Context').
-runR :: Context -> R a -> IO a
-runR ctx m = runInRThread $ runReaderT (unR m) ctx
+-- | Initialize a new instance of R, execute actions that interact with the
+-- R instance and then finalize the instance.
+runR :: Config -> (forall s. R s a) -> IO a
+runR config (R m) = bracket_ (initialize config) finalize m
 
 -- | Run an R action in the global R instance from the IO monad. This action is
 -- unsafe because it provides no static guarantee that the R instance was indeed
 -- initialized. It is a backdoor that should not normally be used.
-unsafeRunR :: R a -> IO a
-unsafeRunR m = runInRThread $ runReaderT (unR m) Context
-
--- | Ask for the execution context of the monad.
-context :: R Context
-context = R $ ask
+unsafeRToIO :: R s a -> IO a
+unsafeRToIO (R m) = m
 
 -- | Configuration options for R runtime.
 data Config = Config
@@ -140,10 +137,10 @@ newCArray xs k =
 
 -- | Create a new embedded instance of the R interpreter.
 initialize :: Config
-           -> IO Context
+           -> IO ()
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    (>> return Context) $ unless initialized $ mdo
+    unless initialized $ mdo
       -- Grab addresses of R global variables
       LR.pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg

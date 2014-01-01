@@ -162,7 +162,7 @@ unitTests = testGroup "Unit tests"
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
-            R.withProtected (return $ mkSEXP (\x -> (return $ x+1 :: R Double))) $
+            R.withProtected (return $ mkSEXP (\x -> (return $ x + 1 :: R s Double))) $
               \sf -> R.unSomeSEXP (R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))) $ \s -> R.tryEval s e p
   , Test.Constraints.tests
   , Test.FunPtr.tests

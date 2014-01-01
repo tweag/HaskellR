@@ -19,10 +19,10 @@ tests = testGroup "HVal"
     , testCase "RVal is not collected by R GC" $ do
         ((assertBool "RVal was collected" . isInt) =<<) $ do
             -- double initialization, but it's safe
-            witness <- R.initialize R.defaultConfig
-            x <- R.runR witness $ newRVal =<< io (R.allocVector R.Int 1024)
-            R.gc
-            R.runR witness $ withRVal x (return . R.typeOf)
+            R.runR R.defaultConfig $ do
+              x <- newRVal =<< io (R.allocVector R.Int 1024)
+              io $ R.gc
+              withRVal x (return . R.typeOf)
     ]
   where
     isInt (R.Int) = True
