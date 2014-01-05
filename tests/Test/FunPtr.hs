@@ -51,7 +51,7 @@ tests = testGroup "Tests"
          e <- peek R.globalEnv
          _ <- R.withProtected (return $ mkSEXP hwr) $
            \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
-         replicateM_ 10 (R.allocVector R.Real 1024)
+         replicateM_ 10 (R.allocVector R.Real 1024 :: IO (R.SEXP R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr

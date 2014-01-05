@@ -75,9 +75,8 @@ instance Show (SEXP a) where
            Text.Lazy.fromChunks .
            map (Text.pack . Vector.toString . vector) .
            Vector.toList .
-           vector .
-           R.unsafeCoerce $
-           slang
+           vector $
+           (R.unsafeCoerce slang :: SEXP R.String)
 
   print e = io $ Language.R.withProtected (return e) R.printValue
 

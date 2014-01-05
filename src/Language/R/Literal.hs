@@ -23,11 +23,11 @@ import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
+import           Foreign.R.Type ( IsVector )
 import           Language.R ( withProtected )
 
 import qualified Data.Vector.Storable as V
 
-import Control.Applicative ((<$>))
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
 import Data.Complex (Complex)
@@ -41,81 +41,82 @@ class Literal a b | a -> b where
     mkSEXP :: a -> SEXP b
     fromSEXP :: SEXP c -> a
 
-mkSEXPVector :: Storable a
+mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)
              => SEXPTYPE
-             -> [a]
-             -> SEXP (R.Vector a)
+             -> [SVector.ElemRep a]
+             -> SEXP a
 mkSEXPVector ty xs = unsafePerformIO $
     withProtected (R.allocVector ty $ length xs) $ \vec -> do
-      ptr <- castPtr <$> R.vector (castPtr vec)
+      ptr <- R.vector vec
       zipWithM_ (pokeElemOff ptr) [0..] xs
       return vec
 
-mkProtectedSEXPVector :: SEXPTYPE
+mkProtectedSEXPVector :: IsVector b
+                      => SEXPTYPE
                       -> [SEXP a]
-                      -> SEXP (R.Vector b)
+                      -> SEXP b
 mkProtectedSEXPVector ty xs = unsafePerformIO $ do
     mapM_ (void . R.protect) xs
     z <- withProtected (R.allocVector ty $ length xs) $ \vec -> do
-           ptr <- castPtr <$> R.vector (castPtr vec)
+           ptr <- R.vector vec
            zipWithM_ (pokeElemOff ptr) [0..] xs
            return vec
     R.unprotect (length xs)
     return z
 
-instance Literal [R.Logical] (R.Vector R.Logical) where
+instance Literal [R.Logical] 'R.Logical where
     mkSEXP = mkSEXPVector R.Logical
     fromSEXP (hexp -> Logical (SVector.Vector v)) = V.toList v
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
-instance Literal [Int32] (R.Vector Int32) where
+instance Literal [Int32] R.Int where
     mkSEXP = mkSEXPVector R.Int
     fromSEXP (hexp -> Int (SVector.Vector v)) = V.toList v
     fromSEXP (hexp -> Real (SVector.Vector v)) = map round (V.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
-instance Literal [Double] (R.Vector Double) where
+instance Literal [Double] 'R.Real where
     mkSEXP = mkSEXPVector R.Real
     fromSEXP (hexp -> Real (SVector.Vector v)) = V.toList v
     fromSEXP (hexp -> Int (SVector.Vector v)) = map fromIntegral (V.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
-instance Literal [Complex Double] (R.Vector (Complex Double)) where
+instance Literal [Complex Double] R.Complex where
     mkSEXP = mkSEXPVector R.Complex
     fromSEXP (hexp -> Complex (SVector.Vector v)) = V.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
 -- | Named after eponymous "GHC.Exts" function.
-the :: Literal [a] (R.Vector a) => SEXP (R.Vector a) -> a
+the :: IsVector a => Literal [SVector.ElemRep a] a => SEXP a -> SVector.ElemRep a
 the (fromSEXP -> xs)
   | length xs == 1 = head xs
   | otherwise = failure "the" "Not a singleton vector."
 
-instance Literal R.Logical (R.Vector R.Logical) where
+instance Literal R.Logical 'R.Logical where
     mkSEXP x = mkSEXP [x]
     fromSEXP x@(hexp -> Logical{}) = the x
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
-instance Literal Int32 (R.Vector Int32) where
+instance Literal Int32 R.Int where
     mkSEXP x = mkSEXP [x]
     fromSEXP x@(hexp -> Int{}) = the x
     fromSEXP x@(hexp -> Real{}) = round (the x)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
-instance Literal Double (R.Vector Double) where
+instance Literal Double R.Real where
     mkSEXP x = mkSEXP [x]
     fromSEXP x@(hexp -> Real{}) = the x
     fromSEXP x@(hexp -> Int{})  = fromIntegral (the x)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
-instance Literal (Complex Double) (R.Vector (Complex Double)) where
+instance Literal (Complex Double) R.Complex where
     mkSEXP x = mkSEXP [x]
     fromSEXP x@(hexp -> Complex{}) = the x
     fromSEXP _ =

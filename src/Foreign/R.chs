@@ -70,8 +70,6 @@ module Foreign.R
     -- ** Vectors
   , length
   , trueLength
-  , index
-  , indexExpr
   , char
   , real
   , integer
@@ -80,8 +78,7 @@ module Foreign.R
   , raw
   , string
   , vector
-  , expression
-  , setExprElem
+  , writeVector
     -- * Evaluation
   , eval
   , tryEval
@@ -119,16 +116,14 @@ module Foreign.R
   ) where
 
 import {-# SOURCE #-} Language.R.HExp
-import                H.Constraints
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE)
 
 import Control.Applicative
 import Data.Bits
 import Data.Complex
-import Data.Word (Word8)
 import Data.Int (Int32)
-import Foreign (Ptr, castPtr, Storable(..))
+import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
 #endif
@@ -283,59 +278,52 @@ unsafeCoerce = castPtr
 --------------------------------------------------------------------------------
 
 -- | Length of the vector.
-{#fun LENGTH as length `(In a (R.Vector b :+: R.Expr))' => { unsexp `SEXP a' } -> `Int' #}
-
--- | A vector element.
-{#fun VECTOR_ELT as index { unsexp `SEXP (R.Vector (SEXP a))', `Int'} -> `SEXP a' sexp #}
-
--- | Expression element.
-{# fun VECTOR_ELT as indexExpr { unsexp `SEXP R.Expr', `Int'} -> `SEXP a' sexp #}
-
--- | Set expression element.
-{# fun SET_VECTOR_ELT as setExprElem { unsexp `SEXP R.Expr', `Int', unsexp `SEXP a'} -> `SEXP a' sexp #}
+{#fun LENGTH as length `R.IsVector a' => { unsexp `SEXP a' } -> `Int' #}
 
 -- | Read True Length vector field.
-{#fun TRUELENGTH as trueLength { unsexp `SEXP (R.Vector a)' } -> `CInt' id #}
+{#fun TRUELENGTH as trueLength `R.IsVector a' => { unsexp `SEXP a' } -> `CInt' id #}
 
 -- | Read character vector data
-{#fun R_CHAR as char { unsexp `SEXP (R.Vector Word8)' } -> `CString' id #}
+{#fun R_CHAR as char { unsexp `SEXP R.Char' } -> `CString' id #}
 -- XXX: check if we really need Word8 here, maybe some better handling of
 -- encoding
 
 -- | Read real vector data.
-{#fun REAL as real { unsexp `SEXP (R.Vector Double)' } -> `Ptr Double' castPtr #}
+{#fun REAL as real { unsexp `SEXP R.Real' } -> `Ptr Double' castPtr #}
 
 -- | Read integer vector data.
-{#fun INTEGER as integer { unsexp `SEXP (R.Vector Int32)' } -> `Ptr Int32' castPtr #}
+{#fun INTEGER as integer { unsexp `SEXP R.Int' } -> `Ptr Int32' castPtr #}
 
 -- | Read raw data.
-{#fun RAW as raw { unsexp `SEXP (R.Vector Word8)' } -> `Ptr CChar' castPtr #}
+{#fun RAW as raw { unsexp `SEXP R.Raw' } -> `Ptr CChar' castPtr #}
+
+-- XXX Workaround c2hs syntax limitations.
+type Logical = 'R.Logical
 
 -- | Read logical vector data.
-{#fun LOGICAL as logical { unsexp `SEXP (R.Vector R.Logical)' } -> `Ptr R.Logical' castPtr #}
+{#fun LOGICAL as logical { unsexp `SEXP Logical' } -> `Ptr R.Logical' castPtr #}
 
 -- | Read complex vector data.
-{#fun COMPLEX as complex { unsexp `SEXP (R.Vector (Complex Double))' }
+{#fun COMPLEX as complex { unsexp `SEXP R.Complex' }
       -> `Ptr (Complex Double)' castPtr #}
 
 -- | Read string vector data.
-{#fun STRING_PTR as string { unsexp `SEXP (R.Vector (SEXP (R.Vector Word8)))'}
-      -> `Ptr (SEXP (R.Vector Word8))' castPtr #}
+{#fun STRING_PTR as string { unsexp `SEXP R.String'}
+      -> `Ptr (SEXP R.Char)' castPtr #}
 
 -- | Read any SEXP vector data.
-{#fun INNER_VECTOR as vector { unsexp `SEXP (R.Vector (SEXP R.Any))'}
-      -> `Ptr (SEXP R.Any)' castPtr #}
+vector :: SEXP a -> IO (Ptr b)
+vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 
--- | Read expression vector data
-{#fun INNER_VECTOR as expression { unsexp `SEXP R.Expr' }
-      -> `Ptr (SEXP R.Expr)' castPtr #}
+{# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a' => { unsexp `SEXP a', `Int', unsexp `SEXP b'}
+       -> `SEXP b' sexp #}
 
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-{#fun PRINTNAME as symbolPrintName { unsexp `SEXP R.Symbol' } -> `SEXP (R.Vector Word8)' sexp #}
+{#fun PRINTNAME as symbolPrintName { unsexp `SEXP R.Symbol' } -> `SEXP R.Char' sexp #}
 
 -- | Read value from symbol.
 {#fun SYMVALUE as symbolValue { unsexp `SEXP R.Symbol' } -> `SEXP a' sexp #}
@@ -352,13 +340,12 @@ unsafeCoerce = castPtr
 --------------------------------------------------------------------------------
 
 -- | Create a String value inside R runtime.
-{#fun Rf_mkString as mkString { id `CString' } -> `SEXP (R.String)' sexp #}
+{#fun Rf_mkString as mkString { id `CString' } -> `SEXP R.String' sexp #}
 
-
-{#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP (R.Vector Word8)' sexp #}
+{#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP R.Char' sexp #}
 
 -- | Create Character value with specified encoding
-{#fun Rf_mkCharCE as mkCharCE { id `CString', cIntFromEnum `CEType' } -> `SEXP (R.Vector Word8)' sexp #}
+{#fun Rf_mkCharCE as mkCharCE { id `CString', cIntFromEnum `CEType' } -> `SEXP R.Char' sexp #}
 
 -- | Probe the symbol table
 --
@@ -373,7 +360,7 @@ unsafeCoerce = castPtr
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
 
 -- | Allocate Vector.
-{#fun Rf_allocVector as allocVector { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP (R.Vector a)' sexp #}
+{#fun Rf_allocVector as allocVector `R.IsVector a' => { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP a' sexp #}
 
 {#fun Rf_cons as cons { unsexp `SEXP a', unsexp `SEXP b' } -> `SEXP R.List' sexp #}
 

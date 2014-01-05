@@ -10,19 +10,21 @@
 -- 'SEXPTYPE' is nearly but not quite a true enumeration and c2hs has trouble
 -- dealing with that.
 
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Foreign.R.Type where
 
 #include <Rinternals.h>
 
+import H.Constraints
 import H.Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
 import qualified Language.Haskell.TH.Lib as Hs
 
-import Data.Function (on)
 import Foreign (castPtr)
 import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
@@ -60,7 +62,7 @@ data SEXPTYPE
     | String
     | DotDotDot
     | Any
-    | forall a. Vector a
+    | Vector
     | Expr
     | Bytecode
     | ExtPtr
@@ -70,9 +72,7 @@ data SEXPTYPE
     | New
     | Free
     | Fun
-
-instance Eq SEXPTYPE where
-  (==) = (==) `on` fromEnum
+    deriving (Eq, Show)
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -92,7 +92,7 @@ instance Enum SEXPTYPE where
   fromEnum String     = #const STRSXP
   fromEnum DotDotDot  = #const DOTSXP
   fromEnum Any        = #const ANYSXP
-  fromEnum (Vector _) = #const VECSXP
+  fromEnum Vector     = #const VECSXP
   fromEnum Expr       = #const EXPRSXP
   fromEnum Bytecode   = #const BCODESXP
   fromEnum ExtPtr     = #const EXTPTRSXP
@@ -120,7 +120,7 @@ instance Enum SEXPTYPE where
   toEnum (#const STRSXP)     = String
   toEnum (#const DOTSXP)     = DotDotDot
   toEnum (#const ANYSXP)     = Any
-  toEnum (#const VECSXP)     = (Vector Any)
+  toEnum (#const VECSXP)     = Vector
   toEnum (#const EXPRSXP)    = Expr
   toEnum (#const BCODESXP)   = Bytecode
   toEnum (#const EXTPTRSXP)  = ExtPtr
@@ -132,37 +132,8 @@ instance Enum SEXPTYPE where
   toEnum (#const FUNSXP)     = Fun
   toEnum _                   = violation "toEnum" "Unknown R type."
 
-instance Show SEXPTYPE where
-  show Nil        = "Nil"
-  show Symbol     = "Symbol"
-  show List       = "List"
-  show Closure    = "Closure"
-  show Env        = "Env"
-  show Promise    = "Promise"
-  show Lang       = "Lang"
-  show Special    = "Special"
-  show Builtin    = "Builin"
-  show Char       = "Char"
-  show Logical    = "Logical"
-  show Int        = "Int"
-  show Real       = "Real"
-  show Complex    = "Complex"
-  show String     = "String"
-  show DotDotDot  = "DotDotDot"
-  show Any        = "Any"
-  show (Vector _) = "Vector"
-  show Expr       = "Expr"
-  show Bytecode   = "Bytecode"
-  show ExtPtr     = "ExtPtr"
-  show WeakRef    = "WeakRef"
-  show Raw        = "Raw"
-  show S4         = "S4"
-  show New        = "New"
-  show Free       = "Free"
-  show Fun        = "Fun"
-
 instance Hs.Lift SEXPTYPE where
-    lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
+  lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
 
 -- | R uses three-valued logic.
 data Logical = False
@@ -190,3 +161,24 @@ instance Storable Logical where
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
 type PairList = List
+
+#let VECTOR_FORMS = " 'Char \
+                  :+: 'Logical \
+                  :+: 'Int \
+                  :+: 'Real \
+                  :+: 'Complex \
+                  :+: 'String \
+                  :+: 'Vector \
+                  :+: 'Expr \
+                  :+: 'WeakRef \
+                  :+: 'Raw"
+
+-- | Constraint synonym grouping all vector forms into one class. @IsVector a@
+-- holds iff R's @is.vector()@ returns @TRUE@.
+type IsVector (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS}
+
+-- | Non-atomic vector forms. See @src/main/memory.c:SET_VECTOR_ELT@ in R source.
+type IsGenericVector (a :: SEXPTYPE) = a :∈ Vector :+: Expr :+: WeakRef
+
+-- | @IsList a@ holds iff R's @is.vector()@ returns @TRUE@.
+type IsList (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS} :+: List

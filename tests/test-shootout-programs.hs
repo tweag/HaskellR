@@ -24,6 +24,7 @@ runCompileQQTest fp = do
     qqProgram = unlines $
       [ "-- Copyright: (C) 2013 Amgen, Inc."
       , ""
+      , "{-# LANGUAGE DataKinds #-}"
       , "{-# LANGUAGE TemplateHaskell #-}"
       , "import H.Prelude"
       , "import Language.R.QQ"

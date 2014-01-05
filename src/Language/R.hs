@@ -51,7 +51,6 @@ import Control.Exception ( bracket, throwIO )
 import Control.Monad ( (<=<), (>=>), when, unless )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
-import Data.Word
 import Foreign
     ( alloca
     , peek
@@ -117,7 +116,8 @@ parseEval txt = useAsCString txt $ \ctxt ->
         rc <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum rc) $
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
-        eval =<< peek =<< R.expression exprs
+        SomeSEXP expr <- peek =<< R.vector exprs
+        eval expr
 
 -- $helpers
 -- This section contains a bunch of functions that are used internally on
@@ -179,10 +179,10 @@ install str = withCString str R.install
 symbol :: String -> IO (SEXP R.Symbol)
 symbol str = withCString str $ \cstr -> R.install cstr
 
-string :: String -> IO (SEXP (R.Vector Word8))
+string :: String -> IO (SEXP R.Char)
 string str = withCString str R.mkChar
 
-strings :: String -> IO (SEXP (R.String))
+strings :: String -> IO (SEXP R.String)
 strings str = withCString str R.mkString
 
 -- | Evaluate expression in given environment.

@@ -120,36 +120,40 @@ instance TH.Lift Word8 where
 instance TH.Lift Double where
     lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
 
-instance TH.Lift (Vector.Vector Word8) where
+instance TH.Lift (Vector.Vector R.Char Word8) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
     lift v = let xs :: String
                  xs = map (toEnum . fromIntegral) $ Vector.toList v
              in [| vector $ unsafePerformIO $ string xs |]
 
-instance TH.Lift (Vector.Vector R.Logical) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Logical xs |]
-
-instance TH.Lift (Vector.Vector Int32) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Int xs |]
-
-instance TH.Lift (Vector.Vector Double) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Real xs |]
-
-instance TH.Lift (Vector.Vector (Complex Double)) where
-    lift v = let xs = Vector.toList v in [| vector $ mkSEXPVector R.Complex xs |]
-
--- TODO Special case for R.Expr.
-instance TH.Lift (Vector.Vector (SEXP (R.Vector Word8))) where
-    lift v = let xs = Vector.toList v in [| vector $ mkProtectedSEXPVector R.String xs |]
-
-instance TH.Lift (Vector.Vector SomeSEXP) where
-    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
-              in [| vector $ mkProtectedSEXPVector (R.Vector R.Any) xs |]
-
-instance TH.Lift (Vector.Vector (SEXP a)) where
+instance TH.Lift (Vector.Vector 'R.Logical R.Logical) where
     lift v = let xs = Vector.toList v
-              in [| vector $ mkProtectedSEXPVector (R.Vector R.Any) xs |]
+             in [| vector (mkSEXPVector R.Logical xs :: SEXP 'R.Logical) |]
+
+instance TH.Lift (Vector.Vector R.Int Int32) where
+    lift v = let xs = Vector.toList v
+             in [| vector (mkSEXPVector R.Int xs :: SEXP R.Int) |]
+
+instance TH.Lift (Vector.Vector R.Real Double) where
+    lift v = let xs = Vector.toList v
+             in [| vector (mkSEXPVector R.Real xs :: SEXP R.Real) |]
+
+instance TH.Lift (Vector.Vector R.Complex (Complex Double)) where
+    lift v = let xs = Vector.toList v
+             in [| vector (mkSEXPVector R.Complex xs :: SEXP R.Complex) |]
+
+instance TH.Lift (Vector.Vector R.String (SEXP R.Char)) where
+    lift v = let xs = Vector.toList v
+             in [| vector $ mkProtectedSEXPVector R.String xs |]
+
+instance TH.Lift (Vector.Vector R.Vector SomeSEXP) where
+    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
+             in [| vector $ mkProtectedSEXPVector R.Vector xs |]
+
+instance TH.Lift (Vector.Vector R.Expr SomeSEXP) where
+    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
+             in [| vector $ mkProtectedSEXPVector R.Expr xs |]
 
 -- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
 -- with 'H.ExtPtr' when this is in fact not possible.

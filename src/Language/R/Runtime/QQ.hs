@@ -91,7 +91,7 @@ attachHs h@(hexp -> Expr _ v) =
           s = RuntimeSEXP (R.unsafeCoerce h)
       in case haskellName t of
            Just hname ->
-             [\e -> [| io (R.setExprElem (unRuntimeSEXP s) $(lift i) (H.mkSEXP $(varE hname))) >> $e |]]
+             [\e -> [| io (R.writeVector (unRuntimeSEXP s :: SEXP R.Expr) $(lift i) (H.mkSEXP $(varE hname))) >> $e |]]
            Nothing ->
              (\e -> [| io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> io (R.unprotect 1) >> return x|]):tl)
                 $ zip [(0::Int)..] (Vector.toList v))
