@@ -26,6 +26,8 @@ module Foreign.R
   , CEType(..)
     -- * Casts and coercions
     -- $cast-coerce
+  , cast
+  , asTypeOf
   , unsafeCoerce
     -- * Node creation
   , allocSEXP
@@ -38,7 +40,6 @@ module Foreign.R
     -- * Node attributes
   , typeOf
   , setTypeOf
-  , asTypeOf
   , setAttribute
   , getAttribute
     -- * Node accessor functions
@@ -232,13 +233,9 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 -- Coercions have no runtime cost, but are completely unsafe. Use with caution,
 -- only when you know that a 'SEXP' is of the target type.
 
--- | Unsafe coercion from one form to another. This is unsafe, in the sense that
--- using this function improperly could cause code to crash in unpredictable
--- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
--- any dynamic check at runtime.
-unsafeCoerce :: SEXP a -> SEXP b
-unsafeCoerce = castPtr
-
+-- | Cast the type of a 'SEXP' into another type. This function is partial: at
+-- runtime, an error is raised if the source form tag does not match the target
+-- form tag.
 cast :: SEXPTYPE -> SEXP a -> SEXP b
 cast ty s
   | ty == typeOf s = unsafeCoerce s
@@ -247,6 +244,13 @@ cast ty s
 -- | Cast form of first argument to that of the second argument.
 asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
 asTypeOf (SomeSEXP s) s' = typeOf s' `cast` s
+
+-- | Unsafe coercion from one form to another. This is unsafe, in the sense that
+-- using this function improperly could cause code to crash in unpredictable
+-- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
+-- any dynamic check at runtime.
+unsafeCoerce :: SEXP a -> SEXP b
+unsafeCoerce = castPtr
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
