@@ -327,7 +327,7 @@ unsafeCoerce = castPtr
       -> `Ptr (SEXP R.Any)' castPtr #}
 
 -- | Read expression vector data
-{#fun INNER_VECTOR as expression { unsexp `SEXP (R.Vector (SEXP R.Expr))'}
+{#fun INNER_VECTOR as expression { unsexp `SEXP R.Expr' }
       -> `Ptr (SEXP R.Expr)' castPtr #}
 
 --------------------------------------------------------------------------------

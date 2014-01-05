@@ -40,7 +40,7 @@ module Language.R
   ) where
 
 
-import Foreign.R (SEXP, SomeSEXP)
+import Foreign.R (SEXP, SomeSEXP(..))
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
@@ -108,16 +108,16 @@ peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
 
 -- | Parse and then evaluate expression.
-parseEval :: ByteString -> IO (SEXP R.Expr)
+parseEval :: ByteString -> IO SomeSEXP
 parseEval txt = useAsCString txt $ \ctxt ->
   withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
       nil <- peek nilValuePtr
-      withProtected (R.parseVector rtxt 1 status nil) $ \ex -> do
-        e <- fromIntegral <$> peek status
-        unless (R.PARSE_OK == toEnum e) $
+      withProtected (R.parseVector rtxt 1 status nil) $ \exprs -> do
+        rc <- fromIntegral <$> peek status
+        unless (R.PARSE_OK == toEnum rc) $
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
-        R.indexExpr ex 0 >>= eval >>= \(R.SomeSEXP s) -> return (R.unsafeCoerce s)
+        eval =<< peek =<< R.expression exprs
 
 -- $helpers
 -- This section contains a bunch of functions that are used internally on
@@ -165,7 +165,10 @@ parseFile fl f = do
           R.SomeSEXP s -> return (R.unsafeCoerce s) `withProtected` f
 
 parseText :: String -> Bool -> IO (R.SEXP R.Expr)
-parseText txt b = parseEval (C8.pack $ "parse(text="++show txt++",keep.source="++keep++")")
+parseText txt b = do
+    SomeSEXP s <- parseEval $ C8.pack $
+                  "parse(text=" ++ show txt ++ ", keep.source=" ++ keep ++ ")"
+    return $ R.Expr `R.cast` s
   where
     keep | b         = "TRUE"
          | otherwise = "FALSE"
