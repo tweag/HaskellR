@@ -366,7 +366,8 @@ unhexp = unsafePerformIO . unhexpIO
 -- the safeness of memory allocation.
 unhexpIO :: HExp a -> IO (SEXP a)
 unhexpIO   Nil         = return H.nilValue
-unhexpIO s@(Symbol{})  = withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
+unhexpIO s@(Symbol{})  =
+    withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
 unhexpIO (List c md mt) = do
     void $ R.protect c
     void $ R.protect d
@@ -378,20 +379,24 @@ unhexpIO (List c md mt) = do
   where
     d = maybe (R.unsafeCoerce H.nilValue) id md
     t = maybe (R.unsafeCoerce H.nilValue) id mt
-unhexpIO (Lang a mb)    = do
+unhexpIO (Lang a mb)   = do
+    let b = maybe (R.unsafeCoerce H.nilValue) id mb
     void $ R.protect a
     void $ R.protect b
     z <- R.cons a b
     _ <- R.setTypeOf R.Lang z
     R.unprotect 2
     return z
-  where
-    b = maybe (R.unsafeCoerce H.nilValue) id mb
-unhexpIO s@(Env{})     = withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
-unhexpIO s@(Closure{}) = withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
-unhexpIO s@(Special{}) = withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
-unhexpIO s@(Builtin{}) = withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
-unhexpIO s@(Promise{}) = withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
+unhexpIO s@(Env{})     =
+    withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
+unhexpIO s@(Closure{}) =
+    withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
+unhexpIO s@(Special{}) =
+    withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
+unhexpIO s@(Builtin{}) =
+    withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
+unhexpIO s@(Promise{}) =
+    withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
 unhexpIO  (Bytecode{}) = unimplemented "unhexp"
 unhexpIO (Real vt)     = return $ Vector.toSEXP vt
 unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
