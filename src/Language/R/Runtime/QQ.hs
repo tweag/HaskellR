@@ -1,7 +1,13 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- Quasiquoting for R specialized for GHCi. This quasiquoter is functionally
+-- equivalent to that defined in "Language.R.QQ", but exploits the fact that
+-- Template Haskell runs in the same address space as the runtime R instance to
+-- produce simpler (and marginally more efficient) expansions of quasiquotes.
+--
 -- This module is intended to be imported qualified.
+
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}

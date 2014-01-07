@@ -1,7 +1,8 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Bindings for @<R/Rembedded.h>@.
+-- Bindings for @<R/Rembedded.h>@, containing entry points for running an
+-- instance of R embedded within another program.
 
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
 

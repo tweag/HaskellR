@@ -6,6 +6,12 @@
 -- currently the R library only allows for one global instance, for forward
 -- compatibility.
 --
+-- The 'R' monad defined here serves to give static guarantees that an instance
+-- is only ever used after it has been initialized and before it is finalized.
+-- Doing otherwise should result in a type error. This is done in the same way
+-- that the 'Control.Monad.ST' monad encapsulates side effects: by assigning
+-- a rank-2 type to the only run function for the monad.
+--
 -- This module is intended to be imported qualified.
 
 {-# LANGUAGE CPP #-}
@@ -99,8 +105,9 @@ runR :: Config -> (forall s. R s a) -> IO a
 runR config (R m) = bracket_ (initialize config) finalize m
 
 -- | Run an R action in the global R instance from the IO monad. This action is
--- unsafe because it provides no static guarantee that the R instance was indeed
--- initialized. It is a backdoor that should not normally be used.
+-- unsafe in the sense that use of it bypasses any static guarantees provided by
+-- the R monad, in particular that the R instance was indeed initialized and has
+-- not yet been finalized. It is a backdoor that should not normally be used.
 unsafeRToIO :: R s a -> IO a
 unsafeRToIO (R m) = m
 
@@ -163,11 +170,11 @@ initialize Config{..} = do
         let argc = length argv
         newCArray argv $ R.initEmbeddedR argc
         poke LR.rInteractive 0
-        -- setting the stack limit seems to only be required in Windows
+        -- XXX setting the stack limit seems to only be required in Windows
         poke LR.rCStackLimitPtr (-1)
         poke isRInitializedPtr 1
 
--- | Finalize R environment.
+-- | Finalize an R instance.
 finalize :: IO ()
 finalize = do
     runInRThread $ do

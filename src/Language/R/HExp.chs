@@ -1,7 +1,17 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module is intended to be imported qualified.
+-- Provides a /shallow/ view of a 'SEXP' R value as an algebraic datatype. This
+-- is useful to define functions over R values in Haskell with pattern matching.
+-- The view is said to be 'shallow' because it only unfolds the head of the
+-- R value into an algebraic datatype. In this way, functions producing views
+-- can be written non-recursively, hence inlined at all call sites and
+-- simplified away. When produced by a view function in a pattern match,
+-- allocation of the view can be compiled away and hence producing a view can be
+-- done at no runtime cost.
+--
+-- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
+-- into 'HExp' views.
 
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MagicHash #-}
@@ -373,7 +383,7 @@ unhexpIO (List c md mt) = do
     void $ R.protect t
     z <- R.cons c d
     {# set SEXP->u.listsxp.tagval#} z (R.unsexp t)
-    R.unprotect 3 -- $ maybe 2 (const 3) mt
+    R.unprotect 3 -- - $ maybe 2 (const 3) mt
     return z
   where
     d = maybe (R.unsafeCoerce H.nilValue) id md

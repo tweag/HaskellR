@@ -1,7 +1,7 @@
 -- |
 -- Copyright: 2013 (C) Amgen, Inc
 --
--- Wrappers for low level R functions. In this module, 'SEXP' values have to be
+-- Wrappers for low-level R functions. In this module, 'SEXP' values have to be
 -- coerced unsafely because this module is lower in the abstraction stack than
 -- "H.HExpr", so we can't use the type refinement facilities provided there.
 
@@ -33,12 +33,12 @@ module Language.R
   , rInteractive
   , rCStackLimitPtr
   , rInputHandlersPtr
+  -- * Exceptions
   , throwR
   , throwRMessage
   -- * Helpers
   -- $helpers
   ) where
-
 
 import Foreign.R (SEXP, SomeSEXP(..))
 import qualified Foreign.R as R
@@ -124,18 +124,16 @@ parseEval txt = useAsCString txt $ \ctxt ->
 -- a low level and wraps are simple that are too cheap to run under high
 -- level interface.
 
--- | Call 1-arity R function by name in a global environment.
+-- | Call a pure unary R function of the given name in the global environment.
 --
--- This function is done mainly for testing purposes, and execution of R
--- code in case that we can't construct symbol by other methods.
+-- This function is here mainly for testing purposes.
 r1 :: ByteString -> SEXP a -> SomeSEXP
 r1 fn a =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
         withProtected (R.lang2 f a) eval
 
--- | Call 2-arity R function, function will be found in runtime, using
--- global environment. See 'r1' for additional comments.
+-- | Call a pure binary R function. See 'r1' for additional comments.
 r2 :: ByteString -> SEXP a -> SEXP b -> SomeSEXP
 r2 fn a b =
     unsafePerformIO $
@@ -143,7 +141,9 @@ r2 fn a b =
       withProtected (R.lang3 f a b) eval
 
 -- | Perform an action with resource while protecting it from the garbage
--- collection.
+-- collection. This function is a safer alternative to 'R.protect' and
+-- 'R.unprotect', guaranteeing that a protected resource gets unprotected
+-- irrespective of the control flow, much like 'Control.Exception.bracket_'.
 withProtected :: IO (SEXP a)      -- Action to acquire resource
               -> (SEXP a -> IO b) -- Action
               -> IO b
@@ -164,7 +164,10 @@ parseFile fl f = do
         case r1 (C8.pack "parse") rfl of
           R.SomeSEXP s -> return (R.unsafeCoerce s) `withProtected` f
 
-parseText :: String -> Bool -> IO (R.SEXP R.Expr)
+parseText :: String                               -- ^ Text to parse
+          -> Bool                                 -- ^ Whether to annotate the
+                                                  -- AST with source locations.
+          -> IO (R.SEXP R.Expr)
 parseText txt b = do
     s <- parseEval $ C8.pack $
          "parse(text=" ++ show txt ++ ", keep.source=" ++ keep ++ ")"
@@ -173,6 +176,7 @@ parseText txt b = do
     keep | b         = "TRUE"
          | otherwise = "FALSE"
 
+-- | Internalize a symbol name.
 install :: String -> IO (SEXP R.Symbol)
 install str = withCString str R.install
 
@@ -182,10 +186,11 @@ symbol str = withCString str $ \cstr -> R.install cstr
 string :: String -> IO (SEXP R.Char)
 string str = withCString str R.mkChar
 
+-- | Create an R string vector from a Haskell string.
 strings :: String -> IO (SEXP R.String)
 strings str = withCString str R.mkString
 
--- | Evaluate expression in given environment.
+-- | Evaluate an expression in the given environment.
 evalEnv :: SEXP a -> SEXP R.Env -> IO SomeSEXP
 evalEnv x rho =
     alloca $ \p -> do
@@ -195,16 +200,16 @@ evalEnv x rho =
           throwR rho
         return v
 
--- | Evaluate expression in global environment.
+-- | Evaluate an expression in the global environment.
 eval :: SEXP a -> IO SomeSEXP
 eval x = peek globalEnvPtr >>= evalEnv x
 
--- | Throw R exception.
-throwR :: R.SEXP R.Env  -- Environment to search error.
+-- | Throw an R error as an exception.
+throwR :: R.SEXP R.Env                         -- ^ Environment in which to find error.
        -> IO a
-throwR x = getErrMsg x >>= throwIO . R.RError
+throwR env = getErrMsg env >>= throwIO . R.RError
 
--- | Throw R exception with specified message.
+-- | Throw an R exception with specified message.
 throwRMessage :: String -> IO a
 throwRMessage = throwIO . R.RError
 

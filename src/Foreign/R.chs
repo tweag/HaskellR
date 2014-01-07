@@ -1,6 +1,18 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- Low-level bindings to R core datatypes and functions. Nearly all structures
+-- allocated internally in R are instances of a 'SEXPREC'. A pointer to
+-- a 'SEXPREC' is called a 'SEXP'.
+--
+-- To allow for precise typing of bindings to primitive R functions, we index
+-- 'SEXP's by 'SEXPTYPE', which classifies the /form/ of a 'SEXP' (see
+-- "Foreign.R.Type"). A function accepting 'SEXP' arguments of any type should
+-- leave the type index uninstantiated. A function returning a 'SEXP' result of
+-- unknown type should use 'SomeSEXP'. (More precisely, unknown types in
+-- /negative/ position should be /universally/ quantified and unknown types in
+-- /positive/ position should be /existentially/ quantified).
+--
 -- This module is intended to be imported qualified.
 
 {-# LANGUAGE CPP #-}
@@ -17,13 +29,8 @@ module Foreign.R
   , SEXPTYPE(..)
   , R.Logical(..)
   , SEXP
-  , SEXPREC
-  , SEXP0
-  , sexp
-  , unsexp
   , SomeSEXP(..)
   , unSomeSEXP
-  , CEType(..)
     -- * Casts and coercions
     -- $cast-coerce
   , cast
@@ -36,6 +43,7 @@ module Foreign.R
   , install
   , mkString
   , mkChar
+  , CEType(..)
   , mkCharCE
     -- * Node attributes
   , typeOf
@@ -113,6 +121,14 @@ module Foreign.R
   , pokeInfo
   , mark
   , named
+  -- * Internal types and functions
+  --
+  -- | Should not be used in user code. These exports are only needed for
+  -- binding generation tools.
+  , SEXPREC
+  , SEXP0
+  , sexp
+  , unsexp
   ) where
 
 import {-# SOURCE #-} Language.R.HExp
@@ -153,9 +169,9 @@ const char *(R_CHAR)(SEXP x);
 type SEXP (a :: SEXPTYPE) = Ptr (HExp a)
 data SEXPREC
 
--- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp' are purely an
--- artifact of c2hs (which doesn't support indexing a Ptr with an arbitrary type
--- in a #pointer hook).
+-- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
+-- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
+-- arbitrary type in a @#pointer@ hook).
 {#pointer SEXP as SEXP0 -> SEXPREC #}
 
 sexp :: SEXP0 -> SEXP a
@@ -368,7 +384,7 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 {#fun Rf_allocSExp as allocSEXP { cUIntFromSingEnum `SSEXPTYPE a' }
       -> `SEXP a' sexp #}
 
--- | Allocate List.
+-- | Allocate a pairlist of 'SEXP's, chained together.
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
 
 -- | Allocate Vector.
@@ -376,10 +392,13 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
       => { cUIntFromSingEnum `SSEXPTYPE a',`Int' }
       -> `SEXP a' sexp #}
 
+-- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
 {#fun Rf_cons as cons { unsexp `SEXP a', unsexp `SEXP b' } -> `SEXP R.List' sexp #}
 
+-- | Print a string representation of a 'SEXP' on the console.
 {#fun Rf_PrintValue as printValue { unsexp `SEXP a'} -> `()' #}
 
+-- | Function for processing GUI and other events in the internal event loop.
 {#fun R_ProcessEvents as processEvents {} -> `()' #}
 
 #ifdef H_ARCH_UNIX
@@ -390,10 +409,21 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- Garbage collection                                                         --
 --------------------------------------------------------------------------------
 
--- | Protect variable from the garbage collector.
+-- | Protect a 'SEXP' from being garbage collected by R. It is in particular
+-- necessary to do so for objects that are not yet pointed by any other object,
+-- e.g. when constructing a tree bottom-up rather than top-down.
+--
+-- To avoid unbalancing calls to 'protect' and 'unprotect', do not use these
+-- functions directly but use 'Language.R.withProtected' instead.
 {#fun Rf_protect as protect { unsexp `SEXP a'} -> `SEXP a' sexp #}
+
+-- | @unprotect n@ unprotects the last @n@ objects that were protected.
 {#fun Rf_unprotect as unprotect { `Int' } -> `()' #}
+
+-- | Unprotect a specific object, referred to by pointer.
 {#fun Rf_unprotect_ptr as unprotectPtr { unsexp `SEXP a' } -> `()' #}
+
+-- | Invoke an R garbage collector sweep.
 {#fun R_gc as gc { } -> `()' #}
 
 --------------------------------------------------------------------------------
@@ -412,10 +442,10 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 {#fun R_tryEvalSilent as  tryEvalSilent { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'}
       -> `SomeSEXP' somesexp #}
 
--- | Construct 1 arity expression.
+-- | Construct a nullary function call.
 {#fun Rf_lang1 as lang1 { unsexp `SEXP a'} -> `SEXP R.Lang' sexp #}
 
--- | Construct 2 arity expression.
+-- | Construct unary function call.
 {#fun Rf_lang2 as lang2 { unsexp `SEXP a', unsexp `SEXP b'} -> `SEXP R.Lang' sexp #}
 
 -- | Construct a binary function call.
@@ -434,7 +464,7 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
 
--- | Interacive console swith, to set it one should use.
+-- | Interacive console switch, to set it one should use.
 -- @
 -- poke rInteractive 1
 -- @
@@ -481,7 +511,7 @@ data SEXPInfo = SEXPInfo
       , infoGcCls :: Int         -- ^ GC Class of node.
       } deriving ( Show )
 
--- | Read header information for given SEXP structure.
+-- | Extract the header from the given 'SEXP'.
 peekInfo :: SEXP a -> IO SEXPInfo
 peekInfo ts =
     SEXPInfo
@@ -498,6 +528,7 @@ peekInfo ts =
   where
     s = unsexp ts
 
+-- | Write a new header.
 pokeInfo :: SEXP a -> SEXPInfo -> IO ()
 pokeInfo (unsexp -> s) i = do
     {#set SEXP->sxpinfo.type  #} s (fromIntegral.fromEnum $ infoType i)
@@ -511,7 +542,7 @@ pokeInfo (unsexp -> s) i = do
     {#set SEXP->sxpinfo.gcgen #} s (fromIntegral $ infoGcGen i)
     {#set SEXP->sxpinfo.gccls #} s (fromIntegral $ infoGcCls i)
 
--- | Set GC mark.
+-- | Set the GC mark.
 mark :: Bool -> SEXP a -> IO ()
 mark b ts = {#set SEXP->sxpinfo.mark #} (unsexp ts) (if b then 1 else 0)
 
@@ -522,9 +553,11 @@ named v ts = {#set SEXP->sxpinfo.named #} (unsexp ts) (fromIntegral v)
 -- Attribute header                                                          --
 -------------------------------------------------------------------------------
 
+-- | Get the attribute list from the given object.
 getAttribute :: SEXP a -> IO (SEXP b)
 getAttribute s = castPtr <$> ({#get SEXP->attrib #} (unsexp s))
 
+-- | Set the attribute list.
 setAttribute :: SEXP a -> SEXP b -> IO ()
 setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
 
@@ -532,4 +565,5 @@ setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
 -- Encoding                                                                  --
 -------------------------------------------------------------------------------
 
+-- | Content encoding.
 {#enum cetype_t as CEType {} deriving (Eq, Show) #}

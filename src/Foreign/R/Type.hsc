@@ -1,3 +1,9 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
@@ -9,12 +15,13 @@
 -- c2hs for discharging the boilerplate around 'SEXPTYPE'. This is because
 -- 'SEXPTYPE' is nearly but not quite a true enumeration and c2hs has trouble
 -- dealing with that.
-
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+--
+-- This module also defines a singleton version of 'SEXPTYPE', called
+-- 'SSEXPTYPE'. This is actually a family of types, one for each possible
+-- 'SEXPTYPE'. Singleton types are a way of emulating dependent types in
+-- a language that does not have true dependent type. They are useful in
+-- functions whose result type depends on the value of one of its arguments. See
+-- e.g. 'Foreign.R.allocVector'.
 
 module Foreign.R.Type where
 
@@ -33,9 +40,9 @@ import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
 import Prelude hiding (Bool(..))
 
--- | R "type". Note that what R calls a "type" is not what is usually meant by
--- the term: there is really only a single type, called 'SEXP', and an R "type"
--- in fact refers to the /class/ or /form/ of the expression.
+-- | R \"type\". Note that what R calls a \"type\" is not what is usually meant
+-- by the term: there is really only a single type, called 'SEXP', and an
+-- R "type" in fact refers to the /class/ or /form/ of the expression.
 --
 -- To better illustrate the distinction, note that any sane type system normally
 -- has the /subject reduction property/: that the type of an expression is
@@ -182,7 +189,8 @@ type PairList = List
 -- holds iff R's @is.vector()@ returns @TRUE@.
 type IsVector (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS}
 
--- | Non-atomic vector forms. See @src/main/memory.c:SET_VECTOR_ELT@ in R source.
+-- | Non-atomic vector forms. See @src\/main\/memory.c:SET_VECTOR_ELT@ in the
+-- R source distribution.
 type IsGenericVector (a :: SEXPTYPE) = a :∈ Vector :+: Expr :+: WeakRef
 
 -- | @IsList a@ holds iff R's @is.vector()@ returns @TRUE@.
