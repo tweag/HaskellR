@@ -23,10 +23,11 @@ import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
-import           Foreign.R.Type ( IsVector )
+import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Language.R ( withProtected )
 
 import qualified Data.Vector.Storable as V
+import Data.Singletons (sing)
 
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
@@ -42,7 +43,7 @@ class Literal a b | a -> b where
     fromSEXP :: SEXP c -> a
 
 mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)
-             => SEXPTYPE
+             => SSEXPTYPE a
              -> [SVector.ElemRep a]
              -> SEXP a
 mkSEXPVector ty xs = unsafePerformIO $
@@ -52,7 +53,7 @@ mkSEXPVector ty xs = unsafePerformIO $
       return vec
 
 mkProtectedSEXPVector :: IsVector b
-                      => SEXPTYPE
+                      => SSEXPTYPE b
                       -> [SEXP a]
                       -> SEXP b
 mkProtectedSEXPVector ty xs = unsafePerformIO $ do
@@ -65,27 +66,27 @@ mkProtectedSEXPVector ty xs = unsafePerformIO $ do
     return z
 
 instance Literal [R.Logical] 'R.Logical where
-    mkSEXP = mkSEXPVector R.Logical
+    mkSEXP = mkSEXPVector sing
     fromSEXP (hexp -> Logical (SVector.Vector v)) = V.toList v
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
 instance Literal [Int32] R.Int where
-    mkSEXP = mkSEXPVector R.Int
+    mkSEXP = mkSEXPVector sing
     fromSEXP (hexp -> Int (SVector.Vector v)) = V.toList v
     fromSEXP (hexp -> Real (SVector.Vector v)) = map round (V.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal [Double] 'R.Real where
-    mkSEXP = mkSEXPVector R.Real
+    mkSEXP = mkSEXPVector sing
     fromSEXP (hexp -> Real (SVector.Vector v)) = V.toList v
     fromSEXP (hexp -> Int (SVector.Vector v)) = map fromIntegral (V.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
 instance Literal [Complex Double] R.Complex where
-    mkSEXP = mkSEXPVector R.Complex
+    mkSEXP = mkSEXPVector sing
     fromSEXP (hexp -> Complex (SVector.Vector v)) = V.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."

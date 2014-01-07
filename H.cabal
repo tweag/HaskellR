@@ -54,6 +54,7 @@ library
                      , template-haskell >= 2.8
                      , exceptions >= 0.3
                      , mtl >= 2.1
+                     , singletons >= 0.9
                      , th-lift >= 0.6
                      , transformers >= 0.3
   hs-source-dirs:      src

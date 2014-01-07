@@ -117,12 +117,13 @@ module Foreign.R
 
 import {-# SOURCE #-} Language.R.HExp
 import qualified Foreign.R.Type as R
-import           Foreign.R.Type (SEXPTYPE)
+import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
 import Control.Applicative
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
+import Data.Singletons (fromSing)
 import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
@@ -184,6 +185,9 @@ cUIntToEnum = toEnum . cIntConv
 
 cUIntFromEnum :: Enum a => a -> CUInt
 cUIntFromEnum = cIntConv . fromEnum
+
+cUIntFromSingEnum :: SSEXPTYPE a -> CUInt
+cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 
 cIntFromEnum :: Enum a => a -> CInt
 cIntFromEnum = cIntConv . fromEnum
@@ -360,7 +364,9 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
 
 -- | Allocate Vector.
-{#fun Rf_allocVector as allocVector `R.IsVector a' => { cUIntFromEnum `SEXPTYPE',`Int'} -> `SEXP a' sexp #}
+{#fun Rf_allocVector as allocVector `R.IsVector a'
+      => { cUIntFromSingEnum `SSEXPTYPE a',`Int' }
+      -> `SEXP a' sexp #}
 
 {#fun Rf_cons as cons { unsexp `SEXP a', unsexp `SEXP b' } -> `SEXP R.List' sexp #}
 

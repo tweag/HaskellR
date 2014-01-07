@@ -23,6 +23,7 @@ import           Language.R.HExp
 import           Language.R.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
+import qualified Foreign.R.Type as SingR
 import           Language.R (parseText, install, string)
 
 import qualified Data.ByteString.Char8 as BS
@@ -129,31 +130,31 @@ instance TH.Lift (Vector.Vector R.Char Word8) where
 
 instance TH.Lift (Vector.Vector 'R.Logical R.Logical) where
     lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector R.Logical xs :: SEXP 'R.Logical) |]
+             in [| vector (mkSEXPVector SingR.SLogical xs) |]
 
 instance TH.Lift (Vector.Vector R.Int Int32) where
     lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector R.Int xs :: SEXP R.Int) |]
+             in [| vector (mkSEXPVector SingR.SInt xs) |]
 
 instance TH.Lift (Vector.Vector R.Real Double) where
     lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector R.Real xs :: SEXP R.Real) |]
+             in [| vector (mkSEXPVector SingR.SReal xs) |]
 
 instance TH.Lift (Vector.Vector R.Complex (Complex Double)) where
     lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector R.Complex xs :: SEXP R.Complex) |]
+             in [| vector (mkSEXPVector SingR.SComplex xs) |]
 
 instance TH.Lift (Vector.Vector R.String (SEXP R.Char)) where
     lift v = let xs = Vector.toList v
-             in [| vector $ mkProtectedSEXPVector R.String xs |]
+             in [| vector $ mkProtectedSEXPVector SingR.SString xs |]
 
 instance TH.Lift (Vector.Vector R.Vector SomeSEXP) where
     lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
-             in [| vector $ mkProtectedSEXPVector R.Vector xs |]
+             in [| vector $ mkProtectedSEXPVector SingR.SVector xs |]
 
 instance TH.Lift (Vector.Vector R.Expr SomeSEXP) where
     lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
-             in [| vector $ mkProtectedSEXPVector R.Expr xs |]
+             in [| vector $ mkProtectedSEXPVector SingR.SExpr xs |]
 
 -- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
 -- with 'H.ExtPtr' when this is in fact not possible.
@@ -205,6 +206,6 @@ instance TH.Lift (SEXP a) where
     -- EXPRSXP.
     lift   (hexp -> Expr n v) =
       let xs = Vector.toList v
-      in [| unhexp $ Expr n $ vector $ mkSEXPVector R.Expr xs |]
+      in [| unhexp $ Expr n $ vector $ mkSEXPVector SingR.SExpr xs |]
     lift   (hexp -> t) =
         [| unhexp t |]

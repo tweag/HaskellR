@@ -12,6 +12,7 @@
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -24,6 +25,8 @@ import H.Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
 import qualified Language.Haskell.TH.Lib as Hs
+
+import Data.Singletons.TH
 
 import Foreign (castPtr)
 import Foreign.C (CInt)
@@ -131,6 +134,8 @@ instance Enum SEXPTYPE where
   toEnum (#const FREESXP)    = Free
   toEnum (#const FUNSXP)     = Fun
   toEnum _                   = violation "toEnum" "Unknown R type."
+
+genSingletons [''SEXPTYPE]
 
 instance Hs.Lift SEXPTYPE where
   lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]

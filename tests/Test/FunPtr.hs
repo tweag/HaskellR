@@ -15,6 +15,7 @@ module Test.FunPtr
 import H.Prelude
 import qualified Language.R.Internal.FunWrappers as R
 import qualified Foreign.R as R
+import qualified Foreign.R.Type as SingR
 import qualified Language.R as R (withProtected, r2)
 
 import Test.Tasty hiding (defaultMain)
@@ -51,7 +52,7 @@ tests = testGroup "Tests"
          e <- peek R.globalEnv
          _ <- R.withProtected (return $ mkSEXP hwr) $
            \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
-         replicateM_ 10 (R.allocVector R.Real 1024 :: IO (R.SEXP R.Real))
+         replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
