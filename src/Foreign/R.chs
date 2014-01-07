@@ -164,6 +164,10 @@ sexp = castPtr
 unsexp :: SEXP a -> SEXP0
 unsexp = castPtr
 
+somesexp :: SEXP0 -> SomeSEXP
+somesexp = SomeSEXP . sexp
+
+-- | A 'SEXP' of unknown form.
 data SomeSEXP = forall a. SomeSEXP {-# UNPACK #-} !(SEXP a)
 
 instance Storable SomeSEXP where
@@ -229,20 +233,23 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 
 -- $cast-coerce
 --
--- Coercions have no runtime cost, but are completely unsafe. Use with caution,
--- only when you know that a 'SEXP' is of the target type.
+-- /Coercions/ have no runtime cost, but are completely unsafe. Use with
+-- caution, only when you know that a 'SEXP' is of the target type. /Casts/ are
+-- safer, but introduce a runtime type check. The difference between the two is
+-- akin to the difference between a C-style typecasts and C++-style
+-- @dynamic_cast@'s.
 
 -- | Cast the type of a 'SEXP' into another type. This function is partial: at
 -- runtime, an error is raised if the source form tag does not match the target
 -- form tag.
-cast :: SEXPTYPE -> SEXP a -> SEXP b
-cast ty s
+cast :: SEXPTYPE -> SomeSEXP -> SEXP b
+cast ty (SomeSEXP s)
   | ty == typeOf s = unsafeCoerce s
   | otherwise = error "cast: Dynamic type cast failed."
 
 -- | Cast form of first argument to that of the second argument.
 asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
-asTypeOf (SomeSEXP s) s' = typeOf s' `cast` s
+asTypeOf s s' = typeOf s' `cast` s
 
 -- | Unsafe coercion from one form to another. This is unsafe, in the sense that
 -- using this function improperly could cause code to crash in unpredictable
@@ -392,14 +399,17 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- Evaluation                                                                 --
 --------------------------------------------------------------------------------
 
--- | Evaluate expression.
-{#fun Rf_eval as eval { unsexp `SEXP a', unsexp `SEXP R.Env' } -> `SEXP b' sexp #}
+-- | Evaluate any 'SEXP' to its value.
+{#fun Rf_eval as eval { unsexp `SEXP a', unsexp `SEXP R.Env' }
+      -> `SomeSEXP' somesexp #}
 
 -- | Try to evaluate expression.
-{#fun R_tryEval as tryEval { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' sexp #}
+{#fun R_tryEval as tryEval { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'}
+      -> `SomeSEXP' somesexp #}
 
 -- | Try to evaluate without printing error/warning messages to stdout.
-{#fun R_tryEvalSilent as  tryEvalSilent { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'} -> `SEXP b' sexp #}
+{#fun R_tryEvalSilent as  tryEvalSilent { unsexp `SEXP a', unsexp `SEXP R.Env', id `Ptr CInt'}
+      -> `SomeSEXP' somesexp #}
 
 -- | Construct 1 arity expression.
 {#fun Rf_lang1 as lang1 { unsexp `SEXP a'} -> `SEXP R.Lang' sexp #}
@@ -407,14 +417,18 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- | Construct 2 arity expression.
 {#fun Rf_lang2 as lang2 { unsexp `SEXP a', unsexp `SEXP b'} -> `SEXP R.Lang' sexp #}
 
--- | Construct 3 arity expression.
-{#fun Rf_lang3 as lang3 { unsexp `SEXP a', unsexp `SEXP b', unsexp `SEXP c'} -> `SEXP R.Lang' sexp #}
+-- | Construct a binary function call.
+{#fun Rf_lang3 as lang3 { unsexp `SEXP a', unsexp `SEXP b', unsexp `SEXP c'}
+      -> `SEXP R.Lang' sexp #}
 
--- | Find function by name.
-{#fun Rf_findFun as findFun { unsexp `SEXP a', unsexp `SEXP R.Env'} -> `SEXP c' sexp #}
+-- | Find a function by name.
+{#fun Rf_findFun as findFun { unsexp `SEXP a', unsexp `SEXP R.Env'}
+      -> `SomeSEXP' somesexp #}
 
--- | Find variable by name.
-{#fun Rf_findVar as findVar { unsexp `SEXP a', unsexp `SEXP R.Env'} -> `SEXP R.Symbol' sexp #}
+-- | Find a variable by name.
+{#fun Rf_findVar as findVar { unsexp `SEXP a', unsexp `SEXP R.Env'}
+      -> `SEXP R.Symbol' sexp #}
+
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
