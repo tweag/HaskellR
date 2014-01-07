@@ -49,7 +49,7 @@ H.print =<< [r| xs_hs |]
 H.print =<< [r| foo1_hs(7) |]
 
 -- Should be NULL
-H.runInRThread (H.runInRThread $ H.print H.nilValue)
+H.unsafeRunInRThread (H.unsafeRunInRThread $ H.print H.nilValue)
 
 let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
 

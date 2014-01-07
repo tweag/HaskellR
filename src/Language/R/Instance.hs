@@ -25,14 +25,11 @@ module Language.R.Instance
     R
   , runR
   , unsafeRToIO
+  , unsafeRunInRThread
   , Config(..)
   , defaultConfig
   -- * R instance creation
   , initialize
-  -- * helpers
-  , with
-  , runInRThread
-  , postToRThread
   ) where
 
 import           Control.Monad.R.Class
@@ -61,7 +58,6 @@ import Control.Concurrent.MVar
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
     ( SomeException
-    , bracket
     , bracket_
     , catch
     , finally
@@ -97,7 +93,8 @@ import System.Posix.Resource
 newtype R s a = R { _unR :: IO a }
   deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
 
-instance MonadR (R s)
+instance MonadR (R s) where
+  io m = R $ unsafeRunInRThread m
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance.
@@ -157,12 +154,12 @@ initialize Config{..} = do
       eventLoopThread <- forkIO $ forever $ do
         threadDelay 30000
 #ifdef H_ARCH_WINDOWS
-        runInRThread R.processEvents
+        unsafeRunInRThread R.processEvents
 #else
-        runInRThread $
+        unsafeRunInRThread $
           R.processGUIEventsUnix LR.rInputHandlersPtr
 #endif
-      runInRThread $ do
+      unsafeRunInRThread $ do
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
@@ -177,18 +174,11 @@ initialize Config{..} = do
 -- | Finalize an R instance.
 finalize :: IO ()
 finalize = do
-    runInRThread $ do
+    unsafeRunInRThread $ do
       R.endEmbeddedR 0
       peek interpreterChanPtr >>= freeStablePtr
       poke isRInitializedPtr 0
     stopRThread
-
--- | Properly acquire the R runtime, initializing R and ensuring that it is
--- finalized before returning.
-with :: Config -- ^ R configuration options.
-      -> IO a
-      -> IO a
-with cfg = bracket (initialize cfg) (const finalize) . const
 
 -- | Starts the R thread.
 startRThread :: ThreadId -> IO ()
@@ -209,14 +199,6 @@ startRThread eventLoopThread = do
     rOSThreadId <- takeMVar mv
     newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
 
--- | Posts a computation to perform in the interpreter thread.
---
--- Returns immediately without waiting for the action to be computed.
---
-postToRThread :: IO () -> IO ()
-postToRThread =
-    postToRThread_ . (`catch` (const (return ()) :: SomeException -> IO ()))
-
 -- | Like postToRThread_ but does not swallow exceptions thrown by the
 -- computation.
 postToRThread_ :: IO () -> IO ()
@@ -234,8 +216,8 @@ postToRThread_ action = do
 --
 -- Waits until the computation is complete and returns back the result.
 --
-runInRThread :: IO a -> IO a
-runInRThread action = do
+unsafeRunInRThread :: IO a -> IO a
+unsafeRunInRThread action = do
     mv <- newEmptyMVar
     tid <- myThreadId
     postToRThread_ $

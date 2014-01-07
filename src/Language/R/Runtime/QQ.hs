@@ -12,6 +12,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Language.R.Runtime.QQ
   ( r
   , rexp
@@ -32,7 +34,9 @@ import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
 import Foreign ( ptrToIntPtr, intPtrToPtr )
--- import Foreign ( ptrToIntPtr, intPtrToPtr, peekElemOff )
+
+instance MonadR IO where
+  io = unsafeRunInRThread
 
 -------------------------------------------------------------------------------
 -- Runtime Quasi-Quoter                                                      --
@@ -60,7 +64,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ runInRThread $ parseText txt True >>= R.protect
+    ex <- runIO $ io $ parseText txt True >>= R.protect
     {-
     - Current approach to use R memory are not correct and doesn't survive
     - gctorture(TRUE) as it has problems in convert time and compile time
