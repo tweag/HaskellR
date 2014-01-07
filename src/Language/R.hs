@@ -15,7 +15,6 @@ module Language.R
   , parseFile
   , parseText
   , withProtected
-  , symbol
   , install
   , string
   , strings
@@ -180,9 +179,7 @@ parseText txt b = do
 install :: String -> IO (SEXP R.Symbol)
 install str = withCString str R.install
 
-symbol :: String -> IO (SEXP R.Symbol)
-symbol str = withCString str $ \cstr -> R.install cstr
-
+-- | Create an R character string from a Haskell string.
 string :: String -> IO (SEXP R.Char)
 string str = withCString str R.mkChar
 

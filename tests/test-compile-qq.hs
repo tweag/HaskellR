@@ -126,7 +126,7 @@ rTests = H.runR H.defaultConfig $ do
     let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Int32 -> R s R.SomeSEXP
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
-    sym <- H.symbol "blah"
+    sym <- H.install "blah"
     H.print sym
 
     -- Should be [1] 100

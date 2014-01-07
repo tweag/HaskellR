@@ -1,8 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 module H.Prelude.Reexports
-  ( symbol
-  , string
+  ( string
   , strings
   , install
   ) where
@@ -11,9 +10,6 @@ import Control.Monad.R.Class
 import           H.Internal.Prelude
 import qualified Foreign.R as R
 import qualified Language.R as LR
-
-symbol :: MonadR m => String -> m (SEXP R.Symbol)
-symbol = io . LR.symbol
 
 install :: MonadR m => String -> m (SEXP R.Symbol)
 install = io . LR.install
