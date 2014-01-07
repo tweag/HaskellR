@@ -366,7 +366,7 @@ unhexp = unsafePerformIO . unhexpIO
 unhexpIO :: HExp a -> IO (SEXP a)
 unhexpIO   Nil         = return H.nilValue
 unhexpIO s@(Symbol{})  =
-    withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
 unhexpIO (List c md mt) = do
     void $ R.protect c
     void $ R.protect d
@@ -387,15 +387,15 @@ unhexpIO (Lang a mb)   = do
     R.unprotect 2
     return z
 unhexpIO s@(Env{})     =
-    withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
 unhexpIO s@(Closure{}) =
-    withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
 unhexpIO s@(Special{}) =
-    withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
 unhexpIO s@(Builtin{}) =
-    withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
 unhexpIO s@(Promise{}) =
-    withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
 unhexpIO  (Bytecode{}) = unimplemented "unhexp"
 unhexpIO (Real vt)     = return $ Vector.toSEXP vt
 unhexpIO (Logical vt)  = return $ Vector.toSEXP vt

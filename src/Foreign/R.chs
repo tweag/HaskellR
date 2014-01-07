@@ -364,8 +364,9 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- The symbol corresponding to the string "name" is returned.
 {#fun Rf_install as install { id `CString' } -> `SEXP R.Symbol' sexp #}
 
--- | Allocate SEXP.
-{#fun Rf_allocSExp as allocSEXP { cUIntFromEnum `SEXPTYPE' } -> `SEXP a' sexp #}
+-- | Allocate a 'SEXP'.
+{#fun Rf_allocSExp as allocSEXP { cUIntFromSingEnum `SSEXPTYPE a' }
+      -> `SEXP a' sexp #}
 
 -- | Allocate List.
 {#fun Rf_allocList as allocList { `Int' } -> `SEXP R.List' sexp #}
