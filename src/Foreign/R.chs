@@ -16,6 +16,7 @@
 -- This module is intended to be imported qualified.
 
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE PolyKinds #-}

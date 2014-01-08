@@ -26,6 +26,7 @@
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
 
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -421,19 +422,16 @@ unhexpIO s@(Builtin{}) =
 unhexpIO s@(Promise{}) =
     withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
 unhexpIO  (Bytecode{}) = unimplemented "unhexp"
-unhexpIO (Real vt)     = return $ Vector.toSEXP vt
-unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
-unhexpIO (Int vt)      = return $ Vector.toSEXP vt
-unhexpIO (Complex vt)  = return $ Vector.toSEXP vt
-unhexpIO (Vector _ vt) = return $ Vector.toSEXP vt
-unhexpIO (Char vt)     = return $ Vector.toSEXP vt
-unhexpIO (String vt)   = return $ Vector.toSEXP vt
+unhexpIO (Real vt)     = Vector.unsafeToSEXP vt
+unhexpIO (Logical vt)  = Vector.unsafeToSEXP vt
+unhexpIO (Int vt)      = Vector.unsafeToSEXP vt
+unhexpIO (Complex vt)  = Vector.unsafeToSEXP vt
+unhexpIO (Vector _ vt) = Vector.unsafeToSEXP vt
+unhexpIO (Char vt)     = Vector.unsafeToSEXP vt
+unhexpIO (String vt)   = Vector.unsafeToSEXP vt
 unhexpIO Raw{}         = unimplemented "unhexp"
 unhexpIO S4{}          = unimplemented "unhexp"
-unhexpIO (Expr _ vt)
-  | s <- Vector.toSEXP vt
-  , R.typeOf s == R.Expr = return $ R.unsafeCoerce $ Vector.toSEXP vt
-  | otherwise          = error "unhexp: Vector not an expression."
+unhexpIO (Expr _ vt)   = Vector.unsafeToSEXP vt
 unhexpIO WeakRef{}     = unimplemented "unhexp"
 unhexpIO DotDotDot{}   = unimplemented "unhexp"
 unhexpIO ExtPtr{}      = unimplemented "unhexp"

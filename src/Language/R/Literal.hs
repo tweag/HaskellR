@@ -2,10 +2,11 @@
 -- Copyright: 2013 (C) Amgen, Inc
 --
 
+{-# Language ConstraintKinds #-}
 {-# Language FunctionalDependencies #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# Language GADTs #-}
 {-# Language TemplateHaskell #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# Language ViewPatterns #-}
 
 module Language.R.Literal

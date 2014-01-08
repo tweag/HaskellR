@@ -6,6 +6,7 @@
 --
 -- This module is intended to be imported qualified.
 
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -22,6 +23,7 @@ import Language.R.HExp
 import Language.R.Globals as H
 import Foreign.Storable
 import qualified Foreign.R as R
+import Foreign.R.Type (IsVector)
 import qualified Data.Vector.SEXP as Vector
 import System.IO.Unsafe ( unsafePerformIO )
 
@@ -61,8 +63,8 @@ instance ToJSON (SEXP a) where
         , tp .= go x
         ]
     where
-      vector :: (ToJSON (Vector.ElemRep a), Storable (Vector.ElemRep a)) =>
-                Vector.Vector a (Vector.ElemRep a) -> V.Vector Value
+      vector :: (IsVector a, ToJSON (Vector.ElemRep a), Storable (Vector.ElemRep a))
+             => Vector.Vector a (Vector.ElemRep a) -> V.Vector Value
       vector = V.fromList . map toJSON . Vector.toList -- XXX: do not use lists
       ub = R.unsexp H.unboundValue
       nil = R.unsexp H.nilValue

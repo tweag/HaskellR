@@ -187,11 +187,11 @@ type PairList = List
 
 -- | Constraint synonym grouping all vector forms into one class. @IsVector a@
 -- holds iff R's @is.vector()@ returns @TRUE@.
-type IsVector (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS}
+type IsVector (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS})
 
 -- | Non-atomic vector forms. See @src\/main\/memory.c:SET_VECTOR_ELT@ in the
 -- R source distribution.
-type IsGenericVector (a :: SEXPTYPE) = a :∈ Vector :+: Expr :+: WeakRef
+type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ Vector :+: Expr :+: WeakRef)
 
 -- | @IsList a@ holds iff R's @is.vector()@ returns @TRUE@.
-type IsList (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS} :+: List
+type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} :+: List)
