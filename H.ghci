@@ -3,6 +3,7 @@
 :set -XDataKinds
 :set -XGADTs
 :set -XQuasiQuotes
+:set -XScopedTypeVariables
 :set -XTemplateHaskell
 :set -XViewPatterns
 import Language.R.HExp
