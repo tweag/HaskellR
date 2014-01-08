@@ -21,7 +21,7 @@ Evaluating R expressions in GHCi
 Using H, the most convenient way to interact with R is through
 quasiquotation. `r` is a quasiquoter that constructs an R expression,
 ships it off to R and has the expression evaluated by R, yielding
-a value. `H.Prelude.print`.
+a value.
 
     H> [r| 1 |]
     0x00007f355520ab38
@@ -74,7 +74,7 @@ to splice the Haskell value.
     H> H.print [r| x_hs + x_hs |]
     [1] 4
 
-    H> let f = (\x -> return (x + 1)) :: Double -> R Double
+    H> let f x = return (x + 1) :: R s Double
     H> H.print =<< [r| f_hs(1) |]
     [1] 2
 
@@ -117,17 +117,19 @@ special care is needed to prevent garbage collection on either Haskell
 or R sides to invalidate values pointed by the other side. See
 [Constructing R expressions with explicit calls].
 
-
 The R monad
 -----------
 
 All expressions like
+
 ```Haskell
 [r| ... |]   :: MonadR m => m (SEXP b)
 H.print sexp :: MonadR m => m ()
 H.eval sexp  :: MonadR m => m (SEXP b)
 ```
+
 are computations in a monad instantiating `MonadR`.
+
 ```Haskell
 class (Applicative m, MonadIO m) => MonadR m where
   io :: IO a -> m a
@@ -136,35 +138,35 @@ class (Applicative m, MonadIO m) => MonadR m where
 These monads ensure that:
 
  1. the R interpreter is initialized, and
-
  2. the computations run in a special OS thread reserved for R calls
     (so called the R thread).
 
 There are two instances of `MonadR`, which are `IO` and `R`.
 
 The `R` monad is intended to be used in compiled code. Functions are
-provided to initialize R and to run `R` computations in the `IO` monad.
+provided to initialize R and to run `R` computations in the `IO`
+monad.
+
 ```Haskell
-initialize :: Config -> IO REnv
-finalize   :: IO ()
-runR       :: REnv -> R a -> IO a
+runR         :: Config -> (forall s. R s a) -> IO a
+io           :: IO a -> R s a
+unsafeRToIO  :: R s a -> IO a
 ```
 
-The `IO` monad is used in GHCi, and it allows to evaluate expressions
+The `IO` monad is used in GHCi, and it allows evaluating expressions
 without the need to wrap every command at the prompt with the function
-`runR`.
+`runR`. The `IO` monad is not as safe as the `R` monad, because it
+does not guarantee that R has been properly initialized, but in the
+context of an interactive session this is superfluous as the
+`H --interactive` command takes care of this at startup.
 
 The `io` method of `MonadR` is used in both monads to bring
 computations to the R thread.
 
 Additionally, callback functions passed from Haskell to R are expected
 to produce computations in the `R` monad, as in the example shown in
-the previous section:
-
-    H> let f = (\x -> return (x + 1)) :: Double -> R Double
-    H> H.print =<< [r| f_hs(1) |]
-    [1] 2
-
+the previous section, where the type given to `f` is `Double ->
+R s Double`.
 
 How to analyze R values in Haskell
 ----------------------------------
@@ -186,7 +188,7 @@ The `HExp` datatype is a *view type* for `SEXP`. Matching on a value
 of type `HExp a` is an alternative to using accessor functions to gain
 access to each field. The `HExp` datatype offers a view that exposes
 exactly what accessor functions would: it is a one-level unfolding of
-`SEXP`. See the “H internals” document for further justifications for
+`SEXP`. See the "H internals" document for further justifications for
 using one-level unfoldings and their relevance for performance.
 
 We have for example that:
@@ -231,7 +233,7 @@ Symbol :: SEXP (R.Vector Word8)
        -> HExp R.Symbol
 ```
 
-The second field in a symbol is its “value”, which can be of any form,
+The second field in a symbol is its "value", which can be of any form,
 *a priori* unknown. Therefore, when comparing two symbols recursively,
 one cannot compare the two values at the same type. While type
 refinement occurring *after* pattern matching on the values themselves
@@ -239,9 +241,15 @@ will always unify both types if the values are indeed equal, this is
 not known to be the case *before* pattern matching. In any case, we
 want to be also be able to compare values that are not in fact equal.
 For this, we need a slightly generalized notion of equality, called
-*heterogeneous equality*: ```Haskell class HEq t where (===) :: t a ->
-t b -> Bool ``` `(===)` is a generalization of `(==)` where the types
-of the arguments can be indexed by arbitrary types.
+*heterogeneous equality*:
+
+```Haskell
+class HEq t where
+  (===) :: t a -> t b -> Bool
+```
+
+`(===)` is a generalization of `(==)` where the types of the arguments
+can be indexed by arbitrary types.
 
 If the type checker knows statically how to unify the types of two
 values you want to compare, then `(==)` suffices. This is the case
@@ -256,39 +264,37 @@ Catching runtime errors
 -----------------------
 
 Evaluating R expressions may result in runtime errors. All errors are
-wrapped in the Foreign.R.Error.RError exception that carries the error
-message.
+wrapped in the `Foreign.R.Error.RError` exception that carries the
+error message.
 
     H> (H.print =<< [r| plot() |]) 
          `catch` (\(H.RError msg) -> putStrLn msg)
     Error in xy.coords(x, y, xlabel, ylabel, log) : 
       argument "x" is missing, with no default
 
-Differences when using H in GHCi and in Haskell modules
--------------------------------------------------------
+Differences when using H in GHCi and in compiled Haskell modules
+----------------------------------------------------------------
 
-TODO when the differences are clear.
+There are two ways to use the H library and facilities. The simplest
+is at the H interactive prompt, for interacting with R in the small.
+But H supports equally well written full blown programs that interact
+with R in elaborate and intricate ways, possibly even multiple
+instances of R.
 
-We need to comment that functions like H.print and H.eval use IO
-instead of R monad.
+For simplicity, at the H interactive prompt, every function in the
+R library is either pure or lifted to the IO monad. This is because
+the prompt itself is an instance of the IO monad. However, in large
+projects, one would like to enforce static guarantees about the
+R interpreter being properly initialized before attempting to invoke
+any of its internal functions. Hence, in `.hs` source files H instead
+lifts all functions to the `R` monad, which provides stronger static
+guarantees than the `IO` monad. This parametricity over the underlying
+monad is achieved by introducing the `MonadR` class, as explained
+above.
 
-Are there any exposed functions that we want the user to run in the
-R thread only?
-
-Constructing R expressions with explicit calls
-----------------------------------------------
-
-TODO - probably remove
-
-    H> runInRThread $ withProtected (return $ mkSEXP (1 :: Double)) $ \x0 ->
-         withProtected (return $ mkSEXP (2 :: Double)) $ \x1 ->
-            r2 (Data.ByteString.Char8.pack “+”) x0 x1
-
-
-Calling R functions from Haskell
---------------------------------
-
-To be implemented.
+To avoid having multiple instances of `MonadR` lying around, it is
+important NOT to import `Language.R.Instance.Interactive` in compiled
+code - that module should only be loaded in a GHCi session.
 
 References
 ----------
