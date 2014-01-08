@@ -16,33 +16,31 @@ source-repository head
   location: git://github.com/ps-labs/H.git
 
 library
-  exposed-modules:     H
-                       H.Constraints
-                       H.Debug
-                       H.HExp
-                       H.Monad
-                       H.Prelude
-                       H.Prelude.Globals
-                       H.Prelude.Reexports
-                       H.Prelude.Eval
-                       H.Prelude.RVal
-                       H.Internal.Literal
-                       H.Internal.FunWrappers
-                       H.Internal.OSThreads
-                       H.Internal.TH
-                       Data.Vector.SEXP
+  exposed-modules:     Data.Vector.SEXP
                        Foreign.R
-                       Foreign.R.Type
                        Foreign.R.Embedded
+                       Foreign.R.Error
                        Foreign.R.Interface
                        Foreign.R.Parse
-                       Foreign.R.Error
+                       Foreign.R.Type
+                       H.Constraints
+                       H.Prelude
+                       H.Prelude.Eval
+                       H.Prelude.Interactive
+                       H.Prelude.Reexports
+                       H.Prelude.RVal
                        Language.R
-                       Language.R.Interpreter
+                       Language.R.Debug
+                       Language.R.Globals
+                       Language.R.HExp
+                       Language.R.Instance
+                       Language.R.Internal.FunWrappers
+                       Language.R.Internal.FunWrappers.TH
+                       Language.R.Literal
                        Language.R.QQ
-                       Language.R.Ghci
                        Language.R.Runtime.QQ
-  other-modules:       H.Internal.REnv
+  other-modules:       Control.Concurrent.OSThread
+                       Control.Monad.R.Class
                        H.Internal.Error
                        H.Internal.Prelude
   build-depends:       base >= 4.6 && < 4.7
@@ -56,6 +54,7 @@ library
                      , template-haskell >= 2.8
                      , exceptions >= 0.3
                      , mtl >= 2.1
+                     , singletons >= 0.9
                      , th-lift >= 0.6
                      , transformers >= 0.3
   hs-source-dirs:      src
@@ -128,7 +127,7 @@ test-suite tests
                      , mtl >= 2.0
                      , process >= 1.2
                      , strict >= 0.3.2
-                     , tasty >= 0.3 && < 0.6
+                     , tasty >= 0.3 && < 0.8
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11

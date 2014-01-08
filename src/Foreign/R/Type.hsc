@@ -1,3 +1,9 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
@@ -9,28 +15,34 @@
 -- c2hs for discharging the boilerplate around 'SEXPTYPE'. This is because
 -- 'SEXPTYPE' is nearly but not quite a true enumeration and c2hs has trouble
 -- dealing with that.
-
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE TemplateHaskell #-}
+--
+-- This module also defines a singleton version of 'SEXPTYPE', called
+-- 'SSEXPTYPE'. This is actually a family of types, one for each possible
+-- 'SEXPTYPE'. Singleton types are a way of emulating dependent types in
+-- a language that does not have true dependent type. They are useful in
+-- functions whose result type depends on the value of one of its arguments. See
+-- e.g. 'Foreign.R.allocVector'.
 
 module Foreign.R.Type where
 
 #include <Rinternals.h>
 
+import H.Constraints
 import H.Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
 import qualified Language.Haskell.TH.Lib as Hs
 
-import Data.Function (on)
+import Data.Singletons.TH
+
 import Foreign (castPtr)
 import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
 import Prelude hiding (Bool(..))
 
--- | R "type". Note that what R calls a "type" is not what is usually meant by
--- the term: there is really only a single type, called 'SEXP', and an R "type"
--- in fact refers to the /class/ or /form/ of the expression.
+-- | R \"type\". Note that what R calls a \"type\" is not what is usually meant
+-- by the term: there is really only a single type, called 'SEXP', and an
+-- R "type" in fact refers to the /class/ or /form/ of the expression.
 --
 -- To better illustrate the distinction, note that any sane type system normally
 -- has the /subject reduction property/: that the type of an expression is
@@ -60,7 +72,7 @@ data SEXPTYPE
     | String
     | DotDotDot
     | Any
-    | forall a. Vector a
+    | Vector
     | Expr
     | Bytecode
     | ExtPtr
@@ -70,9 +82,7 @@ data SEXPTYPE
     | New
     | Free
     | Fun
-
-instance Eq SEXPTYPE where
-  (==) = (==) `on` fromEnum
+    deriving (Eq, Show)
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -92,7 +102,7 @@ instance Enum SEXPTYPE where
   fromEnum String     = #const STRSXP
   fromEnum DotDotDot  = #const DOTSXP
   fromEnum Any        = #const ANYSXP
-  fromEnum (Vector _) = #const VECSXP
+  fromEnum Vector     = #const VECSXP
   fromEnum Expr       = #const EXPRSXP
   fromEnum Bytecode   = #const BCODESXP
   fromEnum ExtPtr     = #const EXTPTRSXP
@@ -120,7 +130,7 @@ instance Enum SEXPTYPE where
   toEnum (#const STRSXP)     = String
   toEnum (#const DOTSXP)     = DotDotDot
   toEnum (#const ANYSXP)     = Any
-  toEnum (#const VECSXP)     = (Vector Any)
+  toEnum (#const VECSXP)     = Vector
   toEnum (#const EXPRSXP)    = Expr
   toEnum (#const BCODESXP)   = Bytecode
   toEnum (#const EXTPTRSXP)  = ExtPtr
@@ -132,37 +142,10 @@ instance Enum SEXPTYPE where
   toEnum (#const FUNSXP)     = Fun
   toEnum _                   = violation "toEnum" "Unknown R type."
 
-instance Show SEXPTYPE where
-  show Nil        = "Nil"
-  show Symbol     = "Symbol"
-  show List       = "List"
-  show Closure    = "Closure"
-  show Env        = "Env"
-  show Promise    = "Promise"
-  show Lang       = "Lang"
-  show Special    = "Special"
-  show Builtin    = "Builin"
-  show Char       = "Char"
-  show Logical    = "Logical"
-  show Int        = "Int"
-  show Real       = "Real"
-  show Complex    = "Complex"
-  show String     = "String"
-  show DotDotDot  = "DotDotDot"
-  show Any        = "Any"
-  show (Vector _) = "Vector"
-  show Expr       = "Expr"
-  show Bytecode   = "Bytecode"
-  show ExtPtr     = "ExtPtr"
-  show WeakRef    = "WeakRef"
-  show Raw        = "Raw"
-  show S4         = "S4"
-  show New        = "New"
-  show Free       = "Free"
-  show Fun        = "Fun"
+genSingletons [''SEXPTYPE]
 
 instance Hs.Lift SEXPTYPE where
-    lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
+  lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
 
 -- | R uses three-valued logic.
 data Logical = False
@@ -190,3 +173,25 @@ instance Storable Logical where
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
 type PairList = List
+
+#let VECTOR_FORMS = " 'Char \
+                  :+: 'Logical \
+                  :+: 'Int \
+                  :+: 'Real \
+                  :+: 'Complex \
+                  :+: 'String \
+                  :+: 'Vector \
+                  :+: 'Expr \
+                  :+: 'WeakRef \
+                  :+: 'Raw"
+
+-- | Constraint synonym grouping all vector forms into one class. @IsVector a@
+-- holds iff R's @is.vector()@ returns @TRUE@.
+type IsVector (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS}
+
+-- | Non-atomic vector forms. See @src\/main\/memory.c:SET_VECTOR_ELT@ in the
+-- R source distribution.
+type IsGenericVector (a :: SEXPTYPE) = a :∈ Vector :+: Expr :+: WeakRef
+
+-- | @IsList a@ holds iff R's @is.vector()@ returns @TRUE@.
+type IsList (a :: SEXPTYPE) = a :∈ #{VECTOR_FORMS} :+: List

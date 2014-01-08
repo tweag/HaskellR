@@ -20,7 +20,7 @@ data Violation = Violation String String deriving ( Typeable )
 data Failure = Failure String String deriving ( Typeable )
 
 instance Show Failure where
-  show (Failure f m)   = "User error:" ++ f ++ ":" ++ m
+  show (Failure f m)   = f ++ ":" ++ m
 
 instance Show Violation where
   show (Violation f m) = "Bug in " ++ f ++ ", please report: " ++ m

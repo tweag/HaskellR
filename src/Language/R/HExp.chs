@@ -1,7 +1,30 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module is intended to be imported qualified.
+-- Provides a /shallow/ view of a 'SEXP' R value as an algebraic datatype. This
+-- is useful to define functions over R values in Haskell with pattern matching.
+-- For example:
+--
+-- @
+-- toPair :: SEXP a -> (SomeSEXP, SomeSEXP)
+-- toPair (hexp -> List _ (Just car) (Just cdr)) = (SomeSEXP car, SomeSEXP cdr)
+-- toPair (hexp -> Lang car (Just cdr)) = (SomeSEXP car, SomeSEXP cdr)
+-- toPair s = error $ "Cannot extract pair from object of type " ++ typeOf s
+-- @
+--
+-- (See 'Foreign.R.SomeSEXP' for why we need to use it here.)
+--
+-- The view is said to be 'shallow' because it only unfolds the head of the
+-- R value into an algebraic datatype. In this way, functions producing views
+-- can be written non-recursively, hence inlined at all call sites and
+-- simplified away. When produced by a view function in a pattern match,
+-- allocation of the view can be compiled away and hence producing a view can be
+-- done at no runtime cost. In fact, pattern matching on a view in this way is
+-- more efficient than using the accessor functions defined in "Foreign.R",
+-- because we avoid the overhead of calling one or more FFI functions entirely.
+--
+-- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
+-- into 'HExp' views.
 
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MagicHash #-}
@@ -9,17 +32,16 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module H.HExp
+module Language.R.HExp
   ( HExp(..)
   , hexp
   , unhexp
   , vector
-  , expression
   , selfSymbol
   ) where
 
 import H.Internal.Prelude
-import qualified H.Prelude.Globals as H
+import qualified Language.R.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXPREC)
@@ -62,7 +84,7 @@ data HExp :: SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
   Nil       :: HExp R.Nil
   -- Fields: pname, value, internal.
-  Symbol    :: SEXP (R.Vector Word8)
+  Symbol    :: SEXP R.Char
             -> SEXP a
             -> Maybe (SEXP b)
             -> HExp R.Symbol
@@ -74,7 +96,7 @@ data HExp :: SEXPTYPE -> * where
   -- Fields: frame, enclos, hashtab.
   Env       :: SEXP R.PairList
             -> SEXP R.Env
-            -> SEXP (R.Vector R.PairList)
+            -> SEXP R.Vector
             -> HExp R.Env
   -- Fields: formals, body, env.
   Closure   :: SEXP R.PairList
@@ -92,35 +114,35 @@ data HExp :: SEXPTYPE -> * where
   Lang      :: () -- (a :∈ R.Symbol :+: R.Lang)         -- XXX R.Closure also?
             => SEXP a
             -> Maybe (SEXP R.List)
-            -> HExp R.List
+            -> HExp R.Lang
   -- Fields: offset.
   Special   :: {-# UNPACK #-} !Int32
             -> HExp R.Special
   -- Fields: offset.
   Builtin   :: {-# UNPACK #-} !Int32
             -> HExp R.Builtin
-  Char      :: {-# UNPACK #-} !(Vector.Vector Word8)
-            -> HExp (R.Vector Word8)
-  Logical   :: {-# UNPACK #-} !(Vector.Vector R.Logical)
-            -> HExp (R.Vector R.Logical)
-  Int       :: {-# UNPACK #-} !(Vector.Vector Int32)
-            -> HExp (R.Vector Int32)
-  Real      :: {-# UNPACK #-} !(Vector.Vector Double)
-            -> HExp (R.Vector Double)
-  Complex   :: {-# UNPACK #-} !(Vector.Vector (Complex Double))
-            -> HExp (R.Vector (Complex Double))
-  String    :: {-# UNPACK #-} !(Vector.Vector (SEXP (R.Vector Word8)))
-            -> HExp (R.Vector (SEXP (R.Vector Word8)))
+  Char      :: {-# UNPACK #-} !(Vector.Vector R.Char Word8)
+            -> HExp R.Char
+  Logical   :: {-# UNPACK #-} !(Vector.Vector 'R.Logical R.Logical)
+            -> HExp 'R.Logical
+  Int       :: {-# UNPACK #-} !(Vector.Vector R.Int Int32)
+            -> HExp R.Int
+  Real      :: {-# UNPACK #-} !(Vector.Vector R.Real Double)
+            -> HExp R.Real
+  Complex   :: {-# UNPACK #-} !(Vector.Vector R.Complex (Complex Double))
+            -> HExp R.Complex
+  String    :: {-# UNPACK #-} !(Vector.Vector R.String (SEXP R.Char))
+            -> HExp R.String
   -- Fields: pairlist of promises.
   DotDotDot :: SEXP R.PairList
             -> HExp R.List
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector SomeSEXP)
-            -> HExp (R.Vector SomeSEXP)
+            -> {-# UNPACK #-} !(Vector.Vector R.Vector SomeSEXP)
+            -> HExp R.Vector
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector SomeSEXP)
+            -> {-# UNPACK #-} !(Vector.Vector R.Expr SomeSEXP)
             -> HExp R.Expr
   Bytecode  :: HExp a -- XXX
   -- Fields: pointer, protectionValue, tagval
@@ -283,7 +305,7 @@ peekHExp s = do
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> unimplemented "peekHExp"
-      R.Vector _  -> coerce $
+      R.Vector    -> coerce $
         Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Expr      -> coerce $
@@ -366,32 +388,38 @@ unhexp = unsafePerformIO . unhexpIO
 -- the safeness of memory allocation.
 unhexpIO :: HExp a -> IO (SEXP a)
 unhexpIO   Nil         = return H.nilValue
-unhexpIO s@(Symbol{})  = withProtected (R.allocSEXP R.Symbol) (\x -> poke x s >> return x)
+unhexpIO s@(Symbol{})  =
+    withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
 unhexpIO (List c md mt) = do
     void $ R.protect c
     void $ R.protect d
     void $ R.protect t
     z <- R.cons c d
     {# set SEXP->u.listsxp.tagval#} z (R.unsexp t)
-    R.unprotect 3 -- $ maybe 2 (const 3) mt
+    R.unprotect 3 -- - $ maybe 2 (const 3) mt
     return z
   where
     d = maybe (R.unsafeCoerce H.nilValue) id md
     t = maybe (R.unsafeCoerce H.nilValue) id mt
-unhexpIO (Lang a mb)    = do
-    void $ R.protect a
-    void $ R.protect b
-    z <- R.cons a b
-    _ <- R.setTypeOf R.Lang z
+unhexpIO (Lang carval mbcdrval)   = do
+    let cdrval = maybe (R.unsafeCoerce H.nilValue) id mbcdrval
+    void $ R.protect carval
+    void $ R.protect cdrval
+    x <- R.allocSEXP R.SLang
+    R.setCar x carval
+    R.setCdr x cdrval
     R.unprotect 2
-    return z
-  where
-    b = maybe (R.unsafeCoerce H.nilValue) id mb
-unhexpIO s@(Env{})     = withProtected (R.allocSEXP R.Env) (\x -> poke x s >> return x)
-unhexpIO s@(Closure{}) = withProtected (R.allocSEXP R.Closure) (\x -> poke x s >> return x)
-unhexpIO s@(Special{}) = withProtected (R.allocSEXP R.Special) (\x -> poke x s >> return x)
-unhexpIO s@(Builtin{}) = withProtected (R.allocSEXP R.Builtin) (\x -> poke x s >> return x)
-unhexpIO s@(Promise{}) = withProtected (R.allocSEXP R.Promise) (\x -> poke x s >> return x)
+    return x
+unhexpIO s@(Env{})     =
+    withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
+unhexpIO s@(Closure{}) =
+    withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
+unhexpIO s@(Special{}) =
+    withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
+unhexpIO s@(Builtin{}) =
+    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
+unhexpIO s@(Promise{}) =
+    withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
 unhexpIO  (Bytecode{}) = unimplemented "unhexp"
 unhexpIO (Real vt)     = return $ Vector.toSEXP vt
 unhexpIO (Logical vt)  = return $ Vector.toSEXP vt
@@ -411,7 +439,7 @@ unhexpIO DotDotDot{}   = unimplemented "unhexp"
 unhexpIO ExtPtr{}      = unimplemented "unhexp"
 
 -- | Project the vector out of 'SEXP's.
-vector :: SEXP (R.Vector a) -> Vector.Vector a
+vector :: R.IsVector a => SEXP a -> Vector.Vector a (Vector.ElemRep a)
 vector (hexp -> Char vec)     = vec
 vector (hexp -> Logical vec)  = vec
 vector (hexp -> Int vec)      = vec
@@ -419,13 +447,8 @@ vector (hexp -> Real vec)     = vec
 vector (hexp -> Complex vec)  = vec
 vector (hexp -> String vec)   = vec
 vector (hexp -> Vector _ vec) = vec
-vector _ = failure "vector" "Not a vector."
-
--- | Like 'vector', but for expression vectors, whose type index differs from
--- that of other vectors.
-expression :: SEXP R.Expr -> Vector.Vector SomeSEXP
-expression (hexp -> Expr _ vec) = vec
-expression _ = failure "expression" "Not an expression."
+vector (hexp -> Expr _ vec)   = vec
+vector s = violation "vector" $ show (R.typeOf s) ++ " unexpected vector type."
 
 -- | Check if SEXP is nill
 maybeNil :: SEXP a
@@ -438,7 +461,7 @@ maybeNil s = do
 
 -- | Symbols can have values attached to them. This function creates a symbol
 -- whose value is itself.
-selfSymbol :: SEXP (R.Vector Word8) -> IO (SEXP R.Symbol)
+selfSymbol :: SEXP R.Char -> IO (SEXP R.Symbol)
 selfSymbol pname = do
     let s = unhexp $ Symbol pname nullPtr Nothing
     R.setCdr s s

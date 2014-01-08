@@ -1,23 +1,30 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- Quasiquoting for R specialized for GHCi. This quasiquoter is functionally
+-- equivalent to that defined in "Language.R.QQ", but exploits the fact that
+-- Template Haskell runs in the same address space as the runtime R instance to
+-- produce simpler (and marginally more efficient) expansions of quasiquotes.
+--
 -- This module is intended to be imported qualified.
+
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Language.R.Runtime.QQ
   ( r
   , rexp
   ) where
 
 import           H.Internal.Prelude
-import           H.HExp
+import           Language.R.HExp
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import           Language.R ( parseText, withProtected )
-import           Language.R.Interpreter ( runInRThread )
 import           Control.Exception
 
 -- import Control.Monad ( forM_, (>=>) )
@@ -27,7 +34,9 @@ import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
 import Foreign ( ptrToIntPtr, intPtrToPtr )
--- import Foreign ( ptrToIntPtr, intPtrToPtr, peekElemOff )
+
+instance MonadR IO where
+  io = unsafeRunInRThread
 
 -------------------------------------------------------------------------------
 -- Runtime Quasi-Quoter                                                      --
@@ -55,7 +64,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ runInRThread $ parseText txt True >>= R.protect
+    ex <- runIO $ io $ parseText txt True >>= R.protect
     {-
     - Current approach to use R memory are not correct and doesn't survive
     - gctorture(TRUE) as it has problems in convert time and compile time
@@ -92,7 +101,7 @@ attachHs h@(hexp -> Expr _ v) =
           s = RuntimeSEXP (R.unsafeCoerce h)
       in case haskellName t of
            Just hname ->
-             [\e -> [| io (R.setExprElem (unRuntimeSEXP s) $(lift i) (H.mkSEXP $(varE hname))) >> $e |]]
+             [\e -> [| io (R.writeVector (unRuntimeSEXP s :: SEXP R.Expr) $(lift i) (H.mkSEXP $(varE hname))) >> $e |]]
            Nothing ->
              (\e -> [| io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> io (R.unprotect 1) >> return x|]):tl)
                 $ zip [(0::Int)..] (Vector.toList v))

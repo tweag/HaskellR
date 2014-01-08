@@ -31,7 +31,7 @@ unprotectSEXP = unsafePerformIO $ mkUnprotect (R.unprotectPtr . R.unsexp)
 -- maintained by R storage memory. RValue automatically 'Foreign.R.protect'
 -- object and 'Foreign.R.unprotectPtr' it when it becomes unavailable.
 data RVal :: SEXPTYPE -> * where
-        RVal :: ForeignPtr R.SEXPREC -> RVal a
+  RVal :: ForeignPtr R.SEXPREC -> RVal a
 
 -- | Create R value and automatically protect it
 newRVal :: MonadR m => SEXP a -> m (RVal a)

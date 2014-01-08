@@ -7,7 +7,7 @@ module H.Prelude.Eval
   , eval_
   ) where
 
-import           H.HExp
+import           Language.R.HExp
 import           H.Internal.Prelude
 import qualified Language.R as R
 import qualified Foreign.R

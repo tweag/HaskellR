@@ -1,6 +1,6 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
-module H.Internal.TH
+module Language.R.Internal.FunWrappers.TH
   ( thWrappers
   , thWrapper
   , thWrapperLiteral
@@ -8,8 +8,9 @@ module H.Internal.TH
   ) where
 
 import H.Internal.Error
-import Language.Haskell.TH
 
+import Language.Haskell.TH
+import Control.Monad (replicateM)
 
 -- | Generate wrappers from n to m.
 thWrappers :: Int -> Int -> DecsQ
@@ -61,22 +62,26 @@ thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 --    fromSEXP = error \"Unimplemented.\"
 -- @
 thWrapperLiteral :: Int -> DecQ
-thWrapperLiteral n = instanceD ctx typ funs
-  where
-    vars :: [Name]
-    vars = take (n+1) $ map (mkName.return) ['a'..]
-    vars0 :: [Name]
-    vars0 = take (n+1) $ map (\i -> mkName [i,'0']) ['a'..]
-    tps []  = impossible "thWrapperLiteral"
-    tps [x] = conT (mkName "R") `appT` (varT x)
-    tps (x:xs) = (appT arrowT (varT x)) `appT` tps xs
-    -- context
-    ctx = cxt (map go (zip vars vars0))
-      where
-        go (k, k0) = classP (mkName "Literal") [varT k, varT k0]
-    -- type
-    typ = (conT (mkName "Literal") `appT` (tps vars) `appT` (conT (mkName "R.ExtPtr")))
-    -- funs
-    funs = [ mk, from ]
-    mk = funD (mkName "mkSEXP") [clause [] (normalB $ appE  (varE (mkName "H.Internal.Literal.funToSEXP")) (varE (mkName ("wrap"++show n)))) []]
-    from = funD (mkName "fromSEXP") [clause [] (normalB $ appE (varE (mkName "unimplemented")) (litE (stringL "thWrapperLiteral fromSEXP"))) []]
+thWrapperLiteral n = do
+    s <- newName "s"
+    tyvars1 <- replicateM (n + 1) (newName "a")
+    tyvars2 <- replicateM (n + 1) (newName "i")
+    let mkTy []     = impossible "thWrapperLiteral"
+        mkTy [x]    = conT (mkName "R") `appT` varT s `appT` varT x
+        mkTy (x:xs) = arrowT `appT` varT x `appT` mkTy xs
+        ctx = cxt (zipWith f tyvars1 tyvars2)
+          where
+            f tv1 tv2 = classP (mkName "Literal") [varT tv1, varT tv2]
+        typ = conT (mkName "Literal") `appT` mkTy tyvars1 `appT` conT (mkName "R.ExtPtr")
+    instanceD ctx typ
+      [ funD (mkName "mkSEXP")
+             [ clause []
+                      (normalB $ appE (varE (mkName "Language.R.Literal.funToSEXP"))
+                                      (varE (mkName ("wrap" ++ show n))))
+                      [] ]
+      , funD (mkName "fromSEXP")
+             [ clause []
+                      (normalB $ appE (varE (mkName "unimplemented"))
+                                      (litE (stringL "thWrapperLiteral fromSEXP")))
+                      [] ]
+      ]

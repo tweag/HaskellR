@@ -1,6 +1,8 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- Exception type wrapping errors thrown by the R runtime.
+
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module Foreign.R.Error
@@ -17,4 +19,3 @@ instance Show RError where
   show (RError s)      = "R Runtime Error: " ++ s
 
 instance Exception RError
-
