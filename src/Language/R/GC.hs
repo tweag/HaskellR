@@ -1,6 +1,9 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
+-- This module provides helper functions and structures for
+-- safe memory operations for communication with R thread.
+--
 -- RVal is a value supposed to hold SEXP that are in haskell
 -- memory from garbage collection on in R.
 {-# LANGUAGE GADTs #-}

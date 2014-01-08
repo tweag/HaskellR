@@ -117,7 +117,7 @@ parseText txt b = do
 install :: String -> IO (SEXP R.Symbol)
 install str = withCString str R.install
 
--- | Create an R character string from a Haskell stringcscscs <F2>
+-- | Create an R character string from a Haskell string.
 string :: String -> IO (SEXP R.Char)
 string str = withCString str R.mkChar
 
@@ -154,7 +154,7 @@ evalEnv = (io .). evalEnvIO
 eval :: MonadR m => SEXP a -> m SomeSEXP
 eval = io . evalIO
 
--- | Silent version of 'evalIO' function. Discards result
+-- | Silent version of 'evalIO' function that discards it's result.
 eval_ :: MonadR m => SEXP a -> m ()
 eval_ = void . eval
 
