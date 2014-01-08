@@ -16,6 +16,7 @@ module Language.R
   , parseText
   , withProtected
   , install
+  , installIO
   , string
   , strings
   , eval
@@ -114,8 +115,11 @@ parseText txt b = do
          | otherwise = "FALSE"
 
 -- | Internalize a symbol name.
-install :: String -> IO (SEXP R.Symbol)
-install str = withCString str R.install
+installIO :: String -> IO (SEXP R.Symbol)
+installIO str = withCString str R.install
+
+install :: MonadR m => String -> m (SEXP R.Symbol)
+install = io . installIO
 
 -- | Create an R character string from a Haskell string.
 string :: String -> IO (SEXP R.Char)

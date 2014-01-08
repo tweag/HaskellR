@@ -15,7 +15,9 @@ module H.Prelude
   -- * R Value
   , module H.Prelude.RVal
   -- * Language.R functions
-  , module H.Prelude.Reexports
+  , Language.R.install
+  , Language.R.string
+  , Language.R.strings
   -- * Literals
   , module Language.R.Literal
   -- * Globals
@@ -32,12 +34,11 @@ import Language.R (r1)
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
-import           H.Prelude.Reexports
 import           Language.R.Globals
 import           H.Prelude.RVal
 import           Language.R.Literal
 import Language.R.Instance
-import qualified Language.R ( withProtected )
+import qualified Language.R ( withProtected, install, string, strings )
 import Foreign.R.Error
 
 import Control.Monad.Catch
