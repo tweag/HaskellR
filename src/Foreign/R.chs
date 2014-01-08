@@ -60,7 +60,7 @@ module Foreign.R
   , setTag
     -- ** Environments
   , envFrame
-  , envClosure
+  , envEnclosing
   , envHashtab
     -- ** Closures
   , closureFormals
@@ -173,12 +173,15 @@ data SEXPREC
 -- arbitrary type in a @#pointer@ hook).
 {#pointer SEXP as SEXP0 -> SEXPREC #}
 
+-- | Add a type index to the pointer.
 sexp :: SEXP0 -> SEXP a
 sexp = castPtr
 
+-- | Remove the type index from the pointer.
 unsexp :: SEXP a -> SEXP0
 unsexp = castPtr
 
+-- | Like 'sexp' but for 'SomeSEXP'.
 somesexp :: SEXP0 -> SomeSEXP
 somesexp = SomeSEXP . sexp
 
@@ -212,6 +215,9 @@ cIntFromEnum = cIntConv . fromEnum
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
 
+-- | Return the \"type\" tag (aka the form tag) of the given 'SEXP'. This
+-- function is pure because the type of an object does not normally change over
+-- the lifetime of the object.
 typeOf :: SEXP a -> SEXPTYPE
 typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
@@ -224,15 +230,15 @@ typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 -- | read object`s Tag
 {# fun TAG as tag { unsexp `SEXP a' } -> `SEXP b' sexp #}  --- XXX: add better constraint
 
--- | Set CAR field of object.
+-- | Set CAR field of object, when object is viewed as a cons cell.
 setCar :: SEXP a -> SEXP b -> IO ()
 setCar s s' = {#set SEXP->u.listsxp.carval #} (castPtr s) (castPtr s')
 
--- | Set CDR field of object.
+-- | Set CDR field of object, when object is viewed as a cons cell.
 setCdr :: SEXP a -> SEXP b -> IO ()
 setCdr s s' = {#set SEXP->u.listsxp.cdrval #} (castPtr s) (castPtr s')
 
--- | Set TAG field of object.
+-- | Set TAG field of object, when object is viewed as a cons cell.
 setTag :: SEXP a -> SEXP b -> IO ()
 setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 
@@ -271,27 +277,40 @@ unsafeCoerce = castPtr
 -- Environment functions                                                      --
 --------------------------------------------------------------------------------
 
-{# fun FRAME as envFrame { unsexp `SEXP R.Env' } -> `SEXP a' sexp #}
--- | read Environement frame
-{# fun ENCLOS as envClosure { unsexp `SEXP R.Env' } -> `SEXP a' sexp #}
--- | read Environement frame
-{# fun HASHTAB as envHashtab { unsexp `SEXP R.Env' } -> `SEXP a' sexp #}
+-- | Environment frame.
+{# fun FRAME as envFrame { unsexp `SEXP R.Env' } -> `SEXP R.PairList' sexp #}
+
+-- | Enclosing environment.
+{# fun ENCLOS as envEnclosing { unsexp `SEXP R.Env' } -> `SEXP R.Env' sexp #}
+
+-- | Hash table associated with the environment, used for faster name lookups.
+{# fun HASHTAB as envHashtab { unsexp `SEXP R.Env' } -> `SEXP R.Vector' sexp #}
 
 --------------------------------------------------------------------------------
 -- Closure functions                                                          --
 --------------------------------------------------------------------------------
 
-{# fun FORMALS as closureFormals { unsexp `SEXP R.Closure' } -> `SEXP a' sexp #}
-{# fun BODY as closureBody { unsexp `SEXP R.Closure' } -> `SEXP a' sexp #}
+-- | Closure formals (aka the actual arguments).
+{# fun FORMALS as closureFormals { unsexp `SEXP R.Closure' } -> `SEXP R.PairList' sexp #}
+
+-- | The code of the closure.
+{# fun BODY as closureBody { unsexp `SEXP R.Closure' } -> `SomeSEXP' somesexp #}
+
+-- | The environment of the closure.
 {# fun CLOENV as closureEnv { unsexp `SEXP R.Closure' } -> `SEXP R.Env' sexp #}
 
 --------------------------------------------------------------------------------
 -- Promise functions                                                          --
 --------------------------------------------------------------------------------
-{# fun PRCODE as promiseCode { unsexp `SEXP R.Promise'} -> `SEXP a' sexp #}
-{# fun PRENV as promiseEnv { unsexp `SEXP R.Promise'} -> `SEXP a' sexp #}
-{# fun PRVALUE as promiseValue { unsexp `SEXP R.Promise'} -> `SEXP a' sexp #}
 
+-- | The code of a promise.
+{# fun PRCODE as promiseCode { unsexp `SEXP R.Promise'} -> `SomeSEXP' somesexp #}
+
+-- | The environment in which to evaluate the promise.
+{# fun PRENV as promiseEnv { unsexp `SEXP R.Promise'} -> `SEXP R.Env' sexp #}
+
+-- | The value of the promise, if it has already been forced.
+{# fun PRVALUE as promiseValue { unsexp `SEXP R.Promise'} -> `SomeSEXP' somesexp #}
 
 --------------------------------------------------------------------------------
 -- Vector accessor functions                                                  --
@@ -359,9 +378,10 @@ vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- Value contruction                                                          --
 --------------------------------------------------------------------------------
 
--- | Create a String value inside R runtime.
+-- | Initialize a new string vector.
 {#fun Rf_mkString as mkString { id `CString' } -> `SEXP R.String' sexp #}
 
+-- | Initialize a new character vector (aka a string).
 {#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP R.Char' sexp #}
 
 -- | Create Character value with specified encoding

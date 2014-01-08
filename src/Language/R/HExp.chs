@@ -3,12 +3,25 @@
 --
 -- Provides a /shallow/ view of a 'SEXP' R value as an algebraic datatype. This
 -- is useful to define functions over R values in Haskell with pattern matching.
+-- For example:
+--
+-- @
+-- toPair :: SEXP a -> (SomeSEXP, SomeSEXP)
+-- toPair (hexp -> List _ (Just car) (Just cdr)) = (SomeSEXP car, SomeSEXP cdr)
+-- toPair (hexp -> Lang car (Just cdr)) = (SomeSEXP car, SomeSEXP cdr)
+-- toPair s = error $ "Cannot extract pair from object of type " ++ typeOf s
+-- @
+--
+-- (See 'Foreign.R.SomeSEXP' for why we need to use it here.)
+--
 -- The view is said to be 'shallow' because it only unfolds the head of the
 -- R value into an algebraic datatype. In this way, functions producing views
 -- can be written non-recursively, hence inlined at all call sites and
 -- simplified away. When produced by a view function in a pattern match,
 -- allocation of the view can be compiled away and hence producing a view can be
--- done at no runtime cost.
+-- done at no runtime cost. In fact, pattern matching on a view in this way is
+-- more efficient than using the accessor functions defined in "Foreign.R",
+-- because we avoid the overhead of calling one or more FFI functions entirely.
 --
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
