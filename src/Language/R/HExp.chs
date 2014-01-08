@@ -101,7 +101,7 @@ data HExp :: SEXPTYPE -> * where
   Lang      :: () -- (a :∈ R.Symbol :+: R.Lang)         -- XXX R.Closure also?
             => SEXP a
             -> Maybe (SEXP R.List)
-            -> HExp R.List
+            -> HExp R.Lang
   -- Fields: offset.
   Special   :: {-# UNPACK #-} !Int32
             -> HExp R.Special
@@ -388,14 +388,15 @@ unhexpIO (List c md mt) = do
   where
     d = maybe (R.unsafeCoerce H.nilValue) id md
     t = maybe (R.unsafeCoerce H.nilValue) id mt
-unhexpIO (Lang a mb)   = do
-    let b = maybe (R.unsafeCoerce H.nilValue) id mb
-    void $ R.protect a
-    void $ R.protect b
-    z <- R.cons a b
-    _ <- R.setTypeOf R.Lang z
+unhexpIO (Lang carval mbcdrval)   = do
+    let cdrval = maybe (R.unsafeCoerce H.nilValue) id mbcdrval
+    void $ R.protect carval
+    void $ R.protect cdrval
+    x <- R.allocSEXP R.SLang
+    R.setCar x carval
+    R.setCdr x cdrval
     R.unprotect 2
-    return z
+    return x
 unhexpIO s@(Env{})     =
     withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
 unhexpIO s@(Closure{}) =

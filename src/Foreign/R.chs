@@ -47,7 +47,6 @@ module Foreign.R
   , mkCharCE
     -- * Node attributes
   , typeOf
-  , setTypeOf
   , setAttribute
   , getAttribute
     -- * Node accessor functions
@@ -203,9 +202,6 @@ cIntConv = fromIntegral
 cUIntToEnum :: Enum a => CUInt -> a
 cUIntToEnum = toEnum . cIntConv
 
-cUIntFromEnum :: Enum a => a -> CUInt
-cUIntFromEnum = cIntConv . fromEnum
-
 cUIntFromSingEnum :: SSEXPTYPE a -> CUInt
 cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 
@@ -218,9 +214,6 @@ cIntFromEnum = cIntConv . fromEnum
 
 typeOf :: SEXP a -> SEXPTYPE
 typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
-
-setTypeOf :: SEXPTYPE -> SEXP a -> IO (SEXP b)
-setTypeOf t s = ({#set SEXP->sxpinfo.type #} s (cUIntFromEnum t)) >> return (unsafeCoerce s)
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
