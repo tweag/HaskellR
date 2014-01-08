@@ -52,6 +52,7 @@ import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
 import Foreign
     ( alloca
+    , castPtr
     , peek
     , Ptr
     , poke
@@ -115,7 +116,7 @@ parseEval txt = useAsCString txt $ \ctxt ->
         rc <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum rc) $
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
-        SomeSEXP expr <- peek =<< R.vector exprs
+        SomeSEXP expr <- peek $ castPtr $ R.unsafeSEXPToVectorPtr exprs
         eval expr
 
 -- $helpers

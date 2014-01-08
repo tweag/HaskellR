@@ -84,7 +84,8 @@ module Foreign.R
   , complex
   , raw
   , string
-  , vector
+  , unsafeSEXPToVectorPtr
+  , unsafeVectorPtrToSEXP
   , writeVector
     -- * Evaluation
   , eval
@@ -350,9 +351,13 @@ type Logical = 'R.Logical
 {#fun STRING_PTR as string { unsexp `SEXP R.String'}
       -> `Ptr (SEXP R.Char)' castPtr #}
 
--- | Read any SEXP vector data.
-vector :: SEXP a -> IO (Ptr b)
-vector s = return $ s `plusPtr` {#sizeof SEXPREC_ALIGN #}
+-- | Extract the data pointer from a vector.
+unsafeSEXPToVectorPtr :: SEXP a -> Ptr ()
+unsafeSEXPToVectorPtr s = s `plusPtr` {#sizeof SEXPREC_ALIGN #}
+
+-- | Inverse of 'vectorPtr'.
+unsafeVectorPtrToSEXP :: Ptr a -> SomeSEXP
+unsafeVectorPtrToSEXP s = SomeSEXP $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 
 {# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a' => { unsexp `SEXP a', `Int', unsexp `SEXP b'}
        -> `SEXP b' sexp #}

@@ -48,7 +48,7 @@ mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)
              -> SEXP a
 mkSEXPVector ty xs = unsafePerformIO $
     withProtected (R.allocVector ty $ length xs) $ \vec -> do
-      ptr <- R.vector vec
+      let ptr = castPtr $ R.unsafeSEXPToVectorPtr vec
       zipWithM_ (pokeElemOff ptr) [0..] xs
       return vec
 
@@ -59,7 +59,7 @@ mkProtectedSEXPVector :: IsVector b
 mkProtectedSEXPVector ty xs = unsafePerformIO $ do
     mapM_ (void . R.protect) xs
     z <- withProtected (R.allocVector ty $ length xs) $ \vec -> do
-           ptr <- R.vector vec
+           let ptr = castPtr $ R.unsafeSEXPToVectorPtr vec
            zipWithM_ (pokeElemOff ptr) [0..] xs
            return vec
     R.unprotect (length xs)
