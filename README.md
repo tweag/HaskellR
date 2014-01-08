@@ -129,6 +129,29 @@ lists over these numeric types, but also functions over these types:
 
 Currently, functions must be lifted to the `R` monad in order to be
 spliceable. The `R` monad is a type constructor taking two parameters:
-the first one is always `s` and states for the state of the monad,
+the first one is always `s` and refers to the state of the monad,
 while the second one is the type of the result of the function when
 executed.
+
+Further reading
+---------------
+
+To find out more, please refer to the following resources, available
+under the `doc/` subdirectory in the source distribution:
+
+* "The H user guide", a manual for all users of H.
+* "H internals", documenting how H works and how to extend it.
+* Haddock generated API documentation for the H library.
+
+### Building the documentation
+
+To read these resources in your browser, type
+
+    $ make doc
+
+at the root of the source distribution. This will generate the
+following documents:
+
+    dist/pandoc/H-user.html
+    dist/pandoc/H-ints.html
+    dist/doc/html/H/index.html
