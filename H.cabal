@@ -27,12 +27,12 @@ library
                        Foreign.R.Type
                        H.Constraints
                        H.Prelude
-                       H.Prelude.Eval
                        H.Prelude.Interactive
                        H.Prelude.Reexports
                        H.Prelude.RVal
                        Language.R
                        Language.R.Debug
+                       Language.R.GC
                        Language.R.Globals
                        Language.R.HExp
                        Language.R.Instance

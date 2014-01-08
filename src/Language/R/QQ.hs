@@ -24,7 +24,7 @@ import           Language.R.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Type as SingR
-import           Language.R (parseText, install, string)
+import           Language.R (parseText, install, string, eval)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -71,7 +71,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $ H.eval $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $ eval $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -88,9 +88,9 @@ parseEval txt = do
   where
     go :: [SomeSEXP] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP a]    = [| H.withProtected (return a) H.eval |]
+    go [SomeSEXP a]    = [| H.withProtected (return a) eval |]
     go (SomeSEXP a:as) =
-        [| H.withProtected (return a) $ H.eval >=> \(SomeSEXP s) ->
+        [| H.withProtected (return a) $ eval >=> \(SomeSEXP s) ->
              H.withProtected (return s) (const $(go as))
          |]
 
