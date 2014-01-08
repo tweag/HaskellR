@@ -15,7 +15,7 @@ module H.Prelude
   -- * Evaluation constructs
   , module H.Prelude.Eval
   -- * R Value
-  , module H.Prelude.RVal
+  , module Language.R.RVal
   -- * Language.R functions
   , module H.Prelude.Reexports
   -- * Literals
@@ -37,7 +37,7 @@ import qualified Data.Vector.SEXP as Vector
 import           H.Prelude.Reexports
 import           H.Prelude.Eval
 import           Language.R.Globals
-import           H.Prelude.RVal
+import           Language.R.RVal
 import           Language.R.Literal
 import Language.R.Instance
 import qualified Language.R ( withProtected )
