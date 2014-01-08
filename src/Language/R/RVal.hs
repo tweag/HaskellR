@@ -4,7 +4,7 @@
 -- RVal is a value supposed to hold SEXP that are in haskell
 -- memory from garbage collection on in R.
 {-# LANGUAGE GADTs #-}
-module H.Prelude.RVal
+module Language.R.RVal
   ( RVal
   , newRVal
   , touchRVal

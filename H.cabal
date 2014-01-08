@@ -28,7 +28,6 @@ library
                        H.Prelude.Eval
                        H.Prelude.Interactive
                        H.Prelude.Reexports
-                       H.Prelude.RVal
                        Language.R
                        Language.R.Debug
                        Language.R.Globals
@@ -39,6 +38,7 @@ library
                        Language.R.Literal
                        Language.R.QQ
                        Language.R.Runtime.QQ
+                       Language.R.RVal
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error
