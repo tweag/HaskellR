@@ -318,7 +318,8 @@ unsafeCoerce = castPtr
 --------------------------------------------------------------------------------
 
 -- | Length of the vector.
-{#fun LENGTH as length `R.IsVector a' => { unsexp `SEXP a' } -> `Int' #}
+length :: R.IsVector a => SEXP a -> IO Int
+length s = fromIntegral <$> {#get VECSEXP->vecsxp.length #} s
 
 -- | Read True Length vector field.
 {#fun TRUELENGTH as trueLength `R.IsVector a' => { unsexp `SEXP a' } -> `CInt' id #}
