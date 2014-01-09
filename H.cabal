@@ -28,7 +28,6 @@ library
                        H.Constraints
                        H.Prelude
                        H.Prelude.Interactive
-                       H.Prelude.RVal
                        Language.R
                        Language.R.Debug
                        Language.R.GC

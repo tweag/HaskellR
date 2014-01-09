@@ -14,7 +14,6 @@ module Language.R
   , r2
   , parseFile
   , parseText
-  , withProtected
   , install
   , installIO
   , string
@@ -30,6 +29,7 @@ module Language.R
   , throwRMessage
   -- * Helpers
   -- $helpers
+  , module Language.R.GC
   ) where
 
 import qualified Data.Vector.SEXP as Vector
