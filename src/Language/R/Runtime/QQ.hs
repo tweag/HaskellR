@@ -24,7 +24,7 @@ import           Language.R.HExp
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import           Language.R ( parseText, withProtected )
+import           Language.R ( parseText, withProtected, eval, install )
 import           Control.Exception
 
 -- import Control.Monad ( forM_, (>=>) )
@@ -90,7 +90,7 @@ parseExpRuntime txt = do
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = [| H.withProtected $(parseExpRuntime txt) (H.eval) |]
+parseExpRuntimeEval txt = [| H.withProtected $(parseExpRuntime txt) eval |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: SEXP a -> [ExpQ -> ExpQ]
@@ -118,7 +118,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
         rp = maybe (RuntimeSEXP (R.unsafeCoerce H.nilValue)) RuntimeSEXP params
     in Just (\e ->
-         [| H.withProtected (H.install ".Call") $ \call ->
+         [| H.withProtected (install ".Call") $ \call ->
               H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
                 io $ R.setCar (unRuntimeSEXP rs) call
                 io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))

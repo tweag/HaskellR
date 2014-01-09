@@ -46,7 +46,7 @@ import qualified Language.R.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
 import           Foreign.R (SEXPREC)
-import           Language.R (withProtected)
+import           Language.R.GC (withProtected)
 
 import qualified Data.Vector.SEXP as Vector
 import           Data.ByteString (ByteString)

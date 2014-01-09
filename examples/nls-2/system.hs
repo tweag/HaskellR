@@ -3,9 +3,9 @@ import H.Prelude
 import System.Random.MWC
 import System.Random.MWC.Distributions
 import qualified Foreign.R as R
-import H.HExp
+import Language.R.HExp
 import qualified Data.Vector.SEXP as Vector
-import H.Debug as D
+import Language.R.Debug as D
 import Data.List
 import Data.Int
 
@@ -19,7 +19,7 @@ generate ix =
           return $ r * (1 + 0.01 * v)
   where x = fromIntegral ix
 
-generate_lifted :: [Int32] -> R [Double]
+generate_lifted :: [Int32] -> R s [Double]
 generate_lifted = io .  (mapM generate)
 
 analyse :: R.SEXP a -> IO ()
@@ -28,11 +28,10 @@ analyse x@(hexp -> Vector _ v) = do
     putStrLn "vector"
     Prelude.print $ Vector.length v
     putStrLn $ D.inspect x
---    H.print $ dimgets
 analyse x@(hexp -> Real v) = do
     putStrLn "real"
     putStrLn $ D.inspect x
-analyse x = Prelude.print =<< R.typeOf x
+analyse x = Prelude.print (R.typeOf x)
 
 data Poly = Poly [Int]
 

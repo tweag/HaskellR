@@ -20,6 +20,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
 
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module Language.R.Instance
   ( -- * The R monad
     R
@@ -30,6 +32,18 @@ module Language.R.Instance
   , defaultConfig
   -- * R instance creation
   , initialize
+  -- * R global constants
+  -- $ghci-bug
+  , pokeRVariables
+  , peekRVariables
+  , globalEnvPtr
+  , baseEnvPtr
+  , nilValuePtr
+  , unboundValuePtr
+  , missingArgPtr
+  , rInteractive
+  , rCStackLimitPtr
+  , rInputHandlersPtr
   ) where
 
 import           Control.Monad.R.Class
@@ -37,7 +51,6 @@ import           Control.Concurrent.OSThread
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Interface as R
-import qualified Language.R as LR
 import           Foreign.C.String
 
 import Control.Applicative
@@ -146,7 +159,7 @@ initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
     unless initialized $ mdo
       -- Grab addresses of R global variables
-      LR.pokeRVariables
+      pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
         , R.rInteractive, R.rCStackLimit, R.rInputHandlers
         )
@@ -157,7 +170,7 @@ initialize Config{..} = do
         unsafeRunInRThread R.processEvents
 #else
         unsafeRunInRThread $
-          R.processGUIEventsUnix LR.rInputHandlersPtr
+          R.processGUIEventsUnix rInputHandlersPtr
 #endif
       unsafeRunInRThread $ do
         populateEnv
@@ -166,9 +179,9 @@ initialize Config{..} = do
         argv <- mapM newCString args
         let argc = length argv
         newCArray argv $ R.initEmbeddedR argc
-        poke LR.rInteractive 0
+        poke rInteractive 0
         -- XXX setting the stack limit seems to only be required in Windows
-        poke LR.rCStackLimitPtr (-1)
+        poke rCStackLimitPtr (-1)
         poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
@@ -230,3 +243,45 @@ stopRThread = postToRThread_ $ myThreadId >>= killThread
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
+--
+-- $ghci-bug
+-- The main reason to have all R constants referenced with a StablePtr
+-- is that variables in shared libraries are linked incorrectly by GHCi with
+-- loaded code.
+--
+-- The workaround is to grab all variables in the ghci session for the loaded
+-- code to use them, that is currently done by the H.ghci script.
+--
+-- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
+
+type RVariables =
+    ( Ptr (R.SEXP R.Env)
+    , Ptr (R.SEXP R.Env)
+    , Ptr (R.SEXP R.Nil)
+    , Ptr (R.SEXP R.Symbol)
+    , Ptr (R.SEXP R.Symbol)
+    , Ptr CInt
+    , Ptr R.StackSize
+    , Ptr (Ptr ())
+    )
+
+-- | Stores R variables in a static location. This makes the variables'
+-- addresses accesible after reloading in GHCi.
+pokeRVariables :: RVariables -> IO ()
+pokeRVariables = poke rVariables <=< newStablePtr
+
+-- | Retrieves R variables.
+peekRVariables :: RVariables
+peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
+
+(  globalEnvPtr
+ , baseEnvPtr
+ , nilValuePtr
+ , unboundValuePtr
+ , missingArgPtr
+ , rInteractive
+ , rCStackLimitPtr
+ , rInputHandlersPtr
+ ) = peekRVariables
+
+foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
