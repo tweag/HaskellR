@@ -1,14 +1,15 @@
-H user’s guide
-==============
+% H user's guide
+% Amgen, Inc
+%
 
 Building and Installing H
--------------------------
+=========================
 
-For build and installation instruction please see README.md file
+For build and installation instruction please see the `README.md` file
 included with the H distribution.
 
 Using H
--------
+=======
 
 H is a library, as well as a command. The library can be used from
 Haskell source files as well as from GHCi. The command is a wrapper
@@ -16,7 +17,7 @@ script that fires up a GHCi session set up just the right way for
 interacting with R.
 
 Evaluating R expressions in GHCi
---------------------------------
+================================
 
 Using H, the most convenient way to interact with R is through
 quasiquotation. `r` is a quasiquoter that constructs an R expression,
@@ -63,7 +64,12 @@ means that the entirety of R’s syntax is supported, and that it is
 possible to take advantage of any future additions to the R syntax for
 free in H, without any extra effort.
 
-### Splicing Haskell values in R
+> **Note:** quasiquotes are also available in compiled modules, not just
+> GHCi. However, unfortunately, quasiquotes are not available in the
+> H library itself. That is, one cannot use quasiquotes provided by
+> H to implement part of H.
+
+## Splicing Haskell values in R
 
 Haskell values can be used in R code given to quasiquoters. When
 a Haskell value is bound to a name in the lexical scope surrounding
@@ -82,7 +88,7 @@ to splice the Haskell value.
     H> H.print =<< [r| 1 + x_hs |]
     [1] 3
 
-### Defining spliceable types
+## Defining spliceable types
 
 Not all values can be spliced --- only values of certain types. The
 set of spliceable types is not fixed and new types can be added as
@@ -118,7 +124,7 @@ or R sides to invalidate values pointed by the other side. See
 [Constructing R expressions with explicit calls].
 
 The R monad
------------
+===========
 
 All expressions like
 
@@ -153,12 +159,12 @@ io           :: IO a -> R s a
 unsafeRToIO  :: R s a -> IO a
 ```
 
-The `IO` monad is used in GHCi, and it allows evaluating expressions
-without the need to wrap every command at the prompt with the function
-`runR`. The `IO` monad is not as safe as the `R` monad, because it
-does not guarantee that R has been properly initialized, but in the
-context of an interactive session this is superfluous as the
-`H --interactive` command takes care of this at startup.
+The `IO` monad is used instead in GHCi, as it allows evaluating
+expressions without the need to wrap every command at the prompt with
+the function `runR`. The `IO` monad is not as safe as the `R` monad,
+because it does not guarantee that R has been properly initialized,
+but in the context of an interactive session this is superfluous as
+the `H --interactive` command takes care of this at startup.
 
 The `io` method of `MonadR` is used in both monads to bring
 computations to the R thread.
@@ -169,7 +175,9 @@ the previous section, where the type given to `f` is `Double ->
 R s Double`.
 
 How to analyze R values in Haskell
-----------------------------------
+==================================
+
+## Pattern matching on views
 
 In order to avoid unnecessary copying or other overhead every time
 code crosses the boundary to/from R and Haskell, H opts for the
@@ -206,7 +214,7 @@ For instance:
 
 ```Haskell
 f (hexp -> Real xs) = …
-f (hexp -> Lang rand (hexp -> List x0 (hexp -> List x1 _ _) _) = …
+f (hexp -> Lang rator (hexp -> List rand1 (hexp -> List rand2 _ _) _) = …
 f (hexp -> Closure args body@(hexp -> Lang _ _) env) = ...
 ```
 
@@ -260,8 +268,130 @@ The `Eq` instance for `HExp` is defined in terms of the `HEq`
 instance. See `H.HExp` for its definition. It compares values for
 structural equality.
 
+## Vectors
+
+Most data items in R are vectors, e.g. integers, reals, characters,
+etc. H supports constructing and manipulating R vectors entirely in
+Haskell, without invoking the R interpreter, and using the same API as
+the de facto standard
+[vector](http://hackage.haskell.org/package/vector) package.
+Conversely, any data that is stored as an R vector rather than some
+other vector type can be fed to R functions without any prior
+conversion or copying. Considering that the memory layout of an
+R vector is practically as efficient as any other unboxed
+representation, programs that interact with the R interpreter
+frequently should consider using R vectors as a representation by
+default.
+
+Please refer to the Haddock generated documentation of the
+`Data.Vector.SEXP` and `Data.Vector.SEXP.Mutable` modules for a full
+reference on the vector API supported by H.
+
+## Casts and coercions
+
+Type indexing `SEXP`s makes it possible to precisely characterize the
+set of values that a function can accept as argument or return as
+a result, but this only works well when the forms of R values are
+known *a priori*, which is not always the case. In particular, the
+type of the result of a call to the `r` quasiquoter is always
+`SomeSEXP`, meaning that the form of the result is not statically
+known. If the result needs to be passed to a function with a precise
+signature, say `SEXP R.Real -> SEXP R.Logical`, then one needs to
+either discover the form of the result, by first performing pattern
+matching on the result before passing it to the function:
+
+```Haskell
+f :: SEXP R.Real -> SEXP R.Logical
+
+g = do SomeSEXP x <- [r| 1 + 1 |]
+       case x of
+         (hexp -> R.Int v) -> return (f x)
+         _ -> error "Not an int."
+```
+
+But pattern matching in this manner can be verbose, and sometimes the
+user knows more than the type checker does. In the example above, we
+know that `[r| 1 + 1 |]` will always return a real. We can use *casts*
+or *coercions* to inform the type checker of this:
+
+```Haskell
+f :: SEXP R.Real -> SEXP R.Logical
+
+g = do x <- [r| 1 + 1 |]
+       return $ f (R.Int `R.cast` x)
+```
+
+A *cast* introduces a dynamic form check at runtime to verify that the
+form of the result was indeed of the specified type. This dynamic type
+check was a (very small) cost. If the user is extra sure about the
+form, she may use *coercions* to avoid even the dynamic check, when
+the situation warrants it (say in tight loops). This is done with
+
+```Haskell
+unsafeCoerce :: SEXP a -> SEXP b
+```
+
+This function is highly unsafe - it is H's equivalent of Haskell's
+`System.IO.Unsafe.unsafeCoerce`. It is a trapdoor that can break type
+safety: if the form of the argument happens to not match the expected
+form at runtime then a segfault may result, or worse, silent memory
+corruption.
+
+Managing memory
+===============
+
+One tricky aspect of bridging two languages with automatic memory
+management such as R and Haskell is that we must be careful that the
+garbage collectors (GC) of both languages see eye-to-eye. The embedded
+R instance manages objects in its own heap, separate from the heap
+that the GHC runtime manages. However, objects from one heap can
+reference objects in the other heap and the other way around. This can
+make garbage collection unsafe because neither GC's have a global view
+of the object graph, only a partial view corresponding to the objects
+in the heaps of each GC.
+
+Fortunately, R provides a mechanism to "protect" objects from garbage
+collection until it is unprotected. We can use this mecanism to
+prevent R's GC from deallocating objects that all still referenced by
+at least one object in the Haskell heap.
+
+One particular difficulty with protection is that one must not forget
+to unprotect objects that have been protected. H provides the
+following facility for pinning an object in memory and guaranteeing
+unprotection when a function returns:
+
+```Haskell
+withProtected :: IO (SEXP a)      -- ^ Action to acquire resource
+              -> (SEXP a -> IO b) -- ^ Action
+              -> IO b
+```
+
+The `withProtect` pattern for memory protection works well for simple
+scenarios when the lifetime of an object follows lexical scope. For
+more complex scenarios, H provides a mechanism to wrap `SEXP`s as
+foreign pointers, called `RVal`s. This mechanism piggybacks Haskell's
+GC to notify R's GC when it is safe to deallocate. The downside of
+`RVal`s is that one must frequently unwrap them when passing them as
+arguments to R primitives and other functions.
+
+A good way to stress test whether R values are being protected
+adequately is to turn on `gctorture`:
+
+```Haskell
+do [r| gctorture2(1, 0, TRUE) |]
+   ...   
+```
+
+This instructs R to run a GC sweep at every allocation, hence making
+it much more likely to detect inadequately protected objects. It is
+recommended to use a version of R that has been compiled with
+`--enable-strict-barrier`.
+
+See The Haddock generated documentation for the `Lanugage.R.GC` module
+for further details.
+
 Catching runtime errors
------------------------
+=======================
 
 Evaluating R expressions may result in runtime errors. All errors are
 wrapped in the `Foreign.R.Error.RError` exception that carries the
@@ -273,11 +403,11 @@ error message.
       argument "x" is missing, with no default
 
 Differences when using H in GHCi and in compiled Haskell modules
-----------------------------------------------------------------
+================================================================
 
 There are two ways to use the H library and facilities. The simplest
 is at the H interactive prompt, for interacting with R in the small.
-But H supports equally well written full blown programs that interact
+But H supports equally well writing full blown programs that interact
 with R in elaborate and intricate ways, possibly even multiple
 instances of R.
 
@@ -296,8 +426,38 @@ To avoid having multiple instances of `MonadR` lying around, it is
 important NOT to import `Language.R.Instance.Interactive` in compiled
 code - that module should only be loaded in a GHCi session.
 
+## "Hello World!" from source
+
+Another major difference between interactive sessions and compiled
+programs using H is that one needs to handle R initialization and
+configuration explicitly in compiled programs, while `H --interactive`
+takes care of this for us. Here is a template small program using the
+H library:
+
+```Haskell
+module Main where
+
+import qualified Foreign.R as R
+import Foreign.R (SEXP, SEXPTYPE)
+import Language.R.Instance as R
+import Language.R.QQ
+
+hello :: String -> R s ()
+hello name = do
+    [r| print(s_hs) |]
+    return ()
+  where
+    s = "Hello, " ++ name ++ "!"
+
+main :: IO ()
+main = do
+    putStrLn "Name?"
+    name <- getLine
+    R.runR R.defaultConfig (hello name)
+```
+
 References
-----------
+==========
 
 [1]
    <a name=mainland-quasiquotes></a>
