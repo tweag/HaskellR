@@ -12,12 +12,8 @@ module H.Prelude
   , module Foreign.R.Error
   , print
   , module Control.Monad.R.Class
-  -- * Evaluation constructs
-  , module H.Prelude.Eval
-  -- * R Value
-  , module H.Prelude.RVal
   -- * Language.R functions
-  , module H.Prelude.Reexports
+  , module Language.R
   -- * Literals
   , module Language.R.Literal
   -- * Globals
@@ -30,16 +26,13 @@ import           Control.Monad.R.Class
 import           H.Internal.Prelude
 import qualified Foreign.R as R
 import Language.R.HExp
-import Language.R (r1)
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
-import           H.Prelude.Reexports
-import           H.Prelude.Eval
 import           Language.R.Globals
-import           H.Prelude.RVal
 import           Language.R.Literal
 import Language.R.Instance
+import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )
 import Foreign.R.Error
 
