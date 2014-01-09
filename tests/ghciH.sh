@@ -4,4 +4,4 @@ if command -v ghcii.sh > /dev/null 2>&1
 then
     GHCi=ghcii.sh
 fi
-LANG=C $GHCi -fno-cse -package-db=dist/package.conf.inplace $GHCi_H_ARGS "$@" 2>&1
+LANG=C $GHCi -package-db=dist/package.conf.inplace $GHCi_H_ARGS "$@" 2>&1
