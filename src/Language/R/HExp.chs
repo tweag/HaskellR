@@ -305,7 +305,7 @@ peekHExp s = do
       R.Real      -> coerce $ Real    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.DotDotDot -> unimplemented "peekHExp"
+      R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Vector    -> coerce $
         Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
@@ -317,10 +317,10 @@ peekHExp s = do
         ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
-      R.WeakRef   -> unimplemented "peekHExp"
-      R.Raw       -> unimplemented "peekHExp"
-      R.S4        -> unimplemented "peekHExp"
-      _           -> unimplemented "peekHExp"
+      R.WeakRef   -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
+      R.Raw       -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
+      R.S4        -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
+      _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
 pokeHExp s h = do
