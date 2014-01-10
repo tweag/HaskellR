@@ -23,10 +23,15 @@ TODO Documentation license
 Architectural overview
 ======================
 
-R source code is organized as a set of *scripts*. In its simplest
-form, H is a script-to-script translator.
+R source code is organized as a set of *scripts*, which are loaded one
+by one into the R interpreter. Each statement in a each script is
+evaluated in order and affect the global environment mapping symbols
+to values maintained by the R interpreter. In its simplest form, H is
+an interactive environment much like R, with a global environment
+altered by the in-order evaluation of statements.
 
-In its most general form, H is a desgurer for quasiquotations.
+H offers a number of facilities for interoperating with R. The central
+and most general mechanism by which this is done is /quasiquotation/.
 A quasi-quotation is a partial R script --- that is, a script with
 holes in it that stand in for as of yet undetermined portions. An
 example quasiquote in Haskell of an R snippet is:
@@ -50,16 +55,21 @@ possible to obtain a full R script, with no holes in it, by *splicing*
 the value of the Haskell variables into the quasiquote, in place of
 the antiquotes.
 
-Given this general view of H as a desugarer for R quasiquoted
-snippets, translating an entire R script stored in a file into
-Haskell code is a mere special case: an R script file can be seen as
-one giant quasiquote that contains no antiquotes.
+At a high-level, H is a desugarer for quasiquotes. It defines how to
+translate a quasiquotation into a Haskell expression. Hence the
+H interactive environment is an interpreter for sequences of
+quasiquotes, containing R code snippets, and other Haskell
+snippets.
 
-Rather than fed directly to R, the result of a quasiquote can
-optionally be *translated*. In this case, R functions are translated
-to Haskell functions, and the symbols they are bound to in the
-embedded R instance are rebound to wrappers that invoke the Haskell
-versions of the functions.
+H is structured as a library. The H interactive environment is
+a simple launcher for GHCi that loads the H library into the session
+and sets a number of parameters.
+
+The library itself is structured as two layers: a bottom-half binding
+to low-level internal functions of the R interpreter, using the
+`Foreign.R.*` namespace, and a top-half building higher-level
+functionality upon the bottom-half, using the `Language.R.*`
+namespace.
 
 Rationale
 ---------
@@ -79,8 +89,6 @@ programming features, making it much easier to compile. This means
 that not all R constructs and primitives can be readily mapped to
 statically generated Haskell code with decent performance.
 
-TODO footnote about cardinality.
-
 Much of the dynamic flavour of R likely stems from the fact that it is
 a scripting language. The content of a script is meant to be evaluated
 in sequential order in an interactive R prompt. The effect of loading
@@ -93,12 +101,14 @@ be compiled separately and in any order (provided some amount of
 metadata about dependencies). Contrary to R scripts, the order in
 which modules are loaded into memory is likewise non-deterministic.
 
-There exists, however, an interactive prompt for Haskell, that behaves
-much in the same way as R, called GHCi. This prompt reads statements
-and expressions from standard input one by one, evaluates them and
-prints the values of expressions, just as in R. The value of an
-expression, or indeed whether it is well scoped, depends on the
-statements that were fed to the interactive prompt before it.
+For this reason, in keeping to a simple solution to interoperating
+with R, we choose to devolve as much processing of R code to an
+embedded instance of the R interpreter and retain the notion of global
+environment that R provides. This global environment can readily be
+manipulated from an interactive environment such as GHCi. In compiled
+modules, access to the environment can be mediated as well as
+encapsulation of any effects can be mediated through a custom monad,
+which we call the `R` monad.
 
 ### Dynamic typing
 
@@ -135,7 +145,7 @@ We call the type of all the classes that exist in R the *universe*
 (See [Internal Structures](#internal-structures)).
 
 Because "class" is already an overloaded term in both R and in
-Haskell, in the following we use the term *shape* to refer to what the
+Haskell, in the following we use the term *form* to refer to what the
 above calls a "class".
 
 [harper-dynamic-static]:
@@ -147,15 +157,23 @@ Internal Structures
 A native view of expresions
 ---------------------------
 
+By default, and in order to avoid having to pay
+marshalling/unmarshalling costs for each argument every time one
+invokes an internal R function, we represent R values in exactly the
+same way R does, as a pointer to a `SEXPREC` structure (defined in
+`R/Rinternals.h`). This choice has a downside, however: Haskell's
+pattern matching facilities are not immediately available, since only
+algebraic datatypes can be pattern matched.
+
 `HExp` is R's `SEXP` (or `*SEXPREC`) structure represented as
-a Haskell datatype. We make `HExp` an instance of the `Storable` type
-class to convert to/from R's internal representation as needed.
+a (generalized) algebraic datatype. A simplified definition of `HExp`
+would go along the lines of:
 
 ```Haskell
 data HExp
-  = Nil						  -- NILSXP
-  | Symbol { ... }				  -- SYMSXP
-  | Real { ... }				  -- REALSXP
+  = Nil                                           -- NILSXP
+  | Symbol { ... }                                -- SYMSXP
+  | Real { ... }                                  -- REALSXP
   | ...
 ```
 
@@ -174,8 +192,8 @@ hexp :: SEXP -> HExp
 
 The fact that this conversion is local is crucial for good performance
 of the translated code. It means that conversion happens at each use
-site, and happens against values with a statically known shape. Thus
-we expect that the view function can usually be inlined, and the
+site, and happens against values with a statically known form. Thus we
+expect that the view function can usually be inlined, and the
 short-lived `HExp` values that it creates compiled away by code
 simplification rules applied by GHC. In this manner, we get the
 convenience of pattern matching that comes with a *bona fide*
@@ -195,61 +213,69 @@ on the Haskell side and passed to R.
 We also define an inverse of the view function:
 
 ```Haskell
-sexp :: HExp -> SEXP
+unhexp :: HExp -> SEXP
 ```
 
-The universe of values
-----------------------
+A form indexed native view of expresions
+----------------------------------------
 
-For the purposes of the translation below, we introduce the following
-datatype:
+In reality, H defines `HExp` in a slightly more elaborate way. Most
+R functions expect their inputs to have certain predetermined forms.
+For example, the `+` function expects that its arguments be of some
+numeric type. A runtime error will occur when this is not the case.
+Likewise, `append` expects its first argument to be a vector, and its
+last argument to be a subscript. These form restrictions are
+documented in a systematic way in each function's manual page. While
+R itself, nor its implementation, make any attempt to enforce these
+restrictions statically, Haskell's type system is rich enough to allow
+us to do so.
+
+For this reason, H allows the `SEXP` and `HExp` types to be indexed by
+the form of the expression. For example, a value which is known to be
+a real number can be given the type `SEXP R.Real`. In general, one
+does not always know *a priori* the form of an R expression, but
+pattern matching on an algebraic view of the expression allows us to
+"discover" the form at runtime. In H, we define the `HExp` algebraic
+view type as a GADT. In this way, the body of each branch can be typed
+under the assumption that the scrutinee matches the pattern in the
+left hand side of the branch. For example, in the body of a branch
+with pattern `Real x`, the type checker can refine the type of the
+scrutinee to `SEXP R.Real`. In H, `HExp` is defined as follows:
 
 ```Haskell
-data HVal
-  = SEXP SEXP
-  | Lam    (SEXP -> HVal)
-  | Lam1   (HVal -> HVal)
-  | ...
-  | Lam<ARGMAX> (HVal -> ... -> HVal -> HVal)
+data HExp (a :: SEXPTYPE) where
+  Nil       :: HExp R.Nil
+  -- Fields: pname, value, internal.
+  Symbol    :: SEXP R.Char
+            -> SEXP a
+            -> Maybe (SEXP b)
+            -> HExp R.Symbol
+  Int       :: {-# UNPACK #-} !(Vector.Vector R.Int Int32)
+            -> HExp R.Int
+  Real      :: {-# UNPACK #-} !(Vector.Vector R.Real Double)
+  ...
 ```
 
-Where `ARGMAX` is some small number (e.g. 6). The `Lam*` family of
-constructors is for functions of known arity. Variadic functions or
-functions whose arity exceeds that of the available constructors are
-encoded using the `Lam` constructor, whose function expects an
-argument pairlist, in the style of `.External` foreign functions.
+See the Haddock generated documentation for the `Language.R.HExp`
+module for the full definition.
 
-Translation from R to Haskell
-=============================
+In the above, notice that the `Symbol` constructor produces a value of
+type `HExp R.Symbol`, while the `Real` constructor produces a value of
+type `HExp R.Real`. In other words, the type index *reflects* the
+constructor of each variant, which itself is a function of the form of
+a `SEXP`. For safety and clarity, we preclude indexing `SEXP` and
+`HExp` with any Haskell type (which are all usually of kind `*`). We
+use GHC's `DataKinds` extension to introduce a new kind of types,
+named `SEXPTYPE`, and limit the possible type indexes to types that
+have kind `SEXPTYPE`. Version 7.6 of GHC and later feature the
+`DataKinds` extension to permit defining `SEXPTYPE` as a regular
+algebraic datatype and then allowing `SEXPTYPE` to be considered as
+a kind and the constructors of this type to be considered types of the
+`SEXPTYPE` kind, depending on context. See the GHC user's guide for
+more information.
 
-We express translations in terms of a simplified grammar of
-R expressions. This grammar corresponds to [R's internal
-representation][R-ints] of all expressions (i.e. `SEXP`), so we do not
-attempt to define it explicitly here. However, for readability, we
-reuse elements of R's surface syntax to denote `SEXP`'s.
-
-There is only one translation function in H. This translation is often
-applied to the value of a quasiquote, so we describe it first.
-
-Naming conventions
-------------------
-
-$$
-\begin{align*}
-   i,j,k &::= \mbox{literals}
-\\ x,y,z &::= \mbox{(local) variables}
-\\ f,g,h &::= \mbox{(function) variables}
-\\ M, N  &::= \mbox{R expressions}
-\\ cargs  &::= \mbox{A non simple expression list (e.g. with names and dots)}
-\end{align*}
-$$
-
-We give translation schemas below, where we use an ellipsis ($\ldots$)
-for repetition. But `...` is also a syntactic construct within R. Mind
-the difference in font to disambiguate between the two.
-
-`SEXP` construction
--------------------
+Implementation of quasiquoters
+==============================
 
 Given an R expression, represented as a `SEXP`, a quasiquote expands
 to the programmatic construction of a SEXP.
@@ -264,110 +290,6 @@ parser, being allocated in the compile-time instance of R, is not
 available at runtime. Therefore, a quasiquote expands to Haskell code
 that builds an equivalent AST at runtime, using the view and inverse
 view function defined above.
-
-`HVal` translation
-------------------
-
-In general R computations have arbitrary side effects. These include
-I/O, but also mutation of variables. We cannot just assume
-computations to be pure. In Haskell, effectful computations are
-modelled using monads. The translation below targets some abstract
-monad allowing at least all of the same effects as the `IO` monad. In
-practice, we target a concrete monad which we call the `R` monad.
-
-$$
-\begin{align*}
-\\ \trans x \rho &= \fn{readIORef} \refv x
-     &\mbox{if $x \in \rho$}
-\\ \trans x \rho &= x
-     &\mbox{otherwise}
-\\ \trans i \rho &= \fn{return} \fn{SEXP} (\fn{mkSEXP} i)
-\\ \trans{\function{x_1, \ldots, x_n} M} \rho &=
-     \fn{return} \mathsf{Lam}_n\; (\hsabs{x_1 \;\ldots\; x_n} \kw{do}
-     &\hskip{-2em}\mbox{if $n \leq \mathsf{ARG_{max}}$}
-\\&\qquad \refv{x_1} \leftarrow \fn{newIORef}{x_1}
-\\&\qquad \qquad\vdots
-\\&\qquad \refv{x_n} \leftarrow \fn{newIORef}{x_n}
-\\&\qquad \trans M (\rho \cup \{x_1,\ldots,x_n\}))
-% \\ \trans{\function{cargs} M} &=
-%      \fn{return} \fn{Lam} (\hsabs{args} \trans M) & \mbox{where $args$ fresh}
-\\ \trans{M(N_1, \ldots, N_n)} \rho &= \kw{do}
-     &\hskip{-7em}\mbox{where $\forall i.\;rator,rand_i$ fresh}
-\\&\qquad rator \leftarrow \trans M \rho
-\\&\qquad rand_1 \leftarrow \trans{N_1} \rho
-\\&\qquad \qquad\vdots
-\\&\qquad rand_n \leftarrow \trans{N_n} \rho
-\\&\qquad \mathsf{apply}_n \; rator \; rand_1 \;\ldots\; rand_n
-\end{align*}
-$$
-
-Where we have that:
-
-```Haskell
-class Literal a where
-  mkSEXP :: a -> SEXP
-
-toSEXP :: HVal -> SEXP
-toSEXP (SEXP s) = s
-toSEXP _ = error "Bad argument."
-
-apply :: HVal -> HVal -> HVal
-apply (SEXP s)
-      (mkPromise -> p) = [r| s_hs(p_hs) |]
-apply (Lam f)  x = f x
-
-apply1 :: HVal -> HVal -> HVal
-apply1 (SEXP s)
-       (mkPromise -> p) = [r| s_hs(p_hs) |]
-apply1 (Lam1 f) x = f x
-apply1 (Lam2 f) x = f x R.undefinedValue
-...
-
-apply2 :: HVal -> HVal -> HVal -> HVal
-apply2 (SEXP s)
-       (mkPromise -> p1)
-       (mkPromise -> p2) = [r| s_hs(p1_hs, p2_hs) |]
-apply2 (Lam1 f) x1 x2 = error "Too many arguments."
-apply2 (Lam2 f) x1 x2 = f x1 x2
-apply2 (Lam3 f) x1 x2 = f x1 x2 R.undefinedValue
-...
-```
-
-### `.Internal()` and `.Primitive()` calls
-
-### `.External()` calls
-
-
-Optimizations
-=============
-
-TODO Explain eval/apply optimization.
-
-For all practical purposes, we can typically limit the number of
-function constructors to some small number, say 6, and encode all
-higher arity functions in terms of functions variable arity.
-
-Note: GHC uses [pointer
-tagging](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/PointerTagging)
-for certain optimizations. In particular, when a pointer points to
-a constructor, the tag bits in the pointer say precisely which
-constructor is being pointed to, which avoids having to scrutinize the
-info table to get the same information. On 64-bit platforms, pointer
-tagging only works for datatypes of 8 constructors or less, so it is
-important not to add too many constructors to the universe for the
-purposes of the eval/apply optimization.
-
-Pointer tagging is also used to indicate the arity of a function.
-Doing so allows to optimize calls to unknown functions when the arity
-of the function matches exactly that of the number of actual
-arguments. Notice that this optimization is still useful given the
-universe above: the various `apply` operators can jump directly into
-the code for the functions given as the first argument, without having
-to go through the steps of a [generic
-apply](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Rts/HaskellExecution/FunctionCalls#Genericapply).
-
-H implementation naming conventions
-===================================
 
 Threads in H
 ============
