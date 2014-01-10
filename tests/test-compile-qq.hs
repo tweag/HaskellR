@@ -150,4 +150,11 @@ rTests = H.runR H.defaultConfig $ do
 
     -- restore usual meaning of `+`
     _ <- [r| `+` <- base::`+` |]
+
+    --  should be [1] 1 3 5 7 9
+    H.print =<< [r| genlist <- c(1:10);
+                    dim(genlist) <- c(2,5);
+                    genlist[1,] |]
+    
+        
     return ()
