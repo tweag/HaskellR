@@ -169,7 +169,7 @@ unitTests = testGroup "Unit tests"
                                   \s -> R.cast R.Real <$> R.tryEval s e p
   , Test.Constraints.tests
   , Test.FunPtr.tests
-  , Test.RVal.tests
+--  , Test.RVal.tests -- XXX changes the current directory in windows making other tests to fail.
   ]
 
 integrationTests :: TestTree

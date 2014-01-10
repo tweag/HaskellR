@@ -115,7 +115,7 @@ main = do
         , "fasta.R"
         , "fastaredux.R"
 --        , "knucleotide.R" -- XXX seems to require command line arguments
-        , "mandelbrot-noout.R"
+--        , "mandelbrot-noout.R" -- XXX on windows some the outputs differ due to some warnings from R
 --        , "mandelbrot.R"  -- XXX produces some binary output which causes readProcess to fail
         , "nbody.R"
         , "pidigits.R"
