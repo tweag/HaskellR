@@ -1,60 +1,88 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module provides a way to run R interpreter in a background thread and
--- interact with it.
+-- Interaction with an instance of R. The interface in this module allows for
+-- instantiating an arbitrary number of concurrent R sessions, even though
+-- currently the R library only allows for one global instance, for forward
+-- compatibility.
+--
+-- The 'R' monad defined here serves to give static guarantees that an instance
+-- is only ever used after it has been initialized and before it is finalized.
+-- Doing otherwise should result in a type error. This is done in the same way
+-- that the 'Control.Monad.ST' monad encapsulates side effects: by assigning
+-- a rank-2 type to the only run function for the monad.
 --
 -- This module is intended to be imported qualified.
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
 
-module Language.R.Interpreter
-  ( Config(..)
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
+module Language.R.Instance
+  ( -- * The R monad
+    R
+  , runR
+  , unsafeRToIO
+  , unsafeRunInRThread
+  , Config(..)
   , defaultConfig
-  -- * Initialization
+  -- * R instance creation
   , initialize
-  , finalize
-  -- * helpers
-  , with
-  , runInRThread
-  , postToRThread
+  -- * R global constants
+  -- $ghci-bug
+  , pokeRVariables
+  , peekRVariables
+  , globalEnvPtr
+  , baseEnvPtr
+  , nilValuePtr
+  , unboundValuePtr
+  , missingArgPtr
+  , rInteractive
+  , rCStackLimitPtr
+  , rInputHandlersPtr
   ) where
 
-import           H.Internal.REnv
-import           H.Internal.OSThreads
+import           Control.Monad.R.Class
+import           Control.Concurrent.OSThread
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.Interface as R
-import qualified Language.R as LR
 import           Foreign.C.String
 
 import Control.Applicative
 import Control.Concurrent
-    ( forkOS
+    ( ThreadId
     , forkIO
-    , threadDelay
-    , takeMVar
-    , putMVar
-    , newEmptyMVar
-    , myThreadId
+    , forkOS
     , isCurrentThreadBound
-    , ThreadId
-    , newEmptyMVar
-    , takeMVar
-    , putMVar
     , killThread
+    , myThreadId
+    , threadDelay
+    )
+import Control.Concurrent.MVar
+    ( newEmptyMVar
+    , putMVar
+    , takeMVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
-import Control.Exception ( bracket, catch, SomeException, throwTo, finally )
-import Control.Monad ( unless, when, zipWithM_, forever, void, join )
+import Control.Exception
+    ( SomeException
+    , bracket_
+    , catch
+    , finally
+    , throwTo
+    )
+import Control.Monad.Catch ( MonadCatch )
+import Control.Monad.Reader
 
 import Foreign
     ( Ptr
-    , allocaArray
     , StablePtr
+    , allocaArray
     , newStablePtr
     , deRefStablePtr
     , freeStablePtr
@@ -71,6 +99,27 @@ import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
 
+-- | The 'R' monad, for sequencing actions interacting with a single instance of
+-- the R interpreter, much as the 'IO' monad sequences actions interacting with
+-- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
+-- be lifted to 'R' actions.
+newtype R s a = R { _unR :: IO a }
+  deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
+
+instance MonadR (R s) where
+  io m = R $ unsafeRunInRThread m
+
+-- | Initialize a new instance of R, execute actions that interact with the
+-- R instance and then finalize the instance.
+runR :: Config -> (forall s. R s a) -> IO a
+runR config (R m) = bracket_ (initialize config) finalize m
+
+-- | Run an R action in the global R instance from the IO monad. This action is
+-- unsafe in the sense that use of it bypasses any static guarantees provided by
+-- the R monad, in particular that the R instance was indeed initialized and has
+-- not yet been finalized. It is a backdoor that should not normally be used.
+unsafeRToIO :: R s a -> IO a
+unsafeRToIO (R m) = m
 
 -- | Configuration options for R runtime.
 data Config = Config
@@ -103,14 +152,14 @@ newCArray xs k =
       zipWithM_ (pokeElemOff ptr) [0..] xs
       k ptr
 
--- | Initialize the R environment.
+-- | Create a new embedded instance of the R interpreter.
 initialize :: Config
-           -> IO REnv
+           -> IO ()
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    (>> return REnv) $ unless initialized $ mdo
+    unless initialized $ mdo
       -- Grab addresses of R global variables
-      LR.pokeRVariables
+      pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
         , R.rInteractive, R.rCStackLimit, R.rInputHandlers
         )
@@ -118,39 +167,31 @@ initialize Config{..} = do
       eventLoopThread <- forkIO $ forever $ do
         threadDelay 30000
 #ifdef H_ARCH_WINDOWS
-        runInRThread R.processEvents
+        unsafeRunInRThread R.processEvents
 #else
-        runInRThread $
-          R.processGUIEventsUnix LR.rInputHandlersPtr
+        unsafeRunInRThread $
+          R.processGUIEventsUnix rInputHandlersPtr
 #endif
-      runInRThread $ do
+      unsafeRunInRThread $ do
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
         newCArray argv $ R.initEmbeddedR argc
-        poke LR.rInteractive 0
-        -- setting the stack limit seems to only be required in Windows
-        poke LR.rCStackLimitPtr (-1)
+        poke rInteractive 0
+        -- XXX setting the stack limit seems to only be required in Windows
+        poke rCStackLimitPtr (-1)
         poke isRInitializedPtr 1
 
--- | Finalize R environment.
+-- | Finalize an R instance.
 finalize :: IO ()
 finalize = do
-    runInRThread $ do
+    unsafeRunInRThread $ do
       R.endEmbeddedR 0
       peek interpreterChanPtr >>= freeStablePtr
       poke isRInitializedPtr 0
     stopRThread
-
-
--- | Properly acquire the R runtime, initializing R and ensuring that it is
--- finalized before returning.
-with :: Config -- ^ R configuration options.
-      -> IO a
-      -> IO a
-with cfg = bracket (initialize cfg) (const finalize) . const
 
 -- | Starts the R thread.
 startRThread :: ThreadId -> IO ()
@@ -166,24 +207,16 @@ startRThread eventLoopThread = do
     chan <- newChan
     mv <- newEmptyMVar
     void $ forkOS $ do
-      osThreadId >>= putMVar mv
+      myOSThreadId >>= putMVar mv
       forever (join $ readChan chan) `finally` killThread eventLoopThread
     rOSThreadId <- takeMVar mv
     newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
-
--- | Posts a computation to perform in the interpreter thread.
---
--- Returns immediately without waiting for the action to be computed.
---
-postToRThread :: IO () -> IO ()
-postToRThread =
-    postToRThread_ . (`catch` (const (return ()) :: SomeException -> IO ()))
 
 -- | Like postToRThread_ but does not swallow exceptions thrown by the
 -- computation.
 postToRThread_ :: IO () -> IO ()
 postToRThread_ action = do
-    tid <- osThreadId
+    tid <- myOSThreadId
     isBound <- isCurrentThreadBound
     if tid == rOSThreadId && isBound
       then action
@@ -196,8 +229,8 @@ postToRThread_ action = do
 --
 -- Waits until the computation is complete and returns back the result.
 --
-runInRThread :: IO a -> IO a
-runInRThread action = do
+unsafeRunInRThread :: IO a -> IO a
+unsafeRunInRThread action = do
     mv <- newEmptyMVar
     tid <- myThreadId
     postToRThread_ $
@@ -210,3 +243,45 @@ stopRThread = postToRThread_ $ myThreadId >>= killThread
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
+--
+-- $ghci-bug
+-- The main reason to have all R constants referenced with a StablePtr
+-- is that variables in shared libraries are linked incorrectly by GHCi with
+-- loaded code.
+--
+-- The workaround is to grab all variables in the ghci session for the loaded
+-- code to use them, that is currently done by the H.ghci script.
+--
+-- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
+
+type RVariables =
+    ( Ptr (R.SEXP R.Env)
+    , Ptr (R.SEXP R.Env)
+    , Ptr (R.SEXP R.Nil)
+    , Ptr (R.SEXP R.Symbol)
+    , Ptr (R.SEXP R.Symbol)
+    , Ptr CInt
+    , Ptr R.StackSize
+    , Ptr (Ptr ())
+    )
+
+-- | Stores R variables in a static location. This makes the variables'
+-- addresses accesible after reloading in GHCi.
+pokeRVariables :: RVariables -> IO ()
+pokeRVariables = poke rVariables <=< newStablePtr
+
+-- | Retrieves R variables.
+peekRVariables :: RVariables
+peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
+
+(  globalEnvPtr
+ , baseEnvPtr
+ , nilValuePtr
+ , unboundValuePtr
+ , missingArgPtr
+ , rInteractive
+ , rCStackLimitPtr
+ , rInputHandlersPtr
+ ) = peekRVariables
+
+foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)

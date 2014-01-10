@@ -16,33 +16,31 @@ source-repository head
   location: git://github.com/ps-labs/H.git
 
 library
-  exposed-modules:     H
-                       H.Constraints
-                       H.Debug
-                       H.HExp
-                       H.Monad
-                       H.Prelude
-                       H.Prelude.Globals
-                       H.Prelude.Reexports
-                       H.Prelude.Eval
-                       H.Prelude.RVal
-                       H.Internal.Literal
-                       H.Internal.FunWrappers
-                       H.Internal.OSThreads
-                       H.Internal.TH
-                       Data.Vector.SEXP
+  exposed-modules:     Data.Vector.SEXP
+                       Data.Vector.SEXP.Base
+                       Data.Vector.SEXP.Mutable
                        Foreign.R
-                       Foreign.R.Type
                        Foreign.R.Embedded
+                       Foreign.R.Error
                        Foreign.R.Interface
                        Foreign.R.Parse
-                       Foreign.R.Error
+                       Foreign.R.Type
+                       H.Constraints
+                       H.Prelude
+                       H.Prelude.Interactive
                        Language.R
-                       Language.R.Interpreter
+                       Language.R.Debug
+                       Language.R.GC
+                       Language.R.Globals
+                       Language.R.HExp
+                       Language.R.Instance
+                       Language.R.Internal.FunWrappers
+                       Language.R.Internal.FunWrappers.TH
+                       Language.R.Literal
                        Language.R.QQ
-                       Language.R.Ghci
                        Language.R.Runtime.QQ
-  other-modules:       H.Internal.REnv
+  other-modules:       Control.Concurrent.OSThread
+                       Control.Monad.R.Class
                        H.Internal.Error
                        H.Internal.Prelude
   build-depends:       base >= 4.6 && < 4.7
@@ -56,6 +54,8 @@ library
                      , template-haskell >= 2.8
                      , exceptions >= 0.3
                      , mtl >= 2.1
+                     , primitive >= 0.5
+                     , singletons >= 0.9
                      , th-lift >= 0.6
                      , transformers >= 0.3
   hs-source-dirs:      src
@@ -128,7 +128,7 @@ test-suite tests
                      , mtl >= 2.0
                      , process >= 1.2
                      , strict >= 0.3.2
-                     , tasty >= 0.3 && < 0.6
+                     , tasty >= 0.3 && < 0.8
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11
@@ -145,7 +145,7 @@ test-suite test-compile-qq
   build-depends:       H
                      , base >= 4.6 && < 4.7
                      , process >= 1.2
-  ghc-options:         -Wall -threaded -fno-cse
+  ghc-options:         -Wall -threaded -fno-cse -O0
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
@@ -156,6 +156,32 @@ test-suite test-shootout-programs
                      , base >= 4.6 && < 4.7
                      , filepath >= 1.3
                      , process >= 1.2
-  ghc-options:         -Wall -threaded
+  ghc-options:         -Wall -threaded -O2
   hs-source-dirs:      tests
   default-language:    Haskell2010
+
+benchmark compile-qq-benchmarks
+  main-is:             compile-qq-benchmarks.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       H
+                     , base >= 4.6 && < 4.7
+                     , criterion >= 0.8
+                     , filepath >= 1.3
+                     , process >= 1.2
+                     , template-haskell >= 2.8
+  ghc-options:         -Wall -threaded -O0
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+
+benchmark runtime-qq-benchmarks
+  main-is:             runtime-qq-benchmarks.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       H
+                     , base >= 4.6 && < 4.7
+                     , filepath >= 1.3
+                     , process >= 1.2
+  ghc-options:         -Wall -threaded -O0
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  -- won't work until fib test pass for runtime qq
+  buildable:           False

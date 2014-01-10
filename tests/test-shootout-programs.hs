@@ -24,6 +24,7 @@ runCompileQQTest fp = do
     qqProgram = unlines $
       [ "-- Copyright: (C) 2013 Amgen, Inc."
       , ""
+      , "{-# LANGUAGE DataKinds #-}"
       , "{-# LANGUAGE TemplateHaskell #-}"
       , "import H.Prelude"
       , "import Language.R.QQ"
@@ -34,7 +35,7 @@ runCompileQQTest fp = do
       , ""
       , ""
       , "main :: IO ()"
-      , "main = initialize defaultConfig >>= \\rEnv -> runR rEnv $"
+      , "main = runR defaultConfig $"
       , "    void $(quoteExp r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
       ]
 

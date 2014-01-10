@@ -1,11 +1,13 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 :set -fno-ghci-sandbox
+:set -XDataKinds
+:set -XGADTs
 :set -XQuasiQuotes
+:set -XScopedTypeVariables
 :set -XTemplateHaskell
 :set -XViewPatterns
-:set -XGADTs
-import H.HExp
-import Language.R.Ghci as H
+import Language.R.HExp
+import H.Prelude.Interactive as H
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv
@@ -18,4 +20,4 @@ Language.R.pokeRVariables
     , Foreign.R.rInputHandlers
     )
 :}
-Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig
+Language.R.Instance.initialize Language.R.Instance.defaultConfig

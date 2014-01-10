@@ -8,39 +8,31 @@
 
 module H.Prelude
   ( module Data.IORef
-  , module Language.R.Interpreter
+  , module Language.R.Instance
   , module Foreign.R.Error
   , print
-  -- * Evaluation constructs
-  , module H.Prelude.Eval
-  -- * R Value
-  , module H.Prelude.RVal
+  , module Control.Monad.R.Class
   -- * Language.R functions
-  , module H.Prelude.Reexports
+  , module Language.R
   -- * Literals
-  , module H.Internal.Literal
+  , module Language.R.Literal
   -- * Globals
-  , module H.Prelude.Globals
-  , R
-  , MonadR(..)
-  , runR
+  , module Language.R.Globals
   , withProtected
   ) where
 
 
+import           Control.Monad.R.Class
 import           H.Internal.Prelude
 import qualified Foreign.R as R
-import H.HExp
-import Language.R (r1)
+import Language.R.HExp
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
-import           H.Prelude.Reexports
-import           H.Prelude.Eval
-import           H.Prelude.Globals
-import           H.Prelude.RVal
-import           H.Internal.Literal
-import Language.R.Interpreter
+import           Language.R.Globals
+import           Language.R.Literal
+import Language.R.Instance
+import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )
 import Foreign.R.Error
 
@@ -76,9 +68,8 @@ instance Show (SEXP a) where
            Text.Lazy.fromChunks .
            map (Text.pack . Vector.toString . vector) .
            Vector.toList .
-           vector .
-           R.unsafeCoerce $
-           slang
+           vector $
+           (R.unsafeCoerce slang :: SEXP R.String)
 
   print e = io $ Language.R.withProtected (return e) R.printValue
 
