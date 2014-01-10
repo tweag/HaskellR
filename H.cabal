@@ -145,7 +145,7 @@ test-suite test-compile-qq
   build-depends:       H
                      , base >= 4.6 && < 4.7
                      , process >= 1.2
-  ghc-options:         -Wall -threaded -fno-cse -O0
+  ghc-options:         -Wall -threaded -fno-full-laziness -O0
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
@@ -169,7 +169,7 @@ benchmark compile-qq-benchmarks
                      , filepath >= 1.3
                      , process >= 1.2
                      , template-haskell >= 2.8
-  ghc-options:         -Wall -threaded -O0
+  ghc-options:         -Wall -threaded -O2 -fno-full-laziness
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
