@@ -7,7 +7,7 @@
 -- 'RVal' is a wrapper around 'SEXP' preventing the 'SEXP' from being garbage
 -- collected by R until the Haskell garbage collector signals that it is safe to
 -- do so.
-{-# LANGUAGE GADTs #-}
+
 module Language.R.GC
   ( -- * RVal
     RVal
@@ -96,6 +96,6 @@ withSomeRVal (SomeRVal s) f = do
         return x
 
 -- | Unprotect 'SEXP' in R memory. This doesn't mean that value will be
--- immideately deallocated, just that it may be deallocated on the next GC.
+-- immediately deallocated, just that it may be deallocated on the next GC.
 unprotectSomeRVal :: MonadR m => SomeRVal -> m ()
 unprotectSomeRVal (SomeRVal s) = io (finalizeForeignPtr s)
