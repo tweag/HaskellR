@@ -64,7 +64,8 @@ Alternatively, one can also try:
 where H.ghci is a file colocated with the H.cabal file.
 
 In Windows, both H and GHCi work best from the `cmd.exe` terminal, as
-opposed to Mingw (but both should work).
+opposed to MinGW (both ought work, but MinGW currently triggers bug
+[#7056](https://ghc.haskell.org/trac/ghc/ticket/7056) in GHC).
 
 An H primer
 -----------
