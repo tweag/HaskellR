@@ -67,12 +67,10 @@ library
                        FlexibleInstances
                        FlexibleContexts
                        GeneralizedNewtypeDeriving
-                       LambdaCase
                        KindSignatures
                        MultiParamTypeClasses
                        NamedFieldPuns
                        RecordWildCards
-                       StandaloneDeriving
                        TypeOperators
                        OverloadedStrings
   other-extensions:    CPP
