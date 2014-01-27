@@ -36,7 +36,10 @@ Optionally, you may add `--enable-tests` to the command line arguments
 in order execute tests before installation.
 
 In Windows you need to select which R library folder to use depending
-on whether an i386 or x64 build is desired.
+on whether an i386 or x64 build is desired. You may need to set the
+`R_HOME` shell variable to the R installation directory by hand,
+depending on your setup. Note that installation currently requires
+to be running in a MinGW/MSYS shell.
 
 Setting up H in GHCi
 --------------------
