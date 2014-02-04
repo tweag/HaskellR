@@ -353,14 +353,15 @@ of the object graph, only a partial view corresponding to the objects
 in the heaps of each GC.
 
 Fortunately, R provides a mechanism to "protect" objects from garbage
-collection until it is unprotected. We can use this mecanism to
-prevent R's GC from deallocating objects that all still referenced by
+collection until they are unprotected. We can use this mechanism to
+prevent R's GC from deallocating objects that are still referenced by
 at least one object in the Haskell heap.
 
 One particular difficulty with protection is that one must not forget
-to unprotect objects that have been protected. H provides the
-following facility for pinning an object in memory and guaranteeing
-unprotection when a function returns:
+to unprotect objects that have been protected since protection
+consumes resources. H provides the following facility for pinning an
+object in memory and guaranteeing unprotection when a function
+returns:
 
 ```Haskell
 withProtected :: IO (SEXP a)      -- ^ Action to acquire resource
@@ -389,7 +390,7 @@ it much more likely to detect inadequately protected objects. It is
 recommended to use a version of R that has been compiled with
 `--enable-strict-barrier`.
 
-See The Haddock generated documentation for the `Lanugage.R.GC` module
+See The Haddock generated documentation for the `Language.R.GC` module
 for further details.
 
 Catching runtime errors
