@@ -134,8 +134,8 @@ rTests = H.runR H.defaultConfig $ do
     H.print =<< [r| fact_hs(as.integer(5)) |]
 
     -- Should be [1] 29
-    let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
-    let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.SEXP a -> Int32 -> R s R.SomeSEXP
+    let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
+    let apply = \(n :: R.Callback) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s R.SomeSEXP
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
     sym <- H.install "blah"
