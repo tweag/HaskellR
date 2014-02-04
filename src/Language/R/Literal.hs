@@ -170,4 +170,4 @@ foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
 funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> SEXP R.ExtPtr
 funToSEXP w x = unsafePerformIO $ funPtrToSEXP =<< w (hFunWrap x)
 
-$(thWrapperLiterals 4 25)
+$(thWrapperLiterals 3 25)
