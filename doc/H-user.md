@@ -123,7 +123,7 @@ instance ( Literal a_0 a_0’, ..., Literal a_n a_n’)
 both sides share memory or the data is copied. When memory is shared,
 special care is needed to prevent garbage collection on either Haskell
 or R sides to invalidate values pointed by the other side. See
-[Constructing R expressions with explicit calls].
+[Managing memory].
 
 The R monad
 ===========
