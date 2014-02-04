@@ -32,7 +32,8 @@ import Foreign.Concurrent
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import qualified Foreign.R as R
 
-import Control.Exception ( bracket )
+import Control.Monad.Catch ( MonadCatch, bracket )
+import Control.Monad.Trans ( MonadIO(..) )
 
 -- | An 'RVal' is a reference to a /protected/ R object that is maintained by
 -- R storage memory. If GHC's GC determines that the object has become
@@ -67,12 +68,14 @@ unprotectRVal (RVal s) = io (finalizeForeignPtr s)
 -- collection. This function is a safer alternative to 'R.protect' and
 -- 'R.unprotect', guaranteeing that a protected resource gets unprotected
 -- irrespective of the control flow, much like 'Control.Exception.bracket_'.
-withProtected :: IO (R.SEXP a)      -- Action to acquire resource
-              -> (R.SEXP a -> IO b) -- Action
-              -> IO b
-withProtected accure =
-   bracket (accure >>= \x -> R.protect x >> return x)
-           (const (R.unprotect 1))
+withProtected :: (MonadIO m, MonadCatch m)
+              => m (R.SEXP a)      -- Action to acquire resource
+              -> (R.SEXP a -> m b) -- Action
+              -> m b
+withProtected acquire =
+    bracket
+      (do { x <- acquire; _ <- liftIO $ R.protect x; return x })
+      (const $ liftIO $ R.unprotect 1)
 
 -- | Non type indexed version of 'RVal'.
 newtype SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)
