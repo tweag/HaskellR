@@ -25,7 +25,7 @@ Architectural overview
 
 R source code is organized as a set of *scripts*, which are loaded one
 by one into the R interpreter. Each statement in a each script is
-evaluated in order and affect the global environment mapping symbols
+evaluated in-order and affect the global environment mapping symbols
 to values maintained by the R interpreter. In its simplest form, H is
 an interactive environment much like R, with a global environment
 altered by the in-order evaluation of statements.
@@ -99,14 +99,14 @@ Central to the design of Haskell, by contrast, is the notion of
 *separately compilable* units of code, called *modules*. Modules can
 be compiled separately and in any order (provided some amount of
 metadata about dependencies). Contrary to R scripts, the order in
-which modules are loaded into memory is likewise non-deterministic.
+which modules are loaded into memory is non-deterministic.
 
 For this reason, in keeping to a simple solution to interoperating
-with R, we choose to devolve as much processing of R code to an
-embedded instance of the R interpreter and retain the notion of global
-environment that R provides. This global environment can readily be
-manipulated from an interactive environment such as GHCi. In compiled
-modules, access to the environment can be mediated as well as
+with R, we choose to devolve as much processing of R code as possible
+to an embedded instance of the R interpreter and retain the notion of
+global environment that R provides. This global environment can
+readily be manipulated from an interactive environment such as GHCi.
+In compiled modules, access to the environment as well as
 encapsulation of any effects can be mediated through a custom monad,
 which we call the `R` monad.
 
@@ -154,8 +154,8 @@ http://existentialtype.wordpress.com/2011/03/19/dynamic-languages-are-static-lan
 Internal Structures
 ===================
 
-A native view of expresions
----------------------------
+A native view of expressions
+----------------------------
 
 By default, and in order to avoid having to pay
 marshalling/unmarshalling costs for each argument every time one
@@ -236,11 +236,13 @@ a real number can be given the type `SEXP R.Real`. In general, one
 does not always know *a priori* the form of an R expression, but
 pattern matching on an algebraic view of the expression allows us to
 "discover" the form at runtime. In H, we define the `HExp` algebraic
-view type as a GADT. In this way, the body of each branch can be typed
-under the assumption that the scrutinee matches the pattern in the
-left hand side of the branch. For example, in the body of a branch
-with pattern `Real x`, the type checker can refine the type of the
-scrutinee to `SEXP R.Real`. In H, `HExp` is defined as follows:
+view type as a [generalized algebraic
+datatype](http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt)
+(GADT). In this way, the body of each branch can be typed under the
+assumption that the scrutinee matches the pattern in the left hand
+side of the branch. For example, in the body of a branch with pattern
+`Real x`, the type checker can refine the type of the scrutinee to
+`SEXP R.Real`. In H, `HExp` is defined as follows:
 
 ```Haskell
 data HExp (a :: SEXPTYPE) where
@@ -267,12 +269,13 @@ a `SEXP`. For safety and clarity, we preclude indexing `SEXP` and
 `HExp` with any Haskell type (which are all usually of kind `*`). We
 use GHC's `DataKinds` extension to introduce a new kind of types,
 named `SEXPTYPE`, and limit the possible type indexes to types that
-have kind `SEXPTYPE`. Version 7.6 of GHC and later feature the
+have kind `SEXPTYPE`. Version 7.4 of GHC and later feature the
 `DataKinds` extension to permit defining `SEXPTYPE` as a regular
 algebraic datatype and then allowing `SEXPTYPE` to be considered as
 a kind and the constructors of this type to be considered types of the
-`SEXPTYPE` kind, depending on context. See the GHC user's guide for
-more information.
+`SEXPTYPE` kind, depending on context. See the [relevant
+section](http://www.haskell.org/ghc/docs/latest/html/users_guide/promotion.html)
+in GHC user's guide for more information.
 
 Implementation of quasiquoters
 ==============================
@@ -322,13 +325,15 @@ to produce a reply, the sender will block while waiting for the reply.
 
 The interface to the R thread:
 
-    postToRThread :: IO ()    -> IO ()  -- Non-blocking
-    runInRThread  :: IO a     -> IO a   -- Blocking
     startRThread  :: ThreadId -> IO ()  -- Takes the id of the GUI timer thread.
     stopRThread   :: IO ()              -- Blocking
+    postToRThread :: IO ()    -> IO ()  -- Non-blocking
+    runInRThread  :: IO a     -> IO a   -- Blocking
 
-If the action of a request throws an exception, the R thread would
-continue to evaluate subsequent requests.
+`startRThread` takes the `ThreadId` of the GHCi thread as argument,
+sending R events to it as and if they occur. If the action of
+a request throws an exception, the R thread would continue to evaluate
+subsequent requests.
 
 Memory allocation
 =================
@@ -411,9 +416,10 @@ variables in H.
     Here String SEXP "H.Home" is protected until it will be a part of
     LangSEXP, created by `R.lang1`. Then `R.lang1` becomes
     unprotected, which is fine as it immediately enters evaluation
-    where it can't be freed until end of the execution. If resulting
-    SEXP doesn't enter evaluation you'll need to protect it in the
-    toplevel (see [Toplevel expressions](#toplevel-expressions)).
+    where it can't be freed until end of the execution. If the
+    resulting SEXP doesn't enter evaluation you'll need to protect it
+    in the toplevel (see [Toplevel
+    expressions](#toplevel-expressions)).
 
 ### Allocating SEXP
 
@@ -464,6 +470,10 @@ internally to call haskell code.
 
 To protect Haskell variables from the GC, a global registry is used,
 which is a global mutable variable that maintains a list of variables
-that are used by R code.
+that are used by R code. As much of the rest of the R library, the
+code for manipulating this global registry is non reentrant. So great
+care should be taken in a concurrent setting, whose performance,
+moreover, could well be affected by the synchronization point that is
+the global registry.
 
 [R-ints]: http://cran.r-project.org/doc/manuals/R-ints.html
