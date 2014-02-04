@@ -7,17 +7,16 @@
 {-# Language ViewPatterns #-}
 
 module H.Prelude
-  ( module Data.IORef
-  , module Language.R.Instance
-  , module Foreign.R.Error
-  , print
+  ( module Language.R.Instance
   , module Control.Monad.R.Class
+  , module Foreign.R.Error
   -- * Language.R functions
   , module Language.R
   -- * Literals
   , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
+  , Show(..)
   , withProtected
   ) where
 
@@ -44,7 +43,6 @@ import Data.Text.Lazy (Text)
 
 import Control.Applicative ((<$>))
 import Control.Monad ((>=>))
-import Data.IORef
 import Foreign.C (withCString)
 import System.IO.Unsafe (unsafePerformIO)
 

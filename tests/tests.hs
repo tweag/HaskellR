@@ -129,12 +129,12 @@ ghciSession name scriptPath =
                       , "expected: "
                       , T.unpack a
                       , ""
-                      , show $ T.unpack a
+                      , Prelude.show $ T.unpack a
                       , ""
                       , "H: "
                       , T.unpack b
                       , ""
-                      , show $ T.unpack b
+                      , Prelude.show $ T.unpack b
                       ])
       (const $ return ())
 

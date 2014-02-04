@@ -36,13 +36,13 @@ main = do
           , "expected: "
           , golden
           , ""
-          , show golden
+          , Prelude.show golden
           , ""
           , "H:"
           , ""
           , output
           , ""
-          , show output
+          , Prelude.show output
           ]
         exitFailure
       else putStrLn "OK"

@@ -6,8 +6,11 @@
 :set -XScopedTypeVariables
 :set -XTemplateHaskell
 :set -XViewPatterns
-import Language.R.HExp
-import H.Prelude.Interactive as H
+import Language.R.HExp as H
+import qualified H.Prelude.Interactive as H
+import Language.R.Runtime.QQ as H (r)
+import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
+import Language.R as R (R)
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv
