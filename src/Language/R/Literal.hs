@@ -136,7 +136,7 @@ instance Literal SomeSEXP R.Any where
     mkSEXP (SomeSEXP s) = R.unsafeCoerce s
     fromSEXP = SomeSEXP
 
-instance Literal String (R.String) where
+instance Literal String R.String where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
@@ -153,13 +153,13 @@ instance (Literal a a0, Literal b b0, Literal c c0)
     mkSEXP   = funToSEXP wrap2
     fromSEXP = unimplemented "Literal (a -> b -> IO c) fromSEXP"
 
+-- | A class for functions that can be converted to functions on SEXPs.
 class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
 instance Literal a la => HFunWrap (R s a) (IO (SEXP la)) where
     hFunWrap a = fmap (mkSEXP $!) (unsafeRToIO a)
 
--- | A class for functions that can be converted to functions on SEXPs.
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (SEXP la -> wb) where
     hFunWrap f a = hFunWrap $ f $ fromSEXP a

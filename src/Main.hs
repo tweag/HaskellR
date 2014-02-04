@@ -1,7 +1,10 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
-{-# LANGUAGE DeriveDataTypeable, CPP #-}
+
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
 module Main where
 
 import           Control.Exception
