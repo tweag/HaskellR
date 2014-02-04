@@ -369,6 +369,28 @@ withProtected :: IO (SEXP a)      -- ^ Action to acquire resource
               -> IO b
 ```
 
+A bad example of memory usage follows.
+
+```Haskell
+do x <- [r| 2 |]
+   y <- [r| 3 |]
+   [r| x_hs + y_hs |]
+```
+
+Since the R garbage collector may eventually run when trying to
+allocate more objects, there is the potential for `x` to be collected
+when `y` is allocated. Moreover, both `x` and `y` may be collected
+when [r| x + y |] allocates and evaluates the expression
+`x_hs + y_hs`.
+
+A way around this is to use `withProtected`.
+
+```Haskell
+[r| 2 |] >>= \(SomeSEXP x) -> withProtected (return x) $ const $
+  [r| 3 |] >>= \(SomeSEXP y) -> withProtected (return y) $ const $
+    [r| x_hs + y_hs |]
+```
+
 The `withProtect` pattern for memory protection works well for simple
 scenarios when the lifetime of an object follows lexical scope. For
 more complex scenarios, H provides a mechanism to wrap `SEXP`s as
