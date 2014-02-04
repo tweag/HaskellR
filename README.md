@@ -86,26 +86,29 @@ and R, through a mechanism called *quasiquotation*,
     H> it <- [r| append(c(1, 2, 3), c(4, 5, 6)) |]
     H> H.print it
     [1] 1 2 3 4 5 6
-    H> H.print =<< [r| R.home() |]
+    H> H.printQuote [r| R.home() |]
     [1] "/usr/lib/R"
 
 One can mix and match both Haskell and R code, which is delimited from
 Haskell code using annotated "Oxford brackets" - anything in between
 `[r|` and `|]`. The text between the brackets is said to be
 *quasiquoted*. It is first fed to R to be parsed, then evaluated.
-Printing the resulting value can be done with the help of `H.print`.
+Printing the resulting value can be done with the help of `H.print` or
+`H.printQuote`. We have that
+
+    printQuote mx = do { x <- mx; H.print x }
 
 Expressions are evaluated in the top-level R environment. As such, any
 side effects such as assignments remain visible from one quasiquote to
 another:
 
-    H> H.print =<< [r| x <- 1 |]
+    H> H.printQuote [r| x <- 1 |]
     [1] 1
-    H> H.print =<< [r| x |]
+    H> H.printQuote [r| x |]
     [1] 1
-    H> H.print =<< [r| x <- 2 |]
+    H> H.printQuote [r| x <- 2 |]
     [1] 2
-    H> H.print =<< [r| x |]
+    H> H.printQuote [r| x |]
     [1] 2
 
 Quasiquotes can refer to any values bound in the GHCi environment that
@@ -120,7 +123,7 @@ For example:
 
     H> let x = 2 :: Double
     H> let y = 4 :: Double
-    H> H.print =<< [r| x_hs + y_hs |]
+    H> H.printQuote [r| x_hs + y_hs |]
     [1] 6
 
 Only variables of certain types can be *spliced* in quasiquotes in
@@ -128,7 +131,7 @@ this way. H currently supports atomic numeric types such as doubles,
 lists over these numeric types, but also functions over these types:
 
     H> let f x = return (x + 1) :: R s Double
-    H> H.print =<< [r| f_hs(1) |]
+    H> H.printQuote [r| f_hs(1) |]
     [1] 2
 
 Currently, functions must be lifted to the `R` monad in order to be
