@@ -358,10 +358,9 @@ prevent R's GC from deallocating objects that are still referenced by
 at least one object in the Haskell heap.
 
 One particular difficulty with protection is that one must not forget
-to unprotect objects that have been protected since protection
-consumes resources. H provides the following facility for pinning an
-object in memory and guaranteeing unprotection when a function
-returns:
+to unprotect objects that have been protected, in order to avoid
+memory leaks. H provides the following facility for pinning an object
+in memory and guaranteeing unprotection when a function returns:
 
 ```Haskell
 withProtected :: IO (SEXP a)      -- ^ Action to acquire resource
@@ -369,26 +368,26 @@ withProtected :: IO (SEXP a)      -- ^ Action to acquire resource
               -> IO b
 ```
 
-A bad example of memory usage follows.
+An example of bad memory usage
+------------------------------
 
 ```Haskell
-do x <- [r| 2 |]
-   y <- [r| 3 |]
-   [r| x_hs + y_hs |]
+do x <- [rexp| 2 |]
+   y <- [rexp| 3 |]
+   [rexp| x_hs + y_hs |]
 ```
 
-Since the R garbage collector may eventually run when trying to
-allocate more objects, there is the potential for `x` to be collected
-when `y` is allocated. Moreover, both `x` and `y` may be collected
-when [r| x + y |] allocates and evaluates the expression
-`x_hs + y_hs`.
+Since the R garbage collector may kick-in before trying to allocate
+more objects, there is the potential for `x` to be collected when `y`
+is allocated. Moreover, both `x` and `y` may be collected when [r| x +
+y |] allocates and evaluates the expression `x_hs + y_hs`.
 
 A way around this is to use `withProtected`.
 
 ```Haskell
-[r| 2 |] >>= \(SomeSEXP x) -> withProtected (return x) $ const $
-  [r| 3 |] >>= \(SomeSEXP y) -> withProtected (return y) $ const $
-    [r| x_hs + y_hs |]
+withProtected [rexp| 2 |] >>= \x ->
+  withProtected [rexp| 3 |] >>= \y ->
+    [rexp| x_hs + y_hs |]
 ```
 
 The `withProtect` pattern for memory protection works well for simple
@@ -398,6 +397,16 @@ foreign pointers, called `RVal`s. This mechanism piggybacks Haskell's
 GC to notify R's GC when it is safe to deallocate. The downside of
 `RVal`s is that one must frequently unwrap them when passing them as
 arguments to R primitives and other functions.
+
+Continuing with our example, we could use `RVal`s as follows:
+
+```Haskell
+do rx <- newSomeRVal =<< [r| 2 |]
+   ry <- newSomeRVal =<< [r| 3 |]
+   withSomeRVal rx $ \x ->
+     withSomeRVal ry $ \y ->
+       newSomeRVal =<< [r| x_hs + y_hs |]
+```
 
 A good way to stress test whether R values are being protected
 adequately is to turn on `gctorture`:
