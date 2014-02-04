@@ -5,6 +5,7 @@
 {-# Language ConstraintKinds #-}
 {-# Language FunctionalDependencies #-}
 {-# Language GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# Language TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# Language ViewPatterns #-}
@@ -28,12 +29,12 @@ import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Language.R ( withProtected )
 
 import qualified Data.Vector.Storable as V
-import Data.Singletons (sing)
+import Data.Singletons ( SingI, fromSing, sing )
 
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
 import Data.Complex (Complex)
-import Foreign          ( FunPtr, castFunPtr, castPtr )
+import Foreign          ( FunPtr, castPtr )
 import Foreign.C.String ( newCString )
 import Foreign.Storable ( Storable, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
@@ -124,13 +125,16 @@ instance Literal (Complex Double) R.Complex where
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
-instance Literal (SEXP a) b where
-    mkSEXP   = R.unsafeCoerce
-    fromSEXP = R.unsafeCoerce
+instance SingI a => Literal (SEXP a) a where
+    mkSEXP   = id
+    fromSEXP = R.cast (fromSing (sing :: SSEXPTYPE a)) . SomeSEXP
 
-instance Literal SomeSEXP b where
-    mkSEXP s   = R.unSomeSEXP s R.unsafeCoerce
-    fromSEXP   = SomeSEXP
+instance Literal SomeSEXP R.Any where
+    -- The ANYSXP type in R plays the same role as SomeSEXP in H. It is a dummy
+    -- type tag, that is never seen in any object. It serves only as a stand-in
+    -- when the real type is not known.
+    mkSEXP (SomeSEXP s) = R.unsafeCoerce s
+    fromSEXP = SomeSEXP
 
 instance Literal String (R.String) where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
@@ -161,11 +165,9 @@ instance (Literal a la, HFunWrap b wb)
     hFunWrap f a = hFunWrap $ f $ fromSEXP a
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
-    :: FunPtr () -> IO (SEXP R.Any)
+    :: FunPtr a -> IO (SEXP R.ExtPtr)
 
-
-funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> SEXP c
-funToSEXP w x = unsafePerformIO $ fmap castPtr . funPtrToSEXP . castFunPtr
-                =<< w (hFunWrap x)
+funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> SEXP R.ExtPtr
+funToSEXP w x = unsafePerformIO $ funPtrToSEXP =<< w (hFunWrap x)
 
 $(thWrapperLiterals 4 25)
