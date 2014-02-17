@@ -27,10 +27,10 @@ Accept the default settings through all the steps of the installation,
 except when selecting packages where in addition to the defaults you
 should select the following packages as well:
 
-* git
-* OpenSSH
 * unzip
 * wget
+* git (optional)
+* OpenSSH (optional)
 
 R installation
 --------------
