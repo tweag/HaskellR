@@ -10,36 +10,11 @@ extensions for numerical computation and statistical analysis.
 Installing
 ----------
 
-cabal-install >= 1.16.0.2 is required to build without warnings.
+The installation procedure differs on Windows and on UNIX-like
+systems. Please refer to the following documents for a walkthrough:
 
-This [patched
-branch](https://github.com/facundominguez/c2hs/tree/bitfield-sizeAlign-fix)
-of c2hs 0.16.5 is required for i386 builds on Windows:
-
-    $ git clone -b bitfield-sizeAlign-fix git@github.com:facundominguez/c2hs.git
-    $ cd c2hs
-    $ cabal install
-
-To install H, change the current working directory to the folder
-containing the `H.cabal` file. Then, depending on your OS:
-
-In Unix-like systems:
-
-    $ cabal install
-
-In Windows:
-
-    $ cabal install --extra-include-dirs=$R_HOME\include \
-                    --extra-lib-dirs=$R_HOME\bin\[i386|x64]
-
-Optionally, you may add `--enable-tests` to the command line arguments
-in order execute tests before installation.
-
-In Windows you need to select which R library folder to use depending
-on whether an i386 or x64 build is desired. You may need to set the
-`R_HOME` shell variable to the R installation directory by hand,
-depending on your setup. Note that installation currently requires
-to be running in a MinGW/MSYS shell.
+* [INSTALL-unix.md] UNIX-like installation guide (Linux, Mac OS X, etc)
+* [INSTALL-win.md] Windows installation guide.
 
 Setting up H in GHCi
 --------------------
