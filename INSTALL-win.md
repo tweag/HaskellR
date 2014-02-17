@@ -126,12 +126,12 @@ be obtained either using `git` or downloading a `zip` file.
 
 Using `git`:
 
-    $ git clone -b bitfield-sizeAlign-fix https://github.com/tweaag/c2hs.git
+    $ git clone -b bitfield-sizeAlign-fix https://github.com/tweag/c2hs.git
 
 Using a `zip` file:
 
     $ wget https://github.com/tweag/c2hs/archive/bitfield-sizeAlign-fix.zip
-    $ unzip c2hs-bitfield-sizeAlign-fix.zip
+    $ unzip bitfield-sizeAlign-fix.zip
     $ mv c2hs-bitfield-sizeAlign-fix c2hs
 
 Then, the package can be installed as follows:
