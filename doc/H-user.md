@@ -38,11 +38,11 @@ interesting in their own right: they are just memory addresses, as
 seen above. However, one can use `H.print` to ask R to show us the
 value pointed to by a handle:
 
-    H> H.print =<< [r| 1 + 1 |]
+    H> H.printQuote [r| 1 + 1 |]
     [1] 2
-    H> H.print =<< [r| x <- 1; x + 2 |]
+    H> H.printQuote [r| x <- 1; x + 2 |]
     [1] 3
-    H> H.print =<< [r| x |]
+    H> H.printQuote [r| x |]
     [1] 1
 
 In the following, we will loosely identify *handles to R values* and
@@ -57,7 +57,7 @@ if needed. One such alternative quasiquoter is `rexp`, also defined in
 H, which acts in much the same way as `r`, except that it returns
 R expressions unevaluated:
 
-    H> H.print =<< [rexp| 1 + 1 |]
+    H> H.printQuote [rexp| 1 + 1 |]
     expression(1+1)
 
 Because quasiquoters ask R itself to parse expressions, at quasiquote
@@ -79,15 +79,15 @@ a quasi-quote, the quasi-quote may suffix the name with `_hs` in order
 to splice the Haskell value.
 
     H> let x = 2 :: Double
-    H> H.print [r| x_hs + x_hs |]
+    H> H.printQuote [r| x_hs + x_hs |]
     [1] 4
 
     H> let f x = return (x + 1) :: R s Double
-    H> H.print =<< [r| f_hs(1) |]
+    H> H.printQuote [r| f_hs(1) |]
     [1] 2
 
     H> x <- [r| 1 + 1 |]
-    H> H.print =<< [r| 1 + x_hs |]
+    H> H.printQuote [r| 1 + x_hs |]
     [1] 3
 
 ## Defining spliceable types
@@ -439,7 +439,7 @@ Evaluating R expressions may result in runtime errors. All errors are
 wrapped in the `Foreign.R.Error.RError` exception that carries the
 error message.
 
-    H> (H.print =<< [r| plot() |]) 
+    H> (H.printQuote [r| plot() |]) 
          `catch` (\(H.RError msg) -> putStrLn msg)
     Error in xy.coords(x, y, xlabel, ylabel, log) : 
       argument "x" is missing, with no default
