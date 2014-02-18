@@ -8,7 +8,7 @@
 :set -XViewPatterns
 import Language.R.HExp as H
 import qualified H.Prelude.Interactive as H
-import Language.R.Runtime.QQ as H (r)
+import Language.R.Runtime.QQ as H (r, rexp)
 import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
 :{
