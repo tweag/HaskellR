@@ -7,12 +7,11 @@ import Fib
 import qualified H.Prelude as H
 import           Language.R.QQ
 import qualified Language.R
-import qualified Language.R.Interpreter
+import qualified Language.R.Instance
 import qualified Foreign.R
 import qualified Foreign.R.Interface
-
-io :: IO a -> H.R a
-io = Language.R.io
+import           Control.Monad.IO.Class
+      ( liftIO  )
 
 main :: IO ()
 main = do
@@ -26,25 +25,23 @@ main = do
         , Foreign.R.Interface.rCStackLimit
         , Foreign.R.rInputHandlers
         )
-    renv <- Language.R.Interpreter.initialize Language.R.Interpreter.defaultConfig
-    H.runR renv $ do
+    H.runR Language.R.Instance.defaultConfig $ do
         H.print =<< [r| "test" |]
         H.print =<< [r| 1+2 |]
-        io $ putStrLn "[r| neg_hs(TRUE, 5) |]"
-        H.print =<< [r| neg_hs(TRUE, 5) |]
-        io $ putStrLn "[r| neg_hs(FALSE, 6) |]"
-        H.print =<< [r| neg_hs(FALSE, 6) |]
-        io $ putStrLn "[r| neg_hs(NA, 7) |]"
-        H.print =<< [r| neg_hs(NA, 7) |]
-        io $ putStrLn "[r| fib_hs(1) |]"
-        H.print =<< [r| fib_hs(1) |]
-        io $ putStrLn "[r| fib_hs(10) |]"
-        H.print =<< [r| fib_hs(10) |]
-        io $ putStrLn "[r| fact_hs(0) |]"
-        H.print =<< [r| fact_hs(0) |]
-        io $ putStrLn "[r| fact_hs(7) |]"
-        H.print =<< [r| fact_hs(7) |]
-        io $ putStrLn "[r| factSexp_hs(7) |]"
-        H.print =<< [r| factSexp_hs(7) |]
-        io $ putStrLn "[r| function(x) x |]"
-        H.print =<< [r| function(x) x |]
+        liftIO $ putStrLn "[r| neg_hs(TRUE, as.integer(5)) |]"
+        H.print =<< [r| neg_hs(TRUE, as.integer(5)) |]
+        liftIO $ putStrLn "[r| neg_hs(FALSE, as.integer(6)) |]"
+        H.print =<< [r| neg_hs(FALSE, as.integer(6)) |]
+        liftIO $ putStrLn "[r| neg_hs(NA, as.integer(7)) |]"
+        H.print =<< [r| neg_hs(NA, as.integer(7)) |]
+        liftIO $ putStrLn "[r| fib_hs(as.integer(1)) |]"
+        H.print =<< [r| fib_hs(as.integer(1)) |]
+        liftIO $ putStrLn "[r| fib_hs(as.integer(10)) |]"
+        H.print =<< [r| fib_hs(as.integer(10)) |]
+        liftIO $ putStrLn "[r| fact_hs(as.integer(0)) |]"
+        H.print =<< [r| fact_hs(as.integer(0)) |]
+        liftIO $ putStrLn "[r| fact_hs(as.integer(7)) |]"
+        H.print =<< [r| fact_hs(as.integer(7)) |]
+        liftIO $ putStrLn "[r| factSexp_hs(as.integer(7)) |]"
+        H.print =<< [r| factSexp_hs(as.integer(7)) |]
+
