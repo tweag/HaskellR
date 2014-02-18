@@ -37,11 +37,11 @@ data Poly = Poly [Int]
 
 generate_polynomial :: Int -> String -> String
 generate_polynomial 0 s = "a0"
-generate_polynomial x s = "a"++show x++"*"++intercalate "*" (replicate x s)++"+"++generate_polynomial (x-1) s
+generate_polynomial x s = "a" ++ Prelude.show x ++ "*" ++ intercalate "*" (replicate x s) ++ "+" ++ generate_polynomial (x-1) s
 
 generate_list :: Int -> String
 generate_list n = -- intercalate "," $ zipWith (\a b -> a++"="++show b) (map (\t->"a"++show t) [0..(n+1)]) (reverse lst)
-    intercalate "," $ map (\i -> "a"++show i ++"=1") [0..n]
+    intercalate "," $ map (\i -> "a" ++ Prelude.show i ++ "=1") [0..n]
   where
     lst = [0.13, 1.5, 0.4, 19, 27, 7, 9 ]
 --    lst = [5600,1060,630,140,10,50,1]
