@@ -36,7 +36,9 @@ Alternatively, one can also try:
 
     $ ghci -ghci-script H.ghci
 
-where H.ghci is a file colocated with the H.cabal file.
+where `H.ghci` is a file colocated with the `H.cabal` file. (NB: for
+security reasons, you must ensure that `H.ghci` is not world
+writeable.)
 
 In Windows, both H and GHCi work best from the `cmd.exe` terminal, as
 opposed to MinGW (both ought work, but MinGW currently triggers bug
