@@ -194,7 +194,7 @@ instance TH.Lift (SEXP a) where
       where
         xs :: String
         xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
-    lift s@(hexp -> Lang (hexp -> Symbol pname _ Nothing) rands)
+    lift (hexp -> Lang (hexp -> Symbol pname _ Nothing) rands)
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
         let hvar = TH.varE $ TH.mkName $ spliceNameChop name

@@ -27,7 +27,7 @@ module Language.R.GC
 
 import H.Internal.Prelude
 import Control.Applicative
-import Foreign hiding ( newForeignPtr, unsafeForeignPtrToPtr )
+import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr )
 import Foreign.Concurrent
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import qualified Foreign.R as R

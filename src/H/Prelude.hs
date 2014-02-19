@@ -47,7 +47,6 @@ import Foreign.C (withCString)
 import System.IO.Unsafe (unsafePerformIO)
 
 import Prelude hiding (Show(..), print)
-import qualified Prelude
 
 class Show a where
   -- | Equivalent of R's @deparse()@.
