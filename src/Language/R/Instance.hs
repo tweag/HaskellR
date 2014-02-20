@@ -20,6 +20,7 @@
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
@@ -65,9 +66,13 @@ import Control.Concurrent
     , threadDelay
     )
 import Control.Concurrent.MVar
-    ( newEmptyMVar
+    ( MVar
+    , newEmptyMVar
     , putMVar
     , takeMVar
+    , swapMVar
+--    , withMVar
+    , readMVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
@@ -75,7 +80,8 @@ import Control.Exception
     , bracket_
     , catch
     , finally
-    , throwTo
+    , throwIO
+    , try
     )
 import Control.Monad.Catch ( MonadCatch )
 import Control.Monad.Reader
@@ -113,7 +119,8 @@ instance MonadR (R s) where
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance.
 runR :: Config -> (forall s. R s a) -> IO a
-runR config (R m) = bracket_ (initialize config) finalize m
+runR config (R m) = bracket_ (initialize config) finalize
+    (m `catch` (\e -> error $ "Exception during the R execution:" ++ show (e::SomeException)))
 
 -- | Run an R action in the global R instance from the IO monad. This action is
 -- unsafe in the sense that use of it bypasses any static guarantees provided by
@@ -121,6 +128,11 @@ runR config (R m) = bracket_ (initialize config) finalize m
 -- not yet been finalized. It is a backdoor that should not normally be used.
 unsafeRToIO :: R s a -> IO a
 unsafeRToIO (R m) = m
+
+-- | State of the R thread.
+data RThreadState = RThreadStopped
+                  | RThreadValid  OSThreadId (Chan (IO ()))
+                  | RThreadFailed SomeException
 
 -- | Configuration options for R runtime.
 data Config = Config
@@ -190,9 +202,9 @@ finalize :: IO ()
 finalize = do
     unsafeRunInRThread $ do
       R.endEmbeddedR 0
-      peek interpreterChanPtr >>= freeStablePtr
       poke isRInitializedPtr 0
     stopRThread
+    peek interpreterChanPtr >>= freeStablePtr
 
 -- | Starts the R thread.
 startRThread :: ThreadId -> IO ()
@@ -208,23 +220,30 @@ startRThread eventLoopThread = do
     chan <- newChan
     mv <- newEmptyMVar
     void $ forkOS $ do
-      myOSThreadId >>= putMVar mv
-      forever (join $ readChan chan) `finally` killThread eventLoopThread
-    rOSThreadId <- takeMVar mv
-    newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
+      tid <- myOSThreadId
+      putMVar mv (RThreadValid tid chan)
+      el <- try $ forever (join $ readChan chan) `finally` killThread eventLoopThread
+      void $ case el of
+        Right{} -> swapMVar mv RThreadStopped
+        Left e  -> swapMVar mv (RThreadFailed e)
+    newStablePtr mv >>= poke interpreterChanPtr
 
 -- | Like postToRThread_ but does not swallow exceptions thrown by the
 -- computation.
 postToRThread_ :: IO () -> IO ()
 postToRThread_ action = do
-    tid <- myOSThreadId
-    isBound <- isCurrentThreadBound
-    if tid == rOSThreadId && isBound
-      then action
-      else writeChan interpreterChan action
-  where
-    (rOSThreadId, interpreterChan) = unsafePerformIO $
-      peek interpreterChanPtr >>= deRefStablePtr
+    mv <- peek interpreterChanPtr >>= deRefStablePtr
+    -- we need read MVar to save us from recursive block if we are already
+    -- in RThread
+    readMVar mv >>= \case
+      RThreadStopped -> return ()
+      RThreadFailed _ -> return ()
+      RThreadValid rOSThreadId interpreterChan -> do
+        tid <- myOSThreadId
+        isBound <- isCurrentThreadBound
+        if tid == rOSThreadId && isBound
+          then action
+          else writeChan interpreterChan action
 
 -- | Evaluates a computation in the interpreter thread.
 --
@@ -233,17 +252,18 @@ postToRThread_ action = do
 unsafeRunInRThread :: IO a -> IO a
 unsafeRunInRThread action = do
     mv <- newEmptyMVar
-    tid <- myThreadId
     postToRThread_ $
-      (action >>= putMVar mv) `catch` (\e -> throwTo tid (e :: SomeException))
-    takeMVar mv
+      (action >>= putMVar mv . Right) `catch` (\e -> putMVar mv (Left (e :: SomeException)))
+    takeMVar mv >>= \case
+      Left e -> throwIO e
+      Right x -> return x
 
 -- | Stops the R thread.
 stopRThread :: IO ()
 stopRThread = postToRThread_ $ myThreadId >>= killThread
 
 -- | A static address that survives GHCi reloadings.
-foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
+foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (MVar RThreadState))
 --
 -- $ghci-bug
 -- The main reason to have all R constants referenced with a StablePtr
