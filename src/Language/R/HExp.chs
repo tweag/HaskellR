@@ -64,8 +64,6 @@ import Foreign ( castPtr, nullPtr )
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Debug.Trace
-
 #include <R.h>
 #define USE_RINTERNALS
 #include <Rinternals.h>
