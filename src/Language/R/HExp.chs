@@ -64,7 +64,6 @@ import Foreign ( castPtr, nullPtr )
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
-
 #include <R.h>
 #define USE_RINTERNALS
 #include <Rinternals.h>
@@ -90,7 +89,7 @@ data HExp :: SEXPTYPE -> * where
             -> Maybe (SEXP b)
             -> HExp R.Symbol
   -- Fields: carval, cdrval, tagval.
-  List      :: SEXP a
+  List      :: SomeSEXP 
             -> !(Maybe (SEXP R.List))
             -> !(Maybe (SEXP R.Symbol))
             -> HExp R.List
@@ -164,6 +163,10 @@ data HExp :: SEXPTYPE -> * where
   S4        :: SEXP R.Symbol
             -> HExp R.S4
 
+instance Eq SomeSEXP where
+  (SomeSEXP v1) == s2@(SomeSEXP v2) = R.typeOf v1 == R.typeOf v2
+      && hexp (s2 `R.asTypeOf` v1) === hexp v1
+
 -- | Wrapper for partially applying a type synonym.
 newtype E a = E (SEXP a)
 
@@ -182,7 +185,7 @@ instance HEq HExp where
       E value1 === E value2 &&
       (fromJust $ (===) <$> fmap E internal1 <*> fmap E internal2 <|> return True)
   List carval1 cdrval1 tagval1 === List carval2 cdrval2 tagval2 =
-      E carval1 === E carval2 &&
+      carval1 == carval2 &&
       (fromJust $ (===) <$> fmap E cdrval1 <*> fmap E cdrval2 <|> return True) &&
       (fromJust $ (===) <$> fmap E tagval1 <*> fmap E tagval2 <|> return True)
   Env frame1 enclos1 hashtab1 === Env frame2 enclos2 hashtab2 =
@@ -277,7 +280,7 @@ peekHExp s = do
                   <*> (R.sexp <$> {#get SEXP->u.symsxp.value #} s)
                   <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.symsxp.internal #} s))
       R.List      -> coerce $
-        List      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} s)
+        List      <$> (R.SomeSEXP . R.sexp <$> {#get SEXP->u.listsxp.carval #} s)
                   <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s))
                   <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s))
       R.Env       -> coerce $
@@ -332,7 +335,7 @@ pokeHExp s h = do
            maybe ({#set SEXP->u.symsxp.internal#} s (R.unsexp H.nilValue))
                  ({#set SEXP->u.symsxp.internal#} s . R.unsexp) internal
          List carval cdrval tagval -> do
-           {#set SEXP->u.listsxp.carval #} s (R.unsexp carval)
+           R.unSomeSEXP carval (\x -> {#set SEXP->u.listsxp.carval #} s (R.unsexp x))
            maybe ({#set SEXP->u.listsxp.cdrval#} s (R.unsexp H.nilValue))
                  ({#set SEXP->u.listsxp.cdrval#} s . R.unsexp) cdrval
            maybe ({#set SEXP->u.listsxp.tagval#} s (R.unsexp H.nilValue))
@@ -391,11 +394,11 @@ unhexpIO :: HExp a -> IO (SEXP a)
 unhexpIO   Nil         = return H.nilValue
 unhexpIO s@(Symbol{})  =
     withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
-unhexpIO (List c md mt) = do
-    void $ R.protect c
+unhexpIO (List c md mt) = R.unSomeSEXP c $ \c' -> do
+    void $ R.protect c'
     void $ R.protect d
     void $ R.protect t
-    z <- R.cons c d
+    z <- R.cons c' d
     {# set SEXP->u.listsxp.tagval#} z (R.unsexp t)
     R.unprotect 3 -- - $ maybe 2 (const 3) mt
     return z

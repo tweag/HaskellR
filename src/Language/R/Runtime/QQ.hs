@@ -109,8 +109,8 @@ attachHs h@(hexp -> Lang x ls) =
   let tl = attachHs x ++ (maybe [] attachHs ls)
   in maybe tl (:tl) (attachSymbol h x)
 attachHs h@(hexp -> List x tl _) =
-  let tls = (attachHs x) ++ (maybe [] attachHs tl)
-  in maybe tls (:tls) (attachSymbol h x)
+  let tls = R.unSomeSEXP x attachHs ++ (maybe [] attachHs tl)
+  in maybe tls (:tls) (R.unSomeSEXP x (attachSymbol h))
 attachHs _ = []
 
 attachSymbol :: SEXP a -> SEXP b -> Maybe (ExpQ -> ExpQ)
@@ -121,7 +121,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
          [| H.withProtected (install ".Call") $ \call ->
               H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
                 io $ R.setCar (unRuntimeSEXP rs) call
-                io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
+                io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List (SomeSEXP l) (Just (unRuntimeSEXP rp)) Nothing))
                 $e
          |])
 attachSymbol s (haskellName -> Just hname) =
