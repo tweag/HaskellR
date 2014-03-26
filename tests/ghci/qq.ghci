@@ -1,8 +1,7 @@
 :set -XDataKinds
 :set -XScopedTypeVariables
-:m +Data.Int
-import qualified Foreign.R as R
 
+:m +Data.Int
 -- Should be: [1] 1
 H.print =<< [r| 1 |]
 
