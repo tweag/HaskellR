@@ -52,7 +52,7 @@ library
                      , text >= 0.11
                      , vector >= 0.10
                      , template-haskell >= 2.8
-                     , exceptions >= 0.3
+                     , exceptions >= 0.3 && <0.5
                      , mtl >= 2.1
                      , primitive >= 0.5
                      , singletons >= 0.9
@@ -127,7 +127,7 @@ test-suite tests
                      , mtl >= 2.0
                      , process >= 1.2
                      , strict >= 0.3.2
-                     , tasty >= 0.3 && < 0.8
+                     , tasty >= 0.3 && < 1.0
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11
