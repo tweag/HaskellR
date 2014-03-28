@@ -77,7 +77,11 @@ import Control.Exception
     , finally
     , throwTo
     )
+#if MIN_VERSION_exceptions(0,4,0)
+import Control.Monad.Catch ( MonadCatch, MonadThrow )
+#else
 import Control.Monad.Catch ( MonadCatch )
+#endif
 import Control.Monad.Reader
 
 import Foreign
@@ -105,7 +109,12 @@ import System.Posix.Resource
 -- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
 -- be lifted to 'R' actions.
 newtype R s a = R { _unR :: IO a }
+#if MIN_VERSION_exceptions(0,4,0)
+  deriving (Monad, MonadIO, Functor, MonadCatch, MonadThrow, Applicative)
+#else
   deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
+#endif
+
 
 instance MonadR (R s) where
   io m = R $ unsafeRunInRThread m
