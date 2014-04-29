@@ -95,4 +95,4 @@ let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP Foreig
 :}
 
 -- Should be [1] 4181
--- H.print =<< runR (hFib (mkSEXP (19 :: Int32))) -- XXX produces wrong result.
+-- H.print =<< H.Prelude.runR H.defaultConfig (hFib (H.Prelude.mkSEXP (19 :: Int32))) -- XXX produces wrong result.
