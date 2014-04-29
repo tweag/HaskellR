@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- Distributed under BSD-2 License -->
+<!-- Copyright: 2014 (C) EURL Tweag -->
+
+<!-- This is a chain for installation of Haskell Platform as a part of H installation.
+     We check if Haskell Platform is already installed, by checking registry, if not then
+     we call an installer.
+  -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Fragment>
+    <util:RegistrySearch Id="RegistryHP" Variable="HPInstalled" Root="HKLM" Key="Software\Haskell\Haskell Platform\2013.2.0.0" Value="InstallDir" Result="exists"/>
+    <util:RegistrySearch Id="RegistryHP64" Variable="HP64Installed" Root="HKLM" Key="Software\Haskell\Haskell Platform\2013.2.0.0" Value="InstallDir" Result="exists"/>
+    <PackageGroup Id="PackageHP">
+      <ExePackage SourceFile="HP/HaskellPlatform-2013.2.0.0-setup.exe" Vital="yes" DetectCondition="ExeDetectedVariableHP" InstallCondition="not (HPInstalled or HP64Installed)"/>
+    </PackageGroup>
+  </Fragment>
+</Wix>
+<!-- DownloadUrl="http://www.haskell.org/platform/download/2013.2.0.0/HaskellPlatform-2013.2.0.0-setup.exe" -->

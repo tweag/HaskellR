@@ -1,0 +1,18 @@
+<!-- This is a chain for installation of R as a part of H installation.
+     We check if R is already installed, by checking registry, if not then
+     we call an installer.
+
+  -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Fragment>
+    <PackageGroup Id="PackageH">
+        <MsiPackage EnableFeatureSelection="yes"
+                    Visible="yes"
+                    SourceFile="H/H.msi"
+                    DisplayInternalUI="yes"
+                    Description="H Installation"
+                    Vital="yes"/>
+    </PackageGroup>
+  </Fragment>
+</Wix>
