@@ -1,0 +1,133 @@
+<?xml version='1.0'?>
+<!-- Description: Main H installer file
+     Copyright: (C) 2014, Amgen
+     License: All Rights Reserved
+--> 
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<?include $(sys.SOURCEFILEDIR)/../Version.wxi ?>
+	<Product
+		Name="$(var.ProductName)"
+		Id="F06860F9-FD85-4b48-B1AC-D282043B60D7"
+		UpgradeCode="061738EE-85EA-46b4-86B2-281E69163BB2"
+		Version="$(var.ProductVersion)"
+		Language="1033"
+		Manufacturer="Tweag I/O">
+		<Package
+			Id="*" Keywords="R Haskell"
+			Description="H to R solution"
+			Comments="H haskell to R bridge"
+			Manufacturer="Tweag I/O"
+			InstallerVersion="200"
+			InstallScope="perMachine"
+			Compressed="yes">
+		</Package>
+		<Property Id="DISABLEADVTSHORTCUTS" Value="1" />
+		<!-- Directory structure:
+			We are basically installing all required 
+			toolset into windows folder and use our tools
+			in order order to build product.
+		-->
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder" Name="PFiles">
+				<Directory Id="Tweag" Name="Tweag">
+					<Directory Id="INSTALLDIR" Name="H">
+						<Directory Id="DirectorySources" Name="sources"/>
+						<Directory Id="DirectoryUtilities" Name="utils"/>
+						<Directory Id="DirectoryManuals" Name="documentation"/>
+					</Directory>
+				</Directory>
+			</Directory>
+			<Directory Id="ProgramMenuFolder">
+				<Directory Id="ProgramMenuDir" Name="H">
+					<Component Id="ProgramMenuDir" Guid="8085E44B-5DA9-439f-8548-58EE2B28E917">
+						<RemoveFolder Id="ProgramMenuDir" On="uninstall"/>
+						 <RegistryValue Root='HKMU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+					</Component>
+				</Directory>
+			</Directory>
+		</Directory>
+		<Media Id="1" Cabinet="Sample.cab" EmbedCab="yes"/>
+		<!-- Components -->
+		<!-- 1. H-Source in external file -->
+		<!-- 2. Registry entries -->
+		<DirectoryRef Id="TARGETDIR">
+			<Component Id="RegistryEntries"
+				Guid="F06860F9-FD85-4b48-B1AC-D28204300002" DisableRegistryReflection="no">
+			  <RegistryKey Root="HKLM"
+				Key="Software\Tweag\H"
+				ForceDeleteOnUninstall="yes">
+				<RegistryValue Type="string"
+					Value="[INSTALLDIR]"
+					Name="InstallPath"/>
+				<RegistryValue Type="string"
+					Value="CurrentVersion"
+					Name="$(var.ProductVersion)"/>
+			  </RegistryKey>
+			</Component>
+		</DirectoryRef>
+		<!-- 3. Utility scripts -->
+		<ComponentGroup Id="ComponentUtilities">
+			<Component Id="FileInstallHSH" Guid="F06860F9-FD85-4b48-B1AC-D28204300003" Directory="DirectoryUtilities">
+				<File Id="FileInstallHSH" Name="install-h.sh" DiskId="1" Source="H\utils\install-h.sh" KeyPath="yes"/>
+			</Component>
+			<Component Id="FileInstallHBat" Guid="F06860F9-FD85-4b48-B1AC-D28204300004" Directory="DirectoryUtilities">
+				<File Id="FileInstallHBat" Name="install-h.bat" DiskId="1" Source="H\utils\install-h.bat" KeyPath="yes">
+					<Shortcut Id="StartMenuInstaller" Name="Install H" Directory="ProgramMenuDir" Description="Install H for this user" Advertise="yes"/>
+				</File>
+			</Component>
+			<Component Id="FileFindRegBat" Guid="F06860F9-FD85-4b48-B1AC-D28204300005" Directory="DirectoryUtilities" KeyPath="yes">
+				<File Id="FileFindRegBat" Name="find-reg.bat" DiskId="1" Source="H\utils\find-reg.bat"/>
+			</Component>
+			<Component Id="FileHInteractiveBat" Guid="F06860F9-FD85-4b48-B1AC-D28204300006" Directory="DirectoryUtilities">
+				<File Id="FileHIteractiveBat" Name="H interactive.bat" DiskId="1" Source="H\utils\H terminal.bat" KeyPath="yes">
+					<Shortcut Id="StartMenuInteractive" Name="H Interactive" Directory="ProgramMenuDir" Description="Run interactive H session" Advertise="yes"/>
+				</File>
+			</Component>
+		</ComponentGroup>
+		<!-- 4. Manual -->
+		<Component Id="ComponentManual" Directory="DirectoryManuals">
+			<File Id="FileUserManualPdf" Name="H-user.pdf" DiskId="1" Source="H/H-user.pdf" KeyPath="yes">
+				<Shortcut Id="StartmenuManual" Directory="ProgramMenuDir" Name="User Manual" Advertise="yes"/>
+			</File>
+		</Component>
+		<Component Id="ComponentManual2" Directory="DirectoryManuals">
+			<File Id="FileUserManualPdf2" Name="H-ints.pdf" DiskId="1" Source="H/H-ints.pdf" KeyPath="yes">
+				<Shortcut Id="StartmenuManual2" Directory="ProgramMenuDir" Name="H Internals Manual" Advertise="yes"/>
+			</File>
+		</Component>
+
+		<!-- run installer -->
+		<CustomAction Id="LaunchFile" FileKey="FileInstallHBat" ExeCommand="/hpath &quot;[INSTALLDIR]&quot; /greet" Execute="immediate" Return="check"/>
+		<InstallExecuteSequence>
+			<Custom Action="LaunchFile" After="InstallFinalize">NOT REMOVE</Custom>
+		</InstallExecuteSequence>
+
+		<!-- UI -->
+		<Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+		<UIRef Id="WixUI_FeatureTree2"/>
+		<UIRef Id="WixUI_ErrorProgressText" />
+		<WixVariable Id="WixUILicenseRtf" Value="License.rtf"/>
+		<Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Thanks for installing H"/>
+
+		<Feature Id="Fe_Complete" Level="1" Title="H Compiler - $(var.ProductVersion)" Description="Complete Package."
+			Display="expand" ConfigurableDirectory="INSTALLDIR" AllowAdvertise="no" Absent="disallow">
+			<Feature Id="Fe_All" Level="1" Title="H Library" Description="Install H" Absent="disallow" AllowAdvertise="no" Display="expand">
+				<Feature Id="Fe_Utiliries" Level="1" Title="Utilities" Description="Helper utility files" Absent="disallow" AllowAdvertise="no">
+					<ComponentGroupRef Id="ComponentUtilities"/>
+					<ComponentRef Id="ProgramMenuDir"/>
+				</Feature>
+				<Feature Id="Fe_Sources" Level="1" Title="Source code" Description="Install H sources"
+				Absent="disallow" AllowAdvertise="no">
+					<ComponentGroupRef Id="HSource"/>
+				</Feature>
+				<ComponentRef Id="RegistryEntries"/>
+			</Feature>
+			<Feature Id="Fe_Documentation" Title="Documentation" Description="The instruction manual."
+				Level="1000">
+				<ComponentRef Id="ComponentManual"/>
+				<ComponentRef Id="ComponentManual2"/>
+			</Feature>
+		</Feature>
+	</Product>
+
+</Wix>

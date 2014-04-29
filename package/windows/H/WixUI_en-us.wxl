@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Description: Localization messages 
+     Copyright: (c) 2014, Amgen
+     License: All Rights Reserved
+-->
+<WixLocalization Culture="en-US" Codepage="1252" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+	<String Id="WelcomeDlgDescription">
+	Welcome to H installer wizard.
+	
+	H is a R to Haskell interoperability solution.
+	
+	H consists on set of libraries and interpreter.
+	</String>
+	<String Id="VerifyReadyDlgInstallText">
+	Click Install to begin the installation. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard.
+
+	Installer will launch a terminal window where it will run all compilation
+	steps, this may take a while (up to 10 minutes on a modern PC). 
+	Please don't close that window until the end of the process. In case if any error
+	occurs, installer window will not be closed, and one can copy the log output,
+	otherwise window will be closed and installation will be finished.
+	
+	</String>
+</WixLocalization>

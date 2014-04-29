@@ -1,0 +1,26 @@
+<?xml version='1.0'?>
+<!-- 2014 (C) Amgen
+     License: All Rights Reserved
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+ xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+<?include $(sys.SOURCEFILEDIR)/Version.wxi ?>
+  <Bundle Version="$(var.ProductVersion)" Name="H Installation" Manufacturer="AMGEN"
+  UpgradeCode="061738EE-85EA-46b4-86B2-281E69163BB0">
+   <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense">
+     <bal:WixStandardBootstrapperApplication LicenseFile="Process.rtf"/>
+   </BootstrapperApplicationRef>
+   <Chain>
+     <PackageGroupRef Id="PackageR"/>
+     <PackageGroupRef Id="PackageCygwin"/>
+     <PackageGroupRef Id="PackageHP"/>
+     <MsiPackage EnableFeatureSelection="yes"
+                    Visible="yes"
+                    Permanent="no"
+                    SourceFile="H/H.msi"
+                    DisplayInternalUI="yes"
+                    Description="H Installation"
+                    Vital="yes"/>
+   </Chain>
+  </Bundle>
+</Wix>
