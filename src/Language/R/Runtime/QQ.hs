@@ -42,6 +42,7 @@ instance MonadR IO where
 -- Runtime Quasi-Quoter                                                      --
 -------------------------------------------------------------------------------
 
+
 -- | Runtime R quasiquoter. It parses R variable, then add all required
 -- substitutions, and finally evaluates the resulting expression.
 r :: QuasiQuoter
