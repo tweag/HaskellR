@@ -7,8 +7,8 @@
 
 lim <- 2
 iter <- 50
-# Turn off warnings that appear in windows.
-# Thus we can compare the output without the warning messages.
+# Turn off warnings that appear on Windows, so that we can compare
+# the output without the warning messages.
 options ( warn = -1)
 
 mandelbrot_noout <- function(args) {
