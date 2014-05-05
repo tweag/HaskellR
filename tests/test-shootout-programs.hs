@@ -3,6 +3,7 @@
 -- This program executes shootout tests using R, runtime and compile-time qqs
 -- and compares the outputs.
 --
+{-# LANGUAGE CPP #-}
 
 import Control.Exception
 
@@ -48,6 +49,7 @@ runRTest fp = readFile fp >>= readProcess "R" ["--slave"]
 -- | Runs a test using the runtime qq.
 --
 -- Returns the standard output.
+#ifndef H_ARCH_WINDOWS
 runQQTest :: FilePath -> IO String
 runQQTest fp = readProcess "sh" [ "tests" </> "ghciH.sh", "-v0", "-ghci-script", "H.ghci" ] qqScript
   where
@@ -63,16 +65,23 @@ runQQTest fp = readProcess "sh" [ "tests" </> "ghciH.sh", "-v0", "-ghci-script",
       , ""
       , "void $(quoteExp H.r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
       ]
+#endif
 
 compareOutputs :: FilePath -> IO Bool
 compareOutputs fp = do
     putStr $ "testing " ++ fp ++ ": "
     hFlush stdout
     oR  <- runRTest fp
+#ifndef H_ARCH_WINDOWS
     oQQ <- runQQTest fp
+#endif
     oCQQ <- catch (runCompileQQTest fp) (\e -> const (return "") (e :: SomeException))
+#ifndef H_ARCH_WINDOWS
     if oR == oQQ
     then if oR == oCQQ
+#else
+    if oR == oCQQ
+#endif
       then putStrLn "OK" >> return True
       else do
         putStrLn $ unlines $
@@ -85,6 +94,7 @@ compareOutputs fp = do
           , oCQQ
           ]
         return False
+#ifndef H_ARCH_WINDOWS
     else do
       putStrLn $ unlines $
         [ "FAIL"
@@ -96,6 +106,7 @@ compareOutputs fp = do
         , oQQ
         ]
       return False
+#endif
 
 
 main :: IO ()
