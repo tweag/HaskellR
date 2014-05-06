@@ -4,7 +4,7 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
 
 <interactive>:6:2:
     Exception when trying to run compile-time code:
-      R Runtime Error: Error in parse(text = " plot( ", keep.source = TRUE) : 
+      R Runtime Error: Error in parse(text = " plot( ", keep.source = FALSE) : 
   <text>:2:0: unexpected end of input
 1:  plot( 
    ^
@@ -13,7 +13,7 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
 
 <interactive>:8:2:
     Exception when trying to run compile-time code:
-      R Runtime Error: Error in parse(text = " 1+()-2 ", keep.source = TRUE) : 
+      R Runtime Error: Error in parse(text = " 1+()-2 ", keep.source = FALSE) : 
   <text>:1:5: unexpected ')'
 1:  1+()
         ^
