@@ -197,7 +197,8 @@ instance TH.Lift (SEXP a) where
     lift (hexp -> Lang (hexp -> Symbol pname _ Nothing) rands)
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
-        let hvar = TH.varE $ TH.mkName $ spliceNameChop name
+        let nm = spliceNameChop name
+        hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
         [| let call = unsafePerformIO (installIO ".Call")
                f    = H.mkSEXP $hvar
              in unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
