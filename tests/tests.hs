@@ -4,6 +4,7 @@
 -- Tests. Run H on a number of R programs of increasing size and complexity,
 -- comparing the output of H with the output of R.
 
+{-# LANGUAGE GADTs #-}
 module Main where
 
 import qualified Test.Constraints
@@ -167,6 +168,18 @@ unitTests = testGroup "Unit tests"
                                         sf
                                         (mkSEXP (2::Double))) $
                                   \s -> R.cast R.Real <$> R.tryEval s e p
+  , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
+      key  <- return $ mkSEXP (return 4 :: R s Int32)
+      val  <- return $ mkSEXP (return 5 :: R s Int32)
+      True <- return $ R.typeOf val == R.ExtPtr
+      rf   <- R.mkWeakRef key val (H.unhexp H.Nil) True 
+      True <- case H.hexp rf of
+                H.WeakRef a b c _ -> do
+                  True <- return $ (R.unsexp a) == (R.unsexp key)
+                  True <- return $ (R.unsexp b) == (R.unsexp val)
+                  return $ (R.unsexp c) == (R.unsexp (H.unhexp H.Nil))
+                _ -> error "unexpected type"
+      return ()
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests
