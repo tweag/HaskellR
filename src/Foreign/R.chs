@@ -138,6 +138,7 @@ import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
 import Control.Applicative
+import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
@@ -147,7 +148,6 @@ import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 import Foreign (nullPtr)
 #endif
 import Foreign.C
-import System.IO.Unsafe (unsafePerformIO)
 import Prelude hiding (asTypeOf, length)
 
 #include <R.h>
@@ -227,7 +227,7 @@ cIntFromEnum = cIntConv . fromEnum
 -- function is pure because the type of an object does not normally change over
 -- the lifetime of the object.
 typeOf :: SEXP a -> SEXPTYPE
-typeOf s = unsafePerformIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
+typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
@@ -340,7 +340,7 @@ length s = fromIntegral <$> {#get VECSEXP->vecsxp.length #} s
 {#fun REAL as real { unsexp `SEXP R.Real' } -> `Ptr Double' castPtr #}
 
 -- | Read integer vector data.
-{#fun INTEGER as integer { unsexp `SEXP R.Int' } -> `Ptr Int32' castPtr #}
+{#fun unsafe INTEGER as integer { unsexp `SEXP R.Int' } -> `Ptr Int32' castPtr #}
 
 -- | Read raw data.
 {#fun RAW as raw { unsexp `SEXP R.Raw' } -> `Ptr CChar' castPtr #}
