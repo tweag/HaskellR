@@ -319,7 +319,8 @@ peekHExp s = do
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
       R.WeakRef   -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Raw       -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
-      R.S4        -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
+      R.S4        -> coerce $ 
+        S4        <$> (R.sexp <$> {# get SEXP->u.listsxp.tagval #} s)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()

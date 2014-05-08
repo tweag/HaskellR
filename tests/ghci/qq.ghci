@@ -96,3 +96,29 @@ let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP Foreig
 
 -- Should be [1] 4181
 -- H.print =<< H.Prelude.runR H.defaultConfig (hFib (H.Prelude.mkSEXP (19 :: Int32))) -- XXX produces wrong result.
+
+-- s4 objects test
+-- Create an S4 class
+H.print =<< [r| setClass("x-test",representation(a = "numeric", b = "numeric"), prototype(a=1,b=2)) |]
+-- instantiate and object in R
+H.print =<< [r| x <- new("x-test") |]
+-- instantiate and object and pass it to H as-is
+x <- [r| new("x-test") |]
+-- show object
+H.print x
+-- Should be 1. Use slot accessor on R object.
+H.print =<< [r| x@a |]
+-- Should be 2. Use slot accessor on H object.
+H.print =<< [r| x_hs@b |]
+-- Should be "S4". Get type of R object.
+H.print =<< [r| typeof(x) |]
+-- Should be "S4". Get type of H object.
+H.print =<< [r| typeof(x_hs) |]
+
+:{
+let testpm (SomeSEXP z) = case hexp z of
+                  S4 _ -> print "OK"
+                  _    -> print "unexpected value"
+:}
+
+testpm x
