@@ -35,9 +35,6 @@ import Language.Haskell.TH.Syntax
 
 import Foreign ( ptrToIntPtr, intPtrToPtr )
 
-instance MonadR IO where
-  io = unsafeRunInRThread
-
 -------------------------------------------------------------------------------
 -- Runtime Quasi-Quoter                                                      --
 -------------------------------------------------------------------------------
@@ -64,7 +61,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ io $ parseText txt True >>= R.protect
+    ex <- runIO $ unsafeRunInRThread $ parseText txt True >>= R.protect
     {-
     - Current approach to use R memory are not correct and doesn't survive
     - gctorture(TRUE) as it has problems in convert time and compile time

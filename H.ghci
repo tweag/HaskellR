@@ -6,11 +6,16 @@
 :set -XScopedTypeVariables
 :set -XTemplateHaskell
 :set -XViewPatterns
+
 import Language.R.HExp as H
 import qualified H.Prelude.Interactive as H
-import Language.R.Runtime.QQ as H (r, rexp)
 import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
+
+:def _load const(System.Environment.lookupEnv "H_INTERACTIVE_RUNTIME_QQ" >>= return . (maybe "import Language.R.QQ as H (r, rexp)" (const "import Language.R.Runtime.QQ as H (r, rexp)\n:cmd putStrLn \"Using Runtime QQ which is DEPRECATED and only useful for debugging purposes. Use at your own risk.\" >> return \"\"")))
+:_load
+:undef _load
+
 :{
 Language.R.pokeRVariables
     ( Foreign.R.globalEnv
