@@ -161,7 +161,7 @@ data HExp :: SEXPTYPE -> * where
   Raw       :: {-# UNPACK #-} !ByteString
             -> HExp R.Raw
   -- Fields: tagval.
-  S4        :: SEXP R.Symbol
+  S4        :: SEXP a
             -> HExp R.S4
 
 -- | Wrapper for partially applying a type synonym.
