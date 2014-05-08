@@ -161,14 +161,35 @@ instance TH.Lift (Vector.Vector R.Expr SomeSEXP) where
 instance TH.Lift (Ptr ()) where
     lift _ = violation "TH.Lift.lift Ptr" "Attempted to lift a pointer."
 
+
+-- | Returns 'True' if 'Info' describes a function.
+isFunction :: TH.Info -> Bool
+isFunction (TH.VarI _ t _ _) = go t
+  where
+    go (TH.ForallT _ _ tp) = go tp
+    go (TH.AppT x _)       = go x
+    go TH.ArrowT           = True
+    go _                   = False
+isFunction _ = False
+
 -- | Returns 'True' if the variable name is in fact a Haskell value splice.
 isSplice :: String -> Bool
 isSplice = ("_hs" `isSuffixOf`)
+
+-- | Returns 'True' if the variable name is in fact a callback to Haskell
+-- function.
+isCallbackSplice :: String -> Bool
+isCallbackSplice = ("_hsc" `isSuffixOf`)
 
 -- | Chop a splice variable in order to obtain the name of the haskell variable
 -- to splice.
 spliceNameChop :: String -> String
 spliceNameChop name = take (length name - 3) name
+
+-- | Chop a callback splice variable in order to obtain the name of the haskell variable
+-- to splice.
+callbackSpliceNameChop :: String -> String
+callbackSpliceNameChop name = take (length name - 4) name
 
 instance TH.Lift (SEXP a) where
     -- Special case some forms, rather than relying on the default code
@@ -187,8 +208,34 @@ instance TH.Lift (SEXP a) where
     lift   (hexp -> Symbol pname _ Nothing)
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
-        let hvar = TH.varE $ TH.mkName $ spliceNameChop name
+        let nm = spliceNameChop name
+        hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
         [| H.mkSEXP $hvar |]
+      | Char (Vector.toString -> name) <- hexp pname
+      , isCallbackSplice name = do
+        let nm = callbackSpliceNameChop name
+        isF  <- maybe (return False) (fmap isFunction . TH.reify) =<< (TH.lookupValueName nm)
+        hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
+        if isF
+        then [| let prms = unhexp $ List x Nothing Nothing
+                    fcn  = unsafePerformIO (H.installIO "function")
+                    call = unsafePerformIO (H.installIO ".Call")
+                    x    = unsafePerformIO (H.installIO "x")
+                    f    = H.mkSEXP $hvar
+                in unhexp $
+                    Lang fcn
+                         (Just $ unhexp $ List
+                            (unhexp $ List (unsafePerformIO (selfSymbol (unsafePerformIO $ string "")))
+                                           Nothing
+                                           (Just x))
+                            (Just $ unhexp $
+                               List (unhexp $ Lang call (Just (unhexp (List f (Just prms) Nothing))))
+                                    (Just $ unhexp $ List (unhexp Nil) Nothing Nothing)
+                                    Nothing)
+                            Nothing)
+             |]
+        else do TH.reportWarning "Callback splice useed for non-function variable."
+                [| H.mkSEXP $hvar |]
       | otherwise =
         [| unsafePerformIO $ installIO xs |]        -- FIXME
       where
@@ -198,6 +245,14 @@ instance TH.Lift (SEXP a) where
       | Char (Vector.toString -> name) <- hexp pname
       , isSplice name = do
         let nm = spliceNameChop name
+        hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
+        [| let call = unsafePerformIO (installIO ".Call")
+               f    = H.mkSEXP $hvar
+             in unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
+      | Char (Vector.toString -> name) <- hexp pname
+      , isCallbackSplice name = do
+        TH.reportWarning "Callback splice is used where normal splice should be."
+        let nm = callbackSpliceNameChop name
         hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
         [| let call = unsafePerformIO (installIO ".Call")
                f    = H.mkSEXP $hvar

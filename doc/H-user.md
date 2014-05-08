@@ -133,6 +133,34 @@ using Haskell literals. Contrary to arbitrary values, literals are
 typically small, and some of the conversion work can be inlined and
 executed at compile time, ahead of runtime.
 
+### Splice callback
+
+All haskell functions are exported as a ForeignPtr into R, as a result
+they should be converted into form acceptable to R automatically. 
+
+Common splices (values with '_hs' suffix) when they are applied to the
+arguments are converted into following form:
+
+```R
+function(<arguments>).Call(f,<arguments>)
+```
+
+But in a when they are arguments no convertions are made, the main reason
+is that is simplifies passing it into H functions, and that there is no
+way to distinct between cases when we need either a function or external
+pointers without runtime checks.
+
+In cases when R function accepts a function, one should provide a Haskell
+Callback splice suffix (_hsc). When a function with _hsc suffix is in 
+argument position it converts into following form:
+
+```R
+function(x).Call(f,x)
+```
+In the different places or if the value is not a function type a warning
+will be shown and splice will behave exactly like a common splice (_hs).
+
+
 The R monad
 ===========
 

@@ -59,11 +59,11 @@ let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
 let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
 H.print =<< [r| foo3_hs(as.integer(3)) |]
 
--- | should be 3
+-- | should be 99
 let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
 H.print =<< [r| foo4_hs(33, 66) |]
 
--- Should be [1] 120 but it doesn't work
+-- Should be [1] 120
 let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
 H.print =<< [r| fact_hs(as.integer(5)) |]
 
@@ -96,3 +96,12 @@ let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP Foreig
 
 -- Should be [1] 4181
 -- H.print =<< H.Prelude.runR H.defaultConfig (hFib (H.Prelude.mkSEXP (19 :: Int32))) -- XXX produces wrong result.
+
+-- John Cook's test:
+let g xs = sum [ x*x | x <- xs]
+let f xs = return (g xs) :: R s Double
+H.print =<< [r| f_hs( c(3,4) ) |] :: IO ()
+H.printQuote [r| optim( c(1,2), function(x)f_hs(x) ) |]
+-- H.printQuote [r| optim( c(1,2), f_hsc ) |]
+H.printQuote [r| f_hs(2) |]
+H.printQuote [r| sapply (2,f_hsc) |]
