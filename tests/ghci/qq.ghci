@@ -117,7 +117,7 @@ H.print =<< [r| typeof(x_hs) |]
 
 :{
 let testpm (SomeSEXP z) = case hexp z of
-                  S4 _ -> print "OK"
+                  S4 p | H.Prelude.toBool [rsafe| z_hs @ a > 0 |] -> print (R.typeOf p)
                   _    -> print "unexpected value"
 :}
 
