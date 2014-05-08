@@ -53,6 +53,7 @@ import           Data.ByteString (ByteString)
 
 import Control.Applicative
 import Control.Monad ( void )
+import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Int (Int32)
 import Data.Maybe (fromJust)
 import Data.Word (Word8)
@@ -256,7 +257,9 @@ instance Storable (HExp a) where
   alignment _ = {#alignof SEXPREC #}
   poke = pokeHExp
   peek = peekHExp
+  {-# INLINE peek #-}
 
+{-# INLINE peekHExp #-}
 peekHExp :: SEXP a -> IO (HExp a)
 peekHExp s = do
     let coerce :: IO (HExp a) -> IO (HExp b)
@@ -375,7 +378,8 @@ pokeHExp s h = do
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
 hexp :: SEXP a -> HExp a
-hexp = unsafePerformIO . peek
+hexp = unsafeInlineIO . peek
+{-# INLINE hexp #-}
 
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.

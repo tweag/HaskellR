@@ -189,3 +189,15 @@ benchmark runtime-qq-benchmarks
   default-language:    Haskell2010
   -- won't work until fib test pass for runtime qq
   buildable:           False
+
+benchmark hexp-benchmark
+  main-is:             hexp-bench.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       H
+                     , base >= 4.6 && < 5
+                     , criterion >= 0.8
+                     , primitive >= 0.5
+                     , vector >= 0.10
+  ghc-options:         -Wall -threaded -fno-full-laziness
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
