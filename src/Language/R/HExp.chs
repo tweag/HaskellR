@@ -49,7 +49,6 @@ import           Foreign.R (SEXPREC)
 import           Language.R.GC (withProtected)
 
 import qualified Data.Vector.SEXP as Vector
-import           Data.ByteString (ByteString)
 
 import Control.Applicative
 import Control.Monad ( void )
@@ -160,7 +159,7 @@ data HExp :: SEXPTYPE -> * where
             -> SEXP c
             -> SEXP d
             -> HExp R.WeakRef
-  Raw       :: {-# UNPACK #-} !ByteString
+  Raw       :: {-# UNPACK #-} !(Vector.Vector R.Raw Word8)
             -> HExp R.Raw
   -- Fields: tagval.
   S4        :: SEXP a
@@ -266,14 +265,6 @@ peekHExp s = do
     let coerce :: IO (HExp a) -> IO (HExp b)
         coerce = unsafeCoerce
 
-{- Will be here until we decide if we will use bytestings or vectors
-        bytestring :: IO ByteString
-        bytestring = do
-          len <- {#get VECSEXP->vecsxp.length #} s
-          let !(Ptr addr#) = s `plusPtr` {#sizeof SEXPREC_ALIGN #}
-          BS.unsafePackAddressLen (fromIntegral len) addr#
--}
-
     case R.typeOf s of
       R.Nil       -> coerce $ return Nil
       R.Symbol    -> coerce $
@@ -326,7 +317,7 @@ peekHExp s = do
                   <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 1)
                   <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
                   <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
-      R.Raw       -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
+      R.Raw       -> coerce $ Raw     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.S4        -> coerce $ 
         S4        <$> (R.sexp <$> {# get SEXP->u.listsxp.tagval #} s)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
@@ -439,7 +430,7 @@ unhexpIO (Complex vt)  = Vector.unsafeToSEXP vt
 unhexpIO (Vector _ vt) = Vector.unsafeToSEXP vt
 unhexpIO (Char vt)     = Vector.unsafeToSEXP vt
 unhexpIO (String vt)   = Vector.unsafeToSEXP vt
-unhexpIO Raw{}         = unimplemented "unhexp"
+unhexpIO (Raw vt)      = Vector.unsafeToSEXP vt
 unhexpIO S4{}          = unimplemented "unhexp"
 unhexpIO (Expr _ vt)   = Vector.unsafeToSEXP vt
 unhexpIO WeakRef{}     = error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
