@@ -153,8 +153,9 @@ data HExp :: SEXPTYPE -> * where
             -> SEXP R.Symbol
             -> HExp R.ExtPtr
   -- Fields: key, value, finalizer, next.
-  WeakRef   :: (a :∈ R.Nil :+: R.Env :+: R.ExtPtr)
-            => SEXP a
+  WeakRef   :: -- (a :∈ R.Nil :+: R.Env :+: R.ExtPtr
+               -- ,c :∈ R.Nil :+: R.Closure :+: R.Builtin :+: R.Special)
+               SEXP a
             -> SEXP b
             -> SEXP c
             -> SEXP d
@@ -320,7 +321,11 @@ peekHExp s = do
         ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
-      R.WeakRef   -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
+      R.WeakRef   -> coerce $
+        WeakRef   <$> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 0)
+                  <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 1)
+                  <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
+                  <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
       R.Raw       -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.S4        -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
@@ -436,7 +441,7 @@ unhexpIO (String vt)   = Vector.unsafeToSEXP vt
 unhexpIO Raw{}         = unimplemented "unhexp"
 unhexpIO S4{}          = unimplemented "unhexp"
 unhexpIO (Expr _ vt)   = Vector.unsafeToSEXP vt
-unhexpIO WeakRef{}     = unimplemented "unhexp"
+unhexpIO WeakRef{}     = error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
 unhexpIO DotDotDot{}   = unimplemented "unhexp"
 unhexpIO ExtPtr{}      = unimplemented "unhexp"
 

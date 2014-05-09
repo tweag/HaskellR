@@ -47,6 +47,7 @@ module Foreign.R
   , mkChar
   , CEType(..)
   , mkCharCE
+  , mkWeakRef
     -- * Node attributes
   , typeOf
   , setAttribute
@@ -485,6 +486,9 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 -- | Find a variable by name.
 {#fun Rf_findVar as findVar { unsexp `SEXP a', unsexp `SEXP R.Env'}
       -> `SEXP R.Symbol' sexp #}
+
+{#fun R_MakeWeakRef  as mkWeakRef { unsexp `SEXP a', unsexp `SEXP b', unsexp `SEXP c', cIntFromEnum `Bool' }
+      -> `SEXP R.WeakRef' sexp #}
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
