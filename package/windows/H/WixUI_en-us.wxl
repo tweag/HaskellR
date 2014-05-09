@@ -7,18 +7,14 @@
 	<String Id="WelcomeDlgDescription">
 	Welcome to H installer wizard.
 	
-	H is a R to Haskell interoperability solution.
-	
-	H consists on set of libraries and interpreter.
+	H is a library which enables Haskell programs to interact with the R runtime.
 	</String>
 	<String Id="VerifyReadyDlgInstallText">
-	Click Install to begin the installation. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard.
+	Click Install to begin with the installation. Click Back to review or change any of the installation settings. Click Cancel to exit the wizard.
 
-	Installer will launch a terminal window where it will run all compilation
+	The installer will launch a terminal window where it will run all compilation
 	steps, this may take a while (up to 10 minutes on a modern PC). 
-	Please don't close that window until the end of the process. In case if any error
-	occurs, installer window will not be closed, and one can copy the log output,
-	otherwise window will be closed and installation will be finished.
-	
+	Please don't close that window until the end of the process. Should any error
+	occur, the terminal window will not be closed so the log output can be copied.
 	</String>
 </WixLocalization>
