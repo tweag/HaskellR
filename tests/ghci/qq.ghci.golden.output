@@ -23,3 +23,25 @@ NULL
 blah
 [1] 100
 [1] 20
+class generator function for class "x-test" from package '.GlobalEnv'
+function (...) 
+new("x-test", ...)
+An object of class "x-test"
+Slot "a":
+[1] 1
+
+Slot "b":
+[1] 2
+
+An object of class "x-test"
+Slot "a":
+[1] 1
+
+Slot "b":
+[1] 2
+
+[1] 1
+[1] 2
+[1] "S4"
+[1] "S4"
+Nil

@@ -18,6 +18,8 @@ module H.Prelude
   , module Language.R.Globals
   , Show(..)
   , withProtected
+  -- * Type convertion helpers.
+  , toBool
   ) where
 
 
@@ -40,6 +42,7 @@ import qualified Data.Text.Lazy.IO as Text
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Text.Lazy
 import Data.Text.Lazy (Text)
+import Data.Vector.Generic (unsafeIndex)
 
 import Control.Applicative ((<$>))
 import Control.Monad ((>=>))
@@ -78,3 +81,9 @@ withProtected :: (MonadR m, MonadCatch m) => m (SEXP a) -> ((SEXP a) -> m b) -> 
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
             (const (io $ R.unprotect 1))
+
+-- | Convert Logical value into boolean.
+toBool :: SomeSEXP -> Bool
+toBool (SomeSEXP z) = case hexp z of
+  Logical vt -> vt `unsafeIndex` 0 == R.True
+  _          -> False
