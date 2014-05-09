@@ -23,9 +23,9 @@
 		</Package>
 		<Property Id="DISABLEADVTSHORTCUTS" Value="1" />
 		<!-- Directory structure:
-			We are basically installing all required 
-			toolset into windows folder and use our tools
-			in order order to build product.
+			We are installing all required tools
+			into the windows folder and then use
+			them to build H.
 		-->
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="ProgramFilesFolder" Name="PFiles">
@@ -80,14 +80,14 @@
 			</Component>
 			<Component Id="FileHInteractiveBat" Guid="F06860F9-FD85-4b48-B1AC-D28204300006" Directory="DirectoryUtilities">
 				<File Id="FileHIteractiveBat" Name="H interactive.bat" DiskId="1" Source="H\utils\H terminal.bat" KeyPath="yes">
-					<Shortcut Id="StartMenuInteractive" Name="H Interactive" Directory="ProgramMenuDir" Description="Run interactive H session" Advertise="yes"/>
+					<Shortcut Id="StartMenuInteractive" Name="H Interactive" Directory="ProgramMenuDir" Description="Load H in a new ghci session" Advertise="yes"/>
 				</File>
 			</Component>
 		</ComponentGroup>
 		<!-- 4. Manual -->
 		<Component Id="ComponentManual" Directory="DirectoryManuals">
 			<File Id="FileUserManualPdf" Name="H-user.pdf" DiskId="1" Source="H/H-user.pdf" KeyPath="yes">
-				<Shortcut Id="StartmenuManual" Directory="ProgramMenuDir" Name="User Manual" Advertise="yes"/>
+				<Shortcut Id="StartmenuManual" Directory="ProgramMenuDir" Name="User's Manual" Advertise="yes"/>
 			</File>
 		</Component>
 		<Component Id="ComponentManual2" Directory="DirectoryManuals">
@@ -122,7 +122,7 @@
 				</Feature>
 				<ComponentRef Id="RegistryEntries"/>
 			</Feature>
-			<Feature Id="Fe_Documentation" Title="Documentation" Description="The instruction manual."
+			<Feature Id="Fe_Documentation" Title="Documentation" Description="The User's manual and H internals guide."
 				Level="1000">
 				<ComponentRef Id="ComponentManual"/>
 				<ComponentRef Id="ComponentManual2"/>
