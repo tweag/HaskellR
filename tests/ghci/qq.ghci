@@ -105,7 +105,7 @@ H.print =<< [r| x <- new("x-test") |]
 -- instantiate and object and pass it to H as-is
 x <- [r| new("x-test") |]
 -- prevent x from being garbage collected
-_ <- H.newSomeRVal x
+rv <- H.newSomeRVal x
 -- show object
 H.print x
 -- Should be 1. Use slot accessor on R object.
