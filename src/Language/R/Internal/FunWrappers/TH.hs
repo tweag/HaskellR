@@ -63,11 +63,10 @@ thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 -- @
 thWrapperLiteral :: Int -> DecQ
 thWrapperLiteral n = do
-    s <- newName "s"
     tyvars1 <- replicateM (n + 1) (newName "a")
     tyvars2 <- replicateM (n + 1) (newName "i")
     let mkTy []     = impossible "thWrapperLiteral"
-        mkTy [x]    = conT (mkName "R") `appT` varT s `appT` varT x
+        mkTy [x]    = conT (mkName "R") `appT` varT x
         mkTy (x:xs) = arrowT `appT` varT x `appT` mkTy xs
         ctx = cxt (zipWith f tyvars1 tyvars2)
           where
