@@ -3,9 +3,9 @@
 
 #######################################################################
 # This script installs H into cabal (not sandboxed).
-# It should be run under cabal. This script can be run
-# automatically during install phace or manually by user
-# to install H for him.
+# It should be run under cabal. This script will run
+# during the installation phase but can be also launch
+# manually by the user in order to install H.
 #######################################################################
 
 # Carriage return, we need it to remove redundant returns
@@ -42,7 +42,7 @@ cabal update
 cabal install c2hs
 cabal install cabal-install
 echo "Initialize Haskell Platform."
-echo "Export users cabal path."
+echo "Add user's cabal/bin folder to the PATH."
 export PATH=$(cygpath "${APPDATA}")/cabal/bin:$PATH
 
 echo "Haskell Platform Directories:"
@@ -57,7 +57,7 @@ echo "Update cabal database"
 
 echo "Build H"
 BUILDDIR=$(mktemp -d)
-echo "Created temporary build directory: $BUILDDIR"
+echo "Created a temporary build directory: $BUILDDIR"
 
 pushd "$HSOURCE"
 echo "Installing dependencies"
