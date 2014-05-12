@@ -228,6 +228,37 @@ f (hexp -> Lang rator (hexp -> List rand1 (hexp -> List rand2 _ _) _) = …
 f (hexp -> Closure args body@(hexp -> Lang _ _) env) = ...
 ```
 
+The fact that `hexp` is defined as a pure function introduces a caveat.
+The user needs to make sure that the `SEXP` given to `hexp` has not been
+released at the time hexp is evaluated. The following program wouldn't
+work:
+
+```Haskell
+main = do
+    () <- runR defaultConfig $ return
+            $ (\(Int s) -> ())
+            $ hexp
+            $ mkSEXP (1 :: Int32)
+    return ()
+```
+
+This program would fail because hexp is evaluated when pattern matching the
+result of `runR`. And in turn, this can happen only after `runR` has
+terminated the R interpreter thus invalidating the argument of `hexp`.
+
+Similarly, the user needs to consider what the value of the `SEXP` will be
+when evaluating `hexp`. Consider the following program:
+
+```Haskell
+f :: SEXP a -> (R s SomeSEXP,HExp a)
+f x = let h = hexp x
+         in ([r| x_hs <- 'hello' |], h)
+```
+
+The value of the expression `snd (f x)` depends on whether it is evaluated
+before or after evaluating the monadic computation `fst (f x)`.
+
+
 ### Physical and structural equality on R values
 
 The standard library defines an `Eq` instance for `Ptr`, which simply
