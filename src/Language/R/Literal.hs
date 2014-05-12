@@ -28,7 +28,6 @@ import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Language.R ( withProtected )
 
-import qualified Data.Vector.Storable as V
 import Data.Singletons ( SingI, fromSing, sing )
 
 import Control.Monad ( void, zipWithM_ )
@@ -69,27 +68,27 @@ mkProtectedSEXPVector ty xs = unsafePerformIO $ do
 
 instance Literal [R.Logical] 'R.Logical where
     mkSEXP = mkSEXPVector sing
-    fromSEXP (hexp -> Logical (SVector.Vector v)) = V.toList v
+    fromSEXP (hexp -> Logical v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
 instance Literal [Int32] R.Int where
     mkSEXP = mkSEXPVector sing
-    fromSEXP (hexp -> Int (SVector.Vector v)) = V.toList v
-    fromSEXP (hexp -> Real (SVector.Vector v)) = map round (V.toList v)
+    fromSEXP (hexp -> Int v) = SVector.toList v
+    fromSEXP (hexp -> Real v) = map round (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal [Double] 'R.Real where
     mkSEXP = mkSEXPVector sing
-    fromSEXP (hexp -> Real (SVector.Vector v)) = V.toList v
-    fromSEXP (hexp -> Int (SVector.Vector v)) = map fromIntegral (V.toList v)
+    fromSEXP (hexp -> Real v) = SVector.toList v
+    fromSEXP (hexp -> Int v) = map fromIntegral (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
 instance Literal [Complex Double] R.Complex where
     mkSEXP = mkSEXPVector sing
-    fromSEXP (hexp -> Complex (SVector.Vector v)) = V.toList v
+    fromSEXP (hexp -> Complex v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 

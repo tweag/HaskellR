@@ -166,6 +166,22 @@ test-suite test-shootout-programs
   else
     cpp-options:       -DH_ARCH_UNIX
 
+test-suite test-vector
+  main-is:            vector.hs
+  type:               exitcode-stdio-1.0
+  build-depends:      base
+                    , H
+                    , tasty
+                    , tasty-quickcheck
+                    , vector
+                    , singletons >= 0.10
+                    , quickcheck-assertions >= 0.1.1
+                    , ieee754 >= 0.7.3
+  ghc-options:        -Wall -threaded -fno-full-laziness
+  hs-source-dirs:     tests
+  default-language:   Haskell2010
+
+
 benchmark compile-qq-benchmarks
   main-is:             compile-qq-benchmarks.hs
   type:                exitcode-stdio-1.0
