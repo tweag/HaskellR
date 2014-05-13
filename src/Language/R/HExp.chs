@@ -374,7 +374,6 @@ pokeHExp s h = do
          DotDotDot _     -> unimplemented "pokeHExp"
          Expr _ _        -> unimplemented "pokeHExp"
 
-
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
 hexp :: SEXP a -> HExp a
