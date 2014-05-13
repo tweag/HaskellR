@@ -11,11 +11,11 @@ SET HRegKeyPath="HKLM\Software\Tweag\H"
 SET HRegKeyPath64="HKLM\Software\Wow6432Node\Tweag\H"
 SET CabalPath=%appdata%\cabal\bin
 
-FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%RRegKeyPath%" /v InstallPath 2^>nil') DO SET RRoot=%%B
-IF "x%RRoot%x"=="xx" FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%RRegKeyPath64%" /v InstallPath') DO SET RRoot=%%B
+FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%RRegKeyPath%" /v InstallPath 2^>nul') DO SET RRoot=%%B
+IF "x%RRoot%x"=="xx" FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%RRegKeyPath64%" /v InstallPath 2^>nul') DO SET RRoot=%%B
 
-FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%HRegKeyPath%" /v InstallPath 2^>nil') DO SET HRoot=%%B
-IF "x%HRoot%x"=="xx" FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%HRegKeyPath64%" /v InstallPath') DO SET HRoot=%%B
+FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%HRegKeyPath%" /v InstallPath 2^>nul') DO SET HRoot=%%B
+IF "x%HRoot%x"=="xx" FOR /F "skip=2 tokens=2*" %%A IN ('REG QUERY "%HRegKeyPath64%" /v InstallPath 2^>nul') DO SET HRoot=%%B
 
 SET ORIGINAL_PATH=%PATH%
 SET Path=%appdata%\cabal\bin;%RRoot%\bin;%RRoot%\bin\i386;%PATH%
