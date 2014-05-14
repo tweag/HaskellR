@@ -17,5 +17,4 @@ clean:
 	rm H/H.msi *.wixobj *.exe *.wixpdb
 
 H/HSource.wxs:  H-$(VERSION)
-	$(HEAT) dir H-$(VERSION) -ag -dr DirectorySources -cg HSources -out H\HSource.wxs
-	
+	$(HEAT) dir "H-$(VERSION)" -ag -dr DirectorySources -cg HSource -template:fragment -srd -sfrag -out H/HSource.wxs
