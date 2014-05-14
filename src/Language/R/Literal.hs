@@ -140,16 +140,16 @@ instance Literal String R.String where
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
-instance Literal a b => Literal (R s a) R.ExtPtr where
+instance Literal a b => Literal (R a) R.ExtPtr where
     mkSEXP   = funToSEXP wrap0
     fromSEXP = unimplemented "Literal (Ra a) fromSEXP"
 
-instance (Literal a a0, Literal b b0) => Literal (a -> R s b) R.ExtPtr where
+instance (Literal a a0, Literal b b0) => Literal (a -> R b) R.ExtPtr where
     mkSEXP   = funToSEXP wrap1
     fromSEXP = unimplemented "Literal (a -> R b) fromSEXP"
 
 instance (Literal a a0, Literal b b0, Literal c c0)
-         => Literal (a -> b -> R s c) R.ExtPtr where
+         => Literal (a -> b -> R c) R.ExtPtr where
     mkSEXP   = funToSEXP wrap2
     fromSEXP = unimplemented "Literal (a -> b -> IO c) fromSEXP"
 
@@ -157,7 +157,7 @@ instance (Literal a a0, Literal b b0, Literal c c0)
 class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
-instance Literal a la => HFunWrap (R s a) (IO (SEXP la)) where
+instance Literal a la => HFunWrap (R a) (IO (SEXP la)) where
     hFunWrap a = fmap (mkSEXP $!) (unsafeRToIO a)
 
 instance (Literal a la, HFunWrap b wb)
