@@ -128,7 +128,7 @@ test-suite tests
                      , mtl >= 2.0
                      , process >= 1.2
                      , strict >= 0.3.2
-                     , tasty >= 0.3 && < 0.8
+                     , tasty >= 0.3 && < 0.9
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11
