@@ -187,8 +187,6 @@ benchmark runtime-qq-benchmarks
   ghc-options:         -Wall -threaded -fno-full-laziness
   hs-source-dirs:      tests
   default-language:    Haskell2010
-  -- won't work until fib test pass for runtime qq
-  buildable:           False
 
 benchmark hexp-benchmark
   main-is:             hexp-bench.hs
