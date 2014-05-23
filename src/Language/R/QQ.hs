@@ -121,6 +121,13 @@ instance TH.Lift Word8 where
 instance TH.Lift Double where
     lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
 
+instance TH.Lift (Vector.Vector R.Raw Word8) where
+    -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
+    -- type. So we have to use some bespoke function.
+    lift v = let xs :: String
+                 xs = map (toEnum . fromIntegral) $ Vector.toList v
+             in [| vector $ unsafePerformIO $ string xs |]
+
 instance TH.Lift (Vector.Vector R.Char Word8) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
