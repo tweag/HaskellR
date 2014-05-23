@@ -123,7 +123,7 @@ ghciSession name scriptPath =
       (\goldenOutput outputH ->
          let a = T.replace "\r\n" "\n" goldenOutput
              b = T.replace "\r\n" "\n" outputH
-         in if a == b
+         in if T.words a == T.words b
             then return Nothing
             else return $ Just $
               unlines ["Outputs don't match."
