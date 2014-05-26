@@ -1,6 +1,7 @@
 CANDLE=candle
 LIGHT=light
 HEAT=heat
+PANDOC=pandoc
 EXTS=-ext WixUtilExtension.dll -ext WixUIExtension.dll -ext WixBalExtension.dll
 VERSION=0.2
 
@@ -18,3 +19,18 @@ clean:
 
 H/HSource.wxs:  H-$(VERSION)
 	$(HEAT) dir "H-$(VERSION)" -ag -dr DirectorySources -cg HSource -template:fragment -srd -sfrag -out H/HSource.wxs
+
+prepare: H-$(VERSION)
+
+H-$(VERSION): 
+	mkdir H-$(VERSION)
+	cp -r ../../src H-$(VERSION)/
+
+prepare-pdf: H/H-user.pdf H/H-ints.pdf
+
+H/H-user.pdf:
+	$(PANDOC) -f markdown -s -S --toc ../../doc/H-user.md -o $@
+
+H/H-ints.pdf:
+	$(PANDOC) -f markdown -s -S --toc ../../doc/H-ints.md -o $@
+

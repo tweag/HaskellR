@@ -1,0 +1,26 @@
+PREREQUENCES:
+
+   1. Installed WiX Toolset
+   2. Installed pandoc
+   3. Cygwin with autotools installed.
+
+How to create a package:
+
+0. Fix version in Makefile.
+
+1. Prepare sources to install. In order to do it,
+either download a release from github (or tag)
+or  run 'make prepare' to install version from 
+the current snapshot.
+
+2. Prepare a .pdf documents:
+     run `make pdfs`
+   or if you have prepared pdfs place then into
+   H/H-ints.pdf
+   and H/H-user.pdf
+
+3. Export path to the WiX toolset
+
+   export PATH=/cygdrive/c/Program\ Files/WiX\ Toolset\ v3.9/bin/:$PATH
+
+4. Run `make`
