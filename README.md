@@ -13,8 +13,8 @@ Installing
 The installation procedure differs on Windows and on UNIX-like
 systems. Please refer to the following documents for a walkthrough:
 
-* [INSTALL-unix.md] UNIX-like installation guide (Linux, Mac OS X, etc)
-* [INSTALL-win.md] Windows installation guide.
+* [INSTALL-unix.md]() UNIX-like installation guide (Linux, Mac OS X, etc)
+* [INSTALL-win.md]() Windows installation guide.
 
 Setting up H in GHCi
 --------------------
