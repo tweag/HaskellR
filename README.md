@@ -26,7 +26,7 @@ should be located within reach of the dynamic linker
 
 After installing H, type the following at a command prompt:
 
-    $ H --interactive
+    $ H
 
 This will start GHCi, loading the H environment and bringing the
 relevant definitions into scope. In addition, an instance of the
