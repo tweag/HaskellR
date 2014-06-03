@@ -7,7 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# GHC_OPTIONS -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main
   where
 
@@ -16,7 +16,6 @@ import qualified Data.Vector.SEXP as V
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as S
 
-import Foreign.R ( SEXP )
 import qualified Foreign.R as R
 import Foreign.R.Type ( IsVector )
 import Data.Singletons (SingI)
@@ -32,6 +31,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.QuickCheck.Assertions 
 
+main :: IO ()
 main = do
   _ <- R.initialize R.defaultConfig
   defaultMain tests
@@ -87,16 +87,19 @@ testPolymorphicFunctions dummy = testGroup "Polymorphic functions."
       | V.length v == 0 = True
       | otherwise = (last . V.toList) v == V.last v
 
+testGeneralSEXPVector :: (Eq a, Show a, Arbitrary a, V.SexpVector ty a, AEq a) => V.Vector ty a -> TestTree
 testGeneralSEXPVector dummy = testGroup "General Vector"
   [ testSanity dummy
   , testPolymorphicFunctions dummy
   ]
 
 
+testNumericSEXPVector :: (Eq a, Show a, Arbitrary a, V.SexpVector ty a, AEq a) => V.Vector ty a -> TestTree
 testNumericSEXPVector dummy = testGroup "Test Numeric Vector"
   [ testGeneralSEXPVector dummy
   ]
 
+tests :: TestTree
 tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"  [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector 'R.Int Int32)]
   , testGroup "Data.Vector.Storable.Vector (Double)" [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector 'R.Real Double)]
