@@ -6,15 +6,12 @@
 -- allocated from the R heap, and in such a way that they can be converted to
 -- a 'SEXP' through simple pointer arithmetic (see 'toSEXP').
 --
--- The main difference that "Vector.SEXP" uses header-prefixed data layout, this
--- mean that you don't need additional pointer jump to reach data. The tradeoff
--- is that all slicing operations are O(N) instead of O(1) and mutabe instance 
--- of the SEXP vector is banned.
+-- The main difference between 'Data.Vector.SEXP.Vector' and 
+-- 'Data.Vector.Storable.Vector' is that the former uses header-prefixed data layout.
+-- This means that no additional pointer jump is needed to reach the vector data.
+-- The trade-off is that all slicing operations are O(N) instead of O(1) and there
+-- is no mutable instance of the SEXP vector.
 --
--- TODO: HOWTO use mutable vectors with almost no gain
--- TODO: HOWTO create new SEXP vectors
--- TODO: HOWTO guarantee GC liveness
-
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -213,7 +210,7 @@ fromSEXP :: (E ty a, Storable a, IsVector ty, PrimMonad m)
          -> m (Vector ty a)
 fromSEXP s = return (Vector s)       -- G.freeze =<< Mutable.fromSEXP s
 
--- | /O(1)/ Unsafe convert a mutable 'SEXP' to an immutable vector without
+-- | /O(1)/ Unsafe convert a mutable 'SEXP' to an immutable vector with
 -- copying. The mutable vector must not be used after this operation, lest one
 -- runs the risk of breaking referential transparency.
 unsafeFromSEXP :: (E ty a, Storable a, IsVector ty, PrimMonad m)
@@ -366,7 +363,7 @@ unsafeLastM = G.unsafeLastM
 -- Extracting subvectors (slicing)
 ------------------------------------------------------------------------
 
--- | /O(N)/ Yield a slice of the vector without copying it. The vector must
+-- | /O(N)/ Yield a slice of the vector with copying it. The vector must
 -- contain at least @i+n@ elements.
 slice :: SexpVector ty a
       => Int   -- ^ @i@ starting index
@@ -387,19 +384,19 @@ tail :: SexpVector ty a => Vector ty a -> Vector ty a
 {-# INLINE tail #-}
 tail = G.tail
 
--- | /O(N)/ Yield at the first @n@ elements without copying. The vector may
+-- | /O(N)/ Yield at the first @n@ elements with copying. The vector may
 -- contain less than @n@ elements in which case it is returned unchanged.
 take :: SexpVector ty a => Int -> Vector ty a -> Vector ty a
 {-# INLINE take #-}
 take = G.take
 
--- | /O(N)/ Yield all but the first @n@ elements without copying. The vector may
+-- | /O(N)/ Yield all but the first @n@ elements with copying. The vector may
 -- contain less than @n@ elements in which case an empty vector is returned.
 drop :: SexpVector ty a => Int -> Vector ty a -> Vector ty a
 {-# INLINE drop #-}
 drop = G.drop
 
--- | /O(N)/ Yield the first @n@ elements paired with the remainder without copying.
+-- | /O(N)/ Yield the first @n@ elements paired with the remainder with copying.
 --
 -- Note that @'splitAt' n v@ is equivalent to @('take' n v, 'drop' n v)@
 -- but slightly more efficient.
@@ -407,7 +404,7 @@ drop = G.drop
 splitAt :: SexpVector ty a => Int -> Vector ty a -> (Vector ty a, Vector ty a)
 splitAt = G.splitAt
 
--- | /O(N)/ Yield a slice of the vector without copying. The vector must
+-- | /O(N)/ Yield a slice of the vector with copying. The vector must
 -- contain at least @i+n@ elements but this is not checked.
 unsafeSlice :: SexpVector ty a => Int   -- ^ @i@ starting index
                        -> Int   -- ^ @n@ length
@@ -416,25 +413,25 @@ unsafeSlice :: SexpVector ty a => Int   -- ^ @i@ starting index
 {-# INLINE unsafeSlice #-}
 unsafeSlice = G.unsafeSlice
 
--- | /O(N)/ Yield all but the last element without copying. The vector may not
+-- | /O(N)/ Yield all but the last element with copying. The vector may not
 -- be empty but this is not checked.
 unsafeInit :: SexpVector ty a => Vector ty a -> Vector ty a
 {-# INLINE unsafeInit #-}
 unsafeInit = G.unsafeInit
 
--- | /O(N)/ Yield all but the first element without copying. The vector may not
+-- | /O(N)/ Yield all but the first element with copying. The vector may not
 -- be empty but this is not checked.
 unsafeTail :: SexpVector ty a => Vector ty a -> Vector ty a
 {-# INLINE unsafeTail #-}
 unsafeTail = G.unsafeTail
 
--- | /O(N)/ Yield the first @n@ elements without copying. The vector must
+-- | /O(N)/ Yield the first @n@ elements with copying. The vector must
 -- contain at least @n@ elements but this is not checked.
 unsafeTake :: SexpVector ty a => Int -> Vector ty a -> Vector ty a
 {-# INLINE unsafeTake #-}
 unsafeTake = G.unsafeTake
 
--- | /O(N)/ Yield all but the first @n@ elements without copying. The vector
+-- | /O(N)/ Yield all but the first @n@ elements with copying. The vector
 -- must contain at least @n@ elements but this is not checked.
 unsafeDrop :: SexpVector ty a => Int -> Vector ty a -> Vector ty a
 {-# INLINE unsafeDrop #-}
@@ -901,13 +898,13 @@ filterM :: (Monad m, SexpVector ty a) => (a -> m Bool) -> Vector ty a -> m (Vect
 filterM = G.filterM
 
 -- | /O(n)/ Yield the longest prefix of elements satisfying the predicate
--- without copying.
+-- with copying.
 takeWhile :: SexpVector ty a => (a -> Bool) -> Vector ty a -> Vector ty a
 {-# INLINE takeWhile #-}
 takeWhile = G.takeWhile
 
 -- | /O(n)/ Drop the longest prefix of elements that satisfy the predicate
--- without copying.
+-- with copying.
 dropWhile :: SexpVector ty a => (a -> Bool) -> Vector ty a -> Vector ty a
 {-# INLINE dropWhile #-}
 dropWhile = G.dropWhile
@@ -932,13 +929,13 @@ unstablePartition :: SexpVector ty a => (a -> Bool) -> Vector ty a -> (Vector ty
 unstablePartition = G.unstablePartition
 
 -- | /O(n)/ Split the vector into the longest prefix of elements that satisfy
--- the predicate and the rest without copying.
+-- the predicate and the rest with copying.
 span :: SexpVector ty a => (a -> Bool) -> Vector ty a -> (Vector ty a, Vector ty a)
 {-# INLINE span #-}
 span = G.span
 
 -- | /O(n)/ Split the vector into the longest prefix of elements that do not
--- satisfy the predicate and the rest without copying.
+-- satisfy the predicate and the rest with copying.
 break :: SexpVector ty a => (a -> Bool) -> Vector ty a -> (Vector ty a, Vector ty a)
 {-# INLINE break #-}
 break = G.break
@@ -1328,14 +1325,14 @@ fromListN = G.fromListN
 -- Conversions - Mutable vectors
 -- -----------------------------
 
--- | /O(1)/ Unsafe convert a mutable vector to an immutable one without
+-- | /O(1)/ Unsafe convert a mutable vector to an immutable one with
 -- copying. The mutable vector may not be used after this operation.
 unsafeFreeze
         :: (SexpVector ty a, PrimMonad m) => MVector ty (PrimState m) a -> m (Vector ty a)
 {-# INLINE unsafeFreeze #-}
 unsafeFreeze = G.unsafeFreeze
 
--- | /O(1)/ Unsafely convert an immutable vector to a mutable one without
+-- | /O(1)/ Unsafely convert an immutable vector to a mutable one with
 -- copying. The immutable vector may not be used after this operation.
 unsafeThaw
         :: (SexpVector ty a, PrimMonad m) => Vector ty a -> m (MVector ty (PrimState m) a)
