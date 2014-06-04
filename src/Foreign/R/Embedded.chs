@@ -9,7 +9,7 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R.Embedded
-  ( initEmbeddedR
+  ( initUnlimitedEmbeddedR
   , endEmbeddedR
   ) where
 
@@ -20,11 +20,11 @@ import Foreign.C
 #include "darwin_c2hs_fix.h"
 #endif
 
-#include <R.h>
 #include <Rembedded.h>
+#include "init_r.h"
 
 -- | Initialize R.
-{# fun Rf_initEmbeddedR as initEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
+{# fun H_initUnlimitedEmbeddedR as initUnlimitedEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
 
 -- | Finalize R.
-{# fun Rf_endEmbeddedR as  endEmbeddedR { `Int' } -> `()' #} -- TODO change to boolean
+{# fun Rf_endEmbeddedR as  endEmbeddedR { `Int' } -> `()' #}

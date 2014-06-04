@@ -40,7 +40,6 @@ module Language.R.Instance
   , unboundValuePtr
   , missingArgPtr
   , rInteractive
-  , rCStackLimitPtr
   , rInputHandlersPtr
   ) where
 
@@ -48,7 +47,6 @@ import           Control.Monad.R.Class
 import           Control.Concurrent.OSThread
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
-import qualified Foreign.R.Interface as R
 import           Foreign.C.String
 
 import Control.Applicative
@@ -168,7 +166,7 @@ initialize Config{..} = do
       -- Grab addresses of R global variables
       pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
-        , R.rInteractive, R.rCStackLimit, R.rInputHandlers
+        , R.rInteractive, R.rInputHandlers
         )
       startRThread eventLoopThread
       eventLoopThread <- forkIO $ forever $ do
@@ -185,10 +183,8 @@ initialize Config{..} = do
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
-        newCArray argv $ R.initEmbeddedR argc
+        newCArray argv $ R.initUnlimitedEmbeddedR argc
         poke rInteractive 0
-        -- XXX setting the stack limit seems to only be required in Windows
-        poke rCStackLimitPtr (-1)
         poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
@@ -268,7 +264,6 @@ type RVariables =
     , Ptr (R.SEXP R.Symbol)
     , Ptr (R.SEXP R.Symbol)
     , Ptr CInt
-    , Ptr R.StackSize
     , Ptr (Ptr ())
     )
 
@@ -287,7 +282,6 @@ peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
  , unboundValuePtr
  , missingArgPtr
  , rInteractive
- , rCStackLimitPtr
  , rInputHandlersPtr
  ) = peekRVariables
 

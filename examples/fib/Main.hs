@@ -9,7 +9,6 @@ import           Language.R.QQ
 import qualified Language.R
 import qualified Language.R.Instance
 import qualified Foreign.R
-import qualified Foreign.R.Interface
 import           Control.Monad.IO.Class
       ( liftIO  )
 
@@ -22,7 +21,6 @@ main = do
         , Foreign.R.unboundValue
         , Foreign.R.missingArg
         , Foreign.R.rInteractive
-        , Foreign.R.Interface.rCStackLimit
         , Foreign.R.rInputHandlers
         )
     H.runR Language.R.Instance.defaultConfig $ do
