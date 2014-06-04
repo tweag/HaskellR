@@ -11,7 +11,14 @@ module Control.Concurrent.OSThread
   , myOSThreadId
   ) where
 
+
+#ifdef H_ARCH_UNIX_DARWIN
+import Foreign
+
+#include "darwin_c2hs_fix.h"
+#else
 import Foreign.C
+#endif
 
 #ifdef H_ARCH_UNIX
 

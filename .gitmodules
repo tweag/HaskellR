@@ -1,0 +1,8 @@
+# NOTE: c2hs-0.17.2 and earlier choke on OS X block syntax:
+# https://github.com/haskell/c2hs/issues/77
+# https://github.com/haskell/c2hs/commit/0520592ee87d8bc49ff7923d140aa33a2af01491
+
+[submodule "vendor/c2hs"]
+	path = vendor/c2hs
+	url = git@github.com:haskell/c2hs.git
+	ignore = dirty
