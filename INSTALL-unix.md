@@ -4,7 +4,7 @@ The H Installation Guide - for UNIX
 Prerequisites
 -------------
 
-* A UNIX-like programming environment (Linux, Mac OS X, *BSD, etc)
+* A UNIX-like programming environment (Linux, OS X, *BSD, etc)
 * Git
 * `pkg-config`
 * R version 3.0.2 or later.
