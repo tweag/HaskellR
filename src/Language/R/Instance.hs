@@ -200,11 +200,19 @@ finalize = do
 startRThread :: ThreadId -> IO ()
 startRThread eventLoopThread = do
 #ifdef H_ARCH_UNIX
-    setResourceLimit ResourceStackSize (ResourceLimits ResourceLimitUnknown ResourceLimitUnknown)
+#ifdef H_ARCH_UNIX_DARWIN
+    -- NOTE: OS X does not allow removing the stack size limit completely,
+    -- instead forcing a hard limit of just under 64MB:
+    -- $ launchctl limit stack
+    --  stack       8388608        67104768
+    let stackLimit = ResourceLimit 67104768
+#else
+    let stackLimit = ResourceLimitUnknown
+#endif
+    setResourceLimit ResourceStackSize (ResourceLimits stackLimit stackLimit)
       `onException` (hPutStrLn stderr $
                        "Language.R.Interpreter: "
-                       ++ "Oops, cannot set stack size limit. "
-                       ++ "Maybe try setting in your shell: ulimit -s unlimited"
+                       ++ "Cannot increase stack size limit."
                     )
 #endif
     chan <- newChan

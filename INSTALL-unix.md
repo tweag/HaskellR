@@ -4,7 +4,7 @@ The H Installation Guide - for UNIX
 Prerequisites
 -------------
 
-* A UNIX-like programming environment (Linux, Mac OS X, *BSD, etc)
+* A UNIX-like programming environment (Linux, OS X, *BSD, etc)
 * Git
 * `pkg-config`
 * R version 3.0.2 or later.
@@ -45,3 +45,14 @@ containing the `H.cabal` file. Then,
 
 Optionally, you may add `--enable-tests` to the command line arguments
 in order execute tests before installation.
+
+Setting up H
+------------
+
+To run H, it may be necessary to increase your stack size limit:
+
+    $ ulimit -s unlimited
+
+NOTE: OS X does not allow removing the stack size limit completely:
+
+    $ ulimit -s 65532
