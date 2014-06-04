@@ -2,19 +2,33 @@
 
 CABAL = cabal
 PANDOC = pandoc
+SANDBOX = .cabal-sandbox
 
 all: install
 
-.PHONY: clean install test
+.PHONY: clean-dep clean install-dep install test repl
+
+clean-dep: clean
+	rm -rf $(SANDBOX) cabal.sandbox.config
 
 clean:
 	$(CABAL) clean
 
-install:
-	$(CABAL) install
+$(SANDBOX):
+	$(CABAL) sandbox init
+	$(CABAL) install --only-dep --enable-tests
 
-test:
+install-dep: $(SANDBOX)
+
+install: install-dep
 	$(CABAL) install --enable-tests
+
+test: install
+	$(CABAL) test
+
+# TODO: Use cabal repl instead.
+repl: install
+	$(SANDBOX)/bin/H --interactive -- -no-user-package-db -package-db $(SANDBOX)/*-packages.conf.d
 
 doc-internals:
 
