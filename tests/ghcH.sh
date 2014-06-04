@@ -1,13 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-function find_sandbox_package_db () {
-	find '.cabal-sandbox' -type d -name '*-packages.conf.d' |
-		awk '{ print } NR == 2 { exit 2 }' |
-		grep .
-}
+. tests/sandbox-utils.sh
 
-if [ -d '.cabal-sandbox' ] && package_db=$( find_sandbox_package_db ); then
-	LANG=C ghc -fno-full-laziness -no-user-package-db -package-db="${package_db}" $GHC_H_ARGS "$@"
+# NOTE: We must make both the dependencies in the sandbox and the H package
+# in the dist directory available to GHC.
+if package_db=`find_sandbox_package_db`; then
+	LANG=C ghc -fno-full-laziness -no-user-package-db -package-db="${package_db}" -package-db=dist/package.conf.inplace $GHC_H_ARGS "$@"
 else
 	LANG=C ghc -fno-full-laziness -package-db=dist/package.conf.inplace $GHC_H_ARGS "$@"
 fi
