@@ -50,6 +50,3 @@ To install H, change the current working directory to the folder
 containing the `H.cabal` file. Then,
 
     $ cabal install
-
-Optionally, you may add `--enable-tests` to the command line arguments
-in order execute tests before installation.
