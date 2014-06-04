@@ -4,7 +4,7 @@ The H Installation Guide - for UNIX
 Prerequisites
 -------------
 
-* A UNIX-like programming environment (Linux, Mac OS X, *BSD, etc)
+* A UNIX-like programming environment (Linux, OS X, *BSD, etc)
 * Git
 * `pkg-config`
 * R version 3.0.2 or later.
@@ -42,3 +42,16 @@ To install H, change the current working directory to the folder
 containing the `H.cabal` file. Then,
 
     $ cabal install
+
+Setting up H
+------------
+
+To run H, it may be necessary to increase your stack size limit:
+
+    $ ulimit -s unlimited
+
+OS X does not allow removing the stack size limit completely.  You can
+increase your stack size limit up to a maximum of 64MB:
+
+    $ launchctl limit stack 67104768
+    $ ulimit -s 65532

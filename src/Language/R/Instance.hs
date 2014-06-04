@@ -40,7 +40,6 @@ module Language.R.Instance
   , unboundValuePtr
   , missingArgPtr
   , rInteractive
-  , rCStackLimitPtr
   , rInputHandlersPtr
   ) where
 
@@ -48,7 +47,6 @@ import           Control.Monad.R.Class
 import           Control.Concurrent.OSThread
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
-import qualified Foreign.R.Interface as R
 import           Foreign.C.String
 
 import Control.Applicative
@@ -168,7 +166,7 @@ initialize Config{..} = do
       -- Grab addresses of R global variables
       pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
-        , R.rInteractive, R.rCStackLimit, R.rInputHandlers
+        , R.rInteractive, R.rInputHandlers
         )
       startRThread eventLoopThread
       eventLoopThread <- forkIO $ forever $ do
@@ -185,10 +183,8 @@ initialize Config{..} = do
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
-        newCArray argv $ R.initEmbeddedR argc
+        newCArray argv $ R.initUnlimitedEmbeddedR argc
         poke rInteractive 0
-        -- XXX setting the stack limit seems to only be required in Windows
-        poke rCStackLimitPtr (-1)
         poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
@@ -204,11 +200,24 @@ finalize = do
 startRThread :: ThreadId -> IO ()
 startRThread eventLoopThread = do
 #ifdef H_ARCH_UNIX
-    setResourceLimit ResourceStackSize (ResourceLimits ResourceLimitUnknown ResourceLimitUnknown)
+#ifdef H_ARCH_UNIX_DARWIN
+    -- NOTE: OS X does not allow removing the stack size limit completely,
+    -- instead forcing a hard limit of just under 64MB.
+    let stackLimit = ResourceLimit 67104768
+#else
+    let stackLimit = ResourceLimitUnknown
+#endif
+    setResourceLimit ResourceStackSize (ResourceLimits stackLimit stackLimit)
       `onException` (hPutStrLn stderr $
                        "Language.R.Interpreter: "
-                       ++ "Oops, cannot set stack size limit. "
-                       ++ "Maybe try setting in your shell: ulimit -s unlimited"
+                       ++ "Cannot increase stack size limit."
+                       ++ "Try increasing your stack size limit manually:"
+#ifdef H_ARCH_UNIX_DARWIN
+                       ++ "$ launchctl limit stack 67104768"
+                       ++ "$ ulimit -s 65532"
+#else
+                       ++ "$ ulimit -s unlimited"
+#endif
                     )
 #endif
     chan <- newChan
@@ -268,7 +277,6 @@ type RVariables =
     , Ptr (R.SEXP R.Symbol)
     , Ptr (R.SEXP R.Symbol)
     , Ptr CInt
-    , Ptr R.StackSize
     , Ptr (Ptr ())
     )
 
@@ -287,7 +295,6 @@ peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
  , unboundValuePtr
  , missingArgPtr
  , rInteractive
- , rCStackLimitPtr
  , rInputHandlersPtr
  ) = peekRVariables
 

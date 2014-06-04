@@ -22,7 +22,6 @@ library
                        Foreign.R
                        Foreign.R.Embedded
                        Foreign.R.Error
-                       Foreign.R.Interface
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Constraints

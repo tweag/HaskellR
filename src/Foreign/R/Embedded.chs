@@ -9,7 +9,7 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R.Embedded
-  ( initEmbeddedR
+  ( initUnlimitedEmbeddedR
   , endEmbeddedR
   ) where
 
@@ -17,11 +17,11 @@ import Foreign
 import Foreign.C
 
 #include "Hcompat.h"
-#include <R.h>
 #include <Rembedded.h>
+#include "missing_r.h"
 
 -- | Initialize R.
-{# fun Rf_initEmbeddedR as initEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
+{# fun H_initUnlimitedEmbeddedR as initUnlimitedEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
 
 -- | Finalize R.
-{# fun Rf_endEmbeddedR as  endEmbeddedR { `Int' } -> `()' #} -- TODO change to boolean
+{# fun Rf_endEmbeddedR as  endEmbeddedR { `Int' } -> `()' #}
