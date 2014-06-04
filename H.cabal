@@ -22,7 +22,6 @@ library
                        Foreign.R
                        Foreign.R.Embedded
                        Foreign.R.Error
-                       Foreign.R.Interface
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Constraints
@@ -60,6 +59,7 @@ library
                      , transformers >= 0.3
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
+                       cbits/init_r.c
   include-dirs:        cbits
   default-language:    Haskell2010
   default-extensions:  BangPatterns
