@@ -16,10 +16,7 @@ module Foreign.R.Embedded
 import Foreign
 import Foreign.C
 
-#ifdef H_ARCH_UNIX_DARWIN
-#include "darwin_c2hs_fix.h"
-#endif
-
+#include "Hcompat.h"
 #include <Rembedded.h>
 #include "missing_r.h"
 

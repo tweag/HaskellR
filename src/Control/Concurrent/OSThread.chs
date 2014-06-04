@@ -6,19 +6,16 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 module Control.Concurrent.OSThread
   ( OSThreadId
   , myOSThreadId
   ) where
 
-
-#ifdef H_ARCH_UNIX_DARWIN
 import Foreign
-
-#include "darwin_c2hs_fix.h"
-#else
 import Foreign.C
-#endif
+
+#include "Hcompat.h"
 
 #ifdef H_ARCH_UNIX
 

@@ -6,9 +6,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-#ifdef H_ARCH_UNIX_DARWIN
-#include "darwin_c2hs_fix.h"
-#endif
+#include "Hcompat.h"
 
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
