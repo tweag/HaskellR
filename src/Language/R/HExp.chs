@@ -64,10 +64,11 @@ import Foreign ( castPtr, nullPtr )
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
-
-#include <R.h>
 #define USE_RINTERNALS
+#include "Hcompat.h"
+#include <R.h>
 #include <Rinternals.h>
+
 {#pointer *SEXPREC as SEXP0 -> SEXPREC #}
 
 -- Use explicit UNPACK pragmas rather than -funbox-strict-fields in order to get

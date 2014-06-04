@@ -6,12 +6,16 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 module Control.Concurrent.OSThread
   ( OSThreadId
   , myOSThreadId
   ) where
 
+import Foreign
 import Foreign.C
+
+#include "Hcompat.h"
 
 #ifdef H_ARCH_UNIX
 

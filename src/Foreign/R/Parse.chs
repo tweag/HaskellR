@@ -6,6 +6,8 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
+#include "Hcompat.h"
+
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
 module Foreign.R.Parse

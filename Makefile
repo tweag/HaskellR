@@ -15,6 +15,8 @@ delete: clean
 
 $(SANDBOX):
 	$(CABAL) sandbox init
+	$(CABAL) install alex happy
+	$(CABAL) install vendor/c2hs
 	$(CABAL) install --only-dependencies --enable-tests
 
 sandbox: $(SANDBOX)

@@ -151,8 +151,9 @@ import Foreign (nullPtr)
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
-#include <R.h>
 #define USE_RINTERNALS
+#include "Hcompat.h"
+#include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Memory.h>
 #include "missing_r.h"

@@ -16,6 +16,7 @@ module Foreign.R.Embedded
 import Foreign
 import Foreign.C
 
+#include "Hcompat.h"
 #include <R.h>
 #include <Rembedded.h>
 
