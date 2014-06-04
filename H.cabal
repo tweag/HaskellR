@@ -85,6 +85,9 @@ library
     pkgconfig-depends: libR >= 3.0
     cpp-options:       -DH_ARCH_UNIX
     cc-options:        -DH_ARCH_UNIX
+    if os(darwin)
+      cpp-options:     -DH_ARCH_UNIX_DARWIN
+      cc-options:      -DH_ARCH_UNIX_DARWIN
   -- XXX -cpp is a temp workaround for GHC 7.8.
   ghc-options:         -Wall -Werror -cpp -fcontext-stack=32
 

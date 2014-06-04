@@ -6,6 +6,10 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
+#ifdef H_ARCH_UNIX_DARWIN
+#include "darwin_c2hs_fix.h"
+#endif
+
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
 module Foreign.R.Parse

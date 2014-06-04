@@ -10,7 +10,7 @@ Prerequisites
 * R version 3.0.2 or later.
 * `cabal-install` version 1.16.0.2 or later.
 * Haskell Platform version 2013.2.0.0 or later.
-* `c2hs` version 0.16.5 or later.
+* `c2hs` version 0.17.3 or later.
 
 Installing `cabal-install`
 --------------------------
@@ -34,14 +34,6 @@ times, otherwise building H will fail.
 
     $ cabal install c2hs
     $ export PATH=~/.cabal/bin:$PATH
-
-c2hs 0.16.5 has a bug affecting all 32-bit systems. The following
-[patch](https://github.com/tweag/c2hs/tree/bitfield-sizeAlign-fix)
-needs to be applied to fix this bug. 64-bit systems are not affected.
-
-    $ git clone -b bitfield-sizeAlign-fix https://github.com/tweag/c2hs.git
-    $ cd c2hs
-    $ cabal install
 
 Installing H
 ------------

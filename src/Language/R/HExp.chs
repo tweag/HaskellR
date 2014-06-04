@@ -64,6 +64,9 @@ import Foreign ( castPtr, nullPtr )
 import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
+#ifdef H_ARCH_UNIX_DARWIN
+#include "darwin_c2hs_fix.h"
+#endif
 
 #include <R.h>
 #define USE_RINTERNALS
