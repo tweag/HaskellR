@@ -21,7 +21,7 @@ import Foreign.C
 #endif
 
 #include <Rembedded.h>
-#include "init_r.h"
+#include "missing_r.h"
 
 -- | Initialize R.
 {# fun H_initUnlimitedEmbeddedR as initUnlimitedEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}

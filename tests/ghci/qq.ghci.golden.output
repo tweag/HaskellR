@@ -44,4 +44,9 @@ Slot "b":
 [1] 2
 [1] "S4"
 [1] "S4"
-Nil
+An object of class "x-test"
+Slot "a":
+[1] 1
+
+Slot "b":
+[1] 2
