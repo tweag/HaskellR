@@ -25,4 +25,7 @@ extern HsStablePtr rVariables;
 // Pointer to the channel used for communication with the R thread.
 extern HsStablePtr interpreterChan;
 
+// Initializes R with stack limit checking disabled.
+int H_initUnlimitedEmbeddedR(int argc, char **argv);
+
 #endif

@@ -50,6 +50,8 @@ To run H, it may be necessary to increase your stack size limit:
 
     $ ulimit -s unlimited
 
-NOTE: OS X does not allow removing the stack size limit completely:
+OS X does not allow removing the stack size limit completely.  You can
+increase your stack size limit up to a maximum of 64MB:
 
+    $ launchctl limit stack 67104768
     $ ulimit -s 65532

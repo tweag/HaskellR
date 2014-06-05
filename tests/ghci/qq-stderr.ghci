@@ -1,5 +1,8 @@
 :m +Control.Exception
 
+-- Disable showing summaries of the call stack for more reproducible tests.
+[r| options('showErrorCalls'=FALSE) |]
+
 ([r| plot() |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
 ([r| plot( |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
