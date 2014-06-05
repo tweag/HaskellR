@@ -55,8 +55,11 @@ dist/pandoc/H-user.html: doc/H-user.md doc/pandoc.css
 doc-internals: dist/pandoc/H-ints.html
 doc-users-guide: dist/pandoc/H-user.html
 
+# NOTE: Passing `--ghc-options=-optP-P` is a workaround for an issue with
+# GHC 7.8.2/Haddock 2.14.2 on OS X.
+# https://ghc.haskell.org/trac/ghc/ticket/9174
 doc-haddock: configure
-	$(CABAL) haddock
+	$(CABAL) haddock --ghc-options=-optP-P
 
 doc: doc-haddock doc-internals doc-users-guide
 
