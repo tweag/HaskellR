@@ -3,6 +3,7 @@ The H Hacking Guide
 
 H supports building in a Cabal sandbox.  To set up the sandbox,
 
+    $ git submodule update --init
     $ make sandbox
 
 To tear down the sandbox,
