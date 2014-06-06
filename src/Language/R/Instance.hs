@@ -219,22 +219,28 @@ startRThread eventLoopThread = do
     rOSThreadId <- takeMVar mv
     newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
 
--- | Like postToRThread_ but does not swallow exceptions thrown by the
--- computation.
+-- | Runs a computation in the R interpreter thread.
+--
+-- This operation blocks until the computation completes if this is the R
+-- thread. Otherwise, it does not block.
+--
 postToRThread_ :: IO () -> IO ()
 postToRThread_ action = do
     tid <- myOSThreadId
     isBound <- isCurrentThreadBound
     if tid == rOSThreadId && isBound
-      then action
+      then action -- run the action here if we are the R thread.
       else writeChan interpreterChan action
   where
     (rOSThreadId, interpreterChan) = unsafePerformIO $
       peek interpreterChanPtr >>= deRefStablePtr
 
--- | Evaluates a computation in the interpreter thread.
+-- | Evaluates a computation in the R interpreter thread.
 --
 -- Waits until the computation is complete and returns back the result.
+--
+-- The /unsafe/ prefix means that no verification is made that the R
+-- thread is running.
 --
 unsafeRunInRThread :: IO a -> IO a
 unsafeRunInRThread action = do
@@ -244,7 +250,7 @@ unsafeRunInRThread action = do
       (action >>= putMVar mv) `catch` (\e -> throwTo tid (e :: SomeException))
     takeMVar mv
 
--- | Stops the R thread.
+-- | Stops the R interpreter thread.
 stopRThread :: IO ()
 stopRThread = postToRThread_ $ myThreadId >>= killThread
 
