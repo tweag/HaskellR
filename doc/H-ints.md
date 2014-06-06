@@ -294,46 +294,37 @@ available at runtime. Therefore, a quasiquote expands to Haskell code
 that builds an equivalent AST at runtime, using the view and inverse
 view function defined above.
 
-Threads in H
-============
+How the R interpreter is embedded
+=================================
 
-When H is used in GHCi the following threads materialize:
+The following threads materialize when H is used:
 
  The R thread
   : The only thread that can execute calls of the R API.
 
- The GHCi thread
-  : A thread that reads commands from the GHCi prompt.
-
- The GHCi command threads
-  : Ephemeral GHCi threads, with each being spawned to evaluate one
-    GHCi command.
-
  The GUI timer thread
   : A thread that periodically produces requests to handle GUI events
-    in the R thread.
+    in the R thread. The GUI timer thread is killed as soon as the R
+    thread dies.
 
-When the user types a command in GHCi, the GHCi thread spawns a GHCi
-command thread that evaluates the command. This command may require in
-turn calls to the R API which will be posted to the R thread. Usually
-the GHCi command thread would block until the R thread completes
-execution of one or more calls and sends back a reply.
+In the public interface of H, operations which require interaction with
+the embedded R interpreter communicate with the R thread in a synchronous
+fashion. Exceptions produced in the R thread are rethrown to the caller.
 
-The R thread receives requests through a channel. Each request is
-represented as an action of type `IO ()`. If the request is supposed
-to produce a reply, the sender will block while waiting for the reply.
+Internal operations may require to be evaluated in the R thread. The
+following function is provided in the module `Language.R.Instance`
+for this sake:
 
-The interface to the R thread:
+```Haskell
+unsafeRunInRThread :: IO a -> IO a
+```
 
-    startRThread  :: ThreadId -> IO ()  -- Takes the id of the GUI timer thread.
-    stopRThread   :: IO ()              -- Blocking
-    postToRThread :: IO ()    -> IO ()  -- Non-blocking
-    runInRThread  :: IO a     -> IO a   -- Blocking
+The /unsafe/ prefix means that no verification is made that the R
+thread is running.
 
-`startRThread` takes the `ThreadId` of the GHCi thread as argument,
-sending R events to it as and if they occur. If the action of
-a request throws an exception, the R thread would continue to evaluate
-subsequent requests.
+The GUI timer thread is necessary whenever any of the graphic
+capabilities of R is used. Otherwise, when displaying windows, the
+user interface would not respond to mouse clicks or keystrokes.
 
 Memory allocation
 =================
