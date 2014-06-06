@@ -294,8 +294,8 @@ available at runtime. Therefore, a quasiquote expands to Haskell code
 that builds an equivalent AST at runtime, using the view and inverse
 view function defined above.
 
-Embedding of the R interpreter
-==============================
+How the R interpreter is embedded
+=================================
 
 The following threads materialize when H is used:
 
@@ -308,7 +308,7 @@ The following threads materialize when H is used:
     thread dies.
 
 In the public interface of H, operations which require interaction with
-the embedded R interpreter communicate with the R thread in synchronous
+the embedded R interpreter communicate with the R thread in a synchronous
 fashion. Exceptions produced in the R thread are rethrown to the caller.
 
 Internal operations may require to be evaluated in the R thread. The
