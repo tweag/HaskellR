@@ -310,6 +310,8 @@ The following threads materialize when H is used:
 In the public interface of H, operations which require interaction with
 the embedded R interpreter communicate with the R thread in a synchronous
 fashion. Exceptions produced in the R thread are rethrown to the caller.
+Operations in the R monad work like this, and similar operations are
+available on the IO monad when using GHCi.
 
 Internal operations may require to be evaluated in the R thread. The
 following function is provided in the module `Language.R.Instance`
