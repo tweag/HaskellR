@@ -221,7 +221,7 @@ startRThread eventLoopThread = do
 
 -- | Runs a computation in the R interpreter thread.
 --
--- This operation blocks until the computation completes if this is the R
+-- This operation blocks until the computation completes if called from the R
 -- thread. Otherwise, it does not block.
 --
 postToRThread_ :: IO () -> IO ()
