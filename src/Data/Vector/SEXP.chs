@@ -12,6 +12,9 @@
 -- The trade-off is that all slicing operations are O(N) instead of O(1) and there
 -- is no mutable instance of the SEXP vector.
 --
+-- Note that since 'unstream' relies on slicing operations, it will still be an O(N)
+-- operation but it will copy vector data twice unlike most vector implementations.
+--
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
