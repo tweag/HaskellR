@@ -1,6 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 
+{-# LANGUAGE CPP #-}
 {-# Language GADTs #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -77,7 +78,11 @@ instance Show R.SomeSEXP where
   show s = R.unSomeSEXP s show
   print s = R.unSomeSEXP s print
 
+#if MIN_VERSION_exceptions(0,6,0)
+withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
+#else
 withProtected :: (MonadR m, MonadCatch m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
+#endif
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
             (const (io $ R.unprotect 1))
