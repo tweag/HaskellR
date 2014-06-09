@@ -17,7 +17,7 @@ $(SANDBOX):
 	$(CABAL) sandbox init
 	$(CABAL) install alex happy
 	$(CABAL) install vendor/c2hs
-	$(CABAL) install --only-dependencies --enable-tests
+	$(CABAL) install --only-dependencies --enable-tests --reorder-goals
 
 sandbox: $(SANDBOX)
 
