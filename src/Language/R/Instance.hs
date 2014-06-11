@@ -68,9 +68,9 @@ import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
     ( SomeException
     , bracket_
-    , catch
     , finally
-    , throwTo
+    , throwIO
+    , try
     )
 #if MIN_VERSION_exceptions(0,6,0)
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
@@ -258,10 +258,8 @@ postToRThread_ action = do
 unsafeRunInRThread :: IO a -> IO a
 unsafeRunInRThread action = do
     mv <- newEmptyMVar
-    tid <- myThreadId
-    postToRThread_ $
-      (action >>= putMVar mv) `catch` (\e -> throwTo tid (e :: SomeException))
-    takeMVar mv
+    postToRThread_ $ try action >>= putMVar mv
+    takeMVar mv >>= either (throwIO :: SomeException -> IO a) return
 
 -- | Stops the R interpreter thread.
 stopRThread :: IO ()
