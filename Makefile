@@ -1,69 +1,84 @@
-# Override if not in $PATH.
+all: test
 
-CABAL = cabal
-PANDOC = pandoc
-SANDBOX = .cabal-sandbox
+ci: depclean test doc
 
-all: ci
+PKG_DESCRIPTION = H.cabal
+DEP = .cabal-sandbox
+CONFIGURE = dist/setup-config
 
-.PHONY: ci delete sandbox clean configure build test run
+ifndef PREFIX
+	PREFIX = /usr/local
+endif
 
-ci: delete configure test doc
+.PHONY: ci install dep configure build test run doc doc-haddock coverage clean depclean
 
-delete: clean
-	$(CABAL) sandbox delete
+# NOTE: This requires `alex`, `happy`, and `hscolour` to be already installed.
+install:
+	cabal install vendor/c2hs --global --ignore-sandbox --prefix=$(PREFIX)
+	cabal install \
+	  --enable-documentation \
+	  --enable-tests \
+	  --global \
+	  --ignore-sandbox \
+	  --haddock-hyperlink-source \
+	  --prefix=$(PREFIX) \
+	  --reorder-goals \
+	  --run-tests
 
-$(SANDBOX):
-	$(CABAL) sandbox init
-	$(CABAL) install alex happy
-	$(CABAL) install vendor/c2hs
-	$(CABAL) install --only-dependencies --enable-tests --reorder-goals
+$(DEP): $(PKG_DESCRIPTION)
+	[ -e $(DEP) ] || ( \
+	  cabal sandbox init && \
+	  cabal install alex happy hscolour && \
+	  cabal install vendor/c2hs )
+	cabal install \
+	  --dependencies-only \
+	  --enable-documentation \
+	  --enable-tests \
+	  --haddock-hyperlink-source \
+	  --reorder-goals
 
-sandbox: $(SANDBOX)
+dep: $(DEP)
 
-clean:
-	$(CABAL) clean
+$(CONFIGURE): $(DEP)
+	cabal configure --enable-tests
 
-configure: $(SANDBOX)
-	$(CABAL) configure --enable-tests
+configure: $(CONFIGURE)
 
-build: $(SANDBOX)
-	$(CABAL) build
+build: $(CONFIGURE)
+	cabal build
 
-test: $(SANDBOX)
-	$(CABAL) test
+test: $(CONFIGURE)
+	cabal test --show-details=streaming
 
-# NOTE: We must make both the dependencies in the sandbox and the H package
-# in the dist directory available to the H executable.
-run: $(SANDBOX)
-	$(CABAL) run -- --interactive -- -package-db .cabal-sandbox/*-packages.conf.d -package-db dist/package.conf.inplace
-
-doc-internals:
-
-.PHONY: doc doc-internals doc-haddock
+# NOTE: We must make available to H both the dependencies in the sandbox
+# and the H package in the build directory.
+run: $(CONFIGURE)
+	cabal run -- --interactive -- -package-db .cabal-sandbox/*-packages.conf.d -package-db dist/package.conf.inplace
 
 dist/pandoc/H-ints.html: doc/H-ints.md doc/pandoc.css
 	mkdir -p dist/pandoc
 	cp doc/pandoc.css dist/pandoc
-	$(PANDOC) -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
+	pandoc -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
 
 dist/pandoc/H-user.html: doc/H-user.md doc/pandoc.css
 	mkdir -p dist/pandoc
 	cp doc/pandoc.css dist/pandoc
-	$(PANDOC) -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
-
-doc-internals: dist/pandoc/H-ints.html
-doc-users-guide: dist/pandoc/H-user.html
+	pandoc -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
 
 # NOTE: Passing `--ghc-options=-optP-P` is a workaround for an issue with
 # GHC 7.8.2/Haddock 2.14.2 on OS X.
 # https://ghc.haskell.org/trac/ghc/ticket/9174
-doc-haddock: configure
-	$(CABAL) haddock --ghc-options=-optP-P
+doc-haddock: $(CONFIGURE)
+	cabal haddock --ghc-options=-optP-P --hyperlink-source
 
-doc: doc-haddock doc-internals doc-users-guide
+doc: doc-haddock dist/pandoc/H-ints.html dist/pandoc/H-user.html
 
-.PHONY: coverage
-
+# TODO: Investigate coverage.
 coverage:
 	sh tests/coverage-ghci.sh $(ARGS)
+
+clean:
+	rm -rf dist
+
+depclean:
+	rm -rf .cabal-sandbox cabal.sandbox.config dist
