@@ -1,22 +1,78 @@
 The H Hacking Guide
 ===================
 
-H supports building in a Cabal sandbox.  To set up the sandbox,
+Preparation
+-----------
+
+To prepare our patched version of `c2hs`:
 
     $ git submodule update --init
-    $ make sandbox
 
-To tear down the sandbox,
+For system administrators
+-------------------------
 
-    $ make delete
+To install H in `/usr/local`, having previously installed `alex`, `happy`, and
+`hscolour`:
 
-Other top-level `make` commands simply invoke the corresponding `cabal`
-commands, with the addition that `configure` always uses `--enable-tests`.
+    $ make install
 
-After `configure`, the expected workflow includes any number of `build`,
-`test`, `run`, or `doc` commands:
+To install H in a custom location:
+
+    $ make install PREFIX=/foo/bar
+
+For developers
+--------------
+
+To install all dependencies in a new Cabal sandbox, build H, and run all tests:
+
+    $ make
+
+H uses the default sandbox location, `.cabal-sandbox`, and the default build
+directory location, `dist`.
+
+To delete the build directory:
+
+    $ make clean
+
+To delete the sandbox and the build directory:
+
+    $ make depclean
+
+H uses `pandoc` to build certain parts of its documentation.  If `pandoc` is
+not available, building documentation will fail.
+
+The continuous integration target deletes the sandbox and the build directory,
+installs all dependencies in a new sandbox, builds H, runs all tests, and
+builds all documentation:
+
+    $ make ci
+
+To create the sandbox and install all dependencies in it:
+
+    $ make dep
+
+All of the following targets require the sandbox, and automatically create it
+if needed.
+
+To configure the build:
+
+    $ make configure
+
+All of the following targets require the build to be configured, and
+automatically configure it if needed.
+
+To build H without installing it:
 
     $ make build
+
+To run all tests without installing H:
+
     $ make test
+
+To run an interactive H session without installing H:
+
     $ make run
+
+To build all documentation without installing H:
+
     $ make doc
