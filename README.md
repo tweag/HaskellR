@@ -120,11 +120,15 @@ executed.
 Running examples
 ----------------
 
-H contains an `examples` directory where some examples are placed. 
-In order to run examples in interpreter one can use:
+Some interactive examples of using H are located in the folders:
 
-   H -- -ghci-script example-name.hs
+    examples/nls
+    examples/nls-2
 
+The following commands can be used to run these examples:
+
+    $ cd examples/<example-name>
+    $ H -- -ghci-script <example-name>.H
 
 Further reading
 ---------------
