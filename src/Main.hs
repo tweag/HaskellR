@@ -20,15 +20,15 @@ import           System.Posix.Signals
 #endif
 
 data H = H
-    { configFiles :: [FilePath] 
+    { configFiles :: [FilePath]
     , configInteractive  :: FilePath
     , configInteractiveQQ :: String
     } deriving (Eq, Data, Typeable, Show)
 
 cmdSpec :: H
 cmdSpec = H
-  { configFiles = def &= args  &= typ "ghci options" 
-  , configInteractive  = "ghci" &= explicit &= name "interactive" &= help "Run interpreter" &= opt "ghci" &= typ "ghci" &= help "Set an alternative haskell interpreter." 
+  { configFiles = def &= args  &= typ "ghci options"
+  , configInteractive  = "ghci" &= explicit &= name "interactive" &= help "Run interpreter" &= opt "ghci" &= typ "ghci" &= help "Set an alternative haskell interpreter."
   , configInteractiveQQ = "default" &= explicit &= name "interactive-qq" &= opt "default" &= help "set quasiquoter engine for debug reasons. Possible options: runtime, default"
   }
   &= program "H" &=
