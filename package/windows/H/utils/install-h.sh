@@ -57,7 +57,7 @@ BUILDDIR=$(mktemp -d)
 echo "Created a temporary build directory: $BUILDDIR"
 
 echo "Installing dependencies"
-cp -r "${HSOURCE} ${BUILDDIR}
+cp -r "${HSOURCE}" "${BUILDDIR}"
 
 pushd ${BUILDDIR}
 echo "Compiling H"
