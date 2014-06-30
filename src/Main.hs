@@ -27,7 +27,7 @@ data H = H
 
 cmdSpec :: H
 cmdSpec = H
-  { configFiles = def &= args  &= typ "ghci options"
+  { configFiles = def &= args  &= typ "-- [GHCi options]"
   , configInteractive  = "ghci" &= explicit &= name "interactive" &= help "Run interpreter" &= opt "ghci" &= typ "ghci" &= help "Set an alternative haskell interpreter."
   , configInteractiveQQ = "default" &= explicit &= name "interactive-qq" &= opt "default" &= help "set quasiquoter engine for debug reasons. Possible options: runtime, default"
   }
