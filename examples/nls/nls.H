@@ -15,7 +15,7 @@ putStrLn $
             , "   * system.hs - haskell module that is used in callbacks"
             , ""
             , "How to run this example:"
-            , "   ghci -v0 -ghci-script nls.H"
+            , "   H -- -ghci-script nls.H"
             ]
 :}
 next

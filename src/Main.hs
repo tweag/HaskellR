@@ -27,12 +27,12 @@ data H = H
 
 cmdSpec :: H
 cmdSpec = H
-  { configFiles = def &= args &= typ "FILES/DIRS"
+  { configFiles = def &= args  &= typ "ghci options" 
   , configInteractive  = "ghci" &= explicit &= name "interactive" &= help "Run interpreter" &= opt "ghci" &= typ "ghci" &= help "Set an alternative haskell interpreter." 
   , configInteractiveQQ = "default" &= explicit &= name "interactive-qq" &= opt "default" &= help "set quasiquoter engine for debug reasons. Possible options: runtime, default"
   }
   &= program "H" &=
-  help "R-to-Haskell translator." &=
+  help "H wrapper over ghci. " &=
   summary ("H version " ++ showVersion Paths_H.version ++
            "\nCopyright (C) 2013-2014 Amgen, Inc.")
   -- TODO: add details clause

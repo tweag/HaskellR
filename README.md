@@ -117,6 +117,15 @@ the first one is always `s` and refers to the state of the monad,
 while the second one is the type of the result of the function when
 executed.
 
+Running examples
+----------------
+
+H contains an `examples` directory where some examples are placed. 
+In order to run examples in interpreter one can use:
+
+   H -- -ghci-script example-name.hs
+
+
 Further reading
 ---------------
 
