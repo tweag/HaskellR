@@ -123,7 +123,7 @@ Running examples
 Some interactive examples of using H are located in the folders:
 
     examples/nls
-    examples/nls-2
+    examples/nls2
 
 The following commands can be used to run these examples:
 
