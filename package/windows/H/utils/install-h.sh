@@ -52,19 +52,13 @@ echo "	Binary Path: ${APPDATA}/cabal/bin"
 echo "Cabal version is: $(cabal --numeric-version)"
 echo "..no need to update cabal-install: skipping"
 
-echo "Update cabal database"
-#cabal update
-
 echo "Build H"
 BUILDDIR=$(mktemp -d)
 echo "Created a temporary build directory: $BUILDDIR"
 
-pushd "$HSOURCE"
 echo "Installing dependencies"
-cabal install -v --only-dependencies --force-reinstalls 2>/dev/null
-echo "Done"
-cp -r . ${BUILDDIR}
-popd
+cp -r "${HSOURCE} ${BUILDDIR}
+
 pushd ${BUILDDIR}
 echo "Compiling H"
 cabal install \
