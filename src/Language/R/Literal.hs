@@ -161,7 +161,7 @@ instance Literal a la => HFunWrap (R a) (IO (SEXP la)) where
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (SEXP la -> wb) where
-    hFunWrap f a = hFunWrap $ f $ fromSEXP a
+    hFunWrap f a = hFunWrap $ f $! fromSEXP a
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr a -> IO (SEXP R.ExtPtr)
