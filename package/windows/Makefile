@@ -5,6 +5,7 @@ PANDOC=pandoc
 EXTS=-ext WixUtilExtension.dll -ext WixUIExtension.dll -ext WixBalExtension.dll
 VERSION=0.3
 HSourceDir=$(shell cygpath -ad H-$(VERSION))
+export VERSION
 export HSourceDir
 
 H-Bundle.exe: H-Bundle.wxs R/R.wxs H/Hb.wxs HP/HP.wxs Cygwin/Cygwin.wxs H/H.msi
