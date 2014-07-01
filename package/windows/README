@@ -7,8 +7,6 @@ PREREQUISITES:
 
 How to create a package:
 
-0. Update package version in the Makefile.
-
 1. Prepare sources to install. In order to do it,
    either download a release from github (or tag)
    or  run 'make prepare' to install version from 
@@ -22,4 +20,6 @@ How to create a package:
 
     export PATH=/cygdrive/c/Program\ Files/WiX\ Toolset\ v3.9/bin/:$PATH
 
-4. Run `make`.
+4. Run `make` or run `make VERSION=<some string>`
+   to identify the version of the installer with a
+   specific label.
