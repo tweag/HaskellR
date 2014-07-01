@@ -3,7 +3,7 @@ LIGHT=light
 HEAT=heat
 PANDOC=pandoc
 EXTS=-ext WixUtilExtension.dll -ext WixUIExtension.dll -ext WixBalExtension.dll
-VERSION=0.3
+VERSION=0.3.1
 HSourceDir=$(shell cygpath -ad H-$(VERSION))
 export VERSION
 export HSourceDir

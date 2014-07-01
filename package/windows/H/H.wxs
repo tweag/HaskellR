@@ -7,7 +7,7 @@
 <?include $(sys.SOURCEFILEDIR)/../Version.wxi ?>
 	<Product
 		Name="$(var.ProductName)"
-		Id="F06860F9-FD85-4b48-B1AC-D282043B60D7"
+		Id="F06860F9-FD85-4b48-B1AC-D282043B60D9"
 		UpgradeCode="061738EE-85EA-46b4-86B2-281E69163BB2"
 		Version="$(var.ProductVersion)"
 		Language="1033"
@@ -21,6 +21,9 @@
 			InstallScope="perMachine"
 			Compressed="yes">
 		</Package>
+		<MajorUpgrade
+			DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit."
+			Schedule="afterInstallInitialize"/>
 		<Property Id="DISABLEADVTSHORTCUTS" Value="1" />
 		<!-- Directory structure:
 			We are installing all required tools
