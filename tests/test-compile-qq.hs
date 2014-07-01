@@ -151,3 +151,15 @@ rTests = H.runR H.defaultConfig $ do
     -- restore usual meaning of `+`
     _ <- [r| `+` <- base::`+` |]
     return ()
+
+    -- Check protection: Should be (42.0,42.0)
+    result <- do
+      x <- [r| 42.0 |]
+      rv <- newSomeRVal x
+      y <- fmap (fromSEXP . R.cast R.Real) [r| x_hs |]
+      v <- fmap (fromSEXP . R.cast R.Real) [r| x_hs |]
+      unprotectSomeRVal rv
+      [r| 1+1|]
+      return (y::Double,v::Double)
+    io $ Prelude.print result
+
