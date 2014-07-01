@@ -17,9 +17,9 @@
 # Will fix a H sources directory, for now
 echo "Initialize H"
 
-HHOME=$(cygpath "${HRoot}")
-HSOURCE="${HHOME}"/sources			# H Sources
-HUTILS="${HHOME}"/utils				# H Utilities
+HHOME="$(cygpath "${HRoot}")"
+HSOURCE="${HHOME}/sources"			# H Sources
+HUTILS="${HHOME}/utils"				# H Utilities
 
 echo "H Directories:"
 echo "	Home: $HHOME"
@@ -27,12 +27,12 @@ echo "	Sources: $HSOURCE"
 echo "	Utilities: $HUTILS" 
 
 echo "Initialize R"
-RPATH=$(cygpath "${RRoot}")
+RPATH="$(cygpath "${RRoot}")"
 
 echo ".. exporting R path to the environment: $RPATH/bin"
 
-export PATH="$RPATH"/bin:$PATH
-R_HOME=$(R RHOME)
+export PATH="$RPATH/bin:$PATH"
+R_HOME="$(R RHOME)"
 echo "R Directories:"
 echo "	Base: $RPATH"
 echo "	R_HOME: $R_HOME"
@@ -43,7 +43,7 @@ cabal install c2hs
 cabal install cabal-install
 echo "Initialize Haskell Platform."
 echo "Add user's cabal/bin folder to the PATH."
-export PATH=$(cygpath "${APPDATA}")/cabal/bin:$PATH
+export PATH="$(cygpath "${APPDATA}")/cabal/bin:$PATH"
 
 echo "Haskell Platform Directories:"
 echo "	Binary Path: ${APPDATA}/cabal/bin"
@@ -53,13 +53,13 @@ echo "Cabal version is: $(cabal --numeric-version)"
 echo "..no need to update cabal-install: skipping"
 
 echo "Build H"
-BUILDDIR=$(mktemp -d)
+BUILDDIR="$(mktemp -d)"
 echo "Created a temporary build directory: $BUILDDIR"
 
 echo "Installing dependencies"
 cp -r "${HSOURCE}" "${BUILDDIR}"
 
-pushd ${BUILDDIR}
+pushd "${BUILDDIR}"
 echo "Compiling H"
 cabal install \
 		--extra-include-dirs="$R_HOME/include" \
@@ -67,4 +67,4 @@ cabal install \
 		--with-c2hs=$(cygpath -w $(command -v c2hs))
 echo "..Done"
 popd
-rm -rf $BUILDDIR
+rm -rf "$BUILDDIR"
