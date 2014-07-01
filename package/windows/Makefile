@@ -8,6 +8,11 @@ HSourceDir=$(shell cygpath -ad H-$(VERSION))
 export VERSION
 export HSourceDir
 
+HP_INSTALLER = HaskellPlatform-2013.2.0.0-setup.exe
+CYGWIN_INSTALLER = setup-x86.exe
+R_INSTALLER = R-3.1.0-win.exe
+
+H-Bundle.exe: HP/$(HP_INSTALLER) Cygwin/$(CYGWIN_INSTALLER) R/$(R_INSTALLER)
 H-Bundle.exe: H-Bundle.wxs R/R.wxs H/Hb.wxs HP/HP.wxs Cygwin/Cygwin.wxs H/H.msi
 	$(CANDLE) H-Bundle.wxs R/R.wxs H/Hb.wxs HP/HP.wxs Cygwin/Cygwin.wxs $(EXTS)
 	$(LIGHT) -out H-Bundle.exe H-Bundle.wixobj R.wixobj Hb.wixobj HP.wixobj Cygwin.wixobj $(EXTS)
@@ -36,4 +41,12 @@ H/H-user.pdf:
 
 H/H-ints.pdf:
 	$(PANDOC) -f markdown -s -S --toc ../../doc/H-ints.md -o $@
+
+HP/$(HP_INSTALLER):
+	wget https://www.haskell.org/platform/download/2013.2.0.0/$(HP_INSTALLER) -O HP/$(HP_INSTALLER)
+Cygwin/$(CYGWIN_INSTALLER):
+	wget http://cygwin.com/$(CYGWIN_INSTALLER) -O Cygwin/$(CYGWIN_INSTALLER)
+R/$(R_INSTALLER):
+	wget http://cran.r-project.org/bin/windows/base/$(R_INSTALLER) -O R/$(R_INSTALLER)
+
 

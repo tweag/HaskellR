@@ -2,7 +2,7 @@ PREREQUISITES:
 
    1. WiX Toolset
    2. pandoc
-   3. Cygwin with autotools
+   3. Cygwin with make and wget.
    4. Latex
 
 How to create a package:
@@ -17,11 +17,6 @@ How to create a package:
 2. Prepare pdf documents. Run `make prepare-pdf` or if you
    have prepared pdfs place then into `H/H-ints.pdf`
    and `H/H-user.pdf`.
-
-3. Download bundled installers:
-   a. HaskellPlatform  -> HP/HaskellPlatform-2013.2.0.0-setup.exe
-   b. Cygwin -> Cygwin/setup-x86
-   c. R -> R/R-3.1.0-win.exe
 
 3. Export path to the WiX toolset
 
