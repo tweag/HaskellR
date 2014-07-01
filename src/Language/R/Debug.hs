@@ -15,8 +15,9 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Language.R.Debug
-  ( inspect )
-  where
+  ( inspect
+  , tryForceGC
+  ) where
 
 import H.Internal.Prelude
 import Language.R.HExp
@@ -27,6 +28,7 @@ import Foreign.R.Type (IsVector)
 import qualified Data.Vector.SEXP as Vector
 import System.IO.Unsafe ( unsafePerformIO )
 
+import Control.Monad (replicateM_)
 import Data.Aeson as A
 import Data.Complex
 import qualified Data.Text as T
@@ -136,3 +138,13 @@ instance ToJSON SomeSEXP where
 
 inspect :: SEXP a -> String
 inspect = LBS.unpack . A.encode
+
+-- | Try force R garbage collector. 
+-- This function have a high change to  force R garbage collection
+-- however could not guarantee it. 
+--
+-- R has special functions 'gctorture' and 'gctorture2' to force
+-- garbage collection, however they are _very_ slow. So you can use
+-- this function in the places where it's not possible to use those.
+tryForceGC :: IO ()
+tryForceGC = replicateM_ 10 R.gc
