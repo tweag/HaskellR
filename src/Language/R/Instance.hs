@@ -115,6 +115,16 @@ newtype R a = R { unR :: IO a }
   deriving (MonadIO, Functor, MonadCatch, Applicative)
 #endif
 
+-- We make the @Monad R@ instance strict so the returned value is always
+-- evaluated to WHNF. Thus, code written as follows works:
+--
+-- > do x <- fmap H.fromSEXP [r| as.integer(1 + 1) |]
+-- >    [r| 1 + 2 |]
+-- >    H.print x
+--
+-- If @Monad R@ were not strict, before printing, the SEXP held in closure x
+-- would be collected when allocation happens during evaluation of [r| 1 + 2 |].
+--
 instance Monad R where
   return x = R (evaluate x)
   f >>= g  = R $ unR f >>= evaluate >>= unsafeRToIO . g
