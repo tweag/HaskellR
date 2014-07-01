@@ -115,7 +115,7 @@
 		<Feature Id="Fe_Complete" Level="1" Title="H Compiler - $(var.ProductVersion)" Description="Complete Package."
 			Display="expand" ConfigurableDirectory="INSTALLDIR" AllowAdvertise="no" Absent="disallow">
 			<Feature Id="Fe_All" Level="1" Title="H Library" Description="Install H" Absent="disallow" AllowAdvertise="no" Display="expand">
-				<Feature Id="Fe_Utiliries" Level="1" Title="Utilities" Description="Helper utility files" Absent="disallow" AllowAdvertise="no">
+				<Feature Id="Fe_Utilities" Level="1" Title="Helper scripts" Description="Scripts for reinstalling H and loading H in GHCi." Absent="disallow" AllowAdvertise="no">
 					<ComponentGroupRef Id="ComponentUtilities"/>
 					<ComponentRef Id="ProgramMenuDir"/>
 				</Feature>
