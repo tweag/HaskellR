@@ -71,6 +71,7 @@ import Control.Exception
     , finally
     , throwIO
     , try
+    , evaluate
     )
 #if MIN_VERSION_exceptions(0,6,0)
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
@@ -105,15 +106,28 @@ import System.Posix.Resource
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
 -- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
 -- be lifted to 'R' actions.
-newtype R a = R { _unR :: IO a }
+newtype R a = R { unR :: IO a }
 #if MIN_VERSION_exceptions(0,6,0)
-  deriving (Monad, MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative)
+  deriving (MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative)
 #elif MIN_VERSION_exceptions(0,4,0)
-  deriving (Monad, MonadIO, Functor, MonadCatch, MonadThrow, Applicative)
+  deriving (MonadIO, Functor, MonadCatch, MonadThrow, Applicative)
 #else
-  deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
+  deriving (MonadIO, Functor, MonadCatch, Applicative)
 #endif
 
+-- We make the @Monad R@ instance strict so the returned value is always
+-- evaluated to WHNF. Thus, code written as follows works:
+--
+-- > do x <- fmap H.fromSEXP [r| as.integer(1 + 1) |]
+-- >    [r| 1 + 2 |]
+-- >    H.print x
+--
+-- If @Monad R@ were not strict, before printing, the SEXP held in closure x
+-- would be collected when allocation happens during evaluation of [r| 1 + 2 |].
+--
+instance Monad R where
+  return x = R (evaluate x)
+  f >>= g  = R $ unR f >>= evaluate >>= unsafeRToIO . g
 
 instance MonadR R where
   io m = R $ unsafeRunInRThread m
