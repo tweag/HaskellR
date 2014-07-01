@@ -23,7 +23,7 @@ SET Path=%appdata%\cabal\bin;%RRoot%\bin;%RRoot%\bin\i386;%PATH%
 :: Check that H is installed
 :verify
 echo Verifying installation integrity
-%CabalPath%\H --version >nil
+%CabalPath%\H --version >nul
 IF /I %errorlevel%==0 goto run
 IF    "x%ATTEMPT%x"=="xx" goto install
 goto enderror
