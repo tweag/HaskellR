@@ -18,8 +18,8 @@
 echo "Initialize H"
 
 HHOME=$(cygpath "${HRoot}")
-HSOURCE="${HHOME}"/sources/H-0.2			# H Sources
-HUTILS="${HHOME}"/utils						# H Utilities
+HSOURCE="${HHOME}"/sources			# H Sources
+HUTILS="${HHOME}"/utils				# H Utilities
 
 echo "H Directories:"
 echo "	Home: $HHOME"
