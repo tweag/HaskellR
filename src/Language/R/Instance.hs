@@ -33,7 +33,6 @@ module Language.R.Instance
   -- * R global constants
   -- $ghci-bug
   , pokeRVariables
-  , peekRVariables
   , globalEnvPtr
   , baseEnvPtr
   , nilValuePtr
@@ -56,7 +55,6 @@ import Control.Concurrent
     , forkOS
     , isCurrentThreadBound
     , killThread
-    , myThreadId
     , threadDelay
     )
 import Control.Concurrent.MVar
@@ -67,6 +65,7 @@ import Control.Concurrent.MVar
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
     ( SomeException
+    , AsyncException(ThreadKilled)
     , bracket_
     , finally
     , throwIO
@@ -194,11 +193,14 @@ initialize Config{..} = do
 -- | Finalize an R instance.
 finalize :: IO ()
 finalize = do
-    unsafeRunInRThread $ do
+    mv <- newEmptyMVar
+    postToRThread_ $ do
       R.endEmbeddedR 0
       peek interpreterChanPtr >>= freeStablePtr
       poke isRInitializedPtr 0
-    stopRThread
+      putMVar mv ()
+      throwIO ThreadKilled
+    takeMVar mv
 
 -- | Starts the R thread.
 startRThread :: ThreadId -> IO ()
@@ -241,12 +243,10 @@ postToRThread_ :: IO () -> IO ()
 postToRThread_ action = do
     tid <- myOSThreadId
     isBound <- isCurrentThreadBound
+    (rOSThreadId, interpreterChan) <- peek interpreterChanPtr >>= deRefStablePtr
     if tid == rOSThreadId && isBound
       then action -- run the action here if we are the R thread.
       else writeChan interpreterChan action
-  where
-    (rOSThreadId, interpreterChan) = unsafePerformIO $
-      peek interpreterChanPtr >>= deRefStablePtr
 
 -- | Evaluates a computation in the R interpreter thread.
 --
@@ -260,10 +260,6 @@ unsafeRunInRThread action = do
     mv <- newEmptyMVar
     postToRThread_ $ try action >>= putMVar mv
     takeMVar mv >>= either (throwIO :: SomeException -> IO a) return
-
--- | Stops the R interpreter thread.
-stopRThread :: IO ()
-stopRThread = postToRThread_ $ myThreadId >>= killThread
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
