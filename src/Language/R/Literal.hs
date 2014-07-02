@@ -43,6 +43,7 @@ class Literal a b | a -> b where
     mkSEXP :: a -> SEXP b
     fromSEXP :: SEXP c -> a
 
+{-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)
              => SSEXPTYPE a
              -> [SVector.ElemRep a]
@@ -53,6 +54,7 @@ mkSEXPVector ty xs = unsafePerformIO $
       zipWithM_ (pokeElemOff ptr) [0..] xs
       return vec
 
+{-# NOINLINE mkProtectedSEXPVector #-}
 mkProtectedSEXPVector :: IsVector b
                       => SSEXPTYPE b
                       -> [SEXP a]
@@ -136,6 +138,7 @@ instance Literal SomeSEXP R.Any where
     fromSEXP = SomeSEXP
 
 instance Literal String R.String where
+    {-# NOINLINE mkSEXP #-}
     mkSEXP x = unsafePerformIO $ R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
@@ -166,6 +169,7 @@ instance (Literal a la, HFunWrap b wb)
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr a -> IO (SEXP R.ExtPtr)
 
+{-# NOINLINE funToSEXP #-}
 funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> SEXP R.ExtPtr
 funToSEXP w x = unsafePerformIO $ funPtrToSEXP =<< w (hFunWrap x)
 
