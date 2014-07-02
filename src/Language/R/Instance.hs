@@ -33,7 +33,6 @@ module Language.R.Instance
   -- * R global constants
   -- $ghci-bug
   , pokeRVariables
-  , peekRVariables
   , globalEnvPtr
   , baseEnvPtr
   , nilValuePtr
