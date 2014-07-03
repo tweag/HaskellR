@@ -2,6 +2,7 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -24,7 +25,7 @@ import           Language.R.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Type as SingR
-import           Language.R (parseText, installIO, string, eval)
+import           Language.R (parseText, installIO, string, eval, withProtected)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -39,7 +40,7 @@ import Data.List (isSuffixOf)
 import Data.Complex (Complex)
 import Data.Int (Int32)
 import Data.Word (Word8)
-import Foreign (Ptr, castPtr)
+import Foreign (castPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
@@ -56,7 +57,7 @@ r = QuasiQuoter
 
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
-    { quoteExp  = \txt -> [| return $(parseExp txt) |]
+    { quoteExp  = \txt -> [| io $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -71,7 +72,9 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $ eval $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $
+                               eval =<< io $(parseExp txt)
+                           |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -88,11 +91,14 @@ parseEval txt = do
   where
     go :: [SomeSEXP] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP a]    = [| H.withProtected (return a) eval |]
-    go (SomeSEXP a:as) =
-        [| H.withProtected (return a) $ eval >=> \(SomeSEXP s) ->
+    go [SomeSEXP (returnIO -> a)]    = [| H.withProtected (io a) eval |]
+    go (SomeSEXP (returnIO -> a) : as) =
+        [| H.withProtected (io a) $ eval >=> \(SomeSEXP s) ->
              H.withProtected (return s) (const $(go as))
          |]
+
+returnIO :: a -> IO a
+returnIO = return
 
 parse :: String -> Q (R.SEXP R.Expr)
 parse txt = runIO $ do
@@ -100,14 +106,27 @@ parse txt = runIO $ do
     parseText txt False
 
 parseExp :: String -> Q TH.Exp
-parseExp txt = TH.lift =<< parse txt
+parseExp txt = TH.lift . returnIO =<< parse txt
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
+instance TH.Lift (IO SomeSEXP) where
+  lift = runIO >=> \s -> R.unSomeSEXP s (TH.lift . returnIO)
+
 deriveLift ''SEXPInfo
-deriveLift ''SomeSEXP
 deriveLift ''Complex
 deriveLift ''R.Logical
-deriveLift ''HExp
+
+instance TH.Lift (IO (Maybe (SEXP a))) where
+  lift = runIO >=> return . fmap returnIO >=>
+           maybe [| return Nothing |] (\vio -> [| fmap Just vio |])
+
+instance TH.Lift (IO [SEXP a]) where
+    lift = runIO >=> go
+      where
+        go []                       = [| return [] |]
+        go [returnIO -> xio]        = [| xio >>= return . (:[]) |]
+        go ((returnIO -> xio) : xs) =
+          [| withProtected xio $ $(go xs) . fmap . (:) |]
 
 instance TH.Lift BS.ByteString where
     lift bs = let s = BS.unpack bs in [| BS.pack s |]
@@ -121,52 +140,58 @@ instance TH.Lift Word8 where
 instance TH.Lift Double where
     lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
 
-instance TH.Lift (Vector.Vector R.Raw Word8) where
+instance TH.Lift (IO (Vector.Vector R.Raw Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
-    lift v = let xs :: String
-                 xs = map (toEnum . fromIntegral) $ Vector.toList v
-             in [| vector $ unsafePerformIO $ string xs |]
+    lift = runIO >=> \v -> do
+      let xs :: String
+          xs = map (toEnum . fromIntegral) $ Vector.toList v
+      [| fmap vector $ string xs |]
 
-instance TH.Lift (Vector.Vector R.Char Word8) where
+instance TH.Lift (IO (Vector.Vector R.Char Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
-    lift v = let xs :: String
-                 xs = map (toEnum . fromIntegral) $ Vector.toList v
-             in [| vector $ unsafePerformIO $ string xs |]
+    lift = runIO >=> \ v -> do
+      let xs :: String
+          xs = map (toEnum . fromIntegral) $ Vector.toList v
+      [| fmap vector $ string xs |]
 
-instance TH.Lift (Vector.Vector 'R.Logical R.Logical) where
-    lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector SingR.SLogical xs) |]
+instance TH.Lift (IO (Vector.Vector 'R.Logical R.Logical)) where
+    lift = runIO >=> \v -> do
+      let xs = Vector.toList v
+      [| fmap vector $ mkSEXPVectorIO SingR.SLogical xs |]
 
-instance TH.Lift (Vector.Vector R.Int Int32) where
-    lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector SingR.SInt xs) |]
+instance TH.Lift (IO (Vector.Vector R.Int Int32)) where
+    lift = runIO >=> \v -> do
+      let xs = Vector.toList v
+      [| fmap vector $ mkSEXPVectorIO SingR.SInt xs |]
 
-instance TH.Lift (Vector.Vector R.Real Double) where
-    lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector SingR.SReal xs) |]
+instance TH.Lift (IO (Vector.Vector R.Real Double)) where
+    lift = runIO >=> \v -> do
+      let xs = Vector.toList v
+      [| fmap vector $ mkSEXPVectorIO SingR.SReal xs |]
 
-instance TH.Lift (Vector.Vector R.Complex (Complex Double)) where
-    lift v = let xs = Vector.toList v
-             in [| vector (mkSEXPVector SingR.SComplex xs) |]
+instance TH.Lift (IO (Vector.Vector R.Complex (Complex Double))) where
+    lift = runIO >=> \v -> do
+      let xs = Vector.toList v
+      [| fmap vector $ mkSEXPVectorIO SingR.SComplex xs |]
 
-instance TH.Lift (Vector.Vector R.String (SEXP R.Char)) where
-    lift v = let xs = Vector.toList v
-             in [| vector $ mkProtectedSEXPVector SingR.SString xs |]
+instance TH.Lift (IO (Vector.Vector R.String (SEXP R.Char))) where
+    lift = runIO >=> \v -> do
+      let xsio = returnIO $ Vector.toList v
+      [| fmap vector . mkProtectedSEXPVectorIO SingR.SString =<< xsio |]
 
-instance TH.Lift (Vector.Vector R.Vector SomeSEXP) where
-    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
-             in [| vector $ mkProtectedSEXPVector SingR.SVector xs |]
+instance TH.Lift (IO (Vector.Vector R.Vector SomeSEXP)) where
+    lift = runIO >=> \v -> do
+      let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
+                          $ Vector.toList v :: IO [SEXP R.Any]
+      [| fmap vector $ mkProtectedSEXPVectorIO SingR.SVector =<< xsio |]
 
-instance TH.Lift (Vector.Vector R.Expr SomeSEXP) where
-    lift v = let xs = map (\(SomeSEXP s) -> castPtr s) $ Vector.toList v :: [SEXP R.Any]
-             in [| vector $ mkProtectedSEXPVector SingR.SExpr xs |]
-
--- Bogus 'Lift' instance for pointers because 'deriveLift' blindly tries to cope
--- with 'H.ExtPtr' when this is in fact not possible.
-instance TH.Lift (Ptr ()) where
-    lift _ = violation "TH.Lift.lift Ptr" "Attempted to lift a pointer."
+instance TH.Lift (IO (Vector.Vector R.Expr SomeSEXP)) where
+    lift = runIO >=> \v -> do
+      let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
+                          $ Vector.toList v :: IO [SEXP R.Any]
+      [| fmap vector . mkProtectedSEXPVectorIO SingR.SExpr =<< xsio |]
 
 -- | Returns 'True' if the variable name is in fact a Haskell value splice.
 isSplice :: String -> Bool
@@ -177,43 +202,103 @@ isSplice = ("_hs" `isSuffixOf`)
 spliceNameChop :: String -> String
 spliceNameChop name = take (length name - 3) name
 
-instance TH.Lift (SEXP a) where
+instance TH.Lift (IO (SEXP a)) where
     -- Special case some forms, rather than relying on the default code
     -- generated by 'deriveLift'.
-    lift   (hexp -> Symbol pname _ (Just _)) = do
-        [| unsafePerformIO (installIO xs) |]
-      where
+    lift = runIO >=> \case
+      (hexp -> Symbol pname _ (Just _)) -> [| installIO xs |]
+        where
+          xs :: String
+          xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
+      (hexp -> List s Nothing Nothing)
+        | R.unsexp s == R.unsexp H.missingArg ->
+          [| R.cons H.missingArg H.nilValue |]
+      s@(hexp -> Symbol (returnIO -> pnameio) value _)
+        | R.unsexp s == R.unsexp value -> [| selfSymbol =<< pnameio |] -- FIXME
+      (hexp -> Symbol pname _ Nothing)
+        | Char (Vector.toString -> name) <- hexp pname
+        , isSplice name -> do
+          let hvar = TH.varE $ TH.mkName $ spliceNameChop name
+          [| H.mkSEXPIO $hvar |]
+        | otherwise -> [| installIO xs |]        -- FIXME
+       where
         xs :: String
         xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
-    lift (hexp -> List s Nothing Nothing)
-      | R.unsexp s == R.unsexp H.missingArg =
-        [| unsafePerformIO $ R.cons H.missingArg H.nilValue |]
-    lift s@(hexp -> Symbol pname value _)
-      | R.unsexp s == R.unsexp value = do
-        [| unsafePerformIO $ selfSymbol pname |]    -- FIXME
-    lift   (hexp -> Symbol pname _ Nothing)
-      | Char (Vector.toString -> name) <- hexp pname
-      , isSplice name = do
-        let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-        [| H.mkSEXP $hvar |]
-      | otherwise =
-        [| unsafePerformIO $ installIO xs |]        -- FIXME
-      where
-        xs :: String
-        xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
-    lift (hexp -> Lang (hexp -> Symbol pname _ Nothing) rands)
-      | Char (Vector.toString -> name) <- hexp pname
-      , isSplice name = do
-        let nm = spliceNameChop name
-        hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
-        [| let call = unsafePerformIO (installIO ".Call")
-               f    = H.mkSEXP $hvar
-             in unhexp $ Lang call (Just (unhexp $ List f rands Nothing)) |]
+      (hexp -> Lang (hexp -> Symbol pname _ Nothing) (returnIO -> randsio))
+        | Char (Vector.toString -> name) <- hexp pname
+        , isSplice name -> do
+          let nm = spliceNameChop name
+          hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
+          [| withProtected (installIO ".Call") $ \call ->
+             withProtected (H.mkSEXPIO $hvar) $ \f -> do
+                rands <- randsio
+                unhexpIO . Lang call . Just =<< unhexpIO (List f rands Nothing)
+           |]
     -- Override the default for expressions because the default Lift instance
     -- for vectors will allocate a node of VECSXP type, when the node is real an
     -- EXPRSXP.
-    lift   (hexp -> Expr n v) =
-      let xs = Vector.toList v
-      in [| unhexp $ Expr n $ vector $ mkSEXPVector SingR.SExpr xs |]
-    lift   (hexp -> t) =
-        [| unhexp t |]
+      (hexp -> Expr n v) ->
+        let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
+                            $ Vector.toList v :: IO [SEXP R.Any]
+         in [| withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
+                 unhexpIO . Expr n . vector
+             |]
+      (returnIO . hexp -> iot) ->
+        [| unhexpIO =<< iot |]
+
+instance TH.Lift (IO (HExp a)) where
+  lift = runIO >=> \case
+    Nil -> [| return Nil |]
+    Symbol (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
+      [| withProtected x0io $ \x0 ->
+         withProtected x1io $ \x1 ->
+           fmap (Symbol x0 x1) x2io
+        |]
+    List (returnIO -> x0io) (returnIO -> x1mio) (returnIO -> x2io) ->
+      [| withProtected x0io $ \x0 ->
+          x1mio >>= \case
+            Nothing  -> fmap (List x0 Nothing) x2io
+            Just x1u -> withProtected (return x1u) $ \x1 ->
+              fmap (List x0 (Just x1)) x2io
+        |]
+    Env (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
+      [| withProtected x0io $ \x0 ->
+         withProtected x1io $ \x1 ->
+           fmap (Env x0 x1) x2io
+        |]
+    Closure (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
+      [| withProtected x0io $ \x0 ->
+         withProtected x1io $ \x1 ->
+           fmap (Closure x0 x1) x2io
+        |]
+    Promise (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
+      [| withProtected x0io $ \x0 ->
+         withProtected x1io $ \x1 ->
+           fmap (Promise x0 x1) x2io
+        |]
+    Lang (returnIO -> x0io) (returnIO -> x1io) ->
+      [| withProtected x0io $ \x0 ->
+           fmap (Lang x0) x1io
+        |]
+    Special                  x0  -> [| return $ Special x0 |]
+    Builtin                  x0  -> [| return $ Builtin x0 |]
+    Char      (returnIO -> x0io) -> [| fmap Char      x0io |]
+    Logical   (returnIO -> x0io) -> [| fmap Logical   x0io |]
+    Int       (returnIO -> x0io) -> [| fmap Int       x0io |]
+    Real      (returnIO -> x0io) -> [| fmap Real      x0io |]
+    Complex   (returnIO -> x0io) -> [| fmap Complex   x0io |]
+    String    (returnIO -> x0io) -> [| fmap String    x0io |]
+    DotDotDot (returnIO -> x0io) -> [| fmap DotDotDot x0io |]
+    Vector x0 (returnIO -> x1io) -> [| fmap (Vector x0) x1io |]
+    Expr   x0 (returnIO -> x1io) -> [| fmap (Expr x0) x1io |]
+    Bytecode -> [| return Bytecode |]
+    ExtPtr _ _ _ -> violation "TH.Lift.lift HExp" "Attempted to lift an ExtPtr."
+    WeakRef (returnIO -> x0io) (returnIO -> x1io)
+            (returnIO -> x2io) (returnIO -> x3io) ->
+      [| withProtected x0io $ \x0 ->
+         withProtected x1io $ \x1 ->
+         withProtected x2io $ \x2 ->
+           fmap (WeakRef x0 x1 x2) x3io
+        |]
+    Raw (returnIO -> x0io) -> [| fmap Raw x0io |]
+    S4  (returnIO -> x0io) -> [| fmap S4  x0io |]
