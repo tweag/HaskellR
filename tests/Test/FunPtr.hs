@@ -26,7 +26,6 @@ import Control.Concurrent.MVar
 import Control.Monad
 import Data.ByteString.Char8
 import Foreign hiding (unsafePerformIO)
-import System.IO.Unsafe (unsafePerformIO)
 import System.Mem.Weak
 import System.Mem
 
@@ -38,7 +37,7 @@ foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr () -> IO (R.SEXP R.Any)
 
 instance Literal (HaveWeak a b) R.ExtPtr where
-  mkSEXP (HaveWeak a box) = unsafePerformIO $ do
+  mkSEXPIO (HaveWeak a box) = do
       z <- R.wrap1 a
       putMVar box =<< mkWeakPtr z Nothing
       fmap castPtr . funPtrToSEXP . castFunPtr $ z

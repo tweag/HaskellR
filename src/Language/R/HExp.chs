@@ -37,6 +37,7 @@ module Language.R.HExp
   ( HExp(..)
   , hexp
   , unhexp
+  , unhexpIO
   , vector
   , selfSymbol
   ) where
