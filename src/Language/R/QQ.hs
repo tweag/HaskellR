@@ -254,14 +254,14 @@ instance TH.Lift (IO (HExp a)) where
          withProtected x1io $ \x1 ->
            fmap (Symbol x0 x1) x2io
         |]
-    List (returnIO -> x0io) (returnIO -> x1mio) (returnIO -> x2io) ->
+    List (returnIO -> x0io) x1m (returnIO -> x2io) ->
       [| withProtected x0io $ \x0 ->
-           $(runIO x1mio >>= \case
-             Nothing  -> [| fmap (List x0 Nothing) x2io |]
-             Just (returnIO -> x1io) ->
-               [| withProtected x1io $ \x1 ->
-                    fmap (List x0 (Just x1)) x2io
-                |]
+           $(case x1m of
+               Nothing  -> [| fmap (List x0 Nothing) x2io |]
+               Just (returnIO -> x1io) ->
+                 [| withProtected x1io $ \x1 ->
+                      fmap (List x0 (Just x1)) x2io
+                  |]
             )
         |]
     Env (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
