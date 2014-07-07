@@ -134,6 +134,7 @@ module Foreign.R.Internal
   , SEXP0
   , sexp
   , unsexp
+  , RPtr(..)
   ) where
 
 import {-# SOURCE #-} Language.R.HExp.Unsafe
@@ -141,6 +142,7 @@ import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Bits
 import Data.Complex
@@ -175,6 +177,11 @@ const char *(R_CHAR)(SEXP x);
 type SEXP (a :: SEXPTYPE) = Ptr (HExp a)
 data SEXPREC
 
+newtype RPtr a = RPtr (Ptr a)
+
+instance NFData (RPtr a) where
+  rnf s = s `seq` ()
+
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
 -- arbitrary type in a @#pointer@ hook).
@@ -200,6 +207,9 @@ instance Storable SomeSEXP where
   alignment _ = alignment (undefined :: SEXP a)
   peek ptr = SomeSEXP <$> peek (castPtr ptr)
   poke ptr (SomeSEXP s) = poke (castPtr ptr) s
+
+instance NFData SomeSEXP where
+  rnf (SomeSEXP s) = rnf (RPtr s)
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
