@@ -50,7 +50,7 @@ module Data.Vector.SEXP.Mutable
 
 import H.Internal.Prelude
 import Data.Vector.SEXP.Base
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)

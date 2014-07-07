@@ -52,11 +52,12 @@ library
   exposed-modules:     Data.Vector.SEXP
                        Data.Vector.SEXP.Base
                        Data.Vector.SEXP.Mutable
-                       Foreign.R
+                       Foreign.R.Internal
                        Foreign.R.Embedded
                        Foreign.R.Error
                        Foreign.R.Parse
                        Foreign.R.Type
+                       Foreign.R.Runner
                        H.Constraints
                        H.Prelude
                        H.Prelude.Interactive
@@ -64,12 +65,12 @@ library
                        Language.R.Debug
                        Language.R.GC
                        Language.R.Globals
-                       Language.R.HExp
-                       Language.R.Instance
+                       Language.R.HExp.Unsafe
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
-                       Language.R.Literal
+                       Language.R.Literal.Unsafe
                        Language.R.QQ
+                       Control.Monad.R
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error

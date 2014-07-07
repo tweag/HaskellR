@@ -4,17 +4,16 @@
 :m +Data.Int
 import Criterion.Main
 import Language.Haskell.TH.Quote
-import qualified Foreign.R as R
  
 import System.FilePath
  
 
 :{
-let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R (Foreign.R.SEXP Foreign.R.Int)
-    hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-    hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-    hFib n                              = H.withProtected (return n) $ const $
-        fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+let hFib :: SEXP Foreign.R.Internal.Int -> H.Prelude.R (SEXP Foreign.R.Internal.Int)
+    hFib n@(H.Prelude.fromSEXP -> (0 :: Int32)) = fmap (flip Foreign.R.Internal.asTypeOf n) [r| as.integer(0) |]
+    hFib n@(H.Prelude.fromSEXP -> (1 :: Int32)) = fmap (flip Foreign.R.Internal.asTypeOf n) [r| as.integer(1) |]
+    hFib n                              = H.Prelude.withProtected (return n) $ const $
+        fmap (flip Foreign.R.Internal.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 :}
 
 $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
@@ -25,7 +24,7 @@ defaultMain [
       [ bench "runtime-qq" $
           whnfIO $ [r| fib(10) |]
       , bench "runtime-qq-hybrid" $
-          whnfIO $ H.unsafeRToIO $ hFib $ H.mkSEXP (10 :: Int32)
+          whnfIO $ H.Prelude.unsafeRToIO $ hFib $ H.mkSEXP (10 :: Int32)
       ]
    ]
 :}
