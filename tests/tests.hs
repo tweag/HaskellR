@@ -164,10 +164,10 @@ unitTests = testGroup "Unit tests"
           alloca $ \p -> do
             e <- peek R.globalEnv
             R.withProtected (return $ mkSEXP $ \x -> return $ x + 1 :: R Double) $
-              \sf -> R.unSomeSEXP (R.r2 (Data.ByteString.Char8.pack ".Call")
-                                        sf
-                                        (mkSEXP (2::Double))) $
-                                  \s -> R.cast R.Real <$> R.tryEval s e p
+              \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
+                          sf
+                          (mkSEXP (2::Double))
+                     >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s e p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
       key  <- return $ mkSEXP (return 4 :: R Int32)
       val  <- return $ mkSEXP (return 5 :: R Int32)
