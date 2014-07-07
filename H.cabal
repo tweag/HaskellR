@@ -39,6 +39,7 @@ library
                        Language.R.Literal
                        Language.R.QQ
                        Language.R.Runtime.QQ
+                       Control.Monad.R
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error
@@ -58,6 +59,7 @@ library
                      , singletons >= 0.9
                      , th-lift >= 0.6
                      , transformers >= 0.3
+                     , deepseq >= 1.3
   hs-source-dirs:      src
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
