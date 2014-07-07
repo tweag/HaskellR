@@ -16,14 +16,27 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
 
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Control.Monad.R
   ( -- * The R monad
-    R
+    R(..)
   , runR
+    -- * Regions
+    -- $regions
+  , runRegion
+  , protectRegion
+  , protectSomeRegion
+  , unsafeRunRegion
+  , protect
+  , liftProtect 
+  , liftProtectSome
+
+    -- * Monad modificators
   , unsafeRToIO
+  , unsafeIOToR
   , unsafeRunInRThread
+  , unsafePerformR
   , Config(..)
   , defaultConfig
   -- * R instance creation
@@ -43,25 +56,30 @@ module Control.Monad.R
   , rInputHandlersPtr
   ) where
 
-import           Control.Monad.R.Class
 import           Foreign.R.Runner
+import qualified Foreign.R.Internal as R
+import           Control.Monad.R.Class
+
 
 import Control.Applicative
-import Control.Exception ( bracket_ )
 #if MIN_VERSION_exceptions(0,6,0)
-import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
+import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow, mask_ )
 #elif MIN_VERSION_exceptions(0,4,0)
-import Control.Monad.Catch ( MonadCatch, MonadThrow )
+import Control.Monad.Catch ( MonadCatch, MonadThrow, mask_ )
 #else
-import Control.Monad.Catch ( MonadCatch )
+import Control.Monad.Catch ( MonadCatch, mask_ )
 #endif
+import Control.DeepSeq
+import Control.Exception ( bracket, bracket_, evaluate )
 import Control.Monad.Reader
+import Data.IORef
+import System.IO.Unsafe ( unsafePerformIO )
 
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
 -- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
 -- be lifted to 'R' actions.
-newtype R a = R (IO a)
+newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
 #if MIN_VERSION_exceptions(0,6,0)
   deriving (Monad, MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative)
 #elif MIN_VERSION_exceptions(0,4,0)
@@ -70,18 +88,80 @@ newtype R a = R (IO a)
   deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
 #endif
 
-
-instance MonadR R where
-  io m = R $ unsafeRunInRThread m
+instance MonadR (R s) where
+  io m = unsafeIOToR $ unsafeRunInRThread m
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance.
-runR :: Config -> R a -> IO a
-runR config (R m) = bracket_ (initialize config) finalize m
+--
+-- WARNING. due to the bug in R it's not possible to reinitialize R code, this
+-- means that when this function will exit, then it will not be possible to
+-- run it again or perform any R computaion.
+--
+-- WARNING. Return value is not forced, this means that it's may leak some
+-- computations.
+runR :: Config -> (forall s. R s a) -> IO a
+runR config (R m) = bracket_ (initialize config) finalize (runReaderT m =<< newIORef 0)
+
+-- | Run a R code in a region. See $regions
+--
+-- This function creates a nested region and makes all objects inside a regions
+-- as free.
+--
+-- 'NFData' constraint is used to prevent from leaks of any unevaluated objects
+-- through the pure values.
+runRegion :: NFData a => (forall s. R s a) -> R s' a
+runRegion = R . ReaderT . const . unsafeRunRegion
+
+protectRegion :: (forall s . R s (R.SEXP a)) -> R s' (R.SEXP a)
+protectRegion = R . ReaderT . const . unsafeRunRegion_
+
+protectSomeRegion :: (forall s . R s R.SomeSEXP) -> R s' R.SomeSEXP
+protectSomeRegion = liftProtectSome . unsafeRunRegion_
+
+unsafeRunRegion :: NFData a => (forall s.R s a) -> IO a
+unsafeRunRegion = evaluate . force <=< unsafeRunRegion_
+
+unsafeRunRegion_ :: (forall s.R s a) -> IO a
+unsafeRunRegion_ f =
+   bracket (newIORef 0)
+           (readIORef >=> R.unprotect)
+	   (runReaderT (unR f))
 
 -- | Run an R action in the global R instance from the IO monad. This action is
 -- unsafe in the sense that use of it bypasses any static guarantees provided by
 -- the R monad, in particular that the R instance was indeed initialized and has
 -- not yet been finalized. It is a backdoor that should not normally be used.
-unsafeRToIO :: R a -> IO a
-unsafeRToIO (R m) = m
+--
+-- This call doesn't affect R state so it can't protect or unprotect variables
+-- use with the great caution.
+unsafeRToIO :: R s a -> IO a
+unsafeRToIO (R m) = runReaderT m =<< newIORef 0
+
+-- | Lift IO action into R monad
+unsafeIOToR :: IO a -> R s a
+unsafeIOToR = R . ReaderT . const
+
+-- | 'unsafePerformIO' analogue for R monad.
+unsafePerformR :: R s a -> a
+unsafePerformR r = unsafePerformIO $ unsafeRToIO r
+{-# NOINLINE unsafePerformR #-}
+
+-- $regions
+-- TODO: documentation
+
+protect :: R.SEXP a -> R s (R.SEXP a)
+protect x = liftProtect (evaluate x)
+
+liftProtect :: IO (R.SEXP a) -> R s (R.SEXP a)
+liftProtect f = mask_ $ R . ReaderT $ \cnt -> do
+   z <- R.protect =<< f
+   modifyIORef' cnt succ
+   return z
+
+liftProtectSome :: IO R.SomeSEXP -> R s R.SomeSEXP
+liftProtectSome f = mask_ $ R . ReaderT $ \cnt -> do
+   R.SomeSEXP z <- f
+   k <- R.protect z
+   modifyIORef' cnt succ
+   return (R.SomeSEXP k)
