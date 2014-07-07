@@ -44,9 +44,9 @@ module Language.R.HExp
 
 import H.Internal.Prelude
 import qualified Language.R.Globals as H
-import qualified Foreign.R      as R
+import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as R
-import           Foreign.R (SEXPREC)
+import           Foreign.R.Internal (SEXPREC)
 import           Language.R.GC (withProtected)
 
 import qualified Data.Vector.SEXP as Vector

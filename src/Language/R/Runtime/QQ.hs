@@ -23,7 +23,7 @@ import           H.Internal.Prelude
 import           Language.R.HExp
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import           Language.R ( parseText, withProtected, eval, install )
 import           Control.Exception
 

@@ -27,7 +27,7 @@ import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Language.R ( withProtected )
 

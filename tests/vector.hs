@@ -16,7 +16,7 @@ import qualified Data.Vector.SEXP as V
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as S
 
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import Foreign.R.Type ( IsVector )
 import Data.Singletons (SingI)
 import Foreign.Storable

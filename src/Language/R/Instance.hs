@@ -44,7 +44,7 @@ module Language.R.Instance
 
 import           Control.Monad.R.Class
 import           Control.Concurrent.OSThread
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Embedded as R
 import           Foreign.C.String
 

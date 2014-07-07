@@ -24,7 +24,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-module Foreign.R
+module Foreign.R.Internal
   ( module Foreign.R.Type
     -- * Internal R structures
   , SEXPTYPE(..)

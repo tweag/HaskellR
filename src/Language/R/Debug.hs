@@ -22,7 +22,7 @@ import H.Internal.Prelude
 import Language.R.HExp
 import Language.R.Globals as H
 import Foreign.Storable
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import Foreign.R.Type (IsVector)
 import qualified Data.Vector.SEXP as Vector
 import System.IO.Unsafe ( unsafePerformIO )

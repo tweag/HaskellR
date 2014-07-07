@@ -27,7 +27,7 @@ module H.Prelude
 
 import           Control.Monad.R.Class
 import           H.Internal.Prelude
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import Language.R.HExp
 import qualified Data.Vector.SEXP as Vector
 
