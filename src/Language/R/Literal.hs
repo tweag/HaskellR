@@ -43,12 +43,12 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    mkSEXPIO :: a -> IO (SEXP b)
+    unsafeMkSEXP :: a -> IO (SEXP b)
     fromSEXP :: SEXP c -> a
 
 {-# NOINLINE mkSEXP #-}
 mkSEXP :: Literal a b => a -> SEXP b
-mkSEXP = unsafePerformIO . mkSEXPIO
+mkSEXP = unsafePerformIO . unsafeMkSEXP
 
 {-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)
@@ -88,27 +88,27 @@ mkProtectedSEXPVectorIO ty xs = do
     return z
 
 instance Literal [R.Logical] 'R.Logical where
-    mkSEXPIO = mkSEXPVectorIO sing
+    unsafeMkSEXP = mkSEXPVectorIO sing
     fromSEXP (hexp -> Logical v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
 instance Literal [Int32] R.Int where
-    mkSEXPIO = mkSEXPVectorIO sing
+    unsafeMkSEXP = mkSEXPVectorIO sing
     fromSEXP (hexp -> Int v) = SVector.toList v
     fromSEXP (hexp -> Real v) = map round (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal [Double] 'R.Real where
-    mkSEXPIO = mkSEXPVectorIO sing
+    unsafeMkSEXP = mkSEXPVectorIO sing
     fromSEXP (hexp -> Real v) = SVector.toList v
     fromSEXP (hexp -> Int v) = map fromIntegral (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
 instance Literal [Complex Double] R.Complex where
-    mkSEXPIO = mkSEXPVectorIO sing
+    unsafeMkSEXP = mkSEXPVectorIO sing
     fromSEXP (hexp -> Complex v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
@@ -120,57 +120,57 @@ the (fromSEXP -> xs)
   | otherwise = failure "the" "Not a singleton vector."
 
 instance Literal R.Logical 'R.Logical where
-    mkSEXPIO x = mkSEXPIO [x]
+    unsafeMkSEXP x = unsafeMkSEXP [x]
     fromSEXP x@(hexp -> Logical{}) = the x
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
 instance Literal Int32 R.Int where
-    mkSEXPIO x = mkSEXPIO [x]
+    unsafeMkSEXP x = unsafeMkSEXP [x]
     fromSEXP x@(hexp -> Int{}) = the x
     fromSEXP x@(hexp -> Real{}) = round (the x)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal Double R.Real where
-    mkSEXPIO x = mkSEXPIO [x]
+    unsafeMkSEXP x = unsafeMkSEXP [x]
     fromSEXP x@(hexp -> Real{}) = the x
     fromSEXP x@(hexp -> Int{})  = fromIntegral (the x)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
 instance Literal (Complex Double) R.Complex where
-    mkSEXPIO x = mkSEXPIO [x]
+    unsafeMkSEXP x = unsafeMkSEXP [x]
     fromSEXP x@(hexp -> Complex{}) = the x
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
 instance SingI a => Literal (SEXP a) a where
-    mkSEXPIO  = return
+    unsafeMkSEXP  = return
     fromSEXP = R.cast (fromSing (sing :: SSEXPTYPE a)) . SomeSEXP
 
 instance Literal SomeSEXP R.Any where
     -- The ANYSXP type in R plays the same role as SomeSEXP in H. It is a dummy
     -- type tag, that is never seen in any object. It serves only as a stand-in
     -- when the real type is not known.
-    mkSEXPIO (SomeSEXP s) = return $ R.unsafeCoerce s
+    unsafeMkSEXP (SomeSEXP s) = return $ R.unsafeCoerce s
     fromSEXP = SomeSEXP
 
 instance Literal String R.String where
-    mkSEXPIO x = R.mkString =<< newCString x
+    unsafeMkSEXP x = R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
 instance Literal a b => Literal (R s a) R.ExtPtr where
-    mkSEXPIO = funToSEXP wrap0
+    unsafeMkSEXP = funToSEXP wrap0
     fromSEXP = unimplemented "Literal (Ra a) fromSEXP"
 
 instance (Literal a a0, Literal b b0) => Literal (a -> R s b) R.ExtPtr where
-    mkSEXPIO = funToSEXP wrap1
+    unsafeMkSEXP = funToSEXP wrap1
     fromSEXP = unimplemented "Literal (a -> R b) fromSEXP"
 
 instance (Literal a a0, Literal b b0, Literal c c0)
          => Literal (a -> b -> R s c) R.ExtPtr where
-    mkSEXPIO   = funToSEXP wrap2
+    unsafeMkSEXP   = funToSEXP wrap2
     fromSEXP = unimplemented "Literal (a -> b -> IO c) fromSEXP"
 
 -- | A class for functions that can be converted to functions on SEXPs.
@@ -178,7 +178,7 @@ class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
 instance Literal a la => HFunWrap (R s a) (IO (SEXP la)) where
-    hFunWrap a = (mkSEXPIO $!) =<< unsafeRToIO a
+    hFunWrap a = (unsafeMkSEXP $!) =<< unsafeRToIO a
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (SEXP la -> wb) where

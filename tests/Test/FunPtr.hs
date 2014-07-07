@@ -37,7 +37,7 @@ foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr () -> IO (R.SEXP R.Any)
 
 instance Literal (HaveWeak a b) R.ExtPtr where
-  mkSEXPIO (HaveWeak a box) = do
+  unsafeMkSEXP (HaveWeak a box) = do
       z <- R.wrap1 a
       putMVar box =<< mkWeakPtr z Nothing
       fmap castPtr . funPtrToSEXP . castFunPtr $ z
