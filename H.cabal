@@ -24,6 +24,7 @@ library
                        Foreign.R.Error
                        Foreign.R.Parse
                        Foreign.R.Type
+                       Foreign.R.Runner
                        H.Constraints
                        H.Prelude
                        H.Prelude.Interactive
