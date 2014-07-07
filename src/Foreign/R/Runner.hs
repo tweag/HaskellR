@@ -1,35 +1,24 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Interaction with an instance of R. The interface in this module allows for
+-- Provide a basic facilities to run R runtime inside a
+-- haskell program. The interface in this module allows for
 -- instantiating an arbitrary number of concurrent R sessions, even though
 -- currently the R library only allows for one global instance, for forward
 -- compatibility.
 --
--- The 'R' monad defined here serves to give static guarantees that an instance
--- is only ever used after it has been initialized and before it is finalized.
---
 -- This module is intended to be imported qualified.
 
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE ImpredicativeTypes #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
-
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-
-module Language.R.Instance
+module Foreign.R.Runner
   ( -- * The R monad
-    R
-  , runR
-  , unsafeRToIO
-  , unsafeRunInRThread
-  , Config(..)
+    Config(..)
   , defaultConfig
   -- * R instance creation
   , initialize
+  , finalize
+  , unsafeRunInRThread
   -- * R global constants
   -- $ghci-bug
   , pokeRVariables
@@ -43,9 +32,8 @@ module Language.R.Instance
   , getPostToCurrentRThread
   ) where
 
-import           Control.Monad.R.Class
 import           Control.Concurrent.OSThread
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Embedded as R
 import           Foreign.C.String
 
@@ -67,20 +55,20 @@ import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
     ( SomeException
     , AsyncException(ThreadKilled)
-    , bracket_
     , finally
     , throwIO
     , try
     )
+{-
 #if MIN_VERSION_exceptions(0,6,0)
-import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
+import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow, bracket )
 #elif MIN_VERSION_exceptions(0,4,0)
-import Control.Monad.Catch ( MonadCatch, MonadThrow )
+import Control.Monad.Catch ( MonadCatch, MonadThrow, bracket )
 #else
-import Control.Monad.Catch ( MonadCatch )
+import Control.Monad.Catch ( MonadCatch, bracket )
 #endif
+-}
 import Control.Monad.Reader
-
 import Foreign
     ( Ptr
     , StablePtr
@@ -102,41 +90,16 @@ import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
 
--- | The 'R' monad, for sequencing actions interacting with a single instance of
--- the R interpreter, much as the 'IO' monad sequences actions interacting with
--- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
--- be lifted to 'R' actions.
-newtype R a = R { _unR :: IO a }
-#if MIN_VERSION_exceptions(0,6,0)
-  deriving (Monad, MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative)
-#elif MIN_VERSION_exceptions(0,4,0)
-  deriving (Monad, MonadIO, Functor, MonadCatch, MonadThrow, Applicative)
-#else
-  deriving (Monad, MonadIO, Functor, MonadCatch, Applicative)
-#endif
-
-
-instance MonadR R where
-  io m = R $ unsafeRunInRThread m
-
--- | Initialize a new instance of R, execute actions that interact with the
--- R instance and then finalize the instance.
-runR :: Config -> R a -> IO a
-runR config (R m) = bracket_ (initialize config) finalize m
-
--- | Run an R action in the global R instance from the IO monad. This action is
--- unsafe in the sense that use of it doesn't make sure that an R instance was
--- indeed initialized and has not yet been finalized. It is a backdoor that
--- should not normally be used.
-unsafeRToIO :: R a -> IO a
-unsafeRToIO (R m) = m
-
 -- | Configuration options for R runtime.
 data Config = Config
     { configProgName :: Maybe String    -- ^ Program name. If 'Nothing' then
                                         -- value of 'getProgName' will be used.
     , configArgs     :: [String]        -- ^ Command-line arguments.
     }
+
+---------------------------------------------------------------------------------
+-- Utilities to run R
+---------------------------------------------------------------------------------
 
 defaultConfig :: Config
 defaultConfig = Config Nothing ["--vanilla", "--silent"]
@@ -280,6 +243,7 @@ unsafeRunInRThread action = do
     postToRThread_ $ try action >>= putMVar mv
     takeMVar mv >>= either (throwIO :: SomeException -> IO a) return
 
+
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
 --
@@ -320,5 +284,6 @@ peekRVariables = unsafePerformIO $ peek rVariables >>= deRefStablePtr
  , rInteractive
  , rInputHandlersPtr
  ) = peekRVariables
+
 
 foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)

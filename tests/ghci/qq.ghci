@@ -1,7 +1,7 @@
 :set -XDataKinds
 :set -XScopedTypeVariables
 :m +Data.Int
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 
 -- Should be: [1] 1
 H.print =<< [r| 1 |]
@@ -87,7 +87,7 @@ H.print =<< [r| base::`+`(10,10) |]
 _ <- [r| `+` <- base::`+` |]
 
 :{
-let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R (Foreign.R.SEXP Foreign.R.Int)
+let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
     hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
     hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
     hFib n                              = H.withProtected (return n) $ const $

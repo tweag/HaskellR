@@ -8,13 +8,12 @@
 {-# Language ViewPatterns #-}
 
 module H.Prelude
-  ( module Language.R.Instance
-  , module Control.Monad.R.Class
+  ( module Control.Monad.R
   , module Foreign.R.Error
   -- * Language.R functions
   , module Language.R
   -- * Literals
-  , module Language.R.Literal
+  , module Language.R.Literal.Unsafe
   -- * Globals
   , module Language.R.Globals
   , Show(..)
@@ -25,19 +24,19 @@ module H.Prelude
   ) where
 
 
-import           Control.Monad.R.Class
 import           H.Internal.Prelude
-import qualified Foreign.R as R
-import Language.R.HExp
+import qualified Foreign.R.Internal as R
+import Language.R.HExp.Unsafe
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
+import           Control.Monad.R
 import           Language.R.Globals
-import           Language.R.Literal
-import Language.R.Instance
+import           Language.R.Literal.Unsafe
 import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )
 import Foreign.R.Error
+
 
 import Control.Monad.Catch
 import qualified Data.Text.Lazy.IO as Text

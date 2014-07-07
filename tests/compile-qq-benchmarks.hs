@@ -10,7 +10,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 
-import Foreign.R as R
+import Foreign.R.Internal as R
 import Language.R as R
 import H.Prelude as H
 import Language.R.QQ
