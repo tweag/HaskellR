@@ -27,4 +27,4 @@ Language.R.pokeRVariables
     , Foreign.R.Internal.rInputHandlers
     )
 :}
-Language.R.Instance.initialize Language.R.Instance.defaultConfig
+Foreign.R.Runner.initialize Foreign.R.Runner.defaultConfig

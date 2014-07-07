@@ -8,7 +8,7 @@
 {-# Language ViewPatterns #-}
 
 module H.Prelude
-  ( module Language.R.Instance
+  ( module Control.Monad.R
   , module Control.Monad.R.Class
   , module Foreign.R.Error
   -- * Language.R functions
@@ -32,9 +32,9 @@ import Language.R.HExp
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
+import           Control.Monad.R
 import           Language.R.Globals
 import           Language.R.Literal
-import Language.R.Instance
 import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )
 import Foreign.R.Error

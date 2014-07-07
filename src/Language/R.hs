@@ -23,7 +23,8 @@ module Language.R
   , eval_
   -- * R global constants
   -- $ghci-bug
-  , module Language.R.Instance
+  , module Foreign.R.Runner
+  , module Control.Monad.R
   -- * Exceptions
   , throwR
   , throwRMessage
@@ -34,13 +35,14 @@ module Language.R
 
 import qualified Data.Vector.SEXP as Vector
 import Control.Monad.R.Class
+import Control.Monad.R
 import Foreign.R.Internal (SEXP, SomeSEXP(..))
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
+import           Foreign.R.Runner
 import           Language.R.GC
 import           Language.R.HExp
-import           Language.R.Instance
 
 import Control.Applicative
 import Control.Exception ( throwIO )

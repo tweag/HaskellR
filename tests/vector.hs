@@ -20,7 +20,7 @@ import qualified Foreign.R.Internal as R
 import Foreign.R.Type ( IsVector )
 import Data.Singletons (SingI)
 import Foreign.Storable
-import qualified Language.R.Instance as R
+import qualified Foreign.R.Runner as R
     ( initialize
     , defaultConfig )
 

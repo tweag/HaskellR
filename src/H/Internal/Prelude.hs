@@ -6,13 +6,15 @@
 module H.Internal.Prelude
   ( module H.Internal.Error
   , module Foreign.R.Internal
-  , module Language.R.Instance
+  , module Foreign.R.Runner
   , module H.Constraints
+  , module Control.Monad.R
   , module Control.Monad.R.Class
   ) where
 
 import Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import H.Constraints
 import H.Internal.Error
-import Language.R.Instance
+import Foreign.R.Runner
+import Control.Monad.R
 import Control.Monad.R.Class

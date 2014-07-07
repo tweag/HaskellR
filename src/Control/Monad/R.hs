@@ -24,6 +24,7 @@ module Control.Monad.R
 
 import           Foreign.R.Runner
 import qualified Foreign.R.Internal as R
+import           Control.Monad.R.Class
 
 import 		Control.Monad.Catch
 #if MIN_VERSION_exceptions(0,6,0)
@@ -53,6 +54,9 @@ newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
 #else
   deriving (Monad, MonadIO, Functor, MonadCatch, Applicative, MonadReader (IORef Int))
 #endif
+
+instance MonadR (R s) where
+  io m = unsafeIOToR $ unsafeRunInRThread m
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance.

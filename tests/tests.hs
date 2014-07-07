@@ -15,7 +15,7 @@ import H.Prelude
 import H.Constraints
 import qualified Language.R.HExp as H
 import qualified Foreign.R.Internal as R
-import qualified Language.R.Instance as R
+import qualified Foreign.R.Runner as R
     ( initialize
     , defaultConfig )
 import qualified Language.R as R
