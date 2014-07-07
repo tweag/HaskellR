@@ -19,7 +19,7 @@ generate ix =
           return $ r * (1 + 0.01 * v)
   where x = fromIntegral ix
 
-generate_lifted :: [Int32] -> R [Double]
+generate_lifted :: [Int32] -> R s [Double]
 generate_lifted = io .  (mapM generate)
 
 data Poly = Poly [Int]

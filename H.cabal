@@ -58,6 +58,7 @@ library
                        Foreign.R.Parse
                        Foreign.R.Type
                        Foreign.R.Runner
+                       Foreign.R
                        H.Constraints
                        H.Prelude
                        H.Prelude.Interactive
@@ -90,6 +91,7 @@ library
                      , singletons >= 0.9
                      , th-lift >= 0.6
                      , transformers >= 0.3
+                     , deepseq >= 1.3
   hs-source-dirs:      src
   includes:            cbits/Hcompat.h cbits/missing_r.h
   c-sources:           cbits/missing_r.c

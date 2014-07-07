@@ -10,6 +10,7 @@ module Main where
 import qualified Test.Constraints
 import qualified Test.FunPtr
 import qualified Test.RVal
+import qualified Test.Regions
 
 import H.Prelude
 import H.Constraints
@@ -163,14 +164,14 @@ unitTests = testGroup "Unit tests"
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
-            R.withProtected (return $ mkSEXP $ \x -> return $ x + 1 :: R Double) $
+            R.withProtected (return $ mkSEXP $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
                           sf
                           (mkSEXP (2::Double))
                      >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s e p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
-      key  <- return $ mkSEXP (return 4 :: R Int32)
-      val  <- return $ mkSEXP (return 5 :: R Int32)
+      key  <- return $ mkSEXP (return 4 :: R s Int32)
+      val  <- return $ mkSEXP (return 5 :: R s Int32)
       True <- return $ R.typeOf val == R.ExtPtr
       rf   <- R.mkWeakRef key val (H.unhexp H.Nil) True 
       True <- case H.hexp rf of
@@ -182,6 +183,7 @@ unitTests = testGroup "Unit tests"
       return ()
   , Test.Constraints.tests
   , Test.FunPtr.tests
+  , Test.Regions.tests
   , Test.RVal.tests
   , testCase "sanity check " $ unsafeRunInRThread $ return ()
   ]
