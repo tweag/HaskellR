@@ -73,9 +73,9 @@ thWrapperLiteral n = do
             f tv1 tv2 = classP (mkName "Literal") [varT tv1, varT tv2]
         typ = conT (mkName "Literal") `appT` mkTy tyvars1 `appT` conT (mkName "R.ExtPtr")
     instanceD ctx typ
-      [ funD (mkName "mkSEXPIO")
+      [ funD (mkName "unsafeMkSEXP")
              [ clause []
-                      (normalB $ appE (varE (mkName "Language.R.Literal.funToSEXP"))
+                      (normalB $ appE (varE (mkName "Language.R.Literal.Unsafe.funToSEXP"))
                                       (varE (mkName ("wrap" ++ show n))))
                       [] ]
       , funD (mkName "fromSEXP")

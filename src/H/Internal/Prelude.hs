@@ -5,14 +5,14 @@
 
 module H.Internal.Prelude
   ( module H.Internal.Error
-  , module Foreign.R
-  , module Language.R.Instance
+  , module Foreign.R.Internal
+  , module Foreign.R.Runner
   , module H.Constraints
-  , module Control.Monad.R.Class
+  , module Control.Monad.R
   ) where
 
-import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
+import Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import H.Constraints
 import H.Internal.Error
-import Language.R.Instance
-import Control.Monad.R.Class
+import Foreign.R.Runner
+import Control.Monad.R

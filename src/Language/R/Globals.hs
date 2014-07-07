@@ -12,8 +12,8 @@ module Language.R.Globals
   ) where
 
 import Foreign ( peek )
-import Foreign.R  (SEXP, SEXPTYPE(..))
-import qualified Language.R.Instance as R
+import Foreign.R.Internal  (SEXP, SEXPTYPE(..))
+import qualified Foreign.R.Runner as R
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Special value to which all symbols unbound in the current environment

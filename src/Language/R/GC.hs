@@ -30,7 +30,7 @@ import Control.Applicative
 import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr, castPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Concurrent ( newForeignPtr )
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 
 import Control.Monad.Catch ( MonadCatch, MonadMask, bracket )
 import Control.Monad.Trans ( MonadIO(..) )

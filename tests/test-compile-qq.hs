@@ -11,7 +11,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Main where
 
-import Foreign.R as R
+import Foreign.R.Internal as R
 import H.Prelude as H
 import Language.R.QQ
 import Data.Int

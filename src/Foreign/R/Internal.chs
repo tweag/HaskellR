@@ -24,7 +24,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-module Foreign.R
+module Foreign.R.Internal
   ( module Foreign.R.Type
     -- * Internal R structures
   , SEXPTYPE(..)
@@ -136,7 +136,7 @@ module Foreign.R
   , unsexp
   ) where
 
-import {-# SOURCE #-} Language.R.HExp
+import {-# SOURCE #-} Language.R.HExp.Unsafe
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
