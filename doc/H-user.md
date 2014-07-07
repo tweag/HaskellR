@@ -82,7 +82,7 @@ to splice the Haskell value.
     H> H.printQuote [r| x_hs + x_hs |]
     [1] 4
 
-    H> let f x = return (x + 1) :: R Double
+    H> let f x = return (x + 1) :: R s Double
     H> H.printQuote [r| f_hs(1) |]
     [1] 2
 
@@ -164,9 +164,9 @@ provided to initialize R and to run `R` computations in the `IO`
 monad.
 
 ```Haskell
-runR         :: Config -> R a -> IO a
-io           :: IO a -> R a
-unsafeRToIO  :: R a -> IO a
+runR         :: Config -> (forall s. R s a) -> IO a
+io           :: IO a -> R s a
+unsafeRToIO  :: R s a -> IO a
 ```
 
 The `IO` monad is used instead in GHCi, as it allows evaluating
@@ -182,7 +182,7 @@ computations to the R thread.
 Additionally, callback functions passed from Haskell to R are expected
 to produce computations in the `R` monad, as in the example shown in
 the previous section, where the type given to `f` is `Double ->
-R Double`.
+R s Double`.
 
 How to analyze R values in Haskell
 ==================================
@@ -573,7 +573,7 @@ import Foreign.R (SEXP, SEXPTYPE)
 import Language.R.Instance as R
 import Language.R.QQ
 
-hello :: String -> R ()
+hello :: String -> R s ()
 hello name = do
     [r| print(s_hs) |]
     return ()
