@@ -124,3 +124,10 @@ let testpm (SomeSEXP z) = case hexp z of
 :}
 
 testpm x
+
+-- Should be "S4". Get type of H object.
+-- XXX This is a workaround to avoid the test hanging on windows.
+-- For some reason, if the output of ghci is redirected and the last
+-- command in the test is `testpm x`, then ghci executes all commands
+-- but does not produce any R output and seems to block forever.
+H.print =<< [r| typeof(x_hs) |]

@@ -81,6 +81,7 @@ r1 fn a =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
         withProtected (R.lang2 f a) evalIO
+{-# NOINLINE r1 #-}
 
 -- | Call a pure binary R function. See 'r1' for additional comments.
 r2 :: ByteString -> SEXP a -> SEXP b -> SomeSEXP
@@ -88,6 +89,7 @@ r2 fn a b =
     unsafePerformIO $
       useAsCString fn $ \cfn -> R.install cfn >>= \f ->
       withProtected (R.lang3 f a b) evalIO
+{-# NOINLINE r2 #-}
 
 -- | Parse file and perform some actions on parsed file.
 --
