@@ -18,9 +18,7 @@ import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Runner as R
     ( initialize
     , defaultConfig )
-import qualified Language.R as R
-    ( withProtected
-    , r2 )
+import qualified Language.R as R ( r2 )
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
