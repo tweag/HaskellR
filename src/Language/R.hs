@@ -21,6 +21,7 @@ module Language.R
   , eval
   , evalEnv
   , eval_
+  , evalIO
   -- * R global constants
   -- $ghci-bug
   , module Foreign.R.Runner
