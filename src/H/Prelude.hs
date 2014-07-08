@@ -9,7 +9,6 @@
 
 module H.Prelude
   ( module Control.Monad.R
-  , module Control.Monad.R.Class
   , module Foreign.R.Error
   -- * Language.R functions
   , module Language.R
@@ -25,7 +24,6 @@ module H.Prelude
   ) where
 
 
-import           Control.Monad.R.Class
 import           H.Internal.Prelude
 import qualified Foreign.R.Internal as R
 import Language.R.HExp

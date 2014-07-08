@@ -9,7 +9,6 @@ module H.Internal.Prelude
   , module Foreign.R.Runner
   , module H.Constraints
   , module Control.Monad.R
-  , module Control.Monad.R.Class
   ) where
 
 import Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
@@ -17,4 +16,3 @@ import H.Constraints
 import H.Internal.Error
 import Foreign.R.Runner
 import Control.Monad.R
-import Control.Monad.R.Class

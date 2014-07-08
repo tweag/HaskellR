@@ -11,6 +11,8 @@ module Control.Monad.R
   ( -- * The R monad
     R(..)
   , runR
+  , io
+  , MonadR
     -- * Regions
     -- $regions
   , runRegion

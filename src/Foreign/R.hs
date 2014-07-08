@@ -96,9 +96,8 @@ module Foreign.R
   , withProtected
   ) where
 
-import           Control.Monad.R (R(..), unsafeIOToR)
+import           Control.Monad.R (R(..),MonadR,io, unsafeIOToR)
 import qualified Control.Monad.R as MonadR
-import           Control.Monad.R.Class
 import           Foreign.R.Internal (SEXPTYPE(..), SSEXPTYPE)
 import           Foreign.R.Internal ( CEType )
 import qualified Foreign.R.Internal as Internal
