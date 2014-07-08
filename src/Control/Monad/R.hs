@@ -16,6 +16,9 @@ module Control.Monad.R
     -- * Regions
     -- $regions
   , runRegion
+  , protectRegion
+  , protectSomeRegion
+  , unsafeRunRegion
   , protect
   , liftProtect 
   , liftProtectSome
@@ -83,7 +86,19 @@ runR config (R m) = bracket_ (initialize config) finalize (runReaderT m =<< newI
 -- 'NFData' constraint is used to prevent from leaks of any unevaluated objects
 -- through the pure values.
 runRegion :: NFData a => (forall s. R s a) -> R s' a
-runRegion f = R $ ReaderT $ \_ -> do 
+runRegion = R . ReaderT . const . unsafeRunRegion
+
+protectRegion :: (forall s . R s (R.SEXP a)) -> R s' (R.SEXP a)
+protectRegion = R . ReaderT . const . unsafeRunRegion_
+
+protectSomeRegion :: (forall s . R s R.SomeSEXP) -> R s' R.SomeSEXP
+protectSomeRegion = liftProtectSome . unsafeRunRegion_
+
+unsafeRunRegion :: NFData a => (forall s.R s a) -> IO a
+unsafeRunRegion = evaluate . force <=< unsafeRunRegion_
+
+unsafeRunRegion_ :: (forall s.R s a) -> IO a
+unsafeRunRegion_ f =
    bracket (newIORef 0)
            (readIORef >=> R.unprotect)
 	   (runReaderT (unR f))
