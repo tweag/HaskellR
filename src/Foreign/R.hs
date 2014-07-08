@@ -226,34 +226,34 @@ unsafeCoerce = SEXP . castPtr . unSEXP
 
 -- | Initialize a new string vector.
 mkString :: CString -> R s (SEXP s Internal.String)
-mkString = protect <=< liftIO . Internal.mkString
+mkString = liftProtect . Internal.mkString
 
 -- | Initialize a new character vector (aka a string).
 mkChar :: CString -> R s (SEXP s Internal.Char)
-mkChar = protect <=< liftIO . Internal.mkChar
+mkChar = liftProtect . Internal.mkChar
 
 -- | Create Character value with specified encoding
 mkCharCE :: CString -> CEType -> R s (SEXP s Internal.Char)
-mkCharCE s t = protect =<< liftIO (Internal.mkCharCE s t)
+mkCharCE s t = liftProtect $ Internal.mkCharCE s t
 
 -- | Probe the symbol table
 install :: CString -> R s (SEXP s Internal.Symbol)
-install = protect <=< liftIO  . Internal.install
+install = liftProtect . Internal.install
 
 -- | Allocate a 'SEXP'.
 allocSEXP :: SSEXPTYPE a -> R s (SEXP s a)
-allocSEXP = protect <=< liftIO . Internal.allocSEXP
+allocSEXP = liftProtect . Internal.allocSEXP
 
 -- | Allocate a pairlist of 'SEXP's, chained together.
 allocList :: Int -> R s (SEXP s Internal.List)
-allocList = protect <=< liftIO . Internal.allocList
+allocList = liftProtect . Internal.allocList
 
 -- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
 cons :: SEXP s a -> SEXP s b -> R s (SEXP s Internal.List)
-cons a b = protect =<< liftIO (Internal.cons (unSEXP a) (unSEXP b))
+cons a b = liftProtect $ Internal.cons (unSEXP a) (unSEXP b)
 
 mkWeakRef :: SEXP s a -> SEXP s b -> SEXP s c -> Bool -> R s (SEXP s Internal.WeakRef)
-mkWeakRef a b c d = protect =<< liftIO (Internal.mkWeakRef (unSEXP a) (unSEXP b) (unSEXP c) d)
+mkWeakRef a b c d = liftProtect $ Internal.mkWeakRef (unSEXP a) (unSEXP b) (unSEXP c) d
 
 --
 -- | Print a string representation of a 'SEXP' on the console.
@@ -279,32 +279,32 @@ gc = unsafeIOToR Internal.gc
 
 -- | Evaluate any 'SEXP' to its value.
 eval :: SEXP s' a -> SEXP s'' Env -> R s (SomeSEXP s)
-eval a b = protectSome <=< unsafeIOToR $ Internal.eval (unSEXP a) (unSEXP b)
+eval a b = liftProtectSome $ Internal.eval (unSEXP a) (unSEXP b)
 
 -- | Try to evaluate expression.
 tryEval :: SEXP s' a -> SEXP s'' Env -> Ptr CInt -> R s (SomeSEXP s)
-tryEval a b c = protectSome <=< unsafeIOToR $ Internal.tryEval (unSEXP a) (unSEXP b) c
+tryEval a b c = liftProtectSome $ Internal.tryEval (unSEXP a) (unSEXP b) c
 
 -- | Try to evaluate without printing error/warning messages to stdout.
 tryEvalSilent :: SEXP s' a -> SEXP s'' Env -> Ptr CInt -> R s (SomeSEXP s)
-tryEvalSilent a b c = protectSome <=< unsafeIOToR $ Internal.tryEvalSilent (unSEXP a) (unSEXP b) c
+tryEvalSilent a b c = liftProtectSome $ Internal.tryEvalSilent (unSEXP a) (unSEXP b) c
 
 lang1 :: SEXP s a -> R s (SEXP s Internal.Lang)
-lang1 = protect <=< liftIO . Internal.lang1 . unSEXP
+lang1 = liftProtect . Internal.lang1 . unSEXP
 
 lang2 :: SEXP s a -> SEXP s b ->  R s (SEXP s Internal.Lang)
-lang2 a b = protect =<< liftIO (Internal.lang2 (unSEXP a) (unSEXP b))
+lang2 a b = liftProtect $ Internal.lang2 (unSEXP a) (unSEXP b)
 
 lang3 :: SEXP s a -> SEXP s b -> SEXP s c -> R s (SEXP s Internal.Lang)
-lang3 a b c = protect =<< liftIO (Internal.lang3 (unSEXP a) (unSEXP b) (unSEXP c))
+lang3 a b c = liftProtect $ Internal.lang3 (unSEXP a) (unSEXP b) (unSEXP c)
 
 -- | Find a function by name.
 findFun :: SEXP s a -> SEXP s Env -> R s (SomeSEXP s)
-findFun a e = protectSome =<< liftIO (Internal.findFun (unSEXP a) (unSEXP e))
+findFun a e = liftProtectSome $ Internal.findFun (unSEXP a) (unSEXP e)
 
 -- | Find a variable by name.
 findVar :: SEXP s a -> SEXP s Env -> R s (SEXP s Internal.Symbol)
-findVar a e = protect =<< liftIO (Internal.findVar (unSEXP a) (unSEXP e))
+findVar a e = liftProtect $ Internal.findVar (unSEXP a) (unSEXP e)
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
@@ -370,3 +370,8 @@ withProtected acquire f =
      (const $ io $ Internal.unprotect 1)
      $ f . SEXP
 
+liftProtect :: IO (Internal.SEXP a) -> R s (SEXP s a)
+liftProtect = fmap SEXP . MonadR.liftProtect
+
+liftProtectSome :: IO Internal.SomeSEXP -> R s (SomeSEXP s)
+liftProtectSome = fmap (\(Internal.SomeSEXP s) -> SomeSEXP (SEXP s)) . MonadR.liftProtectSome

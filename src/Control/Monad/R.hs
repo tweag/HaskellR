@@ -17,6 +17,9 @@ module Control.Monad.R
     -- $regions
   , runRegion
   , protect
+  , liftProtect 
+  , liftProtectSome
+
     -- * Monad modificators
   , unsafeRToIO
   , unsafeIOToR
@@ -38,7 +41,7 @@ import 		Control.Monad.Catch
 #endif
 
 import Control.Applicative
-import Control.Exception ( bracket, bracket_ )
+import Control.Exception ( bracket, bracket_, evaluate )
 import Control.DeepSeq
 import Control.Monad.Reader
 import Data.IORef
@@ -108,6 +111,17 @@ unsafePerformR r = unsafePerformIO $ unsafeRToIO r
 -- TODO: documentation
 
 protect :: R.SEXP a -> R s (R.SEXP a)
-protect x = mask_ $ R . ReaderT $ \cnt -> do
+protect x = liftProtect (evaluate x)
+
+liftProtect :: IO (R.SEXP a) -> R s (R.SEXP a)
+liftProtect f = mask_ $ R . ReaderT $ \cnt -> do
+   z <- R.protect =<< f
    modifyIORef' cnt succ
-   R.protect x
+   return z
+
+liftProtectSome :: IO R.SomeSEXP -> R s R.SomeSEXP
+liftProtectSome f = mask_ $ R . ReaderT $ \cnt -> do
+   R.SomeSEXP z <- f
+   k <- R.protect z
+   modifyIORef' cnt succ
+   return (R.SomeSEXP k)
