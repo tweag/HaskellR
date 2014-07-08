@@ -12,7 +12,6 @@
 
 module Language.R.Literal.Unsafe
   ( Literal(..)
-  , mkSEXP
   , mkSEXPVector
   , mkSEXPVectorIO
   , HFunWrap(..)
@@ -47,9 +46,6 @@ class Literal a b | a -> b where
     unsafeMkSEXP :: a -> IO (SEXP b)
     fromSEXP :: SEXP c -> a
 
-{-# NOINLINE mkSEXP #-}
-mkSEXP :: Literal a b => a -> SEXP b
-mkSEXP = unsafePerformIO . unsafeMkSEXP
 
 {-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)

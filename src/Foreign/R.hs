@@ -93,6 +93,8 @@ module Foreign.R
   , wrapCallback
   , protect
   , protectSome
+  , liftProtect
+  , liftProtectSome
   , withProtected
   ) where
 
