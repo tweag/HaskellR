@@ -25,8 +25,9 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
-  ( -- * Internal R structures
-    SEXPTYPE(..)
+  ( module Control.Monad.R
+  -- * Internal R structures
+  , SEXPTYPE(..)
   , Internal.Logical(..)
   , SEXP(..)
   , SomeSEXP(..)
@@ -96,7 +97,7 @@ module Foreign.R
   , withProtected
   ) where
 
-import           Control.Monad.R (R(..),MonadR,io, unsafeIOToR)
+import           Control.Monad.R (R(..),MonadR,io, unsafeIOToR, unsafeRToIO)
 import qualified Control.Monad.R as MonadR
 import           Foreign.R.Internal (SEXPTYPE(..), SSEXPTYPE)
 import           Foreign.R.Internal ( CEType )

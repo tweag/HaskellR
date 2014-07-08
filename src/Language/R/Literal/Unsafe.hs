@@ -19,17 +19,18 @@ module Language.R.Literal.Unsafe
   , funToSEXP
   , mkProtectedSEXPVector
   , mkProtectedSEXPVectorIO
-    -- * wrapper helpers
   ) where
 
-import           H.Internal.Prelude
+import           H.Internal.Error
 import           Language.R.HExp.Unsafe
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector
+import           Foreign.R.Internal (SEXP, SomeSEXP(..))
 import qualified Foreign.R.Internal as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Language.R ( withProtected )
+import           Foreign.R (R(..), unsafeRToIO)
 
 import Data.Singletons ( SingI, fromSing, sing )
 
