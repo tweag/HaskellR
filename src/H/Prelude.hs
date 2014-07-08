@@ -13,7 +13,7 @@ module H.Prelude
   -- * Language.R functions
   , module Language.R
   -- * Literals
-  , module Language.R.Literal.Unsafe
+  , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
   , Show(..)
@@ -26,13 +26,14 @@ module H.Prelude
 
 import           H.Internal.Prelude
 import qualified Foreign.R.Internal as R
+import qualified Foreign.R as FR
 import Language.R.HExp.Unsafe
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
 import           Control.Monad.R
 import           Language.R.Globals
-import           Language.R.Literal.Unsafe
+import           Language.R.Literal
 import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )
 import Foreign.R.Error
@@ -80,6 +81,15 @@ instance Show (SEXP a) where
 instance Show R.SomeSEXP where
   showIO s = R.unSomeSEXP s showIO
   print s = R.unSomeSEXP s print
+
+
+instance Show (FR.SEXP s a) where
+  showIO (FR.SEXP s) = showIO s
+  print  (FR.SEXP s) = print s
+
+instance Show (FR.SomeSEXP s) where
+  showIO (FR.SomeSEXP s) = showIO s
+  print  (FR.SomeSEXP s) = print s
 
 #if MIN_VERSION_exceptions(0,6,0)
 withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
