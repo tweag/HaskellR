@@ -14,7 +14,7 @@ module Test.FunPtr
 
 import H.Prelude
 import qualified Language.R.Internal.FunWrappers as R
-import qualified Foreign.R.Internal as R
+import qualified Foreign.R.Internal as R hiding (withProtected)
 import qualified Foreign.R.Type as SingR
 import qualified Language.R as R (withProtected, r2)
 

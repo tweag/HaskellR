@@ -12,6 +12,7 @@
 module Main where
 
 import Foreign.R.Internal as R
+import qualified Foreign.R
 import H.Prelude as H
 import Language.R.QQ
 import Data.Int
@@ -54,19 +55,18 @@ main = do
 mkSEXP' :: Literal a b => a -> R.SEXP b
 mkSEXP' = unsafePerformIO . unsafeMkSEXP
 
-
-hFib :: SEXP R.Int -> R s (SEXP R.Int)
-hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-hFib n@(fromSEXP -> (1 :: Int32))  = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-hFib n                            = withProtected (return n) $ const $
-    fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+hFib :: R.SEXP R.Int -> R s (R.SEXP R.Int)
+hFib (H.fromSEXP -> (0 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
+hFib (H.fromSEXP -> (1 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
+hFib n = protectRegion $ do
+    fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 
 rTests :: IO ()
 rTests = H.runR H.defaultConfig $ do
 
     -- Should be [1] 4181
     -- Placing it before enabling gctorture2 for speed.
-    H.print =<< hFib (mkSEXP' (19 :: Int32))
+    runRegion $ H.print =<< hFib (unsafePerformIO $ (unsafeMkSEXP (19 :: Int32)))
 
     _ <- [r| gctorture2(1,0,TRUE) |]
 
@@ -104,8 +104,8 @@ rTests = H.runR H.defaultConfig $ do
 
     -- Should be [1] 1 2 3 4 5 6 7 8 9 10
     H.print =<< [r| y <- c(1:10) |]
-    let foo1 = (\x -> (return $ x+1 :: R s Double))
-    let foo2 = (\x -> (return $ map (+1) x :: R s [Int32]))
+    let foo1 = (\x -> runRegion (return $ x+1 :: R s Double))
+    let foo2 = (\x -> runRegion (return $ map (+1) x :: R s [Int32]))
 
     -- Should be [1] 2
     H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
@@ -126,10 +126,10 @@ rTests = H.runR H.defaultConfig $ do
     -- Should be NULL
     H.print H.nilValue
 
-    let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
+    let fromSomeSEXP s = Foreign.R.unSomeSEXP s (H.fromSEXP . Foreign.R.unSEXP)
 
     -- Should be [1] 3
-    let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
+    let foo3 = (\n -> runRegion $ fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
     -- | should be 99
@@ -137,12 +137,12 @@ rTests = H.runR H.defaultConfig $ do
     H.print =<< [r| foo4_hs(33, 66) |]
 
     -- Should be [1] 120 but it doesn't work
-    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+    let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
     H.print =<< [r| fact_hs(as.integer(5)) |]
 
     -- Should be [1] 29
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
-    let apply = \(n :: R.Callback) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s R.SomeSEXP
+    let apply = (\n m  -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (R.SomeSEXP . Foreign.R.unSEXP))) [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R s R.SomeSEXP
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
     sym <- H.install "blah"
@@ -157,4 +157,5 @@ rTests = H.runR H.defaultConfig $ do
 
     -- restore usual meaning of `+`
     _ <- [r| `+` <- base::`+` |]
+
     return ()
