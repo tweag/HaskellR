@@ -25,7 +25,8 @@ import           Language.R.Literal.Unsafe
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
-import           Language.R (parseText, installIO, string, eval, withProtected)
+import qualified Foreign.R
+import           Language.R (parseText, installIO, string, eval, withProtected, evalIO)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -91,7 +92,7 @@ parseEval txt = do
   where
     go :: [SomeSEXP] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| H.withProtected (io a) eval |]
+    go [SomeSEXP (returnIO -> a)]    = [| Foreign.R.liftProtectSome $ R.withProtected a evalIO |]
     go (SomeSEXP (returnIO -> a) : as) =
         [| H.withProtected (io a) $ eval >=> \(SomeSEXP s) ->
              H.withProtected (return s) (const $(go as))
