@@ -76,7 +76,7 @@ thWrapperLiteral n = do
     instanceD ctx typ
       [ funD (mkName "unsafeMkSEXP")
              [ clause []
-                      (normalB $ appE (varE (mkName "Language.R.Literal.funToSEXP"))
+                      (normalB $ appE (varE (mkName "Language.R.Literal.Unsafe.funToSEXP"))
                                       (varE (mkName ("wrap" ++ show n))))
                       [] ]
       , funD (mkName "fromSEXP")

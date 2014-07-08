@@ -21,7 +21,7 @@ module Language.R.QQ
 import H.Internal.Prelude
 import qualified H.Prelude as H
 import           Language.R.HExp.Unsafe
-import           Language.R.Literal
+import           Language.R.Literal.Unsafe
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR

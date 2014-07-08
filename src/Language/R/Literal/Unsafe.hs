@@ -10,7 +10,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# Language ViewPatterns #-}
 
-module Language.R.Literal
+module Language.R.Literal.Unsafe
   ( Literal(..)
   , mkSEXP
   , mkSEXPVector
