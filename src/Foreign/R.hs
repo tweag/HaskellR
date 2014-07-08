@@ -106,6 +106,7 @@ import           Foreign.R.Internal ( CEType )
 import qualified Foreign.R.Internal as Internal
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad.Catch ( MonadMask, MonadCatch, bracket )
 import Control.Monad.Reader
 import Foreign (Ptr, castPtr, Storable(..))
@@ -134,7 +135,10 @@ instance Storable (SEXP s a) where
   alignment _ = alignment (undefined :: Ptr (SEXP s a))
   peek ptr = SEXP <$> peek (castPtr ptr)
   poke ptr (SEXP s) = poke (castPtr ptr) s
-  
+
+instance NFData (SEXP s a) where
+  rnf (SEXP s) = rnf (Internal.RPtr s)
+
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
 -- arbitrary type in a @#pointer@ hook).
@@ -167,6 +171,9 @@ instance Storable (SomeSEXP s) where
   alignment _ = alignment (undefined :: SEXP s a)
   peek ptr = SomeSEXP <$> peek (castPtr ptr)
   poke ptr (SomeSEXP s) = poke (castPtr ptr) s
+
+instance NFData (SomeSEXP s) where
+  rnf (SomeSEXP s) = rnf s
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
