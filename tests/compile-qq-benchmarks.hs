@@ -14,6 +14,7 @@ import Foreign.R.Internal as R
 import Language.R as R
 import H.Prelude as H
 import Language.R.QQ
+import Language.R.Literal.Unsafe (unsafeMkSEXP)
 
 import Criterion.Main
 import Data.Int
@@ -43,6 +44,6 @@ main = do
                    , bench "compile-time-qq" $
                        unsafeRToIO [r| fib(18) |]
                    , bench "compile-time-qq-hybrid" $
-                       unsafeRToIO $ hFib $! mkSEXP (18 :: Int32)
+                       unsafeRToIO $ hFib =<< unsafeIOToR (unsafeMkSEXP (18 :: Int32))
                    ]
                ]

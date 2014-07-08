@@ -6,6 +6,7 @@ import Criterion.Main
 import Language.Haskell.TH.Quote
 import System.FilePath
 
+
 :{
 let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
     hFib n@(H.Prelude.fromSEXP -> (0 :: Int32)) = fmap (flip Foreign.R.Internal.asTypeOf n) [r| as.integer(0) |]
@@ -14,7 +15,7 @@ let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (For
         fmap (flip Foreign.R.Internal.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 :}
 
-H.unsafeRToIO $ $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
+H.Prelude.unsafeRToIO $ $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
 
 :{
 defaultMain [
@@ -22,7 +23,7 @@ defaultMain [
       [ bench "runtime-qq" $
           whnfIO $ H.unsafeRToIO [r| fib(10) |]
       , bench "runtime-qq-hybrid" $
-          whnfIO $ H.Prelude.unsafeRToIO $ hFib $ H.Prelude.mkSEXP (10 :: Int32)
+          whnfIO $ H.Prelude.unsafeRToIO $ hFib =<< H.Prelude.unsafeIOToR (Language.R.Literal.Unsafe.unsafeMkSEXP (10 :: Int32))
       ]
    ]
 :}

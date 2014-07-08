@@ -69,6 +69,7 @@ library
                        Language.R.HExp.Unsafe
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
+                       Language.R.Literal
                        Language.R.Literal.Unsafe
                        Language.R.QQ
                        Control.Monad.R

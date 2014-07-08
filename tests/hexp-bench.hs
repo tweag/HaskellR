@@ -24,7 +24,7 @@
 import Foreign.R.Internal (integer, SEXP)
 import qualified Foreign.R.Internal as R (SEXPTYPE(Int), typeOf)
 import H.Prelude (runR, defaultConfig, io)
-import Language.R.Literal.Unsafe (mkSEXP)
+import Language.R.Literal.Unsafe (unsafeMkSEXP)
 import Language.R.HExp.Unsafe (hexp, HExp(..))
 
 import Control.Monad.Primitive
@@ -38,7 +38,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 main :: IO ()
 main = runR defaultConfig $ io $ do
-    let x = mkSEXP (1 :: Int32)
+    x <- unsafeMkSEXP (1 :: Int32)
     defaultMain
       [ bgroup "vector access"
           [ bench "integer" $ whnfIO $ benchInteger x

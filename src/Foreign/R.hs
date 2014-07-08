@@ -89,6 +89,8 @@ module Foreign.R
   -- * Regions
   , protect
   , protectSome
+  , liftProtect
+  , liftProtectSome
   , withProtected
   ) where
 
