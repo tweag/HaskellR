@@ -33,7 +33,7 @@ library
                        Language.R.Debug
                        Language.R.GC
                        Language.R.Globals
-                       Language.R.HExp
+                       Language.R.HExp.Unsafe
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
                        Language.R.Literal

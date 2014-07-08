@@ -23,7 +23,7 @@ module Language.R.Literal
   ) where
 
 import           H.Internal.Prelude
-import           Language.R.HExp
+import           Language.R.HExp.Unsafe
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector

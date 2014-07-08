@@ -134,7 +134,7 @@ module Foreign.R.Internal
   , unsexp
   ) where
 
-import {-# SOURCE #-} Language.R.HExp
+import {-# SOURCE #-} Language.R.HExp.Unsafe
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 

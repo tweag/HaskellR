@@ -7,7 +7,7 @@
 :set -XTemplateHaskell
 :set -XViewPatterns
 
-import Language.R.HExp as H
+import Language.R.HExp.Unsafe as H
 import qualified H.Prelude.Interactive as H
 import Foreign.R.Internal as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)

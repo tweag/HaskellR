@@ -42,7 +42,7 @@ import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
 import           Foreign.R.Runner
 import           Language.R.GC
-import           Language.R.HExp
+import           Language.R.HExp.Unsafe
 
 import Control.Applicative
 import Control.Exception ( throwIO )

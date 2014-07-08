@@ -13,7 +13,7 @@ import qualified Test.RVal
 
 import H.Prelude
 import H.Constraints
-import qualified Language.R.HExp as H
+import qualified Language.R.HExp.Unsafe as H
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Runner as R
     ( initialize

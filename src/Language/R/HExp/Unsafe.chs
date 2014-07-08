@@ -33,7 +33,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Language.R.HExp
+module Language.R.HExp.Unsafe
   ( HExp(..)
   , hexp
   , unhexp

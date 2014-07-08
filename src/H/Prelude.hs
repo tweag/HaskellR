@@ -26,7 +26,7 @@ module H.Prelude
 
 import           H.Internal.Prelude
 import qualified Foreign.R.Internal as R
-import Language.R.HExp
+import Language.R.HExp.Unsafe
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
