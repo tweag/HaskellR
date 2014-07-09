@@ -17,6 +17,7 @@ module H.Prelude
   , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
+  -- * HExp
   , Show(..)
   , show
   , withProtected
