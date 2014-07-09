@@ -68,6 +68,7 @@ library
                        Language.R.GC
                        Language.R.Globals
                        Language.R.Globals.Unsafe
+                       Language.R.HExp
                        Language.R.HExp.Unsafe
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
