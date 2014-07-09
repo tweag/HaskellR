@@ -52,6 +52,7 @@ library
   exposed-modules:     Data.Vector.SEXP
                        Data.Vector.SEXP.Base
                        Data.Vector.SEXP.Mutable
+                       Data.Vector.SEXP.Region
                        Foreign.R.Internal
                        Foreign.R.Embedded
                        Foreign.R.Error

@@ -48,7 +48,7 @@ import qualified Foreign.R.Type as R
 
 import qualified Language.R.HExp.Unsafe as Unsafe
 
-import qualified Data.Vector.SEXP as Vector
+import qualified Data.Vector.SEXP.Region as Vector
 
 import Control.Applicative
 import Data.Int (Int32)
@@ -110,28 +110,28 @@ data HExp :: * -> R.SEXPTYPE -> * where
   -- Fields: offset.
   Builtin   :: {-# UNPACK #-} !Int32
             -> HExp s R.Builtin
-  Char      :: {-# UNPACK #-} !(Vector.Vector R.Char Word8)
+  Char      :: {-# UNPACK #-} !(Vector.MVector s R.Char Word8)
             -> HExp s R.Char
-  Logical   :: {-# UNPACK #-} !(Vector.Vector 'R.Logical R.Logical)
+  Logical   :: {-# UNPACK #-} !(Vector.MVector s 'R.Logical R.Logical)
             -> HExp s 'R.Logical
-  Int       :: {-# UNPACK #-} !(Vector.Vector R.Int Int32)
+  Int       :: {-# UNPACK #-} !(Vector.MVector s R.Int Int32)
             -> HExp s R.Int
-  Real      :: {-# UNPACK #-} !(Vector.Vector R.Real Double)
+  Real      :: {-# UNPACK #-} !(Vector.MVector s R.Real Double)
             -> HExp s R.Real
-  Complex   :: {-# UNPACK #-} !(Vector.Vector R.Complex (Complex Double))
+  Complex   :: {-# UNPACK #-} !(Vector.MVector s R.Complex (Complex Double))
             -> HExp s R.Complex
-  String    :: {-# UNPACK #-} !(Vector.Vector R.String (RI.SEXP R.Char))
+  String    :: {-# UNPACK #-} !(Vector.MVector s R.String (RI.SEXP R.Char))
             -> HExp s R.String
   -- Fields: pairlist of promises.
   DotDotDot :: SEXP s R.PairList
             -> HExp s R.List
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector R.Vector RI.SomeSEXP)
+            -> {-# UNPACK #-} !(Vector.MVector s R.Vector RI.SomeSEXP)
             -> HExp s R.Vector
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector R.Expr RI.SomeSEXP)
+            -> {-# UNPACK #-} !(Vector.MVector s R.Expr RI.SomeSEXP)
             -> HExp s R.Expr
   Bytecode  :: HExp s a -- XXX
   -- Fields: pointer, protectionValue, tagval
@@ -147,7 +147,7 @@ data HExp :: * -> R.SEXPTYPE -> * where
             -> SEXP s c
             -> SEXP s d
             -> HExp s R.WeakRef
-  Raw       :: {-# UNPACK #-} !(Vector.Vector R.Raw Word8)
+  Raw       :: {-# UNPACK #-} !(Vector.MVector s R.Raw Word8)
             -> HExp s R.Raw
   -- Fields: tagval.
   S4        :: SEXP s a
@@ -191,19 +191,19 @@ fromUnsafe (Unsafe.Promise a b c) = Promise (SEXP a) (SEXP b) (SEXP c)
 fromUnsafe (Unsafe.Lang a b )     = Lang (SEXP a) (SEXP <$> b)
 fromUnsafe (Unsafe.Special a)     = Special a
 fromUnsafe (Unsafe.Builtin a)     = Builtin a
-fromUnsafe (Unsafe.Char a)        = Char a
-fromUnsafe (Unsafe.Logical a)     = Logical a
-fromUnsafe (Unsafe.Int a)         = Int a
-fromUnsafe (Unsafe.Real a)        = Real a
-fromUnsafe (Unsafe.Complex a)     = Complex a
-fromUnsafe (Unsafe.String a)      = String a
+fromUnsafe (Unsafe.Char a)        = Char (Vector.fromUnsafeI a)
+fromUnsafe (Unsafe.Logical a)     = Logical (Vector.fromUnsafeI a)
+fromUnsafe (Unsafe.Int a)         = Int (Vector.fromUnsafeI a)
+fromUnsafe (Unsafe.Real a)        = Real (Vector.fromUnsafeI a)
+fromUnsafe (Unsafe.Complex a)     = Complex (Vector.fromUnsafeI a)
+fromUnsafe (Unsafe.String a)      = String (Vector.fromUnsafeI a)
 fromUnsafe (Unsafe.DotDotDot a)   = DotDotDot (SEXP a)
-fromUnsafe (Unsafe.Vector a b)    = Vector a b
-fromUnsafe (Unsafe.Expr a b)      = Expr a b
+fromUnsafe (Unsafe.Vector a b)    = Vector a (Vector.fromUnsafeI b)
+fromUnsafe (Unsafe.Expr a b)      = Expr a (Vector.fromUnsafeI b)
 fromUnsafe (Unsafe.Bytecode)      = Bytecode
 fromUnsafe (Unsafe.ExtPtr a b c)  = ExtPtr a (SEXP b) (SEXP c)
 fromUnsafe (Unsafe.WeakRef a b c d) = WeakRef (SEXP a) (SEXP b) (SEXP c) (SEXP d)
-fromUnsafe (Unsafe.Raw d)         = Raw d
+fromUnsafe (Unsafe.Raw d)         = Raw (Vector.fromUnsafeI d)
 fromUnsafe (Unsafe.S4 a)          = S4 (SEXP a)
 
 toUnsafe :: HExp s a -> Unsafe.HExp a
@@ -216,17 +216,17 @@ toUnsafe (Promise a b c) = Unsafe.Promise (unSEXP a) (unSEXP b) (unSEXP c)
 toUnsafe (Lang a b )     = Unsafe.Lang (unSEXP a) (unSEXP <$> b)
 toUnsafe (Special a)     = Unsafe.Special a
 toUnsafe (Builtin a)     = Unsafe.Builtin a
-toUnsafe (Char a)        = Unsafe.Char a
-toUnsafe (Logical a)     = Unsafe.Logical a
-toUnsafe (Int a)         = Unsafe.Int a
-toUnsafe (Real a)        = Unsafe.Real a
-toUnsafe (Complex a)     = Unsafe.Complex a
-toUnsafe (String a)      = Unsafe.String a
+toUnsafe (Char a)        = Unsafe.Char (Vector.toUnsafeI a)
+toUnsafe (Logical a)     = Unsafe.Logical (Vector.toUnsafeI a)
+toUnsafe (Int a)         = Unsafe.Int (Vector.toUnsafeI a)
+toUnsafe (Real a)        = Unsafe.Real (Vector.toUnsafeI a)
+toUnsafe (Complex a)     = Unsafe.Complex (Vector.toUnsafeI a)
+toUnsafe (String a)      = Unsafe.String (Vector.toUnsafeI a)
 toUnsafe (DotDotDot a)   = Unsafe.DotDotDot (unSEXP a)
-toUnsafe (Vector a b)    = Unsafe.Vector a b
-toUnsafe (Expr a b)      = Unsafe.Expr a b
+toUnsafe (Vector a b)    = Unsafe.Vector a (Vector.toUnsafeI b)
+toUnsafe (Expr a b)      = Unsafe.Expr a (Vector.toUnsafeI b)
 toUnsafe (Bytecode)      = Unsafe.Bytecode
 toUnsafe (ExtPtr a b c)  = Unsafe.ExtPtr a (unSEXP b) (unSEXP c)
 toUnsafe (WeakRef a b c d) = Unsafe.WeakRef (unSEXP a) (unSEXP b) (unSEXP c) (unSEXP d)
-toUnsafe (Raw d)         = Unsafe.Raw d
+toUnsafe (Raw d)         = Unsafe.Raw (Vector.toUnsafeI d)
 toUnsafe (S4 a)          = Unsafe.S4 (unSEXP a)
