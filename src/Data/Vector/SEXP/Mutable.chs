@@ -25,7 +25,7 @@
 module Data.Vector.SEXP.Mutable
   (
     -- * Mutable vectors of 'SEXP' types
-    MVector(..), IOVector, STVector
+    MVector(..), IOVector, STVector, SexpVector
   -- * Accessors
   -- ** Length information
   , length, null
