@@ -1,18 +1,22 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Provide a basic facilities to run R runtime inside a
--- haskell program. The interface in this module allows for
--- instantiating an arbitrary number of concurrent R sessions, even though
--- currently the R library only allows for one global instance, for forward
--- compatibility.
+-- Utilities to run R interpreter within a haskell program.
+-- This module starts a dedicated bound in order to communicate with R Runtime.
+-- 
+-- The requirements for a dedicated bound thread is appeared from following facts
 --
--- This module is intended to be imported qualified.
-
+--    *  R supports only single threaded executioni
+--
+--    *  All foreign calls to R have to be executed from the same OS thread.
+--
+-- Second requirement is not hard unless graphics functions are used and R stack
+-- protection mechanism is disabled. On OS X platform R interpreter should be
+-- running on the main OS thread.
 {-# LANGUAGE RecursiveDo #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Foreign.R.Runner
-  ( -- * The R monad
+  ( -- * Data types
     Config(..)
   , defaultConfig
   -- * R instance creation
@@ -59,15 +63,6 @@ import Control.Exception
     , throwIO
     , try
     )
-{-
-#if MIN_VERSION_exceptions(0,6,0)
-import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow, bracket )
-#elif MIN_VERSION_exceptions(0,4,0)
-import Control.Monad.Catch ( MonadCatch, MonadThrow, bracket )
-#else
-import Control.Monad.Catch ( MonadCatch, bracket )
-#endif
--}
 import Control.Monad.Reader
 import Foreign
     ( Ptr
@@ -101,6 +96,7 @@ data Config = Config
 -- Utilities to run R
 ---------------------------------------------------------------------------------
 
+-- | Default configuration.
 defaultConfig :: Config
 defaultConfig = Config Nothing ["--vanilla", "--silent"]
 
@@ -126,6 +122,18 @@ newCArray xs k =
       k ptr
 
 -- | Create a new embedded instance of the R interpreter.
+--
+-- This function do the following:
+--    
+--    1 initlializes R Runtime;
+--
+--    2 populates all global variables to workaround  $ghci-bug;
+--
+--    3 starts an GUI thread that processes GUI events on a timely manner
+--    
+--    4 starts an R interpreter thread that serializes calls to R.
+--
+-- NOTE: This function is idempotent so it's possible to call it multiple times.
 initialize :: Config
            -> IO ()
 initialize Config{..} = do
@@ -156,6 +164,9 @@ initialize Config{..} = do
         poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
+--
+-- NOTE: currently it's not possible to reinitialize an R, so once 'finalize' is
+-- called, it's not possible to 'initialize' R runtime once again.
 finalize :: IO ()
 finalize = do
     mv <- newEmptyMVar

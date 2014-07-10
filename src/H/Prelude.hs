@@ -94,6 +94,11 @@ instance Show (FR.SomeSEXP s) where
   showIO (FR.SomeSEXP s) = showIO s
   print  (FR.SomeSEXP s) = print s
 
+
+instance Show a => Show (UnsafeValue a) where
+  showIO = flip unsafeUseValue showIO
+  print  = flip unsafeUseValue print
+
 #if MIN_VERSION_exceptions(0,6,0)
 withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
 #else

@@ -10,7 +10,6 @@ module Language.R.Literal
 
 -- import           Foreign.R.Type
 import           Foreign.R
-import           Control.Monad.R (R)
 import           Language.R.Literal.Unsafe (Literal(..))
 import qualified Language.R.Literal.Unsafe as Unsafe
 
