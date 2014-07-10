@@ -28,8 +28,7 @@ import qualified Data.Vector.SEXP as SVector
 import           Foreign.R.Internal (SEXP, SomeSEXP(..))
 import qualified Foreign.R.Internal as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
-import           Foreign.R (R)
-import           Control.Monad.R.Unsafe (unsafeRToIO, UnsafeValue, unsafeUseValue)
+import           Control.Monad.R.Unsafe (R, unsafeRToIO, UnsafeValue, unsafeUseValue)
 
 import Data.Singletons ( SingI, fromSing, sing )
 
