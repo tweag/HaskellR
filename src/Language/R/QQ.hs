@@ -18,15 +18,17 @@ module Language.R.QQ
   , rsafe
   ) where
 
-import H.Internal.Prelude
+import           H.Internal.Error
+import           H.Prelude (io)
 import qualified H.Prelude as H
-import           Control.Monad.R.Unsafe (unsafeRToIO, unsafeIOToR)
+import           Control.Monad.R.Unsafe (unsafeIOToR, unsafePerformR)
 import           Language.R.HExp.Unsafe
 import           Language.R.Literal.Unsafe
+import           Language.R.Globals.Unsafe
 import qualified Data.Vector.SEXP as Vector
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPInfo(..))
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
-import qualified Foreign.R (protect)
 import           Language.R (parseText, installIO, string, eval, evalIO)
 import           Foreign.R.Internal (withProtected)
 
@@ -44,7 +46,6 @@ import Data.Complex (Complex)
 import Data.Int (Int32)
 import Data.Word (Word8)
 import Foreign (castPtr)
-import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
@@ -60,7 +61,7 @@ r = QuasiQuoter
 
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
-    { quoteExp  = \txt -> [| io $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafeIOToR $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -75,9 +76,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $
-                               eval =<< io $(parseExp txt)
-                           |]
+    { quoteExp  = \txt -> [| unsafePerformR  $ eval =<< io $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -89,15 +88,19 @@ parseEval txt = do
     case hexp sexp of
       Expr _ v ->
         let vs = Vector.toList v
-        in go vs
+        in case vs of
+	    [] -> error "Impossible happen."
+            [SomeSEXP (returnIO -> a)] -> 
+	       [| H.protect =<< Control.Monad.R.Unsafe.unsafeIOToR (withProtected a evalIO) |]
+	    xs -> [| H.protect =<< Control.Monad.R.Unsafe.unsafeIOToR $(go xs) |]
       _ -> error "Impossible happen."
   where
     go :: [SomeSEXP] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| Foreign.R.protect =<< Control.Monad.R.Unsafe.unsafeIOToR (R.withProtected a evalIO) |]
+    go [(SomeSEXP (returnIO -> a))] = [| withProtected a evalIO |]
     go (SomeSEXP (returnIO -> a) : as) =
-        [| H.withProtected (io a) $ eval >=> \(SomeSEXP s) ->
-             H.withProtected (return s) (const $(go as))
+        [| withProtected a $ evalIO >=> \(SomeSEXP s) ->
+             R.withProtected (return s) (const $(go as))
          |]
 
 returnIO :: a -> IO a
@@ -214,8 +217,8 @@ instance TH.Lift (IO (SEXP a)) where
           xs :: String
           xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
       (hexp -> List s Nothing Nothing)
-        | R.unsexp s == R.unsexp H.missingArg ->
-          [| R.cons H.missingArg H.nilValue |]
+        | R.unsexp s == R.unsexp missingArg ->
+          [| R.cons missingArg nilValue |]
       s@(hexp -> Symbol (returnIO -> pnameio) value _)
         | R.unsexp s == R.unsexp value -> [| selfSymbol =<< pnameio |] -- FIXME
       (hexp -> Symbol pname _ Nothing)

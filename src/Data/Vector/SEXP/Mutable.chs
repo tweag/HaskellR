@@ -48,8 +48,9 @@ module Data.Vector.SEXP.Mutable
   , fromStorable
   ) where
 
-import H.Internal.Prelude
+import H.Internal.Error
 import Data.Vector.SEXP.Base
+import           Foreign.R.Internal  (SEXP, SEXPTYPE(..))
 import qualified Foreign.R.Internal as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 

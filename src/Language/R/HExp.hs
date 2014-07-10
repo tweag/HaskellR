@@ -36,6 +36,7 @@
 module Language.R.HExp
   ( HExp(..)
   , hexp
+  , unsafeHexp
   , unhexp
   ) where
 
@@ -173,6 +174,10 @@ instance Storable (HExp s a) where
 hexp :: SEXP s a -> HExp s a
 hexp = fromUnsafe . Unsafe.hexp . unSEXP 
 {-# INLINE hexp #-}
+
+unsafeHexp :: SEXP s a -> Unsafe.HExp a
+unsafeHexp = Unsafe.hexp . unSEXP
+{-# INLINE unsafeHexp #-}
 
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.

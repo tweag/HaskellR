@@ -4,7 +4,7 @@
 -- Global variables used by the R interpreter. All are constant, but the values
 -- of some of them may change over time (e.g. the global environment).
 
-module Language.R.Globals
+module Language.R.Globals.Unsafe
   ( unboundValue
   , globalEnv
   , nilValue

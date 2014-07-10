@@ -27,7 +27,8 @@ module Language.R.GC
   , withProtected
   ) where
 
-import H.Internal.Prelude
+import Foreign.R.Internal (SomeSEXP(..))
+import Control.Monad.R.Class
 import Control.Applicative
 import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr )
 import Foreign.Concurrent
