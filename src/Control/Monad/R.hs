@@ -43,8 +43,6 @@ module Control.Monad.R
   , protectRegion
   , unsafeRunRegion
     -- * Protection
-  , ProtectElt
-  , UnprotectElt
   , Protect(..)
   , Unprotect(..)
   , UnsafeValue

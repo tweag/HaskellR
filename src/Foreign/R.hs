@@ -24,6 +24,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
@@ -95,8 +96,6 @@ module Foreign.R
   , unsexp
   , Protect(..)
   , Unprotect(..)
-  , ProtectElt
-  , UnprotectElt
   ) where
 
 import           Control.Monad.R.Unsafe (R, UnsafeValue, unsafeIOToR)
@@ -367,54 +366,88 @@ withProtected acquire f =
 liftProtect :: Protect s a => IO a -> R s (ProtectElt s a)
 liftProtect = unsafeIOToR >=> protect
 
+-- | Values that can be protected in a region. Basically this typeclass
+-- is created in order to have an overloaded protect function, so it can
+-- be called on any value and still to the right thing. 
+--
+-- There is a default values for 'ProtectElt' and 'protect' functions
+-- that allowes to add an instances to arbitrary datatypes that shouldn't
+-- be protected.
 class Protect s a where
+   -- | A new type that user will have after a protection
+   type ProtectElt s a :: *
+   type ProtectElt s a = a
+   -- | Run a protect action. This method really protects value withing
+   -- a block, old value is still safe to use, but you should not do it
+   -- for safety reasons.
    protect   :: a -> R s (ProtectElt s a)
-
-type family ProtectElt s a :: *
-type instance ProtectElt s (Internal.SEXP a) = SEXP s a
-type instance ProtectElt s Internal.SomeSEXP = SomeSEXP s
-type instance ProtectElt s (SEXP s a)        = SEXP s a
-type instance ProtectElt s (SomeSEXP s)      = SomeSEXP s
-type instance ProtectElt s (UnsafeValue a)   = ProtectElt s a
+   default protect :: (ProtectElt s a ~ a) => a -> R s a
+   protect = return
+   {-# INLINE protect #-}
 
 instance Protect s (Internal.SEXP a) where
+   type ProtectElt s (Internal.SEXP a) = SEXP s a
    protect = fmap SEXP . Unsafe.protect
 
 instance Protect s (Internal.SomeSEXP) where
+   type ProtectElt s Internal.SomeSEXP = SomeSEXP s
    protect (Internal.SomeSEXP f) = fmap (SomeSEXP . SEXP) (Unsafe.protect f)
 
 instance Protect s a => Protect s (UnsafeValue a) where
+   type ProtectElt s (UnsafeValue a)   = ProtectElt s a
    protect a = Unsafe.unsafeUseValue a protect
 
 instance Protect s (SEXP s a) where
+   type ProtectElt s (SEXP s a)        = SEXP s a
    protect = return
 
 instance Protect s (SomeSEXP s) where
+   type ProtectElt s (SomeSEXP s)      = SomeSEXP s
    protect = return
 
+-- | Values that can be returned from a protection block.
 class Unprotect a where
+  -- | Type that describes the type that value will have after unprotection
+  -- procedure. This type should have following properties:
+  --
+  --   1. Protection information should be erased (as value is no longer protected withing a region).
+  --   
+  --   2. If a value is not safe to use (i.e. it should be protected) it should be wrapped with
+  --   'Unsafe.UnsafeValue'. So user will know that he should protect a variable before use.
+  type UnprotectElt a :: *
+  type UnprotectElt a = a
+  -- | Prepare a variable for the leaving region block. This function only conver a
+  -- variable into acceptable type but doesn't perform any unprotection procedures.
+  --
+  -- Required properties:
+  --
+  --   1. The value should guarantee that there is no references to region variables exists in
+  --   thunks, the easiest way to ensure is to fully evaluate an output value.
+  --   
+  --   2. This function is made monadic in order to guarantee that it will be executed in order.
   unprotect :: a -> R s (UnprotectElt a)
-
-type family UnprotectElt a :: *
-type instance UnprotectElt (Internal.SEXP a)     = UnsafeValue (Internal.SEXP a)
-type instance UnprotectElt (Internal.SomeSEXP)   = UnsafeValue (Internal.SomeSEXP)
-type instance UnprotectElt (SEXP s a)            = UnsafeValue (Internal.SEXP a)
-type instance UnprotectElt (SomeSEXP s)          = UnsafeValue (Internal.SomeSEXP)
-type instance UnprotectElt (UnsafeValue a)       = UnsafeValue a
+  default unprotect :: (NFData a, UnprotectElt a ~ a) => a -> R s a
+  unprotect x = rnf x `seq` return x
+  {-# INLINE unprotect #-}
 
 instance Unprotect (Internal.SEXP a) where
+   type UnprotectElt (Internal.SEXP a) = UnsafeValue (Internal.SEXP a)
    unprotect = return . Unsafe.mkUnsafe
 
 instance Unprotect (Internal.SomeSEXP) where
+   type UnprotectElt (Internal.SomeSEXP)    = UnsafeValue Internal.SomeSEXP
    unprotect = return . Unsafe.mkUnsafe
 
 instance Unprotect a => Unprotect (UnsafeValue a) where
-   unprotect = return
+   type UnprotectElt (UnsafeValue a)        = UnprotectElt a
+   unprotect x  = Unsafe.unsafeUseValue x unprotect
 
 instance Unprotect (SEXP s a) where
+   type UnprotectElt (SEXP s a)          = UnsafeValue (Internal.SEXP a)
    unprotect = return . Unsafe.mkUnsafe . unSEXP
 
 instance Unprotect (SomeSEXP s) where
+   type UnprotectElt (SomeSEXP s)       = UnsafeValue Internal.SomeSEXP
    unprotect = return . Unsafe.mkUnsafe . (\(SomeSEXP z) -> Internal.SomeSEXP (unSEXP z))
 
 
@@ -422,23 +455,20 @@ instance Unprotect (SomeSEXP s) where
 --
 ---------------------------------------------------------------------------------
 
-type instance ProtectElt s () = ()
-instance Protect s () where protect = return
-type instance UnprotectElt () = () 
-instance Unprotect () where unprotect = return 
+instance Protect s ()
+instance Unprotect ()
 
-type instance ProtectElt s Int32 = Int32
-instance Protect s Int32 where protect = return
-type instance UnprotectElt Int32 = Int32 
-instance Unprotect Int32 where unprotect = return 
+instance Protect s Int32
+instance Unprotect Int32
 
-type instance ProtectElt s Double = Double
-instance Protect s Double where protect = return
-type instance UnprotectElt Double = Double 
-instance Unprotect Double where unprotect = return 
+instance Protect s Double
+instance Unprotect Double
 
-type instance ProtectElt s [a] = [ProtectElt s a]
-instance Protect s a => Protect s [a] where protect = mapM protect
-type instance UnprotectElt [a] = [UnprotectElt a]
-instance Unprotect a => Unprotect [a] where unprotect = mapM unprotect
+instance Protect s a => Protect s [a] where
+   type ProtectElt s [a] = [ProtectElt s a]
+   protect = mapM protect
+
+instance Unprotect a => Unprotect [a] where
+   type UnprotectElt [a] = [UnprotectElt a]
+   unprotect = mapM unprotect
 
