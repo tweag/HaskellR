@@ -20,13 +20,15 @@ module Language.R.QQ
 
 import H.Internal.Prelude
 import qualified H.Prelude as H
+import           Control.Monad.R.Unsafe (unsafeRToIO, unsafeIOToR)
 import           Language.R.HExp.Unsafe
 import           Language.R.Literal.Unsafe
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
-import qualified Foreign.R
-import           Language.R (parseText, installIO, string, eval, withProtected, evalIO)
+import qualified Foreign.R (protect)
+import           Language.R (parseText, installIO, string, eval, evalIO)
+import           Foreign.R.Internal (withProtected)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -92,7 +94,7 @@ parseEval txt = do
   where
     go :: [SomeSEXP] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| Foreign.R.liftProtectSome $ R.withProtected a evalIO |]
+    go [SomeSEXP (returnIO -> a)]    = [| Foreign.R.protect =<< Control.Monad.R.Unsafe.unsafeIOToR (R.withProtected a evalIO) |]
     go (SomeSEXP (returnIO -> a) : as) =
         [| H.withProtected (io a) $ eval >=> \(SomeSEXP s) ->
              H.withProtected (return s) (const $(go as))

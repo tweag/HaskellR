@@ -63,6 +63,7 @@ module Data.Vector.SEXP.Region
   ) where
 
 import           Foreign.R
+import           Control.Monad.R.Unsafe (unsafeIOToR)
 import           Data.Vector.SEXP.Base
 import qualified Data.Vector.SEXP.Mutable as Unsafe
 import qualified Data.Vector.SEXP as UnsafeI

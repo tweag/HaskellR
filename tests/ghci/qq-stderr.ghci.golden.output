@@ -1,17 +1,8 @@
-
-<interactive>:5:1:
-    No instance for (Show (R s0 (Foreign.R.SomeSEXP * s0)))
-      arising from a use of `print'
-    Possible fix:
-      add an instance declaration for
-      (Show (R s0 (Foreign.R.SomeSEXP * s0)))
-    In a stmt of an interactive GHCi command: print it
 Error in xy.coords(x, y, xlabel, ylabel, log) : 
   argument "x" is missing, with no default
-Calls: plot -> plot.default -> xy.coords
 
 
-<interactive>:9:16:
+<interactive>:9:13:
     Exception when trying to run compile-time code:
       R Runtime Error: Error in parse(text = " plot( IO ([r| plot()", keep.source = FALSE) : 
   <text>:1:12: unexpected '['
@@ -20,7 +11,7 @@ Calls: plot -> plot.default -> xy.coords
 
       Code: Language.Haskell.TH.Quote.quoteExp r " plot( IO ([r| plot()"
 
-<interactive>:11:16:
+<interactive>:11:13:
     Exception when trying to run compile-time code:
       R Runtime Error: Error in parse(text = " 1+()-2IO ([r| plot() ", keep.source = FALSE) : 
   <text>:1:5: unexpected ')'

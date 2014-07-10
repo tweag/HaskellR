@@ -43,6 +43,7 @@ library
                        Language.R.QQ
                        Language.R.Runtime.QQ
                        Control.Monad.R
+                       Control.Monad.R.Unsafe
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error
