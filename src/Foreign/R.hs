@@ -22,11 +22,15 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
-  ( -- * Internal R structures
-    SEXPTYPE(..)
+  ( R
+    -- * Internal R structures
+  , SEXPTYPE(..)
   , Internal.Logical(..)
   , SEXP(..)
   , SomeSEXP(..)
@@ -36,6 +40,10 @@ module Foreign.R
   , unsafeWrapSome
   , unwrap
   , unwrapSome
+  -- * Regions
+  -- , protect
+  , liftProtect
+  , withProtected
     -- * Casts and coercions
     -- $cast-coerce
   , cast
@@ -87,24 +95,21 @@ module Foreign.R
   , sexp
   , unsexp
   -- * Regions
-  , protect
-  , protectSome
-  , liftProtect
-  , liftProtectSome
-  , withProtected
+  , Protect(..)
+  , Unprotect(..)
   ) where
 
-import           Control.Monad.R (R(..), unsafeIOToR)
-import qualified Control.Monad.R as MonadR
-import           Control.Monad.R.Class
+import           Control.Monad.R.Unsafe (R, UnsafeValue, unsafeIOToR)
+import qualified Control.Monad.R.Unsafe as Unsafe
 import           Foreign.R.Internal (SEXPTYPE(..), SSEXPTYPE)
 import           Foreign.R.Internal ( CEType )
 import qualified Foreign.R.Internal as Internal
 
 import Control.Applicative
 import Control.DeepSeq
-import Control.Monad.Catch ( MonadMask, MonadCatch, bracket )
+import Control.Monad.Catch ( bracket )
 import Control.Monad.Reader
+import Data.Int
 import Foreign (Ptr, castPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
@@ -284,15 +289,15 @@ gc = unsafeIOToR Internal.gc
 
 -- | Evaluate any 'SEXP' to its value.
 eval :: SEXP s' a -> SEXP s'' Env -> R s (SomeSEXP s)
-eval a b = liftProtectSome $ Internal.eval (unSEXP a) (unSEXP b)
+eval a b = liftProtect $ Internal.eval (unSEXP a) (unSEXP b)
 
 -- | Try to evaluate expression.
 tryEval :: SEXP s' a -> SEXP s'' Env -> Ptr CInt -> R s (SomeSEXP s)
-tryEval a b c = liftProtectSome $ Internal.tryEval (unSEXP a) (unSEXP b) c
+tryEval a b c = liftProtect $ Internal.tryEval (unSEXP a) (unSEXP b) c
 
 -- | Try to evaluate without printing error/warning messages to stdout.
 tryEvalSilent :: SEXP s' a -> SEXP s'' Env -> Ptr CInt -> R s (SomeSEXP s)
-tryEvalSilent a b c = liftProtectSome $ Internal.tryEvalSilent (unSEXP a) (unSEXP b) c
+tryEvalSilent a b c = liftProtect $ Internal.tryEvalSilent (unSEXP a) (unSEXP b) c
 
 lang1 :: SEXP s a -> R s (SEXP s Internal.Lang)
 lang1 = liftProtect . Internal.lang1 . unSEXP
@@ -305,7 +310,7 @@ lang3 a b c = liftProtect $ Internal.lang3 (unSEXP a) (unSEXP b) (unSEXP c)
 
 -- | Find a function by name.
 findFun :: SEXP s a -> SEXP s Env -> R s (SomeSEXP s)
-findFun a e = liftProtectSome $ Internal.findFun (unSEXP a) (unSEXP e)
+findFun a e = liftProtect $ Internal.findFun (unSEXP a) (unSEXP e)
 
 -- | Find a variable by name.
 findVar :: SEXP s a -> SEXP s Env -> R s (SEXP s Internal.Symbol)
@@ -345,28 +350,128 @@ getAttribute = unsafeIOToR . fmap SEXP . Internal.getAttribute . unSEXP
 setAttribute :: SEXP s a -> SEXP s b -> R s ()
 setAttribute (SEXP a) (SEXP b) = unsafeIOToR $ Internal.setAttribute a b
 
-protect :: Internal.SEXP a -> R s (SEXP s a)
-protect = fmap SEXP . MonadR.protect
-
-protectSome :: Internal.SomeSEXP -> R s (SomeSEXP s)
-protectSome (Internal.SomeSEXP f) = fmap (SomeSEXP . SEXP) (MonadR.protect f)
-
 -- | Perform an action with resource while protecting it from the garbage
 -- collection. This function is a safer alternative to 'R.protect' and
 -- 'R.unprotect', guaranteeing that a protected resource gets unprotected
 -- irrespective of the control flow, much like 'Control.Exception.bracket_'.
-withProtected :: (MonadR m, MonadIO m, MonadCatch m, MonadMask m)
-              => m (SEXP s a)      -- Action to acquire resource
-	      -> (SEXP s a -> m b) -- Action
-	      -> m b
+withProtected :: R s (SEXP s a)      -- Action to acquire resource
+	      -> (SEXP s a -> R s b) -- Action
+	      -> R s b
 withProtected acquire f =
    bracket
-     (acquire >>= io . Internal.protect . unSEXP)
-     (const $ io $ Internal.unprotect 1)
+     (acquire >>= unsafeIOToR . Internal.protect . unSEXP)
+     (const $ unsafeIOToR $ Internal.unprotect 1)
      $ f . SEXP
 
-liftProtect :: IO (Internal.SEXP a) -> R s (SEXP s a)
-liftProtect = fmap SEXP . MonadR.liftProtect
+liftProtect :: Protect s a => IO a -> R s (ProtectElt s a)
+liftProtect = unsafeIOToR >=> protect
 
-liftProtectSome :: IO Internal.SomeSEXP -> R s (SomeSEXP s)
-liftProtectSome = fmap (\(Internal.SomeSEXP s) -> SomeSEXP (SEXP s)) . MonadR.liftProtectSome
+-- | Values that can be protected in a region. Basically this typeclass
+-- is created in order to have an overloaded protect function, so it can
+-- be called on any value and still to the right thing. 
+--
+-- There is a default values for 'ProtectElt' and 'protect' functions
+-- that allowes to add an instances to arbitrary datatypes that shouldn't
+-- be protected.
+class Protect s a where
+   -- | A new type that user will have after a protection
+   type ProtectElt s a :: *
+   type ProtectElt s a = a
+   -- | Run a protect action. This method really protects value withing
+   -- a block, old value is still safe to use, but you should not do it
+   -- for safety reasons.
+   protect   :: a -> R s (ProtectElt s a)
+   default protect :: (ProtectElt s a ~ a) => a -> R s a
+   protect = return
+   {-# INLINE protect #-}
+
+instance Protect s (Internal.SEXP a) where
+   type ProtectElt s (Internal.SEXP a) = SEXP s a
+   protect = fmap SEXP . Unsafe.protect
+
+instance Protect s (Internal.SomeSEXP) where
+   type ProtectElt s Internal.SomeSEXP = SomeSEXP s
+   protect (Internal.SomeSEXP f) = fmap (SomeSEXP . SEXP) (Unsafe.protect f)
+
+instance Protect s a => Protect s (UnsafeValue a) where
+   type ProtectElt s (UnsafeValue a)   = ProtectElt s a
+   protect a = Unsafe.unsafeUseValue a protect
+
+instance Protect s (SEXP s a) where
+   type ProtectElt s (SEXP s a)        = SEXP s a
+   protect = return
+
+instance Protect s (SomeSEXP s) where
+   type ProtectElt s (SomeSEXP s)      = SomeSEXP s
+   protect = return
+
+-- | Values that can be returned from a protection block.
+class Unprotect a where
+  -- | Type that describes the type that value will have after unprotection
+  -- procedure. This type should have following properties:
+  --
+  --   1. Protection information should be erased (as value is no longer protected withing a region).
+  --   
+  --   2. If a value is not safe to use (i.e. it should be protected) it should be wrapped with
+  --   'Unsafe.UnsafeValue'. So user will know that he should protect a variable before use.
+  type UnprotectElt a :: *
+  type UnprotectElt a = a
+  -- | Prepare a variable for the leaving region block. This function only conver a
+  -- variable into acceptable type but doesn't perform any unprotection procedures.
+  --
+  -- Required properties:
+  --
+  --   1. The value should guarantee that there is no references to region variables exists in
+  --   thunks, the easiest way to ensure is to fully evaluate an output value.
+  --   
+  --   2. This function is made monadic in order to guarantee that it will be executed in order.
+  unprotect :: a -> R s (UnprotectElt a)
+  default unprotect :: (NFData a, UnprotectElt a ~ a) => a -> R s a
+  unprotect x = rnf x `seq` return x
+  {-# INLINE unprotect #-}
+
+instance Unprotect (Internal.SEXP a) where
+   type UnprotectElt (Internal.SEXP a) = UnsafeValue (Internal.SEXP a)
+   unprotect = return . Unsafe.mkUnsafe
+
+instance Unprotect (Internal.SomeSEXP) where
+   type UnprotectElt (Internal.SomeSEXP)    = UnsafeValue Internal.SomeSEXP
+   unprotect = return . Unsafe.mkUnsafe
+
+instance Unprotect a => Unprotect (UnsafeValue a) where
+   type UnprotectElt (UnsafeValue a)        = UnprotectElt a
+   unprotect x  = Unsafe.unsafeUseValue x unprotect
+
+instance Unprotect (SEXP s a) where
+   type UnprotectElt (SEXP s a)          = UnsafeValue (Internal.SEXP a)
+   unprotect = return . Unsafe.mkUnsafe . unSEXP
+
+instance Unprotect (SomeSEXP s) where
+   type UnprotectElt (SomeSEXP s)       = UnsafeValue Internal.SomeSEXP
+   unprotect = return . Unsafe.mkUnsafe . (\(SomeSEXP z) -> Internal.SomeSEXP (unSEXP z))
+
+
+---------------------------------------------------------------------------------
+--
+---------------------------------------------------------------------------------
+
+instance Protect s ()
+instance Unprotect ()
+
+instance Protect s Int32
+instance Unprotect Int32
+
+instance Protect s Double
+instance Unprotect Double
+
+instance Protect s Bool
+instance Unprotect Bool
+
+instance Protect s a => Protect s [a] where
+   type ProtectElt s [a] = [ProtectElt s a]
+   protect = mapM protect
+
+instance Unprotect a => Unprotect [a] where
+   type UnprotectElt [a] = [UnprotectElt a]
+   unprotect = mapM unprotect
+

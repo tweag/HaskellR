@@ -106,6 +106,7 @@ module Foreign.R.Internal
   , preserveObject
   , releaseObject
   , gc
+  , withProtected
     -- * Globals
   , globalEnv
   , baseEnv
@@ -134,7 +135,6 @@ module Foreign.R.Internal
   , SEXP0
   , sexp
   , unsexp
-  , withProtected
   , RPtr(..)
   ) where
 
@@ -619,6 +619,7 @@ setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
 -- | Content encoding.
 {#enum cetype_t as CEType {} deriving (Eq, Show) #}
 
+-- | A protection block for a single variable.
 withProtected :: IO (SEXP a)      -- Action to acquire resource
               -> (SEXP a -> IO b) -- Action
               -> IO b

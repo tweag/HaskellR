@@ -32,7 +32,7 @@ tests = testGroup "regions"
         unsafeRunRegion $ do
           _ <- [r| gctorture(TRUE) |]
           R.SomeSEXP y <- [r| as.integer(42)  |]
-          return (fromSEXP (R.unSEXP y))
+          return (fromSEXP (R.unSEXP y) :: Int32)
   ]
   where
     isInt (R.Int) = True

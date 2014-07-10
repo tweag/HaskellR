@@ -1,10 +1,12 @@
 :set -XDataKinds
 :set -XScopedTypeVariables
+:set -XViewPatterns
 
 :m +Data.Int 
 import Criterion.Main
 import Language.Haskell.TH.Quote
 import System.FilePath
+import Control.Monad.R.Unsafe
 
 
 :{
@@ -15,15 +17,15 @@ let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (For
         fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 :}
 
-H.Prelude.unsafeRToIO $ $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
+unsafeRToIO $ $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
 
 :{
 defaultMain [
     bgroup "fib"
       [ bench "runtime-qq" $
-          whnfIO $ H.unsafeRToIO [r| fib(10) |]
+          whnfIO $ unsafeRToIO [r| fib(10) |]
       , bench "runtime-qq-hybrid" $
-          whnfIO $ H.Prelude.unsafeRToIO $ hFib =<< H.Prelude.unsafeIOToR (Language.R.Literal.Unsafe.unsafeMkSEXP (10 :: Int32))
+          whnfIO $ unsafeRToIO $ hFib =<< unsafeIOToR (H.Prelude.unsafeMkSEXP (10 :: Int32))
       ]
    ]
 :}

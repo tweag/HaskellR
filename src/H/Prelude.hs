@@ -93,6 +93,10 @@ instance Show (FR.SomeSEXP s) where
   showIO (FR.SomeSEXP s) = showIO s
   print  (FR.SomeSEXP s) = print s
 
+instance Show a => Show (UnsafeValue a) where
+  showIO = flip unsafeUseValue showIO
+  print  = flip unsafeUseValue print
+
 withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
