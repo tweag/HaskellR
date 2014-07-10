@@ -25,10 +25,31 @@
 -- Here @x@ and @y@ will be protected during the computation of @foo@ and will be unprotected
 -- just before a return.
 -- 
--- Implementation notes:'
+-- Implementation notes:
 --  
 --   * The current solution does not support nested regions, so passing a value to the
 --     child region from a parent is not possible even it's safe.
+--
+-- Protection of values:
+--
+-- Any value can be protected by using 'protect' function from the 'Protect' typeclass, this 
+-- function guarantees that value is protected withing a region and can be used there.
+--
+-- Once a value is leaving region, either by a final statement or by passing into any communication
+-- channel it should be unprotected, so to be prepared to be used outside a region. This involve
+-- 2 things:
+--
+--    1. Value will change type to the type that doesn't contain a reference to a region;
+--
+--    2. Value will be marked as 'UnsafeValue' if it's not safe to use without a protection.
+--    (see 'UnsafeValue' for complete documentation)
+--    
+--    3. Value is fully evaluated, so it doesn't contain any thunks to a variables that are
+--    safe to use only inside a region.
+--
+-- It's still safe to use original value inside a region even after 'unprotection' procedure.
+-- 'runRegion' procedure takes care of unprotection procedure, however user should do it himself
+-- before passing a value into the communication channel.
 --
 {-# LANGUAGE Rank2Types #-}
 module Control.Monad.R
@@ -36,9 +57,9 @@ module Control.Monad.R
     R
   , io
   , MonadR
+  , runR
     -- * Regions
     -- ** Execution
-  , runR
   , runRegion
   , protectRegion
   , unsafeRunRegion
@@ -47,7 +68,6 @@ module Control.Monad.R
   , Unprotect(..)
   , UnsafeValue
   , unsafeUseValue
-  , mkUnsafe
     -- * Operations lifting
   , Foreign.R.liftProtect 
   ) where
@@ -58,15 +78,17 @@ import Foreign.R
 
 import Control.Monad.Reader
 
--- | Run a R code in a region. See $regions
+-- | Run a R code in a region and mark all values as unprotected when finish.
 --
--- This function creates a nested region and makes all objects inside a regions
--- as free.
---
--- 'NFData' constraint is used to prevent from leaks of any unevaluated objects
--- through the pure values.
+-- This guarantee safeness of values usafe inside a region.
+-- 
+-- 'Unprotect' constraint allow to run unprotect procedure on the values that 
+-- leaving a channel.
 runRegion :: (Unprotect a) => (forall s. R s a) -> R s' (UnprotectElt a)
 runRegion = R . ReaderT . const . unsafeRunRegion
 
+-- | Run R region inside an IO monad.
+--
+-- This method will not allow to to return a values that have an @s@ variable
 unsafeRunRegion :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
 unsafeRunRegion f = unsafeRunRegion_ (unprotect =<< f)
