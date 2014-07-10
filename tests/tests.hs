@@ -13,6 +13,8 @@ import qualified Test.RVal
 
 import H.Prelude
 import H.Constraints
+import           Language.R.Literal.Unsafe (Literal(..))
+import qualified Language.R.Literal.Unsafe as Unsafe
 import qualified Language.R.HExp.Unsafe as H
 import qualified Foreign.R.Internal as R hiding (withProtected)
 import qualified Foreign.R.Runner as R
@@ -148,7 +150,7 @@ unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "fromSEXP . mkSEXP" $ unsafeRunInRThread $ do
       x <- unsafeMkSEXP (2 :: Double)
-      (2 :: Double) @=? fromSEXP x
+      (2 :: Double) @=? Unsafe.fromSEXP x
   , testCase "HEq HExp" $ unsafeRunInRThread $ do
       -- XXX ideally randomly generate input.
       let x = 2 :: Double
@@ -166,7 +168,7 @@ unitTests = testGroup "Unit tests"
   , testCase "Haskell function from R" $ unsafeRunInRThread $ do
 --      (("[1] 3.0" @=?) =<<) $
 --        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
-      (((3::Double) @=?) =<<) $ fmap fromSEXP $
+      (((3::Double) @=?) =<<) $ fmap Unsafe.fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
             R.withProtected (return $ mkSEXP' $ \x -> return $ x + 1 :: R s Double) $

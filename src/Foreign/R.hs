@@ -96,6 +96,7 @@ module Foreign.R
   , unsexp
   , Protect(..)
   , Unprotect(..)
+  , Container(..)
   ) where
 
 import           Control.Monad.R.Unsafe (R, UnsafeValue, unsafeIOToR)
@@ -109,6 +110,7 @@ import Control.DeepSeq
 import Control.Monad.Catch ( bracket )
 import Control.Monad.Reader
 import Data.Int
+import Data.Traversable (traverse, Traversable)
 import Foreign (Ptr, castPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
@@ -472,3 +474,17 @@ instance Unprotect a => Unprotect [a] where
    type UnprotectElt [a] = [UnprotectElt a]
    unprotect = mapM unprotect
 
+instance (Unprotect a, Unprotect b) => Unprotect (a,b) where
+   type UnprotectElt (a,b) = (UnprotectElt a, UnprotectElt b)
+   unprotect (a,b) = liftA2 (,) (unprotect a) (unprotect b)
+
+instance (Unprotect a, Unprotect b, Unprotect c) => Unprotect (a,b,c) where
+   type UnprotectElt (a,b,c) = (UnprotectElt a, UnprotectElt b, UnprotectElt c)
+   unprotect (a,b,c) = (,,) <$> unprotect a <*> unprotect b <*> unprotect c
+
+-- | Helper type to get containers out of the region
+newtype Container a = Container { unContainer :: a}
+
+instance (Unprotect a, Traversable t) => Unprotect (Container (t a)) where
+   type UnprotectElt (Container (t a)) = t (UnprotectElt a)
+   unprotect = traverse unprotect . unContainer

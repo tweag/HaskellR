@@ -22,6 +22,7 @@ module Language.R.Runtime.QQ
 import           H.Internal.Error
 import           Language.R.Globals.Unsafe
 import           Language.R.HExp.Unsafe
+import           Language.R.Literal.Unsafe
 import           Control.Monad.R.Unsafe
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
@@ -99,7 +100,7 @@ attachHs h@(hexp -> Expr _ v) =
           s = RuntimeSEXP (R.unsafeCoerce h)
       in case haskellName t of
            Just hname ->
-             [\e -> [| H.io (R.writeVector (unRuntimeSEXP s :: SEXP R.Expr) $(lift i) =<< H.unsafeMkSEXP $(varE hname)) >> $e |]]
+             [\e -> [| H.io (R.writeVector (unRuntimeSEXP s :: SEXP R.Expr) $(lift i) =<< unsafeMkSEXP $(varE hname)) >> $e |]]
            Nothing ->
              (\e -> [| H.io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> H.io (R.unprotect 1) >> return x|]):tl)
                 $ zip [(0::Int)..] (Vector.toList v))
@@ -117,7 +118,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
         rp = maybe (RuntimeSEXP (R.unsafeCoerce nilValue)) RuntimeSEXP params
     in Just (\e ->
          [| R.withProtected (install ".Call") $ \call ->
-              R.withProtected (H.unsafeMkSEXP $(varE hname)) $ \l -> do
+              R.withProtected (unsafeMkSEXP $(varE hname)) $ \l -> do
                 H.io $ R.setCar (unRuntimeSEXP rs) call
                 H.io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
                 $e
@@ -125,7 +126,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| withProtected (H.unsafeMkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs)) >> $e |])
+         [| withProtected (unsafeMkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs)) >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: SEXP a -> Maybe Name

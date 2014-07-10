@@ -11,6 +11,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Main where
 
+import Language.R.Literal.Unsafe as Unsafe
 import Foreign.R.Internal as R
 import qualified Foreign.R
 import H.Prelude as H
@@ -56,8 +57,8 @@ mkSEXP' :: Literal a b => a -> R.SEXP b
 mkSEXP' = unsafePerformIO . unsafeMkSEXP
 
 hFib :: R.SEXP R.Int -> R s (R.SEXP R.Int)
-hFib (H.fromSEXP -> (0 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
-hFib (H.fromSEXP -> (1 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
+hFib (Unsafe.fromSEXP -> (0 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
+hFib (Unsafe.fromSEXP -> (1 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
 hFib n = protectRegion $ do
     fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 
@@ -126,7 +127,7 @@ rTests = H.runR H.defaultConfig $ do
     -- Should be NULL
     H.print H.nilValue
 
-    let fromSomeSEXP s = Foreign.R.unSomeSEXP s (H.fromSEXP . Foreign.R.unSEXP)
+    let fromSomeSEXP s = Foreign.R.unSomeSEXP s (Unsafe.fromSEXP . Foreign.R.unSEXP)
 
     -- Should be [1] 3
     let foo3 = (\n -> runRegion $ (fmap fromSomeSEXP  [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32

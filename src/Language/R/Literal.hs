@@ -4,19 +4,23 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Language.R.Literal
-   ( mkSEXP
-   , module Unsafe 
+   ( Literal
+   , mkSEXP
+   , fromSEXP
    ) where
 
 -- import           Foreign.R.Type
 import           Foreign.R
-import           Language.R.Literal.Unsafe (Literal(..))
+import           Language.R.Literal.Unsafe (Literal)
 import qualified Language.R.Literal.Unsafe as Unsafe
 
 import           Data.Singletons
 
 mkSEXP :: Literal a b => a -> R s (SEXP s b)
 mkSEXP = liftProtect . Unsafe.unsafeMkSEXP
+
+fromSEXP :: Literal a b => SEXP s b -> a
+fromSEXP = Unsafe.fromSEXP . unSEXP 
 
 instance SingI a => Literal (SEXP s a) a where
     unsafeMkSEXP  = return . unSEXP 

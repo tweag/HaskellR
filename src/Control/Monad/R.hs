@@ -68,6 +68,7 @@ module Control.Monad.R
   , Unprotect(..)
   , UnsafeValue
   , unsafeUseValue
+  , Container(..)
     -- * Operations lifting
   , Foreign.R.liftProtect 
   ) where

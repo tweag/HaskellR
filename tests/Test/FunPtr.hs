@@ -13,6 +13,7 @@ module Test.FunPtr
   where
 
 import H.Prelude
+import           Language.R.Literal.Unsafe (Literal(..))
 import qualified Language.R.Internal.FunWrappers as R
 import qualified Foreign.R.Internal as R hiding (withProtected)
 import qualified Foreign.R.Type as SingR

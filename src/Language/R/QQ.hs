@@ -225,7 +225,7 @@ instance TH.Lift (IO (SEXP a)) where
         | Char (Vector.toString -> name) <- hexp pname
         , isSplice name -> do
           let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-          [| H.unsafeMkSEXP $hvar |]
+          [| unsafeMkSEXP $hvar |]
         | otherwise -> [| installIO xs |]        -- FIXME
        where
         xs :: String
@@ -236,7 +236,7 @@ instance TH.Lift (IO (SEXP a)) where
           let nm = spliceNameChop name
           hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
           [| withProtected (installIO ".Call") $ \call ->
-             withProtected (H.unsafeMkSEXP $hvar) $ \f -> do
+             withProtected (unsafeMkSEXP $hvar) $ \f -> do
                 rands <- randsio
                 unsafeUnhexp . Lang call . Just =<< unsafeUnhexp (List f rands Nothing)
            |]
