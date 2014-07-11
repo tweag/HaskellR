@@ -4,7 +4,7 @@ module Test.RVal
   ( tests )
   where
 
-import           H.Prelude
+import           Foreign.R.GC
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
 import qualified Foreign.R.Runner as R

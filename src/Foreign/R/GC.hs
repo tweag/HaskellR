@@ -40,20 +40,19 @@ import Foreign.Concurrent ( newForeignPtr )
 -- in protection lists both from @R@ and @Haskell@
 --
 -- Thus it can be used for any objectthat is isomorphic to 'R.SEXP'.
-data RVal a where
-  RVal :: (AsSEXP a b) => ForeignPtr R.SEXPREC -> RVal a
+newtype RVal (a::R.SEXPTYPE) = RVal (ForeignPtr R.SEXPREC)
 
 -- | Create a new 'RVal' object.
-newRVal :: AsSEXP a b => a -> IO (RVal a)
+newRVal :: AsSEXP a b => a -> IO (RVal b)
 newRVal (asSEXP -> s) = do
     R.preserveObject s
     post <- getPostToCurrentRThread
     fmap RVal $ newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
 
 -- | Work with protected object.
-withRVal :: RVal a -> (a -> IO b) -> IO b
+withRVal :: RVal a -> (R.SEXP a -> IO b) -> IO b
 withRVal (RVal s) =
-  bracket (return . unAsSEXP . R.sexp . unsafeForeignPtrToPtr $ s)
+  bracket (return . R.sexp . unsafeForeignPtrToPtr $ s)
           (const $ touchForeignPtr s)
 
 -- | Value that can be converted to the SEXP without any side effects.
@@ -61,12 +60,9 @@ withRVal (RVal s) =
 -- type class.
 class AsSEXP a b | a -> b  where
   asSEXP :: a -> R.SEXP b
-  unAsSEXP :: R.SEXP b -> a
 
 instance AsSEXP (R.SEXP a) a where
   asSEXP = id
-  unAsSEXP = id
 
 instance AsSEXP R.SomeSEXP R.Any where
   asSEXP (SomeSEXP z) = R.unsafeCoerce z
-  unAsSEXP = SomeSEXP

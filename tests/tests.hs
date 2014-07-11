@@ -10,6 +10,7 @@ module Main where
 import qualified Test.Constraints
 import qualified Test.FunPtr
 import qualified Test.RVal
+import qualified Test.Regions
 
 import H.Prelude
 import H.Constraints
@@ -187,6 +188,7 @@ unitTests = testGroup "Unit tests"
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests
+  , Test.Regions.tests
   ]
 
 integrationTests :: TestTree

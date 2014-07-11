@@ -112,7 +112,7 @@ performR $ H.print =<< [r| x <- new("x-test") |]
 -- instantiate and object and pass it to H as-is
 x <- performR $ [r| new("x-test") |]
 -- prevent x from being garbage collected
-rv <- unsafeUseValue x H.newRVal
+rv <- performR $ unsafeUseValue x H.newRVal
 -- show object
 performR $ H.print x
 -- Should be 1. Use slot accessor on R object.

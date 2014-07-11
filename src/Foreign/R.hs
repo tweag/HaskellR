@@ -142,7 +142,6 @@ instance NFData (SEXP s a) where
 
 instance AsSEXP (SEXP s a) a where
   asSEXP (SEXP x) = x
-  unAsSEXP x = SEXP x
 
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
@@ -182,7 +181,6 @@ instance NFData (SomeSEXP s) where
 
 instance AsSEXP (SomeSEXP s) Internal.Any where
   asSEXP (SomeSEXP (SEXP x)) = Internal.unsafeCoerce x
-  unAsSEXP = SomeSEXP . SEXP
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
@@ -459,10 +457,11 @@ instance Unprotect (SomeSEXP s) where
    type UnprotectElt (SomeSEXP s)       = UnsafeValue Internal.SomeSEXP
    unprotect = return . Unsafe.mkUnsafe . (\(SomeSEXP z) -> Internal.SomeSEXP (unSEXP z))
 
+instance Unprotect (RVal a) where
+   unprotect = return
 
----------------------------------------------------------------------------------
---
----------------------------------------------------------------------------------
+instance Unprotect SEXPTYPE where
+   unprotect = return
 
 instance Protect s ()
 instance Unprotect ()
@@ -472,6 +471,7 @@ instance Unprotect Int32
 
 instance Protect s Double
 instance Unprotect Double
+
 
 instance Protect s a => Protect s [a] where
    type ProtectElt s [a] = [ProtectElt s a]
