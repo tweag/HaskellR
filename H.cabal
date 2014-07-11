@@ -57,7 +57,7 @@ library
                      , text >= 0.11
                      , vector >= 0.10
                      , template-haskell >= 2.8
-                     , exceptions >= 0.3
+                     , exceptions >= 0.6 && < 0.7
                      , mtl >= 2.1
                      , primitive >= 0.5
                      , singletons >= 0.9
