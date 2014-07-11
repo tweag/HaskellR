@@ -36,8 +36,7 @@ import           Control.Monad.R
 import           Language.R.Globals
 import           Language.R.Literal.Unsafe
 import           Language.R.Literal
-import           Language.R hiding ( withProtected )
-import qualified Language.R ( withProtected )
+import           Language.R
 import Foreign.R.Error
 
 import qualified Data.Text.Lazy.IO as Text
@@ -67,7 +66,7 @@ show = unsafePerformIO . showIO
 
 
 instance Show (Internal.SEXP a) where
-  showIO s = Language.R.withProtected (return s) $ \_ ->
+  showIO s = Internal.withProtected (return s) $ \_ ->
            withCString "quote" $ Internal.install >=> \quote ->
            Internal.lang2 quote s >>= r1 "deparse" >>= \(Internal.SomeSEXP slang) ->
            return .
@@ -77,7 +76,7 @@ instance Show (Internal.SEXP a) where
            Unsafe.vector $
            (Internal.unsafeCoerce slang :: Internal.SEXP Internal.String)
 
-  print e = io $ Language.R.withProtected (return e) Internal.printValue
+  print e = io $ Internal.withProtected (return e) Internal.printValue
 
 instance Show Internal.SomeSEXP where
   showIO s = Internal.unSomeSEXP s showIO

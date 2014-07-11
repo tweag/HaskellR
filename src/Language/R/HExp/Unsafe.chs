@@ -49,7 +49,6 @@ import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE)
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as R
 import           Foreign.R.Internal (SEXPREC)
-import           Language.R.GC (withProtected)
 
 import qualified Data.Vector.SEXP as Vector
 
@@ -396,7 +395,7 @@ unhexp = unsafePerformIO . unsafeUnhexp
 unsafeUnhexp :: HExp a -> IO (SEXP a)
 unsafeUnhexp   Nil         = return H.nilValue
 unsafeUnhexp s@(Symbol{})  =
-    withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
+    R.withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
 unsafeUnhexp (List c md mt) = do
     void $ R.protect c
     void $ R.protect d
@@ -418,15 +417,15 @@ unsafeUnhexp (Lang carval mbcdrval)   = do
     R.unprotect 2
     return x
 unsafeUnhexp s@(Env{})     =
-    withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
+    R.withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
 unsafeUnhexp s@(Closure{}) =
-    withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
+    R.withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
 unsafeUnhexp s@(Special{}) =
-    withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
+    R.withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
 unsafeUnhexp s@(Builtin{}) =
-    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
+    R.withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
 unsafeUnhexp s@(Promise{}) =
-    withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
+    R.withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
 unsafeUnhexp  (Bytecode{}) = unimplemented "unsafeUnhexp"
 unsafeUnhexp (Real vt)     = Vector.unsafeToSEXP vt
 unsafeUnhexp (Logical vt)  = Vector.unsafeToSEXP vt
