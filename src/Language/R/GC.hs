@@ -29,9 +29,9 @@ module Language.R.GC
 
 import H.Internal.Prelude
 import Control.Applicative
-import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr )
-import Foreign.Concurrent
+import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr, castPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
+import Foreign.Concurrent ( newForeignPtr )
 import qualified Foreign.R as R
 
 #if MIN_VERSION_exceptions(0,6,0)
@@ -49,9 +49,9 @@ newtype RVal (a :: R.SEXPTYPE) = RVal (ForeignPtr R.SEXPREC)
 -- | Create R value and automatically protect it.
 newRVal :: MonadR m => R.SEXP a -> m (RVal a)
 newRVal s = io $ do
-    _ <- R.protect s
+    R.preserveObject s
     post <- getPostToCurrentRThread
-    fp <- newForeignPtr (R.unsexp s) (post $ R.unprotectPtr s)
+    fp <- newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
     return (RVal fp)
 
 -- | Keep SEXP value from the garbage collection.
@@ -94,9 +94,9 @@ newtype SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)
 -- | Create R value and automatically protect it.
 newSomeRVal :: MonadR m => SomeSEXP -> m SomeRVal
 newSomeRVal (SomeSEXP s) = io $ do
-    _ <- R.protect s
+    R.preserveObject s
     post <- getPostToCurrentRThread
-    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.unprotectPtr s)
+    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
 
 -- | Keep 'SEXP' value from the garbage collection.
 touchSomeRVal :: MonadR m => SomeRVal -> m ()

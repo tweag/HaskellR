@@ -103,6 +103,9 @@ module Foreign.R
   , protect
   , unprotect
   , unprotectPtr
+  , preserveObject
+  , releaseObject
+  , releaseObjectPtr
   , gc
     -- * Globals
   , globalEnv
@@ -144,7 +147,7 @@ import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
 import Data.Singletons (fromSing)
-import Foreign (Ptr, castPtr, plusPtr, Storable(..))
+import Foreign (Ptr, castPtr, plusPtr, Storable(..), FunPtr)
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
 #endif
@@ -454,6 +457,14 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 -- | Invoke an R garbage collector sweep.
 {#fun R_gc as gc { } -> `()' #}
 
+-- | Preserve an object accross GCs.
+{#fun R_PreserveObject as preserveObject { unsexp `SEXP a' } -> `()' #}
+
+-- | Allow GC to remove an preserved object.
+{#fun R_ReleaseObject as releaseObject { unsexp `SEXP a' } -> `()' #}
+
+foreign import ccall "Rinternals.h &R_ReleaseObject" releaseObjectPtr ::
+  FunPtr (Ptr a -> IO ())
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
 --------------------------------------------------------------------------------
