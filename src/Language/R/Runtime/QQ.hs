@@ -27,7 +27,7 @@ import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
 import           Foreign.R.Internal (SEXP, SomeSEXP(..))
 import qualified Foreign.R.Internal as R
-import           Language.R ( parseText, withProtected, eval, install )
+import           Language.R ( parseText, eval, install )
 
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
@@ -125,7 +125,7 @@ attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| withProtected (H.unsafeMkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs)) >> $e |])
+         [| R.withProtected (H.unsafeMkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs)) >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: SEXP a -> Maybe Name
