@@ -241,6 +241,8 @@ startRThread eventLoopThread = do
 -- This operation blocks until the computation completes if called from the R
 -- thread. Otherwise, it does not block.
 --
+-- If R runtime is not initialized, the behavior of this call is undefined.
+--
 postToRThread_ :: IO () -> IO ()
 postToRThread_ action =
   peek interpreterChanPtr >>= deRefStablePtr >>= postToThisRThread_ action

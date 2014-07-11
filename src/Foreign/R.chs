@@ -103,6 +103,8 @@ module Foreign.R
   , protect
   , unprotect
   , unprotectPtr
+  , preserveObject
+  , releaseObject
   , gc
     -- * Globals
   , globalEnv
@@ -453,6 +455,12 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 
 -- | Invoke an R garbage collector sweep.
 {#fun R_gc as gc { } -> `()' #}
+
+-- | Preserve an object accross GCs.
+{#fun R_PreserveObject as preserveObject { unsexp `SEXP a' } -> `()' #}
+
+-- | Allow GC to remove an preserved object.
+{#fun R_ReleaseObject as releaseObject { unsexp `SEXP a' } -> `()' #}
 
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
