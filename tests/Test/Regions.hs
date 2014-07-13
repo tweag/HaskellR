@@ -7,8 +7,10 @@ module Test.Regions
 import H.Prelude
 import Language.R.QQ
 import Data.Int
+import Control.Monad.R.Unsafe (unsafeRToIO, unsafeIOToR)
 
 import qualified Foreign.R as R
+import qualified Foreign.R.Internal as RI
 
 import Control.Exception (bracket)
 import Test.Tasty hiding (defaultMain)
@@ -53,4 +55,6 @@ tests = testGroup "regions"
   where
     isInt (R.Int) = True
     isInt _       = False
+    isFree (R.Free) = True
+    isFree _        = False
             -- double initialization, but it's safe
