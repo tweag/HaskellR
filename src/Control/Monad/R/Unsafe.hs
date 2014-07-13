@@ -16,7 +16,7 @@ import           Control.Monad.R.Class
 import 		 Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
 
 import Control.Applicative
-import Control.Exception ( bracket, bracket_, evaluate, mask_ )
+import Control.Exception ( bracket_, evaluate, mask_, finally)
 import Control.Monad.Reader
 import Data.IORef
 import System.IO.Unsafe ( unsafePerformIO )
@@ -48,10 +48,10 @@ protectRegion :: (forall s . R s (R.SEXP a)) -> R s' (R.SEXP a)
 protectRegion = R . ReaderT . const . unsafeRunRegion_
 
 unsafeRunRegion_ :: (forall s.R s a) -> IO a
-unsafeRunRegion_ f =
-   bracket (newIORef 0)
-           (readIORef >=> R.unprotect)
-	   (runReaderT (unR f))
+unsafeRunRegion_ f = newIORef 0 >>= unsafeRunRegionWith_ f
+
+unsafeRunRegionWith_ :: (forall s.R s a) -> IORef Int -> IO a
+unsafeRunRegionWith_ f x = runReaderT (unR f) x `finally` (readIORef x >>= R.unprotect) 
 
 -- | Run an R action in the global R instance from the IO monad. This action is
 -- unsafe in the sense that use of it bypasses any static guarantees provided by

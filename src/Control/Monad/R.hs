@@ -79,6 +79,7 @@ import Control.Monad.R.Class
 import Foreign.R
 
 import Control.Monad.Reader
+import Data.IORef
 
 -- | Run a R code in a region and mark all values as unprotected when finish.
 --
@@ -95,13 +96,17 @@ runRegion = R . ReaderT . const . unsafeRunRegion
 unsafeRunRegion :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
 unsafeRunRegion f = unsafeRunRegion_ (unprotect =<< f)
 
+unsafeRunRegionWith :: (Unprotect a) => (forall s .R s a) -> IORef Int -> IO (UnprotectElt a)
+unsafeRunRegionWith f x = unsafeRunRegionWith_ (unprotect =<< f) x 
+
+
 -- | A witness that the region 'r' is older than
 -- (or, is the parent of, the subtype of) the region labeled 's'
 newtype SubRegion r s = SubRegion (forall v . R r v -> R s v)
 
 newRegion :: (Unprotect v) => (forall s . SubRegion r s -> R s v) -> R r (UnprotectElt v)
 newRegion body = R $ do
-   envOuter <- ask 
+   t <- ReaderT $ const $ newIORef 0
    -- changing label
-   let witness (R m) = unsafeIOToR $ runReaderT m envOuter
-   ReaderT $ const $ unsafeRunRegion $ body (SubRegion witness)
+   let witness (R m) = unsafeIOToR $ runReaderT m t 
+   ReaderT $ const $ unsafeRunRegionWith (body (SubRegion witness)) t
