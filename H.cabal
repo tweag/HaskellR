@@ -13,6 +13,31 @@ data-files: H.ghci
 
 extra-source-files:   cbits/Hcompat.h
                       cbits/missing_r.h
+                      tests/ghci/qq.ghci
+                      tests/ghci/qq-stderr.ghci
+                      tests/ghci/qq.ghci.golden.output
+                      tests/ghci/qq-stderr.ghci.golden.output
+                      tests/ghci/compile-qq.ghci.golden.output
+                      tests/shootout/binarytrees.R
+                      tests/shootout/fasta.R
+                      tests/shootout/knucleotide.R
+                      tests/shootout/fastaredux.R
+                      tests/shootout/mandelbrot.R
+                      tests/shootout/mandelbrot-noout.R
+                      tests/shootout/nbody.R
+                      tests/shootout/pidigits.R
+                      tests/shootout/regexdna.R
+                      tests/shootout/reversecomplement.R
+                      tests/shootout/spectralnorm.R
+                      tests/shootout/spectralnorm-math.R
+                      tests/shootout/fannkuchredux.R
+                      tests/R/fib.R
+                      tests/ghciH.sh
+                      tests/ghcH.sh
+                      tests/sandbox-utils.sh
+                      doc/H-ints.md
+                      doc/H-user.md
+                      doc/pandoc.css
 
 source-repository head
   type:     git
@@ -138,6 +163,9 @@ test-suite tests
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11
+  other-modules:       Test.RVal
+                       Test.FunPtr
+                       Test.Constraints
   ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
