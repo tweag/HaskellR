@@ -16,10 +16,10 @@ module Foreign.R.Parse
   ) where
 
 import H.Constraints
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 -- XXX Duplicate import to make c2hs happy. The problem is that c2hs doesn't
 -- like the "as R" of the above import.
-{#import Foreign.R #}
+{#import Foreign.R.Internal #}
 
 import Foreign
 import Foreign.C

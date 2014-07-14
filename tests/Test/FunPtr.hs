@@ -13,8 +13,9 @@ module Test.FunPtr
   where
 
 import H.Prelude
+import           Language.R.Literal.Unsafe (Literal(..))
 import qualified Language.R.Internal.FunWrappers as R
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R hiding (withProtected)
 import qualified Foreign.R.Type as SingR
 import qualified Language.R as R (withProtected, r2)
 
@@ -37,7 +38,7 @@ foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr () -> IO (R.SEXP R.Any)
 
 instance Literal (HaveWeak a b) R.ExtPtr where
-  mkSEXPIO (HaveWeak a box) = do
+  unsafeMkSEXP (HaveWeak a box) = do
       z <- R.wrap1 a
       putMVar box =<< mkWeakPtr z Nothing
       fmap castPtr . funPtrToSEXP . castFunPtr $ z
@@ -49,8 +50,8 @@ tests = testGroup "Tests"
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
          e <- peek R.globalEnv
-         _ <- R.withProtected (return $ mkSEXP hwr) $
-           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
+         _ <- R.withProtected (unsafeMkSEXP hwr) $
+           \sf -> fmap (R.r2 (Data.ByteString.Char8.pack ".Call") sf) (unsafeMkSEXP (2::Double))
          replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC

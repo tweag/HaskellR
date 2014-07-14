@@ -23,6 +23,7 @@ NULL
 blah
 [1] 100
 [1] 20
+[1] 4181
 class generator function for class "x-test" from package '.GlobalEnv'
 function (...) 
 new("x-test", ...)
@@ -50,4 +51,5 @@ Slot "a":
 
 Slot "b":
 [1] 2
+
 [1] "S4"

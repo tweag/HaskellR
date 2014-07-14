@@ -63,7 +63,7 @@ runQQTest fp = readProcess "sh" [ "tests" </> "ghciH.sh", "-v0", "-ghci-script",
       , "import System.IO.Unsafe"
       , ""
       , ""
-      , "void $(quoteExp H.r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
+      , "void $ H.performR $(quoteExp H.r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
       ]
 #endif
 

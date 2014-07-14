@@ -19,15 +19,17 @@ module Language.R.Runtime.QQ
   , rexp
   ) where
 
-import           H.Internal.Prelude
-import           Language.R.HExp
+import           H.Internal.Error
+import           Language.R.Globals.Unsafe
+import           Language.R.HExp.Unsafe
+import           Language.R.Literal.Unsafe
+import           Control.Monad.R.Unsafe
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
-import qualified Foreign.R as R
+import           Foreign.R.Internal (SEXP, SomeSEXP(..))
+import qualified Foreign.R.Internal as R
 import           Language.R ( parseText, withProtected, eval, install )
-import           Control.Exception
 
--- import Control.Monad ( forM_, (>=>) )
 import Data.List ( isSuffixOf )
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
@@ -61,7 +63,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ unsafeRunInRThread $ parseText txt True >>= R.protect
+    ex <- runIO $ H.unsafeRunInRThread $ parseText txt True >>= R.protect
     {-
     - Current approach to use R memory are not correct and doesn't survive
     - gctorture(TRUE) as it has problems in convert time and compile time
@@ -79,7 +81,7 @@ parseExpRuntime txt = do
     let l = RuntimeSEXP ex
     ret <- case attachHs ex of
       [] -> [| return (unRuntimeSEXP l) |]
-      x  -> [| H.withProtected (return (unRuntimeSEXP l)) (const $ $(gather x l)) |]
+      x  -> [| H.protect =<< unsafeIOToR (R.withProtected (return (unRuntimeSEXP l)) (const $ $(gather x l))) |]
     runIO $ R.unprotect 1
     return ret
   where
@@ -87,7 +89,7 @@ parseExpRuntime txt = do
     gather vls l = foldr (\v t -> v t) [| return (unRuntimeSEXP l)|] vls
 
 parseExpRuntimeEval :: String -> Q Exp
-parseExpRuntimeEval txt = [| H.withProtected $(parseExpRuntime txt) eval |]
+parseExpRuntimeEval txt = [| R.withProtected $(parseExpRuntime txt) eval |]
 
 -- | Generate code to attach haskell symbols to SEXP structure.
 attachHs :: SEXP a -> [ExpQ -> ExpQ]
@@ -98,9 +100,9 @@ attachHs h@(hexp -> Expr _ v) =
           s = RuntimeSEXP (R.unsafeCoerce h)
       in case haskellName t of
            Just hname ->
-             [\e -> [| io (R.writeVector (unRuntimeSEXP s :: SEXP R.Expr) $(lift i) (H.mkSEXP $(varE hname))) >> $e |]]
+             [\e -> [| H.io (R.writeVector (unRuntimeSEXP s :: SEXP R.Expr) $(lift i) =<< unsafeMkSEXP $(varE hname)) >> $e |]]
            Nothing ->
-             (\e -> [| io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> io (R.unprotect 1) >> return x|]):tl)
+             (\e -> [| H.io (R.protect (unRuntimeSEXP t')) >> $e >>= \x -> H.io (R.unprotect 1) >> return x|]):tl)
                 $ zip [(0::Int)..] (Vector.toList v))
 attachHs h@(hexp -> Lang x ls) =
   let tl = attachHs x ++ (maybe [] attachHs ls)
@@ -113,18 +115,18 @@ attachHs _ = []
 attachSymbol :: SEXP a -> SEXP b -> Maybe (ExpQ -> ExpQ)
 attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
-        rp = maybe (RuntimeSEXP (R.unsafeCoerce H.nilValue)) RuntimeSEXP params
+        rp = maybe (RuntimeSEXP (R.unsafeCoerce nilValue)) RuntimeSEXP params
     in Just (\e ->
-         [| H.withProtected (install ".Call") $ \call ->
-              H.withProtected (return $ H.mkSEXP $(varE hname)) $ \l -> do
-                io $ R.setCar (unRuntimeSEXP rs) call
-                io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
+         [| R.withProtected (install ".Call") $ \call ->
+              R.withProtected (unsafeMkSEXP $(varE hname)) $ \l -> do
+                H.io $ R.setCar (unRuntimeSEXP rs) call
+                H.io $ R.setCdr (unRuntimeSEXP rs) (unhexp (List l (Just (unRuntimeSEXP rp)) Nothing))
                 $e
          |])
 attachSymbol s (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
     in Just (\e ->
-         [| io (withProtected (evaluate $ H.mkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs))) >> $e |])
+         [| withProtected (unsafeMkSEXP $(varE hname)) (R.setCar (unRuntimeSEXP rs)) >> $e |])
 attachSymbol _ _ = Nothing
 
 haskellName :: SEXP a -> Maybe Name

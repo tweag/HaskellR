@@ -25,7 +25,7 @@
 module Data.Vector.SEXP.Mutable
   (
     -- * Mutable vectors of 'SEXP' types
-    MVector(..), IOVector, STVector
+    MVector(..), IOVector, STVector, SexpVector
   -- * Accessors
   -- ** Length information
   , length, null
@@ -48,9 +48,10 @@ module Data.Vector.SEXP.Mutable
   , fromStorable
   ) where
 
-import H.Internal.Prelude
+import H.Internal.Error
 import Data.Vector.SEXP.Base
-import qualified Foreign.R as R
+import           Foreign.R.Internal  (SEXP, SEXPTYPE(..))
+import qualified Foreign.R.Internal as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)

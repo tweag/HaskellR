@@ -1,10 +1,10 @@
 :m +Control.Exception
 
 -- Disable showing summaries of the call stack for more reproducible tests.
-[r| options('showErrorCalls'=FALSE) |]
+H.performR ([r| options('showErrorCalls'=FALSE) |] >> return ())
 
-([r| plot() |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+H.performR ([r| plot() |] >> return () :: R s ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
-([r| plot( |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+H.performR ([r| plot( IO ([r| plot()|] >> return () :: R s ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
-([r| 1+()-2 |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+H.performR ([r| 1+()-2IO ([r| plot() |] >> return () :: R s ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
