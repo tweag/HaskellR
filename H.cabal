@@ -67,6 +67,7 @@ library
                        Language.R.Debug
                        Language.R.GC
                        Language.R.Globals
+                       Language.R.Globals.Unsafe
                        Language.R.HExp
                        Language.R.HExp.Unsafe
                        Language.R.Internal.FunWrappers
@@ -79,7 +80,6 @@ library
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error
-                       H.Internal.Prelude
   build-depends:       base >= 4.6 && < 5
                      , aeson >= 0.6
                      , bytestring >= 0.10

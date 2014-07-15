@@ -18,10 +18,10 @@ module Language.R.Debug
   ( inspect )
   where
 
-import H.Internal.Prelude
 import Language.R.HExp.Unsafe
-import Language.R.Globals as H
+import Language.R.Globals.Unsafe as H
 import Foreign.Storable
+import           Foreign.R.Internal (SEXPTYPE, SEXPInfo(..), SEXP, SomeSEXP(..))
 import qualified Foreign.R.Internal as R
 import Foreign.R.Type (IsVector)
 import qualified Data.Vector.SEXP as Vector
