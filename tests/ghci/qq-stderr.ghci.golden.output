@@ -2,20 +2,20 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
   argument "x" is missing, with no default
 
 
-<interactive>:9:2:
+<interactive>:9:13:
     Exception when trying to run compile-time code:
-      R Runtime Error: Error in parse(text = " plot( ", keep.source = FALSE) : 
-  <text>:2:0: unexpected end of input
-1:  plot( 
-   ^
+      R Runtime Error: Error in parse(text = " plot( IO ([r| plot()", keep.source = FALSE) : 
+  <text>:1:12: unexpected '['
+1:  plot( IO ([
+               ^
 
-      Code: Language.Haskell.TH.Quote.quoteExp r " plot( "
+      Code: Language.Haskell.TH.Quote.quoteExp r " plot( IO ([r| plot()"
 
-<interactive>:11:2:
+<interactive>:11:13:
     Exception when trying to run compile-time code:
-      R Runtime Error: Error in parse(text = " 1+()-2 ", keep.source = FALSE) : 
+      R Runtime Error: Error in parse(text = " 1+()-2IO ([r| plot() ", keep.source = FALSE) : 
   <text>:1:5: unexpected ')'
 1:  1+()
         ^
 
-      Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2 "
+      Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2IO ([r| plot() "

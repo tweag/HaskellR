@@ -1,133 +1,140 @@
 :set -XDataKinds
 :set -XScopedTypeVariables
 :m +Data.Int
-import qualified Foreign.R as R
+import H.Prelude.Interactive
+import qualified Foreign.R.Internal as R
 
 -- Should be: [1] 1
-H.print =<< [r| 1 |]
+unsafeRunRegion $ H.print =<< [r| 1 |]
 
 -- Should be: [1] 2
-H.print =<< [r| 1 + 2 |]
+unsafeRunRegion $ H.print =<< [r| 1 + 2 |]
 
 -- Should be: [1] "1" "2" "3"
-H.print =<< [r| c(1,2,"3") |] :: IO ()
-
+unsafeRunRegion $ H.print =<< [r| c(1,2,"3") |] :: IO ()
+ 
 -- Should be: [1] 2
-H.print =<< [r| x <- 2 |] :: IO ()
+unsafeRunRegion $ H.print =<< [r| x <- 2 |] :: IO ()
 
 -- Should be: [1] 3
-H.print =<< [r| x+1 |]
+unsafeRunRegion $ H.print =<< [r| x+1 |]
 
----- Should be: [1] 6
+-- Should be: [1] 6
 let y = (5::Double)
-H.print =<< [r| y_hs + 1 |]
+unsafeRunRegion $ H.print =<< [r| y_hs + 1 |]
 
----- Should be: Closure ???
-H.print =<< [r| function(y) y_hs + y |]
-
+-- Should be: Closure ???
+unsafeRunRegion $ H.print =<< [r| function(y) y_hs + y |]
+ 
 -- Should be 8
-H.print =<< [r| z <- function(y) y_hs + y |]
-H.print =<< [r| z(3) |]
+unsafeRunRegion $ H.print =<< [r| z <- function(y) y_hs + y |]
+unsafeRunRegion $ H.print =<< [r| z(3) |]
 
 -- Should be [1] 1 2 3 4 5 6 7 8 9 10
-H.print =<< [r| y <- c(1:10) |]
-let foo1 = (\x -> (return $ x+1 :: R Double))
-let foo2 = (\x -> (return $ map (+1) x :: R [Int32]))
-
+unsafeRunRegion $ H.print =<< [r| y <- c(1:10) |]
+let foo1 = (\x -> (return $ x+1 :: R s Double))
+let foo2 = (\x -> (return $ map (+1) x :: R s [Int32]))
+ 
 -- Should be [1] 2
-H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
-
+unsafeRunRegion $ H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
+  
 -- Should be [1] 2 3 4 5 6 7 8 9 10 11
-H.print =<< [r| (function(x).Call(foo2_hs,x))(y) |]
-
+unsafeRunRegion $ H.print =<< [r| (function(x).Call(foo2_hs,x))(y) |]
+  
 -- Should be [1] 43
-H.print =<< [r| x <- 42 ; x + 1 |]
-
+unsafeRunRegion $ H.print =<< [r| x <- 42 ; x + 1 |]
+   
 -- Should be [1] 1 2 3
 let xs = [1,2,3]::[Double]
-H.print =<< [r| xs_hs |]
-
+unsafeRunRegion $ H.print =<< [r| xs_hs |]
+  
 -- Should be [1] 8
-H.print =<< [r| foo1_hs(7) |]
-
+unsafeRunRegion $ H.print =<< [r| foo1_hs(7) |]
+  
 -- Should be NULL
 H.unsafeRunInRThread (H.unsafeRunInRThread $ H.print H.nilValue)
-
-let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
-
+   
+:m +Foreign.R
+let fromSomeSEXP s = Foreign.R.unSomeSEXP s (H.fromSEXP . Foreign.R.unSEXP)
+    
 -- Should be [1] 3
-let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R Int32
-H.print =<< [r| foo3_hs(as.integer(3)) |]
-
--- | should be 3
-let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R Double
-H.print =<< [r| foo4_hs(33, 66) |]
-
+let foo3 = (\n -> runRegion $ (fmap fromSomeSEXP [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
+unsafeRunRegion $ H.print =<< [r| foo3_hs(as.integer(3)) |]
+   
+-- | should be [1] 99
+let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
+unsafeRunRegion $ H.print =<< [r| foo4_hs(33, 66) |]
+  
 -- Should be [1] 120 but it doesn't work
-let fact n = if n == (0 :: Int32) then (return 1 :: R Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
-H.print =<< [r| fact_hs(as.integer(5)) |]
-
+let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+unsafeRunRegion $ H.print =<< [r| fact_hs(as.integer(5)) |]
+  
 :set -XDataKinds
 -- Should be [1] 29
-let foo5  = (\n -> return (n+1)) :: Int32 -> R Int32
-let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R R.SomeSEXP
-H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
-
-sym <- H.install "blah"
-H.print sym
-
+let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
+let apply = (\n m -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (\z -> Foreign.R.Internal.SomeSEXP $ Foreign.R.unSEXP z))) ([r| .Call(n_hs, m_hs) |])) :: R.Callback -> Int32 -> R s (UnsafeValue Foreign.R.Internal.SomeSEXP)
+unsafeRunRegion $ H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
+ 
+sym <- performR $ H.install "blah"
+performR $ H.print sym
+  
 -- Should be [1] 100
-_ <- [r| `+` <- function(x,y) x * y |]
-H.print =<< [r| 10 + 10 |]
-
+_ <- performR $ [r| `+` <- function(x,y) x * y |] :: IO (UnsafeValue Foreign.R.Internal.SomeSEXP)
+unsafeRunRegion $ H.print =<< [r| 10 + 10 |]
+   
 -- Should be [1] 20
-H.print =<< [r| base::`+`(10,10) |]
-
+unsafeRunRegion $ H.print =<< [r| base::`+`(10,10) |]
+ 
 -- restore usual meaning of `+`
-_ <- [r| `+` <- base::`+` |]
-
+_ <- performR $ [r| `+` <- base::`+` |]
+   
 :{
-let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R (Foreign.R.SEXP Foreign.R.Int)
-    hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-    hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-    hFib n                              = H.withProtected (return n) $ const $
-        fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
+    hFib n@(H.fromSEXP -> (0 :: Int32)) = protectRegion $ do
+        n' <- Foreign.R.protect n
+        fmap (Foreign.R.unSEXP . (flip Foreign.R.asTypeOf n')) [r| as.integer(0) |]
+    hFib n@(H.fromSEXP -> (1 :: Int32)) = protectRegion $ do
+        n' <- Foreign.R.protect n
+        fmap (Foreign.R.unSEXP . (flip Foreign.R.asTypeOf n')) [r| as.integer(1) |]
+    hFib n                              = protectRegion $ do
+        n' <- Foreign.R.protect n
+ 	fmap (Foreign.R.unSEXP . (flip Foreign.R.asTypeOf n')) [r| as.integer(hFib_hs(as.integer(n_hs-1)) + hFib_hs(as.integer(n_hs -2))) |]
 :}
-
+   
 -- Should be [1] 4181
--- H.print =<< H.Prelude.runR H.defaultConfig (hFib (H.Prelude.mkSEXP (19 :: Int32))) -- XXX produces wrong result.
-
+unsafeRunRegion $ H.print =<< hFib =<< fmap (Foreign.R.unSEXP) (H.Prelude.mkSEXP (19 :: Int32)) -- XXX produces wrong result.
+   
 -- s4 objects test
 -- Create an S4 class
-H.print =<< [r| setClass("x-test",representation(a = "numeric", b = "numeric"), prototype(a=1,b=2)) |]
+performR $ H.print =<< [r| setClass("x-test",representation(a = "numeric", b = "numeric"), prototype(a=1,b=2)) |]
 -- instantiate and object in R
-H.print =<< [r| x <- new("x-test") |]
+performR $ H.print =<< [r| x <- new("x-test") |]
 -- instantiate and object and pass it to H as-is
-x <- [r| new("x-test") |]
+x <- performR $ [r| new("x-test") |]
 -- prevent x from being garbage collected
-rv <- H.newSomeRVal x
+rv <- performR $ unsafeUseValue x H.newRVal
 -- show object
-H.print x
+performR $ H.print x
 -- Should be 1. Use slot accessor on R object.
-H.print =<< [r| x@a |]
+performR $ H.print =<< [r| x@a |]
 -- Should be 2. Use slot accessor on H object.
-H.print =<< [r| x_hs@b |]
+performR $ H.print =<< [r| x_hs@b |]
 -- Should be "S4". Get type of R object.
-H.print =<< [r| typeof(x) |]
+performR $ H.print =<< [r| typeof(x) |]
 -- Should be "S4". Get type of H object.
-H.print =<< [r| typeof(x_hs) |]
-
+performR $ H.print =<< [r| typeof(x_hs) |]
+  
 :{
-let testpm (SomeSEXP z) = case hexp z of
-                  S4 p | H.Prelude.toBool [rsafe| z_hs @ a > 0 |] -> H.print z
-                  _    -> print "unexpected value"
+let testpm (Foreign.R.Internal.SomeSEXP z) = case hexp z of
+               H.S4 p | H.Prelude.toBool [rsafe| z_hs @ a > 0 |] -> H.print z
+               _    -> Prelude.print "unexpected value"
 :}
-
-testpm x
-
+ 
+unsafeUseValue x testpm
+   
 -- Should be "S4". Get type of H object.
 -- XXX This is a workaround to avoid the test hanging on windows.
 -- For some reason, if the output of ghci is redirected and the last
 -- command in the test is `testpm x`, then ghci executes all commands
 -- but does not produce any R output and seems to block forever.
-H.print =<< [r| typeof(x_hs) |]
+performR $ H.print =<< [r| typeof(x_hs) |]
