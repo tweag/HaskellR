@@ -235,14 +235,14 @@ startRThread eventLoopThread = do
       forever (join $ readChan chan) `finally` killThread eventLoopThread
     rOSThreadId <- takeMVar mv
     newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
-    poke isRInitializedPtr 1
 
 -- | Runs a computation in the R interpreter thread.
 --
 -- This operation blocks until the computation completes if called from the R
 -- thread. Otherwise, it does not block.
 --
--- If R runtime is not initialized action will be ignored.
+-- If R runtime is not initialized, the behavior of this call is undefined.
+--
 postToRThread_ :: IO () -> IO ()
 postToRThread_ action =
   peek interpreterChanPtr >>= deRefStablePtr >>= postToThisRThread_ action

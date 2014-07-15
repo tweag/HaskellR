@@ -105,7 +105,6 @@ module Foreign.R
   , unprotectPtr
   , preserveObject
   , releaseObject
-  , releaseObjectPtr
   , gc
     -- * Globals
   , globalEnv
@@ -463,8 +462,6 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 -- | Allow GC to remove an preserved object.
 {#fun R_ReleaseObject as releaseObject { unsexp `SEXP a' } -> `()' #}
 
-foreign import ccall "Rinternals.h &R_ReleaseObject" releaseObjectPtr ::
-  FunPtr (Ptr a -> IO ())
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
 --------------------------------------------------------------------------------
