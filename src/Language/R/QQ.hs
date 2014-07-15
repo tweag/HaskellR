@@ -20,10 +20,10 @@ module Language.R.QQ
 
 import H.Internal.Prelude
 import qualified H.Prelude as H
-import           Language.R.HExp
-import           Language.R.Literal
+import           Language.R.HExp.Unsafe
+import           Language.R.Literal.Unsafe
 import qualified Data.Vector.SEXP as Vector
-import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
 import           Language.R (parseText, installIO, string, eval, withProtected)
 
@@ -219,7 +219,7 @@ instance TH.Lift (IO (SEXP a)) where
         | Char (Vector.toString -> name) <- hexp pname
         , isSplice name -> do
           let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-          [| H.mkSEXPIO $hvar |]
+          [| H.unsafeMkSEXP $hvar |]
         | otherwise -> [| installIO xs |]        -- FIXME
        where
         xs :: String
@@ -230,9 +230,9 @@ instance TH.Lift (IO (SEXP a)) where
           let nm = spliceNameChop name
           hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
           [| withProtected (installIO ".Call") $ \call ->
-             withProtected (H.mkSEXPIO $hvar) $ \f -> do
+             withProtected (H.unsafeMkSEXP $hvar) $ \f -> do
                 rands <- randsio
-                unhexpIO . Lang call . Just =<< unhexpIO (List f rands Nothing)
+                unsafeUnhexp . Lang call . Just =<< unsafeUnhexp (List f rands Nothing)
            |]
     -- Override the default for expressions because the default Lift instance
     -- for vectors will allocate a node of VECSXP type, when the node is real an
@@ -241,10 +241,10 @@ instance TH.Lift (IO (SEXP a)) where
         let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
                             $ Vector.toList v :: IO [SEXP R.Any]
          in [| withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
-                 unhexpIO . Expr n . vector
+                 unsafeUnhexp . Expr n . vector
              |]
       (returnIO . hexp -> iot) ->
-        [| unhexpIO =<< iot |]
+        [| unsafeUnhexp =<< iot |]
 
 instance TH.Lift (IO (HExp a)) where
   lift = runIO >=> \case
