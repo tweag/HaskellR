@@ -58,6 +58,7 @@ int isRInitialized = 2;
 
 HsStablePtr rVariables;
 HsStablePtr interpreterChan;
+HsStablePtr isRInitializedPtr = NULL;
 
 #undef USE_RINTERNALS
 

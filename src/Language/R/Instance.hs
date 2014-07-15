@@ -56,6 +56,7 @@ import Control.Concurrent
     , isCurrentThreadBound
     , killThread
     , threadDelay
+    , yield
     )
 import Control.Concurrent.MVar
     ( newEmptyMVar
@@ -79,6 +80,7 @@ import Control.Monad.Catch ( MonadCatch, MonadThrow )
 import Control.Monad.Catch ( MonadCatch )
 #endif
 import Control.Monad.Reader
+import Data.IORef
 
 import Foreign
     ( Ptr
@@ -87,6 +89,8 @@ import Foreign
     , newStablePtr
     , deRefStablePtr
     , freeStablePtr
+    , nullPtr
+    , castPtr
     )
 import Foreign.C.Types ( CInt(..) )
 import Foreign.Storable (Storable(..))
@@ -98,6 +102,7 @@ import System.SetEnv
 import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
+import System.Exit
 #endif
 
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
@@ -148,7 +153,15 @@ populateEnv = do
 
 -- | A static address that survives GHCi reloadings which indicates
 -- whether R has been initialized.
-foreign import ccall "missing_r.h &isRInitialized" isRInitializedPtr :: Ptr CInt
+-- 
+-- Rules for the value:
+-- 
+--  * positive odd value means that R is initializing
+--  * positive even means that R is initialized
+--  * negative odd value means that R is deinitializing
+--  * nagative even value means that R is deinitialized
+--
+foreign import ccall "missing_r.h &isRInitializedPtr" isRInitializedPtr :: Ptr (StablePtr (IORef Int))
 
 -- | Allocate and initialize a new array of elements.
 newCArray :: Storable a
@@ -160,18 +173,39 @@ newCArray xs k =
       zipWithM_ (pokeElemOff ptr) [0..] xs
       k ptr
 
+isRInitialized :: IORef Int
+isRInitialized = unsafePerformIO $ do
+  isCreated <- fmap ((==) nullPtr) (peek (castPtr isRInitializedPtr) :: IO (Ptr ()))
+  if isCreated 
+  then do i <- newIORef 0
+          poke isRInitializedPtr =<< newStablePtr i
+          return i
+  else deRefStablePtr =<< peek isRInitializedPtr
+{-# NOINLINE isRInitialized #-}
+
 -- | Create a new embedded instance of the R interpreter.
 initialize :: Config
            -> IO ()
 initialize Config{..} = do
-    initialized <- fmap (==1) $ peek isRInitializedPtr
-    unless initialized $ mdo
+    join $ fix $ \loop -> atomicModifyIORef' isRInitialized $ \x ->
+      case x of
+        _ | x > 0 && even x -> (x, return ())               -- initialized   - skipping
+        _ | x > 0           -> (x, yield >> join loop)      -- initializing in other thread - wait
+        _ | even x          -> let n = (-x) + 1             -- deinitialized - initializing
+                               in  (n, go n `onException` restore n)
+        _                   -> (x, yield >> join loop)      -- deinitializing - wait
+  where
+    restore n = atomicModifyIORef' isRInitialized $ \x ->
+      if x == n
+      then (x - 1, ())
+      else (x, ())                                          -- XXX: possible race
+    go check = mdo
       -- Grab addresses of R global variables
       pokeRVariables
         ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
         , R.rInteractive, R.rInputHandlers
         )
-      startRThread eventLoopThread
+      chan <- startRThread eventLoopThread
       eventLoopThread <- forkIO $ forever $ do
         threadDelay 30000
 #ifdef H_ARCH_WINDOWS
@@ -180,7 +214,11 @@ initialize Config{..} = do
         unsafeRunInRThread $
           R.processGUIEventsUnix rInputHandlersPtr
 #endif
-      unsafeRunInRThread $ do
+       -- here we inline a unsafeRunInRThread because we know that we are
+       -- not in R Thread and we know that R thread are being initialized
+       -- by ourselfes; so we are dropping all checks.
+      mv <- newEmptyMVar
+      writeChan chan $ putMVar mv <=< try $ do
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
@@ -188,22 +226,39 @@ initialize Config{..} = do
         let argc = length argv
         newCArray argv $ R.initUnlimitedEmbeddedR argc
         poke rInteractive 0
-        poke isRInitializedPtr 1
+        join $ atomicModifyIORef' isRInitialized $ \x ->
+          if x == check
+          then (x+1, return ())
+          else (x, putStrLn "PANIC! Race condition in R initialization." >> exitFailure)
+      takeMVar mv >>= either (throwIO :: SomeException -> IO a) return
+
 
 -- | Finalize an R instance.
 finalize :: IO ()
 finalize = do
-    mv <- newEmptyMVar
-    postToRThread_ $ do
-      R.endEmbeddedR 0
-      peek interpreterChanPtr >>= freeStablePtr
-      poke isRInitializedPtr 0
-      putMVar mv ()
-      throwIO ThreadKilled
-    takeMVar mv
+    join $ fix $ \loop -> atomicModifyIORef' isRInitialized $ \x -> 
+      case x of
+        _ | x > 0 && even x -> ((-x) + 1, go ((-x) + 1)) -- initialized   - go
+        _ | x > 0           -> (x, yield >> join loop)   -- initializing  - wait
+        _ | even x          -> (x, return ())            -- deinitialized - skip
+        _                   -> (x, yield >> join loop)   -- deinitializing - wait
+  where
+    go check = do
+      mv <- newEmptyMVar
+      let action = do
+            R.endEmbeddedR 0
+            peek interpreterChanPtr >>= freeStablePtr
+            join $ atomicModifyIORef' isRInitialized $ \x ->
+              if x == check
+              then (x-1, do putMVar mv ()
+                            throwIO ThreadKilled)
+              else (x, putStrLn "PANIC! Race condition in R deinitialization." >> exitFailure)
+      (_rOSThreadId, interpreterChan) <- peek interpreterChanPtr >>= deRefStablePtr
+      writeChan interpreterChan action
+      takeMVar mv
 
 -- | Starts the R thread.
-startRThread :: ThreadId -> IO ()
+startRThread :: ThreadId -> IO (Chan (IO ()))
 startRThread eventLoopThread = do
 #ifdef H_ARCH_UNIX
 #ifdef H_ARCH_UNIX_DARWIN
@@ -233,6 +288,7 @@ startRThread eventLoopThread = do
       forever (join $ readChan chan) `finally` killThread eventLoopThread
     rOSThreadId <- takeMVar mv
     newStablePtr (rOSThreadId, chan) >>= poke interpreterChanPtr
+    return chan
 
 -- | Runs a computation in the R interpreter thread.
 --
@@ -245,7 +301,8 @@ postToRThread_ action = do
     isBound <- isCurrentThreadBound
     (rOSThreadId, interpreterChan) <- peek interpreterChanPtr >>= deRefStablePtr
     if tid == rOSThreadId && isBound
-      then action -- run the action here if we are the R thread.
+      then do isInitialized <- fmap (liftA2 (&&) even (>0)) $ readIORef isRInitialized
+              when isInitialized action -- run the action here if we are the R thread.
       else writeChan interpreterChan action
 
 -- | Evaluates a computation in the R interpreter thread.
