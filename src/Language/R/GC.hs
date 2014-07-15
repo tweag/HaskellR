@@ -50,7 +50,8 @@ newtype RVal (a :: R.SEXPTYPE) = RVal (ForeignPtr R.SEXPREC)
 newRVal :: MonadR m => R.SEXP a -> m (RVal a)
 newRVal s = io $ do
     _ <- R.protect s
-    fp <- newForeignPtr (R.unsexp s) (R.unprotectPtr s)
+    post <- getPostToCurrentRThread
+    fp <- newForeignPtr (R.unsexp s) (post $ R.unprotectPtr s)
     return (RVal fp)
 
 -- | Keep SEXP value from the garbage collection.
@@ -94,7 +95,8 @@ newtype SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)
 newSomeRVal :: MonadR m => SomeSEXP -> m SomeRVal
 newSomeRVal (SomeSEXP s) = io $ do
     _ <- R.protect s
-    SomeRVal <$> newForeignPtr (R.unsexp s) (R.unprotectPtr s)
+    post <- getPostToCurrentRThread
+    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.unprotectPtr s)
 
 -- | Keep 'SEXP' value from the garbage collection.
 touchSomeRVal :: MonadR m => SomeRVal -> m ()

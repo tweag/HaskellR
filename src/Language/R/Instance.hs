@@ -40,6 +40,7 @@ module Language.R.Instance
   , missingArgPtr
   , rInteractive
   , rInputHandlersPtr
+  , getPostToCurrentRThread
   ) where
 
 import           Control.Monad.R.Class
@@ -97,6 +98,7 @@ import System.SetEnv
 #ifdef H_ARCH_UNIX
 import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
+import System.Mem.Weak ( mkWeakPtr, deRefWeak)
 import System.Posix.Resource
 #endif
 
@@ -240,10 +242,25 @@ startRThread eventLoopThread = do
 -- thread. Otherwise, it does not block.
 --
 postToRThread_ :: IO () -> IO ()
-postToRThread_ action = do
+postToRThread_ action =
+  peek interpreterChanPtr >>= deRefStablePtr >>= postToThisRThread_ action
+
+-- | Returns a computation that behaves like 'postToRThread_'
+-- if the current R instance is still alive when the computation is evaluated.
+-- Otherwise, it does nothing.
+--
+getPostToCurrentRThread :: IO (IO () -> IO ())
+getPostToCurrentRThread = do
+    w <- peek interpreterChanPtr >>= deRefStablePtr >>= flip mkWeakPtr Nothing
+    return $ \action ->
+      deRefWeak w >>= maybe (return ()) (postToThisRThread_ action)
+
+-- | Like 'postToRThread_' but runs the computation in the given
+-- R instance.
+postToThisRThread_ :: IO () -> (OSThreadId,Chan (IO ())) -> IO ()
+postToThisRThread_ action (rOSThreadId, interpreterChan) = do
     tid <- myOSThreadId
     isBound <- isCurrentThreadBound
-    (rOSThreadId, interpreterChan) <- peek interpreterChanPtr >>= deRefStablePtr
     if tid == rOSThreadId && isBound
       then action -- run the action here if we are the R thread.
       else writeChan interpreterChan action
