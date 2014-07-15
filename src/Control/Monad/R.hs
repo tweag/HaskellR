@@ -63,6 +63,8 @@ module Control.Monad.R
   , runRegion
   , protectRegion
   , unsafeRunRegion
+  , SubRegion(..)
+  , newRegion
     -- * Protection
   , Protect(..)
   , Unprotect(..)
@@ -92,3 +94,14 @@ runRegion = R . ReaderT . const . unsafeRunRegion
 -- This method will not allow to to return a values that have an @s@ variable
 unsafeRunRegion :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
 unsafeRunRegion f = unsafeRunRegion_ (unprotect =<< f)
+
+-- | A witness that the region 'r' is older than
+-- (or, is the parent of, the subtype of) the region labeled 's'
+newtype SubRegion r s = SubRegion (forall v . R r v -> R s v)
+
+newRegion :: (Unprotect v) => (forall s . SubRegion r s -> R s v) -> R r (UnprotectElt v)
+newRegion body = R $ do
+   envOuter <- ask 
+   -- changing label
+   let witness (R m) = unsafeIOToR $ runReaderT m envOuter
+   ReaderT $ const $ unsafeRunRegion $ body (SubRegion witness)
