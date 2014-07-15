@@ -9,8 +9,6 @@ import Data.Int
 
 import qualified Foreign.R as R
 
-import Control.Applicative
-import Control.Monad
 import Control.Exception (bracket)
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
