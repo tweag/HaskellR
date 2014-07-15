@@ -48,10 +48,12 @@ module Data.Vector.SEXP.Mutable
   , fromStorable
   ) where
 
-import H.Internal.Prelude
+import H.Internal.Error
 import Data.Vector.SEXP.Base
+import           Foreign.R.Internal  (SEXP, SEXPTYPE(..))
 import qualified Foreign.R.Internal as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
+import Foreign.R.Runner (getPostToCurrentRThread)
 
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
 import qualified Data.Vector.Generic.Mutable as G

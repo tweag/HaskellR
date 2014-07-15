@@ -27,11 +27,13 @@ module Language.R.GC
   , withProtected
   ) where
 
-import H.Internal.Prelude
+import Foreign.R.Internal (SomeSEXP(..))
+import Control.Monad.R.Class
 import Control.Applicative
 import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr, castPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Concurrent ( newForeignPtr )
+import Foreign.R.Runner (getPostToCurrentRThread)
 import qualified Foreign.R.Internal as R
 
 #if MIN_VERSION_exceptions(0,6,0)

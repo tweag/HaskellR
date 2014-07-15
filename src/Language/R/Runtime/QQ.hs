@@ -19,11 +19,13 @@ module Language.R.Runtime.QQ
   , rexp
   ) where
 
-import           H.Internal.Prelude
+import           H.Internal.Error
+import           Language.R.Globals.Unsafe
 import           Language.R.HExp.Unsafe
 import           Control.Monad.R.Unsafe
 import qualified H.Prelude as H
 import qualified Data.Vector.SEXP as Vector
+import           Foreign.R.Internal (SEXP, SomeSEXP(..))
 import qualified Foreign.R.Internal as R
 import           Language.R ( parseText, withProtected, eval, install )
 
@@ -60,7 +62,7 @@ rexp = QuasiQuoter
 
 parseExpRuntime :: String -> Q Exp
 parseExpRuntime txt = do
-    ex <- runIO $ unsafeRunInRThread $ parseText txt True >>= R.protect
+    ex <- runIO $ H.unsafeRunInRThread $ parseText txt True >>= R.protect
     {-
     - Current approach to use R memory are not correct and doesn't survive
     - gctorture(TRUE) as it has problems in convert time and compile time
@@ -112,7 +114,7 @@ attachHs _ = []
 attachSymbol :: SEXP a -> SEXP b -> Maybe (ExpQ -> ExpQ)
 attachSymbol s@(hexp -> Lang _ params) (haskellName -> Just hname) =
     let rs = RuntimeSEXP (R.sexp . R.unsexp $ s)
-        rp = maybe (RuntimeSEXP (R.unsafeCoerce H.nilValue)) RuntimeSEXP params
+        rp = maybe (RuntimeSEXP (R.unsafeCoerce nilValue)) RuntimeSEXP params
     in Just (\e ->
          [| R.withProtected (install ".Call") $ \call ->
               R.withProtected (H.unsafeMkSEXP $(varE hname)) $ \l -> do
