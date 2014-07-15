@@ -103,6 +103,7 @@ import qualified Control.Monad.R.Unsafe as Unsafe
 import           Foreign.R.Internal (SEXPTYPE(..), SSEXPTYPE)
 import           Foreign.R.Internal ( CEType )
 import qualified Foreign.R.Internal as Internal
+import           Foreign.R.GC
 
 import Control.Applicative
 import Control.DeepSeq
@@ -139,6 +140,10 @@ instance Storable (SEXP s a) where
 instance NFData (SEXP s a) where
   rnf (SEXP s) = rnf (Internal.RPtr s)
 
+instance AsSEXP (SEXP s a) a where
+  asSEXP (SEXP x) = x
+  unAsSEXP x = SEXP x
+
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
 -- arbitrary type in a @#pointer@ hook).
@@ -174,6 +179,10 @@ instance Storable (SomeSEXP s) where
 
 instance NFData (SomeSEXP s) where
   rnf (SomeSEXP s) = rnf s
+
+instance AsSEXP (SomeSEXP s) Internal.Any where
+  asSEXP (SomeSEXP (SEXP x)) = Internal.unsafeCoerce x
+  unAsSEXP = SomeSEXP . SEXP
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.

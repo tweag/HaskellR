@@ -9,6 +9,7 @@ import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
 import qualified Foreign.R.Runner as R
 import qualified Control.Monad.R as R
+import           Control.Monad.R.Unsafe (unsafeIOToR)
 
 import Control.Exception (bracket)
 import Test.Tasty hiding (defaultMain)
@@ -22,9 +23,9 @@ tests = testGroup "HVal"
       bracket getCurrentDirectory setCurrentDirectory $ const $ do
         ((assertBool "RVal was collected" . isInt) =<<) $ do
             -- double initialization, but it's safe
-            R.runR R.defaultConfig $ do
-              x <- newRVal =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP R.Int))
-              io $ R.gc
+            R.runR R.defaultConfig $ unsafeIOToR $ do
+              x <- newRVal =<< (R.allocVector SingR.SInt 1024 :: IO (R.SEXP R.Int))
+              R.gc
               withRVal x (return . R.typeOf)
     ]
   where
