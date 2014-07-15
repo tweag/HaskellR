@@ -63,6 +63,8 @@ module Control.Monad.R
   , runRegion
   , protectRegion
   , unsafeRunRegion
+  , SubRegion(..)
+  , newRegion
     -- * Protection
   , Protect(..)
   , Unprotect(..)
@@ -77,6 +79,7 @@ import Control.Monad.R.Class
 import Foreign.R
 
 import Control.Monad.Reader
+import Data.IORef
 
 -- This guarantee safeness of values usafe inside a region.
 -- 
@@ -91,3 +94,17 @@ runRegion = R . ReaderT . const . unsafeRunRegion
 -- This method will not allow to to return a values that have an @s@ variable
 unsafeRunRegion :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
 unsafeRunRegion f = internalRunRegion (unprotect =<< f)
+
+unsafeRunRegionWith :: (Unprotect a) => (forall s .R s a) -> IORef Int -> IO (UnprotectElt a)
+unsafeRunRegionWith f x = internalRunRegionWith (unprotect =<< f) x 
+
+-- | A witness that the region 'r' is older than
+-- (or, is the parent of, the subtype of) the region labeled 's'
+newtype SubRegion r s = SubRegion (forall v . R r v -> R s v)
+
+newRegion :: (Unprotect v) => (forall s . SubRegion r s -> R s v) -> R r (UnprotectElt v)
+newRegion body = R $ do
+   t <- ReaderT $ const $ newIORef 0
+   -- changing label
+   let witness (R m) = unsafeIOToR $ runReaderT m t 
+   ReaderT $ const $ unsafeRunRegionWith (body (SubRegion witness)) t

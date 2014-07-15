@@ -16,7 +16,7 @@ import           Control.Monad.R.Class
 import 		 Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
 
 import Control.Applicative
-import Control.Exception ( bracket, bracket_, mask_ )
+import Control.Exception ( bracket_, mask_, finally)
 import Control.Monad.Reader
 import Data.IORef
 import System.IO.Unsafe ( unsafePerformIO )
@@ -54,10 +54,11 @@ protectRegion = R . ReaderT . const . internalRunRegion
 --
 -- This action is unsafe because it does not guarantee that R runtime is initialized.
 internalRunRegion :: (forall s.R s a) -> IO a
-internalRunRegion f =
-   bracket (newIORef 0)
-           (readIORef >=> R.unprotect)
-	   (runReaderT (unR f))
+internalRunRegion f = newIORef 0 >>= internalRunRegionWith f
+
+-- | Run regions with supplied counter.
+internalRunRegionWith :: (forall s.R s a) -> IORef Int -> IO a
+internalRunRegionWith f x = runReaderT (unR f) x `finally` (readIORef x >>= R.unprotect) 
 
 -- | Run an R action in the global R instance from the IO monad.
 --
