@@ -18,12 +18,15 @@ module Language.R.QQ
   , rsafe
   ) where
 
-import H.Internal.Prelude
+import           H.Internal.Error
+import           H.Prelude (io)
 import qualified H.Prelude as H
 import           Control.Monad.R.Unsafe (unsafeIOToR)
 import           Language.R.HExp.Unsafe
 import           Language.R.Literal.Unsafe
+import           Language.R.Globals.Unsafe
 import qualified Data.Vector.SEXP as Vector
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPInfo(..))
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
 import           Language.R (parseText, installIO, string, eval, evalIO)
@@ -216,8 +219,8 @@ instance TH.Lift (IO (SEXP a)) where
           xs :: String
           xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
       (hexp -> List s Nothing Nothing)
-        | R.unsexp s == R.unsexp H.missingArg ->
-          [| R.cons H.missingArg H.nilValue |]
+        | R.unsexp s == R.unsexp missingArg ->
+          [| R.cons missingArg nilValue |]
       s@(hexp -> Symbol (returnIO -> pnameio) value _)
         | R.unsexp s == R.unsexp value -> [| selfSymbol =<< pnameio |] -- FIXME
       (hexp -> Symbol pname _ Nothing)

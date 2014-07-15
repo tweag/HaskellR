@@ -42,8 +42,10 @@ module Language.R.HExp.Unsafe
   , selfSymbol
   ) where
 
-import H.Internal.Prelude
-import qualified Language.R.Globals as H
+import           H.Constraints
+import           H.Internal.Error
+import qualified Language.R.Globals.Unsafe as H
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE)
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as R
 import           Foreign.R.Internal (SEXPREC)

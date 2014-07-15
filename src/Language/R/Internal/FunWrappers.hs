@@ -35,7 +35,7 @@ module Language.R.Internal.FunWrappers
   , wrap25
   ) where
 
-import           H.Internal.Prelude
+import           Foreign.R.Internal
 import           Language.R.Internal.FunWrappers.TH
 import           Foreign ( FunPtr )
 

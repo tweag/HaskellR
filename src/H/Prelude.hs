@@ -18,17 +18,16 @@ module H.Prelude
   , module Language.R.Globals
   , Show(..)
   , show
-  , withProtected
   -- * Type convertion helpers.
   , toBool
   ) where
 
 
-import           H.Internal.Prelude
-import qualified Foreign.R.Internal as R
-import qualified Foreign.R as FR
-import Language.R.HExp.Unsafe
+import qualified Foreign.R.Internal as Internal
+import           Foreign.R (SEXP(..), SomeSEXP(..))
+import qualified Language.R.HExp.Unsafe as Unsafe
 import qualified Data.Vector.SEXP as Vector
+import           Control.Monad.R.Unsafe()
 
 -- Reexported modules.
 import           Control.Monad.R
@@ -38,13 +37,11 @@ import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )
 import Foreign.R.Error
 
-
-import Control.Monad.Catch
 import qualified Data.Text.Lazy.IO as Text
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Text.Lazy
 import Data.Text.Lazy (Text)
-import Data.Vector.Generic (unsafeIndex)
+import Data.Vector.SEXP (unsafeIndex)
 
 import Control.Monad ((>=>))
 import Foreign.C (withCString)
@@ -66,42 +63,37 @@ show :: Show a => a -> Text
 show = unsafePerformIO . showIO
 
 
-instance Show (SEXP a) where
+instance Show (Internal.SEXP a) where
   showIO s = Language.R.withProtected (return s) $ \_ ->
-           withCString "quote" $ R.install >=> \quote ->
-           R.lang2 quote s >>= r1 "deparse" >>= \(SomeSEXP slang) ->
+           withCString "quote" $ Internal.install >=> \quote ->
+           Internal.lang2 quote s >>= r1 "deparse" >>= \(Internal.SomeSEXP slang) ->
            return .
            Text.Lazy.fromChunks .
-           map (Text.pack . Vector.toString . vector) .
+           map (Text.pack . Vector.toString . Unsafe.vector) .
            Vector.toList .
-           vector $
-           (R.unsafeCoerce slang :: SEXP R.String)
+           Unsafe.vector $
+           (Internal.unsafeCoerce slang :: Internal.SEXP Internal.String)
 
-  print e = io $ Language.R.withProtected (return e) R.printValue
+  print e = io $ Language.R.withProtected (return e) Internal.printValue
 
-instance Show R.SomeSEXP where
-  showIO s = R.unSomeSEXP s showIO
-  print s = R.unSomeSEXP s print
+instance Show Internal.SomeSEXP where
+  showIO s = Internal.unSomeSEXP s showIO
+  print s = Internal.unSomeSEXP s print
 
-instance Show (FR.SEXP s a) where
-  showIO (FR.SEXP s) = showIO s
-  print  (FR.SEXP s) = print s
+instance Show (SEXP s a) where
+  showIO (SEXP s) = showIO s
+  print  (SEXP s) = print s
 
-instance Show (FR.SomeSEXP s) where
-  showIO (FR.SomeSEXP s) = showIO s
-  print  (FR.SomeSEXP s) = print s
+instance Show (SomeSEXP s) where
+  showIO (SomeSEXP s) = showIO s
+  print  (SomeSEXP s) = print s
 
 instance Show a => Show (UnsafeValue a) where
   showIO = flip unsafeUseValue showIO
   print  = flip unsafeUseValue print
 
-withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
-withProtected accure =
-    bracket (accure >>= \x -> io $ R.protect x >> return x)
-            (const (io $ R.unprotect 1))
-
 -- | Convert Logical value into boolean.
-toBool :: SomeSEXP -> Bool
-toBool (SomeSEXP z) = case hexp z of
-  Logical vt -> vt `unsafeIndex` 0 == R.True
+toBool :: Internal.SomeSEXP -> Bool
+toBool (Internal.SomeSEXP z) = case Unsafe.hexp z of
+  Unsafe.Logical vt -> vt `unsafeIndex` 0 == Internal.True
   _          -> False
