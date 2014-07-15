@@ -93,12 +93,12 @@ import Foreign.C.Types ( CInt(..) )
 import Foreign.Storable (Storable(..))
 import System.Environment ( getProgName, lookupEnv )
 import System.IO.Unsafe   ( unsafePerformIO )
+import System.Mem.Weak ( mkWeakPtr, deRefWeak)
 import System.Process     ( readProcess )
 import System.SetEnv
 #ifdef H_ARCH_UNIX
 import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
-import System.Mem.Weak ( mkWeakPtr, deRefWeak)
 import System.Posix.Resource
 #endif
 
