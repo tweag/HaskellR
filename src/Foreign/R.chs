@@ -146,7 +146,7 @@ import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
 import Data.Singletons (fromSing)
-import Foreign (Ptr, castPtr, plusPtr, Storable(..), FunPtr)
+import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
 #endif
