@@ -8,8 +8,6 @@
 -- collected by R until the Haskell garbage collector signals that it is safe to
 -- do so.
 
-{-# LANGUAGE CPP #-}
-
 module Language.R.GC
   ( -- * RVal
     RVal
@@ -34,11 +32,7 @@ import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Concurrent ( newForeignPtr )
 import qualified Foreign.R as R
 
-#if MIN_VERSION_exceptions(0,6,0)
 import Control.Monad.Catch ( MonadCatch, MonadMask, bracket )
-#else
-import Control.Monad.Catch ( MonadCatch, bracket )
-#endif
 import Control.Monad.Trans ( MonadIO(..) )
 
 -- | An 'RVal' is a reference to a /protected/ R object that is maintained by
@@ -75,11 +69,7 @@ unprotectRVal (RVal s) = io (finalizeForeignPtr s)
 -- collection. This function is a safer alternative to 'R.protect' and
 -- 'R.unprotect', guaranteeing that a protected resource gets unprotected
 -- irrespective of the control flow, much like 'Control.Exception.bracket_'.
-#if MIN_VERSION_exceptions(0,6,0)
 withProtected :: (MonadIO m, MonadCatch m, MonadMask m)
-#else
-withProtected :: (MonadIO m, MonadCatch m)
-#endif
               => m (R.SEXP a)      -- Action to acquire resource
               -> (R.SEXP a -> m b) -- Action
               -> m b
