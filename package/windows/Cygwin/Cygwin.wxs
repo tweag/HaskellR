@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- Distributed under BSD-2 License -->
+<!-- Copyright: 2014 (C) EURL Tweag -->
+
+<!-- This is a chain for installation of R as a part of H installation.
+     We check if R is already installed, by checking registry, if not then
+     we call an installer.
+
+     TODO: remove haskell platform hardcoding
+           decide if we want a bundled R installer or download it from the site
+  -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Fragment>
+    <util:RegistrySearch Id="RegistryCygwin" Variable="CygwinInstalled" Root="HKLM" Key="Software\Cygwin\setup" Value="rootdir" Result="exists"/>
+	<util:RegistrySearch Id="RegistryCygwin64" Variable="Cygwin64Installed" Root="HKLM"
+	Key="Software\Cygwin\setup" Value="rootdir" Result="exists" Win64="yes"/>
+    <PackageGroup Id="PackageCygwin">
+      <ExePackage SourceFile="Cygwin/setup-x86.exe" DetectCondition="ExeDetectedVariableCygwin" InstallCondition="not (CygwinInstalled or Cygwin64Installed)"/>
+    </PackageGroup>
+  </Fragment>
+</Wix>
+<!-- DownloadUrl="http://cygwin.com/setup-x86.exe" -->

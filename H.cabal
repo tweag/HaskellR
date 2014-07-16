@@ -147,7 +147,7 @@ test-suite test-compile-qq
   build-depends:       H
                      , base >= 4.6 && < 5
                      , process >= 1.2
-  ghc-options:         -Wall -threaded -fno-full-laziness
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
@@ -158,13 +158,29 @@ test-suite test-shootout-programs
                      , base >= 4.6 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
-  ghc-options:         -Wall -threaded -fno-full-laziness
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
   if os(windows)
     cpp-options:       -DH_ARCH_WINDOWS
   else
     cpp-options:       -DH_ARCH_UNIX
+
+test-suite test-vector
+  main-is:            vector.hs
+  type:               exitcode-stdio-1.0
+  build-depends:      base
+                    , H
+                    , tasty
+                    , tasty-quickcheck
+                    , vector
+                    , singletons >= 0.10
+                    , quickcheck-assertions >= 0.1.1
+                    , ieee754 >= 0.7.3
+  ghc-options:        -Wall -threaded
+  hs-source-dirs:     tests
+  default-language:   Haskell2010
+
 
 benchmark compile-qq-benchmarks
   main-is:             compile-qq-benchmarks.hs
@@ -175,7 +191,7 @@ benchmark compile-qq-benchmarks
                      , filepath >= 1.3
                      , process >= 1.2
                      , template-haskell >= 2.8
-  ghc-options:         -Wall -threaded -fno-full-laziness
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
@@ -186,7 +202,7 @@ benchmark runtime-qq-benchmarks
                      , base >= 4.6 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
-  ghc-options:         -Wall -threaded -fno-full-laziness
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
@@ -198,6 +214,6 @@ benchmark hexp-benchmark
                      , criterion >= 0.8
                      , primitive >= 0.5
                      , vector >= 0.10
-  ghc-options:         -Wall -threaded -fno-full-laziness
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010

@@ -37,6 +37,7 @@ module Language.R.HExp
   ( HExp(..)
   , hexp
   , unhexp
+  , unhexpIO
   , vector
   , selfSymbol
   ) where
@@ -372,6 +373,7 @@ pokeHExp s h = do
          S4      _       -> unimplemented "pokeHExp"
          DotDotDot _     -> unimplemented "pokeHExp"
          Expr _ _        -> unimplemented "pokeHExp"
+
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.

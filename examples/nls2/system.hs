@@ -22,17 +22,6 @@ generate ix =
 generate_lifted :: [Int32] -> R [Double]
 generate_lifted = io .  (mapM generate)
 
-analyse :: R.SEXP a -> IO ()
-analyse (hexp -> Nil) = putStrLn "nil"
-analyse x@(hexp -> Vector _ v) = do
-    putStrLn "vector"
-    Prelude.print $ Vector.length v
-    putStrLn $ D.inspect x
-analyse x@(hexp -> Real v) = do
-    putStrLn "real"
-    putStrLn $ D.inspect x
-analyse x = Prelude.print (R.typeOf x)
-
 data Poly = Poly [Int]
 
 generate_polynomial :: Int -> String -> String

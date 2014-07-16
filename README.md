@@ -26,7 +26,7 @@ should be located within reach of the dynamic linker
 
 After installing H, type the following at a command prompt:
 
-    $ H --interactive
+    $ H
 
 This will start GHCi, loading the H environment and bringing the
 relevant definitions into scope. In addition, an instance of the
@@ -116,6 +116,19 @@ spliceable. The `R` monad is a type constructor taking two parameters:
 the first one is always `s` and refers to the state of the monad,
 while the second one is the type of the result of the function when
 executed.
+
+Running examples
+----------------
+
+Some interactive examples of using H are located in the folders:
+
+    examples/nls
+    examples/nls2
+
+The following commands can be used to run these examples:
+
+    $ cd examples/<example-name>
+    $ H -- -ghci-script <example-name>.H
 
 Further reading
 ---------------

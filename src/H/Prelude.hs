@@ -18,6 +18,7 @@ module H.Prelude
   -- * Globals
   , module Language.R.Globals
   , Show(..)
+  , show
   , withProtected
   -- * Type convertion helpers.
   , toBool
@@ -45,7 +46,6 @@ import qualified Data.Text.Lazy as Text.Lazy
 import Data.Text.Lazy (Text)
 import Data.Vector.Generic (unsafeIndex)
 
-import Control.Applicative ((<$>))
 import Control.Monad ((>=>))
 import Foreign.C (withCString)
 import System.IO.Unsafe (unsafePerformIO)
@@ -54,17 +54,22 @@ import Prelude hiding (Show(..), print)
 
 class Show a where
   -- | Equivalent of R's @deparse()@.
-  show :: a -> Text
+  showIO :: a -> IO Text
 
   -- | Make this a class method to allow matching R's @print()@ behaviour, whose
   -- output is subtly different from @deparse()@.
   print :: MonadR m => a -> m ()
-  print = io . Text.putStrLn . show
+  print = io . (showIO >=> Text.putStrLn)
+
+-- | Pure version of 'showIO'.
+show :: Show a => a -> Text
+show = unsafePerformIO . showIO
+
 
 instance Show (SEXP a) where
-  show s = unsafePerformIO $ Language.R.withProtected (return s) $ \_ ->
+  showIO s = Language.R.withProtected (return s) $ \_ ->
            withCString "quote" $ R.install >=> \quote ->
-           (r1 "deparse" <$> R.lang2 quote s) >>= \(SomeSEXP slang) ->
+           R.lang2 quote s >>= r1 "deparse" >>= \(SomeSEXP slang) ->
            return .
            Text.Lazy.fromChunks .
            map (Text.pack . Vector.toString . vector) .
@@ -75,7 +80,7 @@ instance Show (SEXP a) where
   print e = io $ Language.R.withProtected (return e) R.printValue
 
 instance Show R.SomeSEXP where
-  show s = R.unSomeSEXP s show
+  showIO s = R.unSomeSEXP s showIO
   print s = R.unSomeSEXP s print
 
 #if MIN_VERSION_exceptions(0,6,0)

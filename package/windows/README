@@ -1,0 +1,25 @@
+PREREQUISITES:
+
+   1. WiX Toolset
+   2. pandoc
+   3. Cygwin with make and wget.
+   4. Latex
+
+How to create a package:
+
+1. Prepare sources to install. In order to do it,
+   either download a release from github (or tag)
+   or  run 'make prepare' to install version from 
+   the current snapshot.
+
+2. Prepare pdf documents. Run `make prepare-pdf` or if you
+   have prepared pdfs place then into `H/H-ints.pdf`
+   and `H/H-user.pdf`.
+
+3. Export path to the WiX toolset
+
+    export PATH=/cygdrive/c/Program\ Files/WiX\ Toolset\ v3.9/bin/:$PATH
+
+4. Run `make` or run `make VERSION=<some string>`
+   to identify the version of the installer with a
+   specific label.

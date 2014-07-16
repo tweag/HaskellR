@@ -33,7 +33,6 @@ module Language.R.Instance
   -- * R global constants
   -- $ghci-bug
   , pokeRVariables
-  , peekRVariables
   , globalEnvPtr
   , baseEnvPtr
   , nilValuePtr
@@ -41,6 +40,7 @@ module Language.R.Instance
   , missingArgPtr
   , rInteractive
   , rInputHandlersPtr
+  , getPostToCurrentRThread
   ) where
 
 import           Control.Monad.R.Class
@@ -56,7 +56,6 @@ import Control.Concurrent
     , forkOS
     , isCurrentThreadBound
     , killThread
-    , myThreadId
     , threadDelay
     )
 import Control.Concurrent.MVar
@@ -67,10 +66,11 @@ import Control.Concurrent.MVar
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
     ( SomeException
+    , AsyncException(ThreadKilled)
     , bracket_
-    , catch
     , finally
-    , throwTo
+    , throwIO
+    , try
     )
 #if MIN_VERSION_exceptions(0,6,0)
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
@@ -93,6 +93,7 @@ import Foreign.C.Types ( CInt(..) )
 import Foreign.Storable (Storable(..))
 import System.Environment ( getProgName, lookupEnv )
 import System.IO.Unsafe   ( unsafePerformIO )
+import System.Mem.Weak ( mkWeakPtr, deRefWeak)
 import System.Process     ( readProcess )
 import System.SetEnv
 #ifdef H_ARCH_UNIX
@@ -194,11 +195,14 @@ initialize Config{..} = do
 -- | Finalize an R instance.
 finalize :: IO ()
 finalize = do
-    unsafeRunInRThread $ do
+    mv <- newEmptyMVar
+    postToRThread_ $ do
       R.endEmbeddedR 0
       peek interpreterChanPtr >>= freeStablePtr
       poke isRInitializedPtr 0
-    stopRThread
+      putMVar mv ()
+      throwIO ThreadKilled
+    takeMVar mv
 
 -- | Starts the R thread.
 startRThread :: ThreadId -> IO ()
@@ -237,16 +241,31 @@ startRThread eventLoopThread = do
 -- This operation blocks until the computation completes if called from the R
 -- thread. Otherwise, it does not block.
 --
+-- If R runtime is not initialized, the behavior of this call is undefined.
+--
 postToRThread_ :: IO () -> IO ()
-postToRThread_ action = do
+postToRThread_ action =
+  peek interpreterChanPtr >>= deRefStablePtr >>= postToThisRThread_ action
+
+-- | Returns a computation that behaves like 'postToRThread_'
+-- if the current R instance is still alive when the computation is evaluated.
+-- Otherwise, it does nothing.
+--
+getPostToCurrentRThread :: IO (IO () -> IO ())
+getPostToCurrentRThread = do
+    w <- peek interpreterChanPtr >>= deRefStablePtr >>= flip mkWeakPtr Nothing
+    return $ \action ->
+      deRefWeak w >>= maybe (return ()) (postToThisRThread_ action)
+
+-- | Like 'postToRThread_' but runs the computation in the given
+-- R instance.
+postToThisRThread_ :: IO () -> (OSThreadId,Chan (IO ())) -> IO ()
+postToThisRThread_ action (rOSThreadId, interpreterChan) = do
     tid <- myOSThreadId
     isBound <- isCurrentThreadBound
     if tid == rOSThreadId && isBound
       then action -- run the action here if we are the R thread.
       else writeChan interpreterChan action
-  where
-    (rOSThreadId, interpreterChan) = unsafePerformIO $
-      peek interpreterChanPtr >>= deRefStablePtr
 
 -- | Evaluates a computation in the R interpreter thread.
 --
@@ -258,14 +277,8 @@ postToRThread_ action = do
 unsafeRunInRThread :: IO a -> IO a
 unsafeRunInRThread action = do
     mv <- newEmptyMVar
-    tid <- myThreadId
-    postToRThread_ $
-      (action >>= putMVar mv) `catch` (\e -> throwTo tid (e :: SomeException))
-    takeMVar mv
-
--- | Stops the R interpreter thread.
-stopRThread :: IO ()
-stopRThread = postToRThread_ $ myThreadId >>= killThread
+    postToRThread_ $ try action >>= putMVar mv
+    takeMVar mv >>= either (throwIO :: SomeException -> IO a) return
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))

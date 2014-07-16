@@ -53,7 +53,6 @@ import Foreign
     , peek
     )
 import Foreign.C.String ( withCString, peekCString )
-import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Parse and then evaluate expression.
 parseEval :: ByteString -> IO SomeSEXP
@@ -76,17 +75,15 @@ parseEval txt = useAsCString txt $ \ctxt ->
 -- | Call a pure unary R function of the given name in the global environment.
 --
 -- This function is here mainly for testing purposes.
-r1 :: ByteString -> SEXP a -> SomeSEXP
+r1 :: ByteString -> SEXP a -> IO SomeSEXP
 r1 fn a =
-    unsafePerformIO $
-      useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-        withProtected (R.lang2 f a) evalIO
+    useAsCString fn $ \cfn -> R.install cfn >>= \f ->
+      withProtected (R.lang2 f a) evalIO
 
 -- | Call a pure binary R function. See 'r1' for additional comments.
-r2 :: ByteString -> SEXP a -> SEXP b -> SomeSEXP
+r2 :: ByteString -> SEXP a -> SEXP b -> IO SomeSEXP
 r2 fn a b =
-    unsafePerformIO $
-      useAsCString fn $ \cfn -> R.install cfn >>= \f ->
+    useAsCString fn $ \cfn -> R.install cfn >>= \f ->
       withProtected (R.lang3 f a b) evalIO
 
 -- | Parse file and perform some actions on parsed file.
@@ -99,8 +96,8 @@ parseFile :: FilePath -> (SEXP R.Expr -> IO a) -> IO a
 parseFile fl f = do
     withCString fl $ \cfl ->
       withProtected (R.mkString cfl) $ \rfl ->
-        case r1 (C8.pack "parse") rfl of
-          R.SomeSEXP s -> return (R.unsafeCoerce s) `withProtected` f
+        r1 (C8.pack "parse") rfl >>= \(R.SomeSEXP s) ->
+          return (R.unsafeCoerce s) `withProtected` f
 
 parseText :: String                               -- ^ Text to parse
           -> Bool                                 -- ^ Whether to annotate the

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- Distributed under BSD-2 License -->
+<!-- Copyright: 2014 (C) EURL Tweag -->
+
+<!-- This is a chain for installation of R as a part of H installation.
+     We check if R is already installed, by checking registry, if not then
+     we call an installer. 
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Fragment>
+    <util:RegistrySearch Id="RegistryR" Variable="RInstalled" Root="HKLM" Key="Software\R-core\R32" Value="InstallPath" Result="exists"/>
+    <util:RegistrySearch Id="RegistryR64" Variable="R64Installed" Root="HKLM" Key="Software\R-core\R32" Value="InstallPath" Result="exists" Win64="yes"/>
+    <PackageGroup Id="PackageR">
+      <ExePackage SourceFile="R/R-3.1.0-win.exe" DetectCondition="ExeDetectedVariableR" InstallCondition="not (RInstalled or R64Installed)" Vital="yes"/>
+    </PackageGroup>
+  </Fragment>
+</Wix>
+		<!-- DownloadUrl="http://cran.r-project.org/bin/windows/base/R-3.1.0-win.exe" -->

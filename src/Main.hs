@@ -11,7 +11,6 @@ import           Control.Exception
 import           Control.Monad ( void )
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
-import           System.Exit (exitFailure)
 import           System.Process
 import           System.Environment
 
@@ -20,34 +19,29 @@ import qualified Paths_H
 import           System.Posix.Signals
 #endif
 
-data Config = Config
-    { configFiles :: [String]
-    , configGhci  :: Bool
-    , configInteractive  :: Bool
-    , configInteractiveCommand :: FilePath
+data H = H
+    { configFiles :: [FilePath]
+    , configInteractive  :: FilePath
     , configInteractiveQQ :: String
     } deriving (Eq, Data, Typeable, Show)
 
-cmdSpec :: Config
-cmdSpec = Config
-  { configFiles = def &= args &= typ "FILES/DIRS"
-  , configGhci  = def &= explicit &= name "ghci" &= help "Prepare GHCI compatible output"
-  , configInteractive  = def &= explicit &= name "interactive" &= help "Run interpreter"
-  , configInteractiveCommand = "ghci"
-  , configInteractiveQQ = "default" &= explicit &= name "interactive-qq" &= opt "default" &= help "set quasiquoter engine. Possible options: runtime, default"
+cmdSpec :: H
+cmdSpec = H
+  { configFiles = def &= args  &= typ "-- [GHCi options]"
+  , configInteractive  = "ghci" &= explicit &= name "interactive" &= help "Run interpreter" &= opt "ghci" &= typ "ghci" &= help "Set an alternative haskell interpreter."
+  , configInteractiveQQ = "default" &= explicit &= name "interactive-qq" &= opt "default" &= help "set quasiquoter engine for debug reasons. Possible options: runtime, default"
   }
-  &=
-  verbosity &=
-  help "R-to-Haskell translator." &=
+  &= program "H" &=
+  help "H wrapper over ghci. " &=
   summary ("H version " ++ showVersion Paths_H.version ++
-           "\nCopyright (C) 2013 Amgen, Inc.")
+           "\nCopyright (C) 2013-2014 Amgen, Inc.")
   -- TODO: add details clause
 
 main :: IO ()
 main = do
     config <- cmdArgs cmdSpec
     case config of
-      Config {configFiles, configInteractive = True, configInteractiveCommand, configInteractiveQQ} -> do
+      H {configFiles, configInteractive, configInteractiveQQ} -> do
         cfg  <- Paths_H.getDataFileName "H.ghci"
         env' <- fmap (\e -> case configInteractiveQQ of
                               "default" -> e
@@ -62,7 +56,7 @@ main = do
         _ <- installHandler sigQUIT Ignore Nothing
 #endif
         (_,_,_,ph) <-
-            createProcess (proc configInteractiveCommand argv)
+            createProcess (proc configInteractive argv)
             { std_in = Inherit
             , std_out = Inherit
             , delegate_ctlc = False
@@ -75,7 +69,7 @@ main = do
         _ <- installHandler sigQUIT Ignore Nothing
 #endif
         (_,_,_,ph) <-
-            createProcess (proc configInteractiveCommand argv)
+            createProcess (proc configInteractive argv)
             { std_in = Inherit
             , std_out = Inherit
             }
@@ -83,9 +77,3 @@ main = do
         let loop = (void $ waitForProcess ph) `onException` (putStrLn "exception" >> loop)
         loop
         putStrLn "Bye!"
-      Config {configFiles = []} -> do
-        putStrLn "no input files"
-        exitFailure
-      _ -> do
-        putStrLn "translation is not supported yet"
-        exitFailure
