@@ -25,6 +25,9 @@
 --
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
+--
+-- We need this module in order to be able to write unregional SEXP type
+-- (@type SEXP a = Ptr (HExp a)@)  and use it internally and in quasi-quote.
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
