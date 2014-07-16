@@ -38,6 +38,7 @@ extra-source-files:   cbits/Hcompat.h
                       doc/H-ints.md
                       doc/H-user.md
                       doc/pandoc.css
+                      Makefile
 
 source-repository head
   type:     git

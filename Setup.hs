@@ -5,62 +5,33 @@ import Distribution.Simple.Utils
 import Distribution.PackageDescription
 import Distribution.Verbosity
 
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 import System.FilePath
 
 main :: IO ()
-main = defaultMainWithHooks simpleUserHooks{ postConf  = hPostConf
-                                           , postBuild = hPostBuild
+main = defaultMainWithHooks simpleUserHooks{ postBuild = hPostBuild
                                            , postCopy  = hPostCopy
                                            }
 
+shouldBuildManuals :: LocalBuildInfo -> Bool
+shouldBuildManuals =
+    fromMaybe False .
+    lookup (FlagName "documentation") .
+    configConfigurationsFlags .
+    configFlags
 
-hPostConf _ flags _ _ 
-  | buildMans = do
-      mpandoc <- findProgramLocation v "pandoc"
-      case mpandoc of
-        Nothing -> die "Pandoc is required for building documentation but was not found in your $PATH."
-        Just _  -> return ()
+hPostBuild _ flags _ buildInfo
+  | shouldBuildManuals buildInfo = do
+      rawSystemExit v "make" ["doc-manuals"]
   | otherwise = return ()
   where
-    v    = fromFlagOrDefault normal $ configVerbosity flags
-    buildMans = fromMaybe False $ lookup (FlagName "documentation")
-                                $ configConfigurationsFlags flags
- 
+    v = fromFlagOrDefault normal $ buildVerbosity flags
 
-hPostBuild _ flags _ pkgInfo
-  | buildMans = do
-      createDirectoryIfMissingVerbose v True pandocPath
-      copyFileVerbose v ("doc" </> "pandoc.css") (pandocPath </> "pandoc.css")
-    
-      pandoc <- fmap fromJust $ findProgramLocation v "pandoc"
-      mapM_ (uncurry (runPandoc v pandoc "doc" pandocPath))
-            [("H-ints.md","H-ints.html")
-            ,("H-user.md","H-user.html")
-            ]
-  | otherwise = return ()
-  where
-    v    = fromFlagOrDefault normal $ buildVerbosity flags
-    dist = fromFlagOrDefault "dist" $ buildDistPref flags
-    pandocPath = dist </> "doc" </> "pandoc"
-    buildMans = fromMaybe False $ lookup (FlagName "documentation")
-                                $ configConfigurationsFlags
-				$ configFlags pkgInfo
-
-hPostCopy _ flags desc pkgInfo
-  | buildMans = do
-     let dir = docdir $ absoluteInstallDirs desc pkgInfo (fromFlag (copyDest flags))
-     installDirectoryContents v  (path) ( dir </> "manual")
+hPostCopy _ flags desc buildInfo
+  | shouldBuildManuals buildInfo = do
+     let destdir = docdir $ absoluteInstallDirs desc buildInfo (fromFlag (copyDest flags))
+         dist = fromFlagOrDefault "dist" $ copyDistPref flags
+     installDirectoryContents v (dist </> "doc" </> "pandoc") ( destdir </> "manual")
   | otherwise = return ()
   where
     v = fromFlagOrDefault normal $ copyVerbosity flags
-    dist = fromFlagOrDefault "dist" $ copyDistPref flags
-    path = dist </> "doc" </> "pandoc"
-    buildMans = fromMaybe False $ lookup (FlagName "documentation")
-                                $ configConfigurationsFlags
-				$ configFlags pkgInfo 
-
-runPandoc v pandoc docDir toDir input output = do
-  notice v $ "Generating documentation file: " ++ output
-  rawSystemExit v pandoc ["-f","markdown","--mathjax","-s","-S","--toc","-c","pandoc.css",docDir </> input,"-o",toDir </> output]
-

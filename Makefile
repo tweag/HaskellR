@@ -55,14 +55,14 @@ test: $(CONFIGURE)
 run: $(CONFIGURE)
 	cabal run -- --interactive -- -package-db .cabal-sandbox/*-packages.conf.d -package-db dist/package.conf.inplace
 
-dist/pandoc/H-ints.html: doc/H-ints.md doc/pandoc.css
-	mkdir -p dist/pandoc
-	cp doc/pandoc.css dist/pandoc
+dist/doc/pandoc/H-ints.html: doc/H-ints.md doc/pandoc.css
+	mkdir -p dist/doc/pandoc
+	cp doc/pandoc.css dist/doc/pandoc
 	pandoc -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
 
-dist/pandoc/H-user.html: doc/H-user.md doc/pandoc.css
-	mkdir -p dist/pandoc
-	cp doc/pandoc.css dist/pandoc
+dist/doc/pandoc/H-user.html: doc/H-user.md doc/pandoc.css
+	mkdir -p dist/doc/pandoc
+	cp doc/pandoc.css dist/doc/pandoc
 	pandoc -f markdown --mathjax -s -S --toc -c pandoc.css $< -o $@
 
 # NOTE: Passing `--ghc-options=-optP-P` is a workaround for an issue with
@@ -71,7 +71,9 @@ dist/pandoc/H-user.html: doc/H-user.md doc/pandoc.css
 doc-haddock: $(CONFIGURE)
 	cabal haddock --ghc-options=-optP-P --hyperlink-source
 
-doc: doc-haddock dist/pandoc/H-ints.html dist/pandoc/H-user.html
+doc-manuals: dist/doc/pandoc/H-ints.html dist/doc/pandoc/H-user.html
+
+doc: doc-haddock doc-manuals
 
 # TODO: Investigate coverage.
 coverage:
