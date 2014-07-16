@@ -46,6 +46,7 @@ import System.IO.Unsafe (unsafePerformIO)
 -- Compile time Quasi-Quoter                                                 --
 -------------------------------------------------------------------------------
 
+-- | An R value, expressed as an R expression, in R's syntax.
 r :: QuasiQuoter
 r = QuasiQuoter
     { quoteExp  = \txt -> parseEval txt
@@ -54,6 +55,7 @@ r = QuasiQuoter
     , quoteDec  = unimplemented "quoteDec"
     }
 
+-- | Construct an R expression but don't evaluate it.
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
     { quoteExp  = \txt -> [| return $(parseExp txt) |]
