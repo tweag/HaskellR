@@ -147,7 +147,7 @@ rTests = H.runR H.defaultConfig $ do
     let apply = (\n m  -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (R.SomeSEXP . Foreign.R.unSEXP))) [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R s (UnsafeValue R.SomeSEXP)
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
-    sym <- H.install "blah"
+    sym <- io $ H.install "blah"
     H.print sym
 
     -- Should be [1] 100

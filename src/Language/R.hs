@@ -118,8 +118,8 @@ parseText txt b = do
 installIO :: String -> IO (SEXP R.Symbol)
 installIO str = withCString str R.install
 
-install :: MonadR m => String -> m (SEXP R.Symbol)
-install = io . installIO
+install :: String -> IO (SEXP R.Symbol)
+install = installIO
 
 -- | Create an R character string from a Haskell string.
 string :: String -> IO (SEXP R.Char)
@@ -152,14 +152,14 @@ evalEnvIO x rho =
 evalIO :: SEXP a -> IO SomeSEXP
 evalIO x = peek globalEnvPtr >>= evalEnvIO x
 
-evalEnv :: MonadR m => SEXP a -> SEXP R.Env -> m SomeSEXP
-evalEnv = (io .). evalEnvIO
+evalEnv :: SEXP a -> SEXP R.Env -> IO SomeSEXP
+evalEnv = evalEnvIO
 
-eval :: MonadR m => SEXP a -> m SomeSEXP
-eval = io . evalIO
+eval :: SEXP a -> IO SomeSEXP
+eval = evalIO
 
 -- | Silent version of 'evalIO' function that discards it's result.
-eval_ :: MonadR m => SEXP a -> m ()
+eval_ :: SEXP a -> IO ()
 eval_ = void . eval
 
 -- | Throw an R error as an exception.

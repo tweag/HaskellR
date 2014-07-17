@@ -5,51 +5,51 @@ import H.Prelude.Interactive
 import qualified Foreign.R.Internal as R
 
 -- Should be: [1] 1
-unsafeRunRegion $ H.print =<< [r| 1 |]
+H.print =<< [r| 1 |]
 
 -- Should be: [1] 2
-unsafeRunRegion $ H.print =<< [r| 1 + 2 |]
+H.print =<< [r| 1 + 2 |]
 
 -- Should be: [1] "1" "2" "3"
-unsafeRunRegion $ H.print =<< [r| c(1,2,"3") |] :: IO ()
+H.print =<< [r| c(1,2,"3") |] :: IO ()
 
 -- Should be: [1] 2
-unsafeRunRegion $ H.print =<< [r| x <- 2 |] :: IO ()
+H.print =<< [r| x <- 2 |] :: IO ()
 
 -- Should be: [1] 3
-unsafeRunRegion $ H.print =<< [r| x+1 |]
+H.print =<< [r| x+1 |]
 
 -- Should be: [1] 6
 let y = (5::Double)
-unsafeRunRegion $ H.print =<< [r| y_hs + 1 |]
+H.print =<< [r| y_hs + 1 |]
 
 -- Should be: Closure ???
-unsafeRunRegion $ H.print =<< [r| function(y) y_hs + y |]
+H.print =<< [r| function(y) y_hs + y |]
 
 -- Should be 8
-unsafeRunRegion $ H.print =<< [r| z <- function(y) y_hs + y |]
-unsafeRunRegion $ H.print =<< [r| z(3) |]
+H.print =<< [r| z <- function(y) y_hs + y |]
+H.print =<< [r| z(3) |]
 
 -- Should be [1] 1 2 3 4 5 6 7 8 9 10
-unsafeRunRegion $ H.print =<< [r| y <- c(1:10) |]
+H.print =<< [r| y <- c(1:10) |]
 let foo1 = (\x -> (return $ x+1 :: R s Double))
 let foo2 = (\x -> (return $ map (+1) x :: R s [Int32]))
 
 -- Should be [1] 2
-unsafeRunRegion $ H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
+H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
 
 -- Should be [1] 2 3 4 5 6 7 8 9 10 11
-unsafeRunRegion $ H.print =<< [r| (function(x).Call(foo2_hs,x))(y) |]
+H.print =<< [r| (function(x).Call(foo2_hs,x))(y) |]
 
 -- Should be [1] 43
-unsafeRunRegion $ H.print =<< [r| x <- 42 ; x + 1 |]
+H.print =<< [r| x <- 42 ; x + 1 |]
 
 -- Should be [1] 1 2 3
 let xs = [1,2,3]::[Double]
-unsafeRunRegion $ H.print =<< [r| xs_hs |]
+H.print =<< [r| xs_hs |]
 
 -- Should be [1] 8
-unsafeRunRegion $ H.print =<< [r| foo1_hs(7) |]
+H.print =<< [r| foo1_hs(7) |]
 
 -- Should be NULL
 H.unsafeRunInRThread (H.unsafeRunInRThread $ H.print H.nilValue)
@@ -59,34 +59,34 @@ let fromSomeSEXP s = Foreign.R.unSomeSEXP s (H.fromSEXP . Foreign.R.unSEXP)
 
 -- Should be [1] 3
 let foo3 = (\n -> runRegion $ (fmap fromSomeSEXP [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
-unsafeRunRegion $ H.print =<< [r| foo3_hs(as.integer(3)) |]
+H.print =<< [r| foo3_hs(as.integer(3)) |]
 
 -- | should be [1] 99
 let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
-unsafeRunRegion $ H.print =<< [r| foo4_hs(33, 66) |]
+H.print =<< [r| foo4_hs(33, 66) |]
 
 -- Should be [1] 120 but it doesn't work
 let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
-unsafeRunRegion $ H.print =<< [r| fact_hs(as.integer(5)) |]
+H.print =<< [r| fact_hs(as.integer(5)) |]
 
 :set -XDataKinds
 -- Should be [1] 29
 let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
 let apply = (\n m -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (\z -> Foreign.R.Internal.SomeSEXP $ Foreign.R.unSEXP z))) ([r| .Call(n_hs, m_hs) |])) :: R.Callback -> Int32 -> R s (UnsafeValue Foreign.R.Internal.SomeSEXP)
-unsafeRunRegion $ H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
+H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
-sym <- performR $ H.install "blah"
-performR $ H.print sym
+sym <- H.install "blah"
+H.print sym
 
 -- Should be [1] 100
-_ <- performR $ [r| `+` <- function(x,y) x * y |] :: IO (UnsafeValue Foreign.R.Internal.SomeSEXP)
-unsafeRunRegion $ H.print =<< [r| 10 + 10 |]
+_ <- [r| `+` <- function(x,y) x * y |]
+H.print =<< [r| 10 + 10 |]
 
 -- Should be [1] 20
-unsafeRunRegion $ H.print =<< [r| base::`+`(10,10) |]
+H.print =<< [r| base::`+`(10,10) |]
 
 -- restore usual meaning of `+`
-_ <- performR $ [r| `+` <- base::`+` |]
+_ <- [r| `+` <- base::`+` |]
 
 :{
 let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
@@ -98,7 +98,7 @@ let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (For
         fmap (Foreign.R.unSEXP . (flip Foreign.R.asTypeOf n')) [r| as.integer(1) |]
     hFib n                              = protectRegion $ do
         n' <- Foreign.R.protect n
- 	fmap (Foreign.R.unSEXP . (flip Foreign.R.asTypeOf n')) [r| as.integer(hFib_hs(as.integer(n_hs-1)) + hFib_hs(as.integer(n_hs -2))) |]
+        fmap (Foreign.R.unSEXP . (flip Foreign.R.asTypeOf n')) [r| as.integer(hFib_hs(as.integer(n_hs-1)) + hFib_hs(as.integer(n_hs -2))) |]
 :}
 
 -- Should be [1] 4181

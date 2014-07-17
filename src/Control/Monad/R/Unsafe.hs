@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module contains unsafe primitives that can be used 
+-- This module contains unsafe primitives that can be used
 -- during the work with 'Control.Monad.R'.
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
@@ -11,12 +11,12 @@ module Control.Monad.R.Unsafe
 
 import           Foreign.R.Runner
 import           Foreign.R.Internal as R
+
+import 		 Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow, mask_)
 import           Control.Monad.R.Class
 
-import 		 Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
-
 import Control.Applicative
-import Control.Exception ( bracket, bracket_, mask_ )
+import Control.Exception ( bracket, bracket_ )
 import Control.Monad.Reader
 import Data.IORef
 import System.IO.Unsafe ( unsafePerformIO )
@@ -27,10 +27,6 @@ import System.IO.Unsafe ( unsafePerformIO )
 -- be lifted to 'R' actions.
 newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
   deriving (Monad, MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative, MonadReader (IORef Int))
-
-instance MonadR (R s) where
-  io m = unsafeIOToR $ unsafeRunInRThread m
-
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance.
@@ -57,7 +53,7 @@ internalRunRegion :: (forall s.R s a) -> IO a
 internalRunRegion f =
    bracket (newIORef 0)
            (readIORef >=> R.unprotect)
-	   (runReaderT (unR f))
+           (runReaderT (unR f))
 
 -- | Run an R action in the global R instance from the IO monad.
 --
@@ -78,8 +74,12 @@ unsafePerformR r = unsafePerformIO $ unsafeRToIO r
 {-# NOINLINE unsafePerformR #-}
 
 -- | Protect SEXP inside a current region
-protect :: R.SEXP a -> R s (R.SEXP a)
-protect x = liftProtect Prelude.True R.protect (return x)
+protect :: MonadR m => R.SEXP a -> m (R.SEXP a)
+protect x = mask_ $ do
+   y <- io $ R.protect x
+   increment
+   return y
+
 
 -- Lift an action and protect value.
 liftProtect :: Bool -- if value should be registered in stack
@@ -92,15 +92,15 @@ liftProtect p r f = R . ReaderT $ \cnt -> mask_ $ do
 -- | A type wrapper that represents that the value is not protected in R region.
 -- This wrapper is used to return a @SEXP@ values from the region to the parent one
 -- It's not possible to 'duplicate' a value to the parent without a negative impact on
--- performance, so user will have to use this method. 
+-- performance, so user will have to use this method.
 --
 -- The guaranteed lifetime of 'UnsafeValues' is a time before next R garbage collection,
--- in other words before the next allocation in R code occurs. So the following code is 
+-- in other words before the next allocation in R code occurs. So the following code is
 -- safe:
 --
 -- protect <=< runRegion $ do
 --    mapM_ (\i -> [r| i_hs + 1|]) [1..10]
--- 
+--
 --
 -- If you need better safety proterties concider using 'Language.R.GC.RVal'.
 newtype UnsafeValue a = UnsafeValue a

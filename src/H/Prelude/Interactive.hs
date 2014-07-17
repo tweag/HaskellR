@@ -21,13 +21,18 @@ import qualified H.Prelude as H
 import Foreign.R.Internal as R
 import Foreign.R as FR
 import Control.Monad.R.Unsafe
+import Control.Monad.R.Class
 
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Monad.Reader
 
+data InteractiveRegion
+
 instance MonadR IO where
+  type RRegion IO = InteractiveRegion
   io = unsafeRunInRThread
+  increment = modifyIORef stackSize succ
 
 stackSize :: IORef Int
 stackSize = unsafePerformIO $ newIORef 0

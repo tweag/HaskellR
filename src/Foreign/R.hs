@@ -27,6 +27,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Foreign.R
   ( R
     -- * Internal R structures
@@ -101,6 +102,7 @@ module Foreign.R
 
 import           Control.Monad.R.Unsafe (R, UnsafeValue, unsafeIOToR)
 import qualified Control.Monad.R.Unsafe as Unsafe
+import           Control.Monad.R.Class
 import           Foreign.R.Internal (SEXPTYPE(..), SSEXPTYPE)
 import           Foreign.R.Internal ( CEType )
 import qualified Foreign.R.Internal as Internal
@@ -116,6 +118,7 @@ import Foreign (nullPtr)
 #endif
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
+import Data.IORef
 
 --------------------------------------------------------------------------------
 -- R data structures                                                          --
@@ -187,6 +190,14 @@ unSomeSEXP (SomeSEXP s) k = k s
 type Callback s = SEXP s ExtPtr
 
 --------------------------------------------------------------------------------
+-- Monad R Class                                                              --
+--------------------------------------------------------------------------------
+instance MonadR (R s) where
+  type RRegion (R s) = s
+  io m = unsafeIOToR m
+  increment = Unsafe.R $ ReaderT $ flip modifyIORef' succ
+
+--------------------------------------------------------------------------------
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
 
@@ -235,85 +246,101 @@ unsafeCoerce = SEXP . castPtr . unSEXP
 --------------------------------------------------------------------------------
 
 -- | Initialize a new string vector.
-mkString :: CString -> R s (SEXP s Internal.String)
+mkString :: (MonadR m, s ~ RRegion m, Protect m (SEXP s Internal.String))
+         => CString -> m (SEXP s Internal.String)
 mkString = liftProtect . Internal.mkString
 
 -- | Initialize a new character vector (aka a string).
-mkChar :: CString -> R s (SEXP s Internal.Char)
+mkChar :: (MonadR m, s ~ RRegion m, Protect m (SEXP s Internal.Char))
+       => CString -> m (SEXP s Internal.Char)
 mkChar = liftProtect . Internal.mkChar
 
 -- | Create Character value with specified encoding
-mkCharCE :: CString -> CEType -> R s (SEXP s Internal.Char)
+mkCharCE :: (MonadR m, s ~ RRegion m, Protect m (SEXP s Internal.Char))
+         => CString -> CEType -> m (SEXP s Internal.Char)
 mkCharCE s t = liftProtect $ Internal.mkCharCE s t
 
 -- | Probe the symbol table
-install :: CString -> R s (SEXP s Internal.Symbol)
+install :: (MonadR m, s ~ RRegion m, Protect m (SEXP s Internal.Symbol))
+        => CString -> m (SEXP s Internal.Symbol)
 install = liftProtect . Internal.install
 
 -- | Allocate a 'SEXP'.
-allocSEXP :: SSEXPTYPE a -> R s (SEXP s a)
+allocSEXP :: (MonadR m, s ~ RRegion m, Protect m (SEXP s a))
+          => SSEXPTYPE a -> m (SEXP s a)
 allocSEXP = liftProtect . Internal.allocSEXP
 
 -- | Allocate a pairlist of 'SEXP's, chained together.
-allocList :: Int -> R s (SEXP s Internal.List)
+allocList :: (MonadR m, s ~ RRegion m, Protect m (SEXP s Internal.List))
+          => Int -> m (SEXP s Internal.List)
 allocList = liftProtect . Internal.allocList
 
 -- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
-cons :: SEXP s a -> SEXP s b -> R s (SEXP s Internal.List)
+cons :: (MonadR m, s ~ RRegion m, Protect m (SEXP s Internal.List))
+     => SEXP s a -> SEXP s b -> m (SEXP s Internal.List)
 cons a b = liftProtect $ Internal.cons (unSEXP a) (unSEXP b)
 
-mkWeakRef :: SEXP s a -> SEXP s b -> SEXP s c -> Bool -> R s (SEXP s Internal.WeakRef)
+mkWeakRef :: (MonadR m, s ~ RRegion m, Protect m (R s (SEXP s Internal.WeakRef)))
+          => SEXP s a -> SEXP s b -> SEXP s c -> Bool -> m (SEXP s Internal.WeakRef)
 mkWeakRef a b c d = liftProtect $ Internal.mkWeakRef (unSEXP a) (unSEXP b) (unSEXP c) d
 
 --
 -- | Print a string representation of a 'SEXP' on the console.
-printValue :: SEXP s a -> R s ()
-printValue = unsafeIOToR . Internal.printValue . unSEXP
+printValue :: (MonadR m, s ~ RRegion m) => SEXP s a -> m ()
+printValue = io . Internal.printValue . unSEXP
 
 -- | Function for processing GUI and other events in the internal event loop.
-processEvents :: R s ()
-processEvents = unsafeIOToR Internal.processEvents
+processEvents :: MonadR m => m ()
+processEvents = io Internal.processEvents
 
 #ifdef H_ARCH_UNIX
-processGUIEventsUnix :: Ptr (Ptr ()) -> R s ()
-processGUIEventsUnix = unsafeIOToR . Internal.processGUIEventsUnix
+processGUIEventsUnix :: MonadR m => Ptr (Ptr ()) -> m ()
+processGUIEventsUnix = io . Internal.processGUIEventsUnix
 #endif
 
 -- | Invoke an R garbage collector sweep.
-gc :: R s ()
-gc = unsafeIOToR Internal.gc
+gc :: MonadR m => m ()
+gc = io Internal.gc
 
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
 --------------------------------------------------------------------------------
 
 -- | Evaluate any 'SEXP' to its value.
-eval :: SEXP s' a -> SEXP s'' Env -> R s (SomeSEXP s)
+eval :: (MonadR m, Protect m (SomeSEXP s), s ~ RRegion m)
+     => SEXP s a -> SEXP s Env -> m (SomeSEXP s)
 eval a b = liftProtect $ Internal.eval (unSEXP a) (unSEXP b)
 
 -- | Try to evaluate expression.
-tryEval :: SEXP s' a -> SEXP s'' Env -> Ptr CInt -> R s (SomeSEXP s)
+tryEval :: (MonadR m, Protect m (SomeSEXP s), s ~ RRegion m)
+        => SEXP s a -> SEXP s Env -> Ptr CInt -> m (SomeSEXP s)
 tryEval a b c = liftProtect $ Internal.tryEval (unSEXP a) (unSEXP b) c
 
 -- | Try to evaluate without printing error/warning messages to stdout.
-tryEvalSilent :: SEXP s' a -> SEXP s'' Env -> Ptr CInt -> R s (SomeSEXP s)
+tryEvalSilent :: (MonadR m, Protect m (SomeSEXP s), s ~ RRegion m)
+              => SEXP s a -> SEXP s Env -> Ptr CInt -> m (SomeSEXP s)
 tryEvalSilent a b c = liftProtect $ Internal.tryEvalSilent (unSEXP a) (unSEXP b) c
 
-lang1 :: SEXP s a -> R s (SEXP s Internal.Lang)
+lang1 :: (MonadR m, Protect m (SEXP s Internal.Lang), s ~ RRegion m)
+      => SEXP s a -> m (SEXP s Internal.Lang)
 lang1 = liftProtect . Internal.lang1 . unSEXP
 
-lang2 :: SEXP s a -> SEXP s b ->  R s (SEXP s Internal.Lang)
+lang2 :: (MonadR m, Protect m (SEXP s Internal.Lang), s ~ RRegion m)
+      => SEXP s a -> SEXP s b ->  m (SEXP s Internal.Lang)
 lang2 a b = liftProtect $ Internal.lang2 (unSEXP a) (unSEXP b)
 
-lang3 :: SEXP s a -> SEXP s b -> SEXP s c -> R s (SEXP s Internal.Lang)
+lang3 :: (MonadR m, Protect m (SEXP s Internal.Lang), s ~ RRegion m)
+      => SEXP s a -> SEXP s b -> SEXP s c -> m (SEXP s Internal.Lang)
 lang3 a b c = liftProtect $ Internal.lang3 (unSEXP a) (unSEXP b) (unSEXP c)
 
 -- | Find a function by name.
-findFun :: SEXP s a -> SEXP s Env -> R s (SomeSEXP s)
+findFun :: (MonadR m, Protect m (SomeSEXP s), s ~ RRegion m)
+        => SEXP s a -> SEXP s Env ->  m (SomeSEXP s)
 findFun a e = liftProtect $ Internal.findFun (unSEXP a) (unSEXP e)
 
 -- | Find a variable by name.
-findVar :: SEXP s a -> SEXP s Env -> R s (SEXP s Internal.Symbol)
+findVar :: (MonadR m, Protect m (SEXP s Internal.Symbol), s ~ RRegion m)
+        => SEXP s a -> SEXP s Env -> m (SEXP s Internal.Symbol)
 findVar a e = liftProtect $ Internal.findVar (unSEXP a) (unSEXP e)
 
 --------------------------------------------------------------------------------
@@ -343,12 +370,13 @@ rInputHandlers = nullPtr
 -------------------------------------------------------------------------------
 
 -- | Get the attribute list from the given object.
-getAttribute :: SEXP s a -> R s (SEXP s b)
-getAttribute = unsafeIOToR . fmap SEXP . Internal.getAttribute . unSEXP
+getAttribute :: (MonadR m, Protect m (SEXP s b), RRegion m ~ s)
+             => SEXP s a -> m (SEXP s b)
+getAttribute = io . fmap SEXP . Internal.getAttribute . unSEXP
 
 -- | Set the attribute list.
-setAttribute :: SEXP s a -> SEXP s b -> R s ()
-setAttribute (SEXP a) (SEXP b) = unsafeIOToR $ Internal.setAttribute a b
+setAttribute :: (MonadR m, RRegion m ~ s) => SEXP s a -> SEXP s b -> m ()
+setAttribute (SEXP a) (SEXP b) = io $ Internal.setAttribute a b
 
 -- | Perform an action with resource while protecting it from the garbage
 -- collection. This function is a safer alternative to 'R.protect' and
@@ -363,8 +391,8 @@ withProtected acquire f =
      (const $ unsafeIOToR $ Internal.unprotect 1)
      $ f . SEXP
 
-liftProtect :: Protect s a => IO a -> R s (ProtectElt s a)
-liftProtect = unsafeIOToR >=> protect
+liftProtect :: (MonadR m, Protect m a) => IO a -> m (ProtectElt m a)
+liftProtect = io >=> protect
 
 -- | Values that can be protected in a region. Basically this typeclass
 -- is created in order to have an overloaded protect function, so it can
@@ -373,36 +401,36 @@ liftProtect = unsafeIOToR >=> protect
 -- There is a default values for 'ProtectElt' and 'protect' functions
 -- that allowes to add an instances to arbitrary datatypes that shouldn't
 -- be protected.
-class Protect s a where
+class Monad m => Protect m a where
    -- | A new type that user will have after a protection
-   type ProtectElt s a :: *
-   type ProtectElt s a = a
+   type ProtectElt m a :: *
+   type ProtectElt m a = a
    -- | Run a protect action. This method really protects value withing
    -- a block, old value is still safe to use, but you should not do it
    -- for safety reasons.
-   protect   :: a -> R s (ProtectElt s a)
-   default protect :: (ProtectElt s a ~ a) => a -> R s a
+   protect   :: a -> m (ProtectElt m a)
+   default protect :: (Monad m, ProtectElt m a ~ a) => a -> m a
    protect = return
    {-# INLINE protect #-}
 
-instance Protect s (Internal.SEXP a) where
-   type ProtectElt s (Internal.SEXP a) = SEXP s a
+instance MonadR m => Protect m (Internal.SEXP a) where
+   type ProtectElt m (Internal.SEXP a) = SEXP (RRegion m) a
    protect = fmap SEXP . Unsafe.protect
 
-instance Protect s (Internal.SomeSEXP) where
-   type ProtectElt s Internal.SomeSEXP = SomeSEXP s
+instance MonadR m => Protect m (Internal.SomeSEXP) where
+   type ProtectElt m Internal.SomeSEXP = SomeSEXP (RRegion m)
    protect (Internal.SomeSEXP f) = fmap (SomeSEXP . SEXP) (Unsafe.protect f)
 
-instance Protect s a => Protect s (UnsafeValue a) where
-   type ProtectElt s (UnsafeValue a)   = ProtectElt s a
+instance Protect m a => Protect m (UnsafeValue a) where
+   type ProtectElt m (UnsafeValue a)   = ProtectElt m a
    protect a = Unsafe.unsafeUseValue a protect
 
-instance Protect s (SEXP s a) where
-   type ProtectElt s (SEXP s a)        = SEXP s a
+instance (RRegion m ~ s, MonadR m) => Protect m (SEXP s a) where
+   type ProtectElt m (SEXP s a)        = SEXP s a
    protect = return
 
-instance Protect s (SomeSEXP s) where
-   type ProtectElt s (SomeSEXP s)      = SomeSEXP s
+instance (RRegion m ~ s, MonadR m) => Protect m (SomeSEXP s) where
+   type ProtectElt m (SomeSEXP s)      = SomeSEXP s
    protect = return
 
 -- | Values that can be returned from a protection block.
@@ -455,16 +483,16 @@ instance Unprotect (SomeSEXP s) where
 --
 ---------------------------------------------------------------------------------
 
-instance Protect s ()
+instance Monad s => Protect s ()
 instance Unprotect ()
 
-instance Protect s Int32
+instance Monad s => Protect s Int32
 instance Unprotect Int32
 
-instance Protect s Double
+instance Monad s => Protect s Double
 instance Unprotect Double
 
-instance Protect s Bool
+instance Monad s => Protect s Bool
 instance Unprotect Bool
 
 instance Protect s a => Protect s [a] where

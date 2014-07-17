@@ -20,7 +20,7 @@ module Language.R.QQ
 
 import H.Internal.Prelude
 import qualified H.Prelude as H
-import           Control.Monad.R.Unsafe (unsafeIOToR, unsafePerformR)
+import           Control.Monad.R.Unsafe (unsafeIOToR)
 import           Language.R.HExp.Unsafe
 import           Language.R.Literal.Unsafe
 import qualified Data.Vector.SEXP as Vector
@@ -44,6 +44,7 @@ import Data.Int (Int32)
 import Data.Word (Word8)
 import Foreign (castPtr)
 
+import System.IO.Unsafe (unsafePerformIO)
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
 -------------------------------------------------------------------------------
@@ -75,7 +76,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformR  $ eval =<< io $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO  $ eval =<< io $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -89,9 +90,8 @@ parseEval txt = do
         let vs = Vector.toList v
         in case vs of
 	    [] -> error "Impossible happen."
-            [SomeSEXP (returnIO -> a)] -> 
-	       [| H.protect =<< Control.Monad.R.Unsafe.unsafeIOToR (withProtected a evalIO) |]
-	    xs -> [| H.protect =<< Control.Monad.R.Unsafe.unsafeIOToR $(go xs) |]
+            [SomeSEXP (returnIO -> a)] -> [| H.protect =<< io (withProtected a evalIO) |]
+	    xs -> [| H.protect =<< io $(go xs) |]
       _ -> error "Impossible happen."
   where
     go :: [SomeSEXP] -> Q TH.Exp
