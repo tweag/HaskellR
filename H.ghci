@@ -9,7 +9,7 @@
 
 import Language.R.HExp.Unsafe as H
 import qualified H.Prelude.Interactive as H
-import Foreign.R.Internal as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
+import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
 import Language.R.QQ as H (r, rexp, rsafe)
 

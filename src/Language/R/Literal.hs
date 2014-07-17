@@ -6,17 +6,20 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Language.R.Literal
    ( mkSEXP
+   , fromSEXP
    , HFunWrap(..)
    , funToSEXP
+   , Literal
    ) where
 
 import           H.Internal.Error
 import qualified Foreign.R.Internal as R
 import           Foreign.R
-import           Language.R.Literal.Unsafe (Literal(..))
+import           Language.R.Literal.Unsafe (Literal, unsafeMkSEXP)
 import qualified Language.R.Literal.Unsafe as Unsafe
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
@@ -27,6 +30,9 @@ import           Foreign          ( FunPtr )
 
 mkSEXP :: Literal a b => a -> R s (SEXP s b)
 mkSEXP = liftProtect . Unsafe.unsafeMkSEXP
+
+fromSEXP :: Literal a b => SEXP s b -> a
+fromSEXP = Unsafe.fromSEXP . unSEXP
 
 instance SingI a => Literal (SEXP s a) a where
     unsafeMkSEXP  = return . unSEXP 
@@ -65,7 +71,7 @@ instance Literal a la => HFunWrap (R s a) (IO (R.SEXP la)) where
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (R.SEXP la -> wb) where
-    hFunWrap f a = hFunWrap $ f $! fromSEXP a
+    hFunWrap f a = hFunWrap $ f $! Unsafe.fromSEXP a
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr a -> IO (R.SEXP R.ExtPtr)

@@ -14,6 +14,7 @@ module Main where
 import Foreign.R.Internal as R
 import qualified Foreign.R
 import H.Prelude as H
+import qualified Language.R.Literal.Unsafe as Unsafe
 import Language.R.QQ
 import Data.Int
 
@@ -55,9 +56,9 @@ main = do
 -- that was removed
 {-# NOINLINE mkSEXP' #-}
 mkSEXP' :: Literal a b => a -> R.SEXP b
-mkSEXP' = unsafePerformIO . unsafeMkSEXP
+mkSEXP' = unsafePerformIO . Unsafe.unsafeMkSEXP
 
-hFib :: R.SEXP R.Int -> R s (R.SEXP R.Int)
+hFib :: Foreign.R.SEXP s R.Int -> R s (R.SEXP R.Int)
 hFib (H.fromSEXP -> (0 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
 hFib (H.fromSEXP -> (1 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
 hFib n = protectRegion $ do
@@ -68,7 +69,7 @@ rTests = H.runR H.defaultConfig $ do
 
     -- Should be [1] 4181
     -- Placing it before enabling gctorture2 for speed.
-    runRegion $ H.print =<< hFib (unsafePerformIO $ (unsafeMkSEXP (19 :: Int32)))
+    runRegion $ H.print =<< hFib =<< mkSEXP (19 :: Int32)
 
     _ <- [r| gctorture2(1,0,TRUE) |]
 
@@ -128,10 +129,9 @@ rTests = H.runR H.defaultConfig $ do
     -- Should be NULL
     H.print H.nilValue
 
-    let fromSomeSEXP s = Foreign.R.unSomeSEXP s (H.fromSEXP . Foreign.R.unSEXP)
 
     -- Should be [1] 3
-    let foo3 = (\n -> runRegion $ (fmap fromSomeSEXP  [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
+    let foo3 = (\n -> runRegion $ (fmap (fromSEXP . Foreign.R.cast R.Int) [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
     -- | should be 99
@@ -139,7 +139,7 @@ rTests = H.runR H.defaultConfig $ do
     H.print =<< [r| foo4_hs(33, 66) |]
 
     -- Should be [1] 120 but it doesn't work
-    let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+    let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap (fromSEXP . Foreign.R.cast R.Int) [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
     H.print =<< [r| fact_hs(as.integer(5)) |]
 
     -- Should be [1] 29

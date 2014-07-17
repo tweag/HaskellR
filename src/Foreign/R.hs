@@ -32,6 +32,7 @@ module Foreign.R
   ( R
     -- * Internal R structures
   , SEXPTYPE(..)
+  , Internal.SEXPInfo
   , Internal.Logical(..)
   , SEXP(..)
   , SomeSEXP(..)

@@ -13,7 +13,6 @@ module H.Prelude
   -- * Language.R functions
   , module Language.R
   -- * Literals
-  , module Language.R.Literal.Unsafe
   , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
@@ -34,7 +33,6 @@ import qualified Data.Vector.SEXP as Vector
 -- Reexported modules.
 import           Control.Monad.R
 import           Language.R.Globals
-import           Language.R.Literal.Unsafe
 import           Language.R.Literal
 import           Language.R hiding ( withProtected )
 import qualified Language.R ( withProtected )

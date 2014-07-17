@@ -20,6 +20,7 @@ import qualified Foreign.R.Runner as R
     ( initialize
     , defaultConfig )
 import qualified Language.R as R ( r2 )
+import qualified Language.R.Literal.Unsafe as Unsafe
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
@@ -140,14 +141,14 @@ ghciSession name scriptPath =
 
 {-# NOINLINE mkSEXP' #-}
 mkSEXP' :: Literal a b => a -> R.SEXP b
-mkSEXP' = unsafePerformIO . unsafeMkSEXP
+mkSEXP' = unsafePerformIO . Unsafe.unsafeMkSEXP
 
 
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "fromSEXP . mkSEXP" $ unsafeRunInRThread $ do
-      x <- unsafeMkSEXP (2 :: Double)
-      (2 :: Double) @=? fromSEXP x
+      x <- Unsafe.unsafeMkSEXP (2 :: Double)
+      (2 :: Double) @=? Unsafe.fromSEXP x
   , testCase "HEq HExp" $ unsafeRunInRThread $ do
       -- XXX ideally randomly generate input.
       let x = 2 :: Double
@@ -165,7 +166,7 @@ unitTests = testGroup "Unit tests"
   , testCase "Haskell function from R" $ unsafeRunInRThread $ do
 --      (("[1] 3.0" @=?) =<<) $
 --        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
-      (((3::Double) @=?) =<<) $ fmap fromSEXP $
+      (((3::Double) @=?) =<<) $ fmap Unsafe.fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
             R.withProtected (return $ mkSEXP' $ \x -> return $ x + 1 :: R s Double) $
@@ -174,8 +175,8 @@ unitTests = testGroup "Unit tests"
                           (mkSEXP' (2::Double))
                      >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s e p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
-      key  <- unsafeMkSEXP (return 4 :: R s Int32)
-      val  <- unsafeMkSEXP (return 5 :: R s Int32)
+      key  <- Unsafe.unsafeMkSEXP (return 4 :: R s Int32)
+      val  <- Unsafe.unsafeMkSEXP (return 5 :: R s Int32)
       True <- return $ R.typeOf val == R.ExtPtr
       rf   <- R.mkWeakRef key val (H.unhexp H.Nil) True 
       True <- case H.hexp rf of
