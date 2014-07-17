@@ -5,11 +5,12 @@ module Test.Regions
 
 import H.Prelude
 import Language.R.QQ
-import Language.R.Literal
 import Data.Int
 
 import qualified Foreign.R as R
 
+import Control.Applicative
+import Control.Monad
 import Control.Exception (bracket)
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
@@ -33,8 +34,30 @@ tests = testGroup "regions"
           _ <- [r| gctorture(TRUE) |]
           R.SomeSEXP y <- [r| as.integer(42)  |]
           return (fromSEXP (R.unSEXP y) :: Int32)
+  , testCase "region/subregion" $ preserveDir $ do
+      ((assertBool "not Nil") =<<) $ do
+        unsafeRunRegion $ do
+          _ <- [r| gctorture(TRUE) |]
+	  x <- mkSEXP (42::Int32)
+	  newRegion $ \(SubRegion wtn) -> do
+	    y <- wtn $ R.getAttribute x
+	    return $ isNil (R.typeOf y)
+  , testCase "region/subregion-improved" $ preserveDir $ do
+      ((assertBool "not List") =<<) $ do
+        unsafeRunRegion $ do
+          _ <- [r| gctorture(TRUE) |]
+	  x <- mkSEXP (42::Int32)
+	  newRegion $ \(SubRegion wtn) -> do
+	    l <- wtn $ R.allocList 1
+	    wtn $ R.setAttribute x l
+	    y <- wtn $ R.getAttribute x
+	    return $ isList (R.typeOf y)
   ]
   where
     isInt (R.Int) = True
     isInt _ = False
+    isNil (R.Nil) = True
+    isNil _ = False
+    isList (R.List) = True
+    isList _ = False
     -- double initialization, but it's safe
