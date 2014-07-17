@@ -82,6 +82,9 @@ import Foreign
     , newStablePtr
     , deRefStablePtr
     , freeStablePtr
+    , intPtrToPtr
+    , castPtrToStablePtr
+    , castStablePtrToPtr
     )
 import Foreign.C.Types ( CInt(..) )
 import Foreign.Storable (Storable(..))
@@ -186,7 +189,9 @@ finalize = do
     mv <- newEmptyMVar
     postToRThread_ $ do
       R.endEmbeddedR 0
-      peek interpreterChanPtr >>= freeStablePtr
+      stablePtr <- peek interpreterChanPtr
+      poke interpreterChanPtr $ castPtrToStablePtr (intPtrToPtr 2)
+      freeStablePtr stablePtr
       poke isRInitializedPtr 0
       putMVar mv ()
       throwIO ThreadKilled
@@ -232,8 +237,11 @@ startRThread eventLoopThread = do
 -- If R runtime is not initialized, the behavior of this call is undefined.
 --
 postToRThread_ :: IO () -> IO ()
-postToRThread_ action =
-  peek interpreterChanPtr >>= deRefStablePtr >>= postToThisRThread_ action
+postToRThread_ action = do
+  stablePtr <- peek interpreterChanPtr
+  if castStablePtrToPtr stablePtr == intPtrToPtr 2
+  then error "postToRThread_: H is not initialized."
+  else deRefStablePtr stablePtr >>= postToThisRThread_ action
 
 -- | Returns a computation that behaves like 'postToRThread_'
 -- if the current R instance is still alive when the computation is evaluated.
