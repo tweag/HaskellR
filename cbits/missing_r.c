@@ -57,7 +57,8 @@ void processGUIEventsUnix(InputHandler** inputHandlers) {
 int isRInitialized = 2;
 
 HsStablePtr rVariables;
-HsStablePtr interpreterChan;
+// Here we have the same problem with initialization as in isRInitialized above.
+HsStablePtr interpreterChan = (HsStablePtr)2;
 
 #undef USE_RINTERNALS
 
