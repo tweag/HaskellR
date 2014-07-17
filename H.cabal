@@ -3,7 +3,7 @@ version:             0.1.0.0
 license:             AllRightsReserved
 copyright:           Copyright (c) 2013 Amgen, Inc.
 cabal-version:       >=1.10
-build-type:          Simple
+build-type:          Custom
 Category:            Compiler
 Synopsis:            R-to-Haskell translator and interoperability solution.
 -- description:
@@ -38,10 +38,15 @@ extra-source-files:   cbits/Hcompat.h
                       doc/H-ints.md
                       doc/H-user.md
                       doc/pandoc.css
+                      Makefile
 
 source-repository head
   type:     git
   location: git://github.com/ps-labs/H.git
+
+Flag documentation 
+  description:         Generate H manuals (requires pandoc).
+  default:             False
 
 library
   exposed-modules:     Data.Vector.SEXP
