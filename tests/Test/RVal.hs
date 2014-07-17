@@ -20,8 +20,7 @@ tests = testGroup "HVal"
     [ testCase "RVal is not collected by R GC" $
       bracket getCurrentDirectory setCurrentDirectory $ const $ do
         ((assertBool "RVal was collected" . isInt) =<<) $ do
-            -- double initialization, but it's safe
-            R.runR R.defaultConfig $ do
+            unsafeRunInRThread $ unsafeRToIO $ do
               x <- newRVal =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP R.Int))
               io $ R.gc
               withRVal x (return . R.typeOf)
