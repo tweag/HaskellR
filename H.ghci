@@ -11,10 +11,7 @@ import Language.R.HExp as H
 import qualified H.Prelude.Interactive as H
 import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
-
-:def _load const(System.Environment.lookupEnv "H_INTERACTIVE_RUNTIME_QQ" >>= return . (maybe "import Language.R.QQ as H (r, rexp, rsafe)" (const "import Language.R.Runtime.QQ as H (r, rexp, rsafe)\n:cmd putStrLn \"Using Runtime QQ which is DEPRECATED and only useful for debugging purposes. Use at your own risk.\" >> return \"\"")))
-:_load
-:undef _load
+import Language.R.QQ as H (r, rexp, rsafe)
 
 :{
 Language.R.pokeRVariables
