@@ -10,3 +10,4 @@ Error in xy.coords(x, y, xlabel, ylabel, log) :
         ^
 
       Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2 "
+[1] 2
