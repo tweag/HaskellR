@@ -102,9 +102,27 @@ unsafeRunRegionWith f x = internalRunRegionWith (unprotect =<< f) x
 -- (or, is the parent of, the subtype of) the region labeled 's'
 newtype SubRegion r s = SubRegion (forall v . R r v -> R s v)
 
+-- | A function that allow to share variables from the partent region in the current
+-- one. This apporach slightly differs from the one that was originaly described in
+-- papar by Oleg Kiselov.
+--
+-- The main reason it that R protection stack doesn't allow to register values inside
+-- a parent region, so every value even tagged as registered in a parent region will 
+-- be unprotected when it leaves the scope of the function. However this is safe as
+-- 'Unprotect' constraint cleares information about region where value was protected.
+-- 
+-- Usage:
+--
+-- > newRegion $ (SubRegion witness) -> do
+-- >   z <-witness $ getAttribute (x {- value from the parent region -})
+-- >   use z
+--
 newRegion :: (Unprotect v) => (forall s . SubRegion r s -> R s v) -> R r (UnprotectElt v)
 newRegion body = R $ do
+   -- Create a counter for a new region
    t <- ReaderT $ const $ newIORef 0
-   -- changing label
+   -- Create a 'witness' function that changes the label of the region. this function
+   -- unsafely runs a function from the parent region with _current_ counter. The
+   -- result will be tagged with the current region
    let witness (R m) = unsafeIOToR $ runReaderT m t 
    ReaderT $ const $ unsafeRunRegionWith (body (SubRegion witness)) t
