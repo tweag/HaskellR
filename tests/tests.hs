@@ -10,6 +10,7 @@ module Main where
 import qualified Test.Constraints
 import qualified Test.FunPtr
 import qualified Test.RVal
+import qualified Test.Regions
 
 import H.Prelude
 import H.Constraints
@@ -182,6 +183,7 @@ unitTests = testGroup "Unit tests"
       return ()
   , Test.Constraints.tests
   , Test.FunPtr.tests
+  , Test.Regions.tests
   , Test.RVal.tests
   , testCase "sanity check " $ unsafeRunInRThread $ return ()
   ]
