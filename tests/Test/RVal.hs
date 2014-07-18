@@ -7,6 +7,7 @@ module Test.RVal
 import           H.Prelude
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
+import Control.Monad.R.Unsafe (unsafeRToIO)
 
 import Control.Exception (bracket)
 import Test.Tasty hiding (defaultMain)

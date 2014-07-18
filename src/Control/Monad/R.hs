@@ -1,150 +1,92 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- The 'R' monad defined here serves to give static guarantees that an instance
--- is only ever used after it has been initialized and before it is finalized.
--- Doing otherwise should result in a type error. This is done in the same way
--- that the 'Control.Monad.ST' monad encapsulates side effects: by assigning
--- a rank-2 type to the only run function for the monad.
+-- Monad R provides a safe way to work with R object, this monad performs all required
+-- variable protection under the hood. The approach to the regions is a simplified
+-- lightweigh regions.
 --
--- This module is intended to be imported qualified.
+-- Inside R monad it's possible to protect 'Foreign.R.Internal.SEXP' by adding them into R protection stack
+-- and once block is finished all values will be unprotected in one call. This basically
+-- doesn't mean that values will be freed by R runtime, but it will not be safe to access
+-- them. R monad also solves a problem of 'leaking' resources, so no value that is protected
+-- withing a block can leave block scope.
+--
+-- All values that should be protected in a scope of 'R' monad should contain @s@ type variable
+-- see 'Foreign.R' for an example.
+--
+-- It's possible to run a protection block, all resources that are allocated withing a
+-- block are protected by calling 'protect' and once block is finished, then all
+--
+-- > runRegion $ do
+-- >   x <- fromSEXP <$> protect foo
+-- >   y <- fromSEXP <$> protect bar
+-- >   foo (x,y)
+--
+-- Here @x@ and @y@ will be protected during the computation of @foo@ and will be unprotected
+-- just before a return.
+--
+-- Implementation notes:
+--
+--   * The current solution does not support nested regions, so passing a value to the
+--     child region from a parent is not possible even it's safe.
+--
+-- Protection of values:
+--
+-- Any value can be protected by using 'protect' function from the 'Protect' typeclass, this
+-- function guarantees that value is protected withing a region and can be used there.
+--
+-- Once a value is leaving region, either by a final statement or by passing into any communication
+-- channel it should be unprotected, so to be prepared to be used outside a region. This involve
+-- 3 things:
+--
+--    1. Value will change type to the type that doesn't contain a reference to a region;
+--
+--    2. Value will be marked as 'UnsafeValue' if it's not safe to use without a protection.
+--    (see 'UnsafeValue' for complete documentation)
+--
+--    3. Value is fully evaluated, so it doesn't contain any thunks to a variables that are
+--    safe to use only inside a region.
+--
+-- It's still safe to use original value inside a region even after 'unprotection' procedure.
+-- 'runRegion' procedure takes care of unprotection procedure, however user should do it himself
+-- before passing a value into the communication channel.
+--
 {-# LANGUAGE Rank2Types #-}
 module Control.Monad.R
   ( -- * The R monad
-    R(..)
+    R
+  , io
+  , MonadR
   , runR
     -- * Regions
-    -- $regions
+    -- ** Execution
   , runRegion
   , protectRegion
-  , protectSomeRegion
   , unsafeRunRegion
-  , protect
-  , liftProtect
-  , liftProtectSome
-
-    -- * Monad modificators
-  , unsafeRToIO
-  , unsafeIOToR
-  , unsafeRunInRThread
-  , unsafePerformR
-  , Config(..)
-  , defaultConfig
-  -- * R instance creation
-  , initialize
-  -- * Monad R
-  , MonadR
-  , io
-  -- * R global constants
-  -- $ghci-bug
-  , pokeRVariables
-  , globalEnvPtr
-  , baseEnvPtr
-  , nilValuePtr
-  , unboundValuePtr
-  , missingArgPtr
-  , rInteractive
-  , rInputHandlersPtr
+    -- * Protection
+  , Protect(..)
+  , Unprotect(..)
+  , UnsafeValue
+  , unsafeUseValue
+    -- * Operations lifting
+  , Foreign.R.liftProtect
   ) where
 
-import           Foreign.R.Runner
-import qualified Foreign.R.Internal as R
-import           Control.Monad.R.Class
+import Control.Monad.R.Unsafe
+import Control.Monad.R.Class
+import Foreign.R
 
-
-import Control.Applicative
-import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow, mask_ )
-import Control.DeepSeq
-import Control.Exception ( bracket, bracket_, evaluate )
 import Control.Monad.Reader
-import Data.IORef
-import System.IO.Unsafe ( unsafePerformIO )
 
--- | The 'R' monad, for sequencing actions interacting with a single instance of
--- the R interpreter, much as the 'IO' monad sequences actions interacting with
--- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
--- be lifted to 'R' actions.
-newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
-  deriving (Monad, MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative)
-
-instance MonadR (R s) where
-  io m = unsafeIOToR $ unsafeRunInRThread m
-
--- | Initialize a new instance of R, execute actions that interact with the
--- R instance and then finalize the instance.
+-- This guarantee safeness of values usafe inside a region.
 --
--- WARNING. due to the bug in R it's not possible to reinitialize R code, this
--- means that when this function will exit, then it will not be possible to
--- run it again or perform any R computaion.
---
--- WARNING. Return value is not forced, this means that it's may leak some
--- computations.
-runR :: Config -> (forall s. R s a) -> IO a
-runR config r = bracket_ (initialize config) finalize (internalRunRegion r)
-
--- | Run a R code in a region. See $regions
---
--- This function creates a nested region and makes all objects inside a regions
--- as free.
---
--- 'NFData' constraint is used to prevent from leaks of any unevaluated objects
--- through the pure values.
---
--- 'SEXP' from a different regions can not be shared.
-runRegion :: NFData a => (forall s. R s a) -> R s' a
+-- 'Unprotect' constraint allow to run unprotect procedure on the values that
+-- leaving a channel.
+runRegion :: (Unprotect a) => (forall s. R s a) -> R s' (UnprotectElt a)
 runRegion = R . ReaderT . const . unsafeRunRegion
 
-protectRegion :: (forall s . R s (R.SEXP a)) -> R s' (R.SEXP a)
-protectRegion = R . ReaderT . const . internalRunRegion
-
-protectSomeRegion :: (forall s . R s R.SomeSEXP) -> R s' R.SomeSEXP
-protectSomeRegion = liftProtectSome . internalRunRegion
-
--- | Evaluate an region, in IO monad.
-unsafeRunRegion :: NFData a => (forall s.R s a) -> IO a
-unsafeRunRegion f = internalRunRegion (unsafeIOToR . evaluate . force  =<< f)
-
--- | Run a region without calling forcing return value
+-- | Run R region inside an IO monad.
 --
--- This action is unsafe because it does not guarantee that R runtime is initialized.
-internalRunRegion :: (forall s.R s a) -> IO a
-internalRunRegion f =
-   bracket (newIORef 0)
-           (readIORef >=> R.unprotect)
-	   (runReaderT (unR f))
-
--- | Run an R action in the global R instance from the IO monad.
---
--- This method doesn't guarantee that R runtime is initialized.
---
--- No unprotection is called on the return values.
-unsafeRToIO :: R s a -> IO a
-unsafeRToIO (R m) = runReaderT m =<< newIORef 0
-
--- | Lift IO action into R monad
-unsafeIOToR :: IO a -> R s a
-unsafeIOToR = R . ReaderT . const
-
--- | 'unsafePerformIO' analogue for R monad.
-unsafePerformR :: R s a -> a
-unsafePerformR r = unsafePerformIO $ unsafeRToIO r
-{-# NOINLINE unsafePerformR #-}
-
--- | Protect SEXP inside a current region
-protect :: R.SEXP a -> R s (R.SEXP a)
-protect x = liftProtect (return x)
-
--- | Lift an action that creates an SEXP value and protect it inside a region.
-liftProtect :: IO (R.SEXP a) -> R s (R.SEXP a)
-liftProtect f = mask_ $ R . ReaderT $ \cnt -> do
-   z <- R.protect =<< f
-   modifyIORef' cnt succ
-   return z
-
--- | Lift an action that creates a SomeSEXP value and protect it inside a region.
-liftProtectSome :: IO R.SomeSEXP -> R s R.SomeSEXP
-liftProtectSome f = mask_ $ R . ReaderT $ \cnt -> do
-   R.SomeSEXP z <- f
-   k <- R.protect z
-   modifyIORef' cnt succ
-   return (R.SomeSEXP k)
+-- This method will not allow to to return a values that have an @s@ variable
+unsafeRunRegion :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
+unsafeRunRegion f = internalRunRegion (unprotect =<< f)

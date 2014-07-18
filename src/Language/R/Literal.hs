@@ -16,12 +16,11 @@ module Language.R.Literal
 import           H.Internal.Error
 import qualified Foreign.R.Internal as R
 import           Foreign.R
-import           Control.Monad.R (R)
 import           Language.R.Literal.Unsafe (Literal(..))
 import qualified Language.R.Literal.Unsafe as Unsafe
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
-import           Control.Monad.R (unsafeRToIO)
+import           Control.Monad.R.Unsafe (unsafeRToIO, UnsafeValue, unsafeUseValue)
 
 import           Data.Singletons
 import           Foreign          ( FunPtr )
@@ -39,6 +38,10 @@ instance Literal (SomeSEXP s) Any where
     -- when the real type is not known.
     unsafeMkSEXP (SomeSEXP s) = return $ unSEXP $ unsafeCoerce s
     fromSEXP = SomeSEXP . SEXP
+
+instance Literal a b => Literal (UnsafeValue a) b where
+    unsafeMkSEXP = flip unsafeUseValue unsafeMkSEXP
+    fromSEXP = unimplemented "Literal (Unsafe a) fromSEXP"
 
 instance Literal a b => Literal (R s a) R.ExtPtr where
     unsafeMkSEXP = funToSEXP wrap0

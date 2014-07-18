@@ -1,8 +1,8 @@
 :m +Control.Exception
 
 -- Disable showing summaries of the call stack for more reproducible tests.
-H.unsafeRToIO ([r| options('showErrorCalls'=FALSE) |] >> return ())
+H.performR ([r| options('showErrorCalls'=FALSE) |] >> return ())
 
-H.unsafeRToIO ([r| plot() |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+H.performR ([r| plot() |] >> return () :: R s ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
 
-H.unsafeRToIO ([r| 1+()-2 |] >> return ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)
+H.performR ([r| 1+()-2 |] >> return () :: R s ()) `Control.Exception.catch` (\(H.RError x) -> putStrLn x)

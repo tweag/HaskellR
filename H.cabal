@@ -73,6 +73,7 @@ library
                        Language.R.Literal.Unsafe
                        Language.R.QQ
                        Control.Monad.R
+                       Control.Monad.R.Unsafe
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error

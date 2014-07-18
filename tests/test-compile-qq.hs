@@ -131,7 +131,7 @@ rTests = H.runR H.defaultConfig $ do
     let fromSomeSEXP s = Foreign.R.unSomeSEXP s (H.fromSEXP . Foreign.R.unSEXP)
 
     -- Should be [1] 3
-    let foo3 = (\n -> runRegion $ fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
+    let foo3 = (\n -> runRegion $ (fmap fromSomeSEXP  [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
     -- | should be 99
@@ -144,7 +144,7 @@ rTests = H.runR H.defaultConfig $ do
 
     -- Should be [1] 29
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
-    let apply = (\n m  -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (R.SomeSEXP . Foreign.R.unSEXP))) [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R s R.SomeSEXP
+    let apply = (\n m  -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (R.SomeSEXP . Foreign.R.unSEXP))) [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R s (UnsafeValue R.SomeSEXP)
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
     sym <- H.install "blah"
