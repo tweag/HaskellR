@@ -136,8 +136,8 @@ module Data.Vector.SEXP
 import Data.Vector.SEXP.Base
 import Data.Vector.SEXP.Mutable (MVector(..))
 import qualified Data.Vector.SEXP.Mutable as Mutable
-import Foreign.R ( SEXP )
-import qualified Foreign.R as R
+import Foreign.R.Internal ( SEXP )
+import qualified Foreign.R.Internal as R
 import Foreign.R.Type ( SEXPTYPE(Char{-, Logical-}), IsVector )
 
 import Control.Monad.Primitive ( PrimMonad, PrimState )

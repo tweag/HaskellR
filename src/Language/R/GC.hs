@@ -21,19 +21,16 @@ module Language.R.GC
   , touchSomeRVal
   , withSomeRVal
   , unprotectSomeRVal
-    -- * Helpers
-  , withProtected
   ) where
 
-import H.Internal.Prelude
+import Foreign.R.Internal (SomeSEXP(..))
+import Control.Monad.R.Class
 import Control.Applicative
 import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr, castPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Concurrent ( newForeignPtr )
-import qualified Foreign.R as R
-
-import Control.Monad.Catch ( MonadCatch, MonadMask, bracket )
-import Control.Monad.Trans ( MonadIO(..) )
+import Foreign.R.Runner (getPostToCurrentRThread)
+import qualified Foreign.R.Internal as R
 
 -- | An 'RVal' is a reference to a /protected/ R object that is maintained by
 -- R storage memory. If GHC's GC determines that the object has become
@@ -64,19 +61,6 @@ withRVal (RVal s) f = do
 -- immideately deallocated, just that it may be deallocated on the next GC.
 unprotectRVal :: MonadR m => RVal a -> m ()
 unprotectRVal (RVal s) = io (finalizeForeignPtr s)
-
--- | Perform an action with resource while protecting it from the garbage
--- collection. This function is a safer alternative to 'R.protect' and
--- 'R.unprotect', guaranteeing that a protected resource gets unprotected
--- irrespective of the control flow, much like 'Control.Exception.bracket_'.
-withProtected :: (MonadIO m, MonadCatch m, MonadMask m)
-              => m (R.SEXP a)      -- Action to acquire resource
-              -> (R.SEXP a -> m b) -- Action
-              -> m b
-withProtected acquire =
-    bracket
-      (do { x <- acquire; _ <- liftIO $ R.protect x; return x })
-      (const $ liftIO $ R.unprotect 1)
 
 -- | Non type indexed version of 'RVal'.
 newtype SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)

@@ -24,7 +24,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-module Foreign.R
+module Foreign.R.Internal
   ( module Foreign.R.Type
     -- * Internal R structures
   , SEXPTYPE(..)
@@ -106,6 +106,7 @@ module Foreign.R
   , preserveObject
   , releaseObject
   , gc
+  , withProtected
     -- * Globals
   , globalEnv
   , baseEnv
@@ -134,14 +135,17 @@ module Foreign.R
   , SEXP0
   , sexp
   , unsexp
+  , RPtr(..)
   ) where
 
-import {-# SOURCE #-} Language.R.HExp
+import {-# SOURCE #-} Language.R.HExp.Unsafe
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad.Primitive ( unsafeInlineIO )
+import Control.Exception ( bracket )
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
@@ -175,6 +179,11 @@ const char *(R_CHAR)(SEXP x);
 type SEXP (a :: SEXPTYPE) = Ptr (HExp a)
 data SEXPREC
 
+newtype RPtr a = RPtr (Ptr a)
+
+instance NFData (RPtr a) where
+  rnf s = s `seq` ()
+
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
 -- arbitrary type in a @#pointer@ hook).
@@ -200,6 +209,9 @@ instance Storable SomeSEXP where
   alignment _ = alignment (undefined :: SEXP a)
   peek ptr = SomeSEXP <$> peek (castPtr ptr)
   poke ptr (SomeSEXP s) = poke (castPtr ptr) s
+
+instance NFData SomeSEXP where
+  rnf (SomeSEXP s) = rnf (RPtr s)
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
@@ -606,3 +618,13 @@ setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
 
 -- | Content encoding.
 {#enum cetype_t as CEType {} deriving (Eq, Show) #}
+
+-- | A protection block for a single variable.
+withProtected :: IO (SEXP a)      -- Action to acquire resource
+              -> (SEXP a -> IO b) -- Action
+              -> IO b
+withProtected acquire =
+    bracket
+      (protect =<< acquire)
+      (const $ unprotect 1)
+

@@ -25,6 +25,9 @@
 --
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
+--
+-- We need this module in order to be able to write unregional SEXP type
+-- (@type SEXP a = Ptr (HExp a)@)  and use it internally and in quasi-quote.
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
@@ -33,21 +36,22 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Language.R.HExp
+module Language.R.HExp.Unsafe
   ( HExp(..)
   , hexp
   , unhexp
-  , unhexpIO
+  , unsafeUnhexp
   , vector
   , selfSymbol
   ) where
 
-import H.Internal.Prelude
-import qualified Language.R.Globals as H
-import qualified Foreign.R      as R
+import           H.Constraints
+import           H.Internal.Error
+import qualified Language.R.Globals.Unsafe as H
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE)
+import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as R
-import           Foreign.R (SEXPREC)
-import           Language.R.GC (withProtected)
+import           Foreign.R.Internal (SEXPREC)
 
 import qualified Data.Vector.SEXP as Vector
 
@@ -385,17 +389,17 @@ hexp = unsafeInlineIO . peek
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
 unhexp :: HExp a -> SEXP a
-unhexp = unsafePerformIO . unhexpIO
+unhexp = unsafePerformIO . unsafeUnhexp
 {-# NOINLINE unhexp #-}
 
--- The basic idea over unhexpIO is that fields of non vector elements are lazy
+-- The basic idea over unsafeUnhexp is that fields of non vector elements are lazy
 -- so they will be forced in poke (so inside withProtected object) this guarantees
 -- the safeness of memory allocation.
-unhexpIO :: HExp a -> IO (SEXP a)
-unhexpIO   Nil         = return H.nilValue
-unhexpIO s@(Symbol{})  =
-    withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
-unhexpIO (List c md mt) = do
+unsafeUnhexp :: HExp a -> IO (SEXP a)
+unsafeUnhexp   Nil         = return H.nilValue
+unsafeUnhexp s@(Symbol{})  =
+    R.withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
+unsafeUnhexp (List c md mt) = do
     void $ R.protect c
     void $ R.protect d
     void $ R.protect t
@@ -406,7 +410,7 @@ unhexpIO (List c md mt) = do
   where
     d = maybe (R.unsafeCoerce H.nilValue) id md
     t = maybe (R.unsafeCoerce H.nilValue) id mt
-unhexpIO (Lang carval mbcdrval)   = do
+unsafeUnhexp (Lang carval mbcdrval)   = do
     let cdrval = maybe (R.unsafeCoerce H.nilValue) id mbcdrval
     void $ R.protect carval
     void $ R.protect cdrval
@@ -415,30 +419,30 @@ unhexpIO (Lang carval mbcdrval)   = do
     R.setCdr x cdrval
     R.unprotect 2
     return x
-unhexpIO s@(Env{})     =
-    withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
-unhexpIO s@(Closure{}) =
-    withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
-unhexpIO s@(Special{}) =
-    withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
-unhexpIO s@(Builtin{}) =
-    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
-unhexpIO s@(Promise{}) =
-    withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
-unhexpIO  (Bytecode{}) = unimplemented "unhexp"
-unhexpIO (Real vt)     = Vector.unsafeToSEXP vt
-unhexpIO (Logical vt)  = Vector.unsafeToSEXP vt
-unhexpIO (Int vt)      = Vector.unsafeToSEXP vt
-unhexpIO (Complex vt)  = Vector.unsafeToSEXP vt
-unhexpIO (Vector _ vt) = Vector.unsafeToSEXP vt
-unhexpIO (Char vt)     = Vector.unsafeToSEXP vt
-unhexpIO (String vt)   = Vector.unsafeToSEXP vt
-unhexpIO (Raw vt)      = Vector.unsafeToSEXP vt
-unhexpIO S4{}          = unimplemented "unhexp"
-unhexpIO (Expr _ vt)   = Vector.unsafeToSEXP vt
-unhexpIO WeakRef{}     = error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
-unhexpIO DotDotDot{}   = unimplemented "unhexp"
-unhexpIO ExtPtr{}      = unimplemented "unhexp"
+unsafeUnhexp s@(Env{})     =
+    R.withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
+unsafeUnhexp s@(Closure{}) =
+    R.withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
+unsafeUnhexp s@(Special{}) =
+    R.withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
+unsafeUnhexp s@(Builtin{}) =
+    R.withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
+unsafeUnhexp s@(Promise{}) =
+    R.withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
+unsafeUnhexp  (Bytecode{}) = unimplemented "unsafeUnhexp"
+unsafeUnhexp (Real vt)     = Vector.unsafeToSEXP vt
+unsafeUnhexp (Logical vt)  = Vector.unsafeToSEXP vt
+unsafeUnhexp (Int vt)      = Vector.unsafeToSEXP vt
+unsafeUnhexp (Complex vt)  = Vector.unsafeToSEXP vt
+unsafeUnhexp (Vector _ vt) = Vector.unsafeToSEXP vt
+unsafeUnhexp (Char vt)     = Vector.unsafeToSEXP vt
+unsafeUnhexp (String vt)   = Vector.unsafeToSEXP vt
+unsafeUnhexp (Raw vt)      = Vector.unsafeToSEXP vt
+unsafeUnhexp S4{}          = unimplemented "unsafeUnhexp"
+unsafeUnhexp (Expr _ vt)   = Vector.unsafeToSEXP vt
+unsafeUnhexp WeakRef{}     = error "unsafeUnhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
+unsafeUnhexp DotDotDot{}   = unimplemented "unsafeUnhexp"
+unsafeUnhexp ExtPtr{}      = unimplemented "unsafeUnhexp"
 
 -- | Project the vector out of 'SEXP's.
 vector :: R.IsVector a => SEXP a -> Vector.Vector a (Vector.ElemRep a)

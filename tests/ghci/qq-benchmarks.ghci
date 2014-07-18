@@ -1,31 +1,31 @@
 :set -XDataKinds
 :set -XScopedTypeVariables
+:set -XViewPatterns
 
-:m +Data.Int
+:m +Data.Int 
 import Criterion.Main
 import Language.Haskell.TH.Quote
-import qualified Foreign.R as R
- 
 import System.FilePath
- 
+import Control.Monad.R.Unsafe
+
 
 :{
-let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R (Foreign.R.SEXP Foreign.R.Int)
-    hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-    hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-    hFib n                              = H.withProtected (return n) $ const $
-        fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+let hFib :: Foreign.R.Internal.SEXP Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
+    hFib n@(H.Prelude.fromSEXP -> (0 :: Int32)) = H.protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(0) |]
+    hFib n@(H.Prelude.fromSEXP -> (1 :: Int32)) = H.protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(1) |]
+    hFib n                              = H.protectRegion $ do
+        fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 :}
 
-$(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
+unsafeRToIO $ $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
 
 :{
 defaultMain [
     bgroup "fib"
       [ bench "runtime-qq" $
-          whnfIO $ [r| fib(10) |]
+          whnfIO $ unsafeRToIO [r| fib(10) |]
       , bench "runtime-qq-hybrid" $
-          whnfIO $ H.unsafeRToIO $ hFib $ H.mkSEXP (10 :: Int32)
+          whnfIO $ unsafeRToIO $ hFib =<< unsafeIOToR (H.Prelude.unsafeMkSEXP (10 :: Int32))
       ]
    ]
 :}

@@ -63,19 +63,20 @@ thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 -- @
 thWrapperLiteral :: Int -> DecQ
 thWrapperLiteral n = do
+    s <- newName "s"
     tyvars1 <- replicateM (n + 1) (newName "a")
     tyvars2 <- replicateM (n + 1) (newName "i")
     let mkTy []     = impossible "thWrapperLiteral"
-        mkTy [x]    = conT (mkName "R") `appT` varT x
+        mkTy [x]    = conT (mkName "R") `appT` varT s `appT` varT x
         mkTy (x:xs) = arrowT `appT` varT x `appT` mkTy xs
         ctx = cxt (zipWith f tyvars1 tyvars2)
           where
             f tv1 tv2 = classP (mkName "Literal") [varT tv1, varT tv2]
         typ = conT (mkName "Literal") `appT` mkTy tyvars1 `appT` conT (mkName "R.ExtPtr")
     instanceD ctx typ
-      [ funD (mkName "mkSEXPIO")
+      [ funD (mkName "unsafeMkSEXP")
              [ clause []
-                      (normalB $ appE (varE (mkName "Language.R.Literal.funToSEXP"))
+                      (normalB $ appE (varE (mkName "Language.R.Literal.Unsafe.funToSEXP"))
                                       (varE (mkName ("wrap" ++ show n))))
                       [] ]
       , funD (mkName "fromSEXP")

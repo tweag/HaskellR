@@ -18,14 +18,19 @@ module Language.R.QQ
   , rsafe
   ) where
 
-import H.Internal.Prelude
+import           H.Internal.Error
+import           H.Prelude (io)
 import qualified H.Prelude as H
-import           Language.R.HExp
-import           Language.R.Literal
+import           Control.Monad.R.Unsafe (unsafeIOToR, unsafePerformR)
+import           Language.R.HExp.Unsafe
+import           Language.R.Literal.Unsafe
+import           Language.R.Globals.Unsafe
 import qualified Data.Vector.SEXP as Vector
-import qualified Foreign.R as R
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPInfo(..))
+import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as SingR
-import           Language.R (parseText, installIO, string, eval, withProtected)
+import           Language.R (parseText, installIO, string, eval, evalIO)
+import           Foreign.R.Internal (withProtected)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -41,7 +46,6 @@ import Data.Complex (Complex)
 import Data.Int (Int32)
 import Data.Word (Word8)
 import Foreign (castPtr)
-import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
@@ -59,7 +63,7 @@ r = QuasiQuoter
 -- | Construct an R expression but don't evaluate it.
 rexp :: QuasiQuoter
 rexp = QuasiQuoter
-    { quoteExp  = \txt -> [| io $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafeIOToR $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -74,9 +78,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $
-                               eval =<< io $(parseExp txt)
-                           |]
+    { quoteExp  = \txt -> [| unsafePerformR  $ eval =<< io $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -88,15 +90,19 @@ parseEval txt = do
     case hexp sexp of
       Expr _ v ->
         let vs = Vector.toList v
-        in go vs
+        in case vs of
+	    [] -> error "Impossible happen."
+            [SomeSEXP (returnIO -> a)] -> 
+	       [| H.protect =<< Control.Monad.R.Unsafe.unsafeIOToR (withProtected a evalIO) |]
+	    xs -> [| H.protect =<< Control.Monad.R.Unsafe.unsafeIOToR $(go xs) |]
       _ -> error "Impossible happen."
   where
     go :: [SomeSEXP] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| H.withProtected (io a) eval |]
+    go [(SomeSEXP (returnIO -> a))] = [| withProtected a evalIO |]
     go (SomeSEXP (returnIO -> a) : as) =
-        [| H.withProtected (io a) $ eval >=> \(SomeSEXP s) ->
-             H.withProtected (return s) (const $(go as))
+        [| withProtected a $ evalIO >=> \(SomeSEXP s) ->
+             R.withProtected (return s) (const $(go as))
          |]
 
 returnIO :: a -> IO a
@@ -213,15 +219,15 @@ instance TH.Lift (IO (SEXP a)) where
           xs :: String
           xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
       (hexp -> List s Nothing Nothing)
-        | R.unsexp s == R.unsexp H.missingArg ->
-          [| R.cons H.missingArg H.nilValue |]
+        | R.unsexp s == R.unsexp missingArg ->
+          [| R.cons missingArg nilValue |]
       s@(hexp -> Symbol (returnIO -> pnameio) value _)
         | R.unsexp s == R.unsexp value -> [| selfSymbol =<< pnameio |] -- FIXME
       (hexp -> Symbol pname _ Nothing)
         | Char (Vector.toString -> name) <- hexp pname
         , isSplice name -> do
           let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-          [| H.mkSEXPIO $hvar |]
+          [| H.unsafeMkSEXP $hvar |]
         | otherwise -> [| installIO xs |]        -- FIXME
        where
         xs :: String
@@ -232,9 +238,9 @@ instance TH.Lift (IO (SEXP a)) where
           let nm = spliceNameChop name
           hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
           [| withProtected (installIO ".Call") $ \call ->
-             withProtected (H.mkSEXPIO $hvar) $ \f -> do
+             withProtected (H.unsafeMkSEXP $hvar) $ \f -> do
                 rands <- randsio
-                unhexpIO . Lang call . Just =<< unhexpIO (List f rands Nothing)
+                unsafeUnhexp . Lang call . Just =<< unsafeUnhexp (List f rands Nothing)
            |]
     -- Override the default for expressions because the default Lift instance
     -- for vectors will allocate a node of VECSXP type, when the node is real an
@@ -243,10 +249,10 @@ instance TH.Lift (IO (SEXP a)) where
         let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
                             $ Vector.toList v :: IO [SEXP R.Any]
          in [| withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
-                 unhexpIO . Expr n . vector
+                 unsafeUnhexp . Expr n . vector
              |]
       (returnIO . hexp -> iot) ->
-        [| unhexpIO =<< iot |]
+        [| unsafeUnhexp =<< iot |]
 
 instance TH.Lift (IO (HExp a)) where
   lift = runIO >=> \case
