@@ -134,6 +134,7 @@ module Foreign.R.Internal
   , SEXP0
   , sexp
   , unsexp
+  , withProtected
   , RPtr(..)
   ) where
 
@@ -144,6 +145,7 @@ import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Primitive ( unsafeInlineIO )
+import Control.Exception ( bracket )
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
@@ -616,3 +618,12 @@ setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
 
 -- | Content encoding.
 {#enum cetype_t as CEType {} deriving (Eq, Show) #}
+
+-- | A protection block for a single variable.
+withProtected :: IO (SEXP a)      -- Action to acquire resource
+              -> (SEXP a -> IO b) -- Action
+              -> IO b
+withProtected acquire =
+    bracket
+      (protect =<< acquire)
+      (const $ unprotect 1)

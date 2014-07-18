@@ -21,10 +21,9 @@ module Language.R.Literal.Unsafe
 import           H.Internal.Error
 import           Language.R.HExp.Unsafe
 import qualified Data.Vector.SEXP as SVector
-import           Foreign.R.Internal (SEXP, SomeSEXP(..))
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), withProtected)
 import qualified Foreign.R.Internal as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
-import           Language.R ( withProtected )
 
 import Data.Singletons ( SingI, fromSing, sing )
 

@@ -30,7 +30,7 @@ tests = testGroup "regions"
      ((assertBool "value contain thunks to protected data" . (==) (42::Int32)) =<<) $ do
         unsafeRunRegion $ do
           _ <- [r| gctorture(TRUE) |]
-          R.SomeSEXP y <- R.protectSome =<< [r| as.integer(42)  |]
+          R.SomeSEXP y <- [r| as.integer(42)  |]
           return (fromSEXP (R.unSEXP y))
   ]
   where
