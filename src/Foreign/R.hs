@@ -195,7 +195,7 @@ type Callback s = SEXP s ExtPtr
 --------------------------------------------------------------------------------
 instance MonadR (R s) where
   type RRegion (R s) = s
-  io m = unsafeIOToR m
+  io m = Unsafe.R $ ReaderT $ \_ -> m
   increment = Unsafe.R $ ReaderT $ flip modifyIORef' succ
 
 --------------------------------------------------------------------------------

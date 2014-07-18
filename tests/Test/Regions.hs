@@ -21,20 +21,20 @@ tests :: TestTree
 tests = testGroup "regions"
   [ testCase "region/protect" $ preserveDir $ do
      ((assertBool "RVal was collected") =<<) $ do
-        unsafeRunRegion $ do
+        runR $ do
          _ <- [r| gctorture(TRUE) |]         -- Start gctorture
          y <- mkSEXP (42::Int32)             -- allocate a varaible inside a region
          _ <-[r| 1 + 1|]                     -- force gc
          return $ isInt (R.typeOf y)         -- Test is value was not freed
   , testCase "region/return" $ preserveDir $ do
      ((assertBool "value contain thunks to protected data" . (==) (42::Int32)) =<<) $ do
-        unsafeRunRegion $ do
+        runR $ do
           _ <- [r| gctorture(TRUE) |]
           y <- [r| as.integer(42)  |]
           return (fromSEXP (R.cast R.Int y) :: Int32)
   , testCase "region/subregion" $ preserveDir $ do
       ((assertBool "not Nil") =<<) $ do
-        unsafeRunRegion $ do
+        runR $ do
           _ <- [r| gctorture(TRUE) |]
 	  x <- mkSEXP (42::Int32)
 	  newRegion $ \(SubRegion wtn) -> do
@@ -42,14 +42,14 @@ tests = testGroup "regions"
 	    return $ isNil (R.typeOf y)
   , testCase "region/subregion-improved" $ preserveDir $ do
       ((assertBool "not List") =<<) $ do
-        unsafeRunRegion $ do
+        runR $ do
           _ <- [r| gctorture(TRUE) |]
-	  x <- mkSEXP (42::Int32)
-	  newRegion $ \(SubRegion wtn) -> do
-	    l <- wtn $ R.allocList 1
-	    wtn $ R.setAttribute x l
-	    y <- wtn $ R.getAttribute x
-	    return $ isList (R.typeOf y)
+          x <- mkSEXP (42::Int32)
+          newRegion $ \(SubRegion wtn) -> do
+            l <- wtn $ R.allocList 1
+            wtn $ R.setAttribute x l
+            y <- wtn $ R.getAttribute x
+            return $ isList (R.typeOf y)
   ]
   where
     isInt (R.Int) = True

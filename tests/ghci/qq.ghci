@@ -56,7 +56,7 @@ H.unsafeRunInRThread (H.unsafeRunInRThread $ H.print H.nilValue)
 
 -- Should be [1] 3
 let foo3 = (\n -> runRegion $ (fmap (fromSEXP . R.cast R.Int) [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
-unsafeRunRegion $ H.print =<< [r| foo3_hs(as.integer(3)) |]
+runR $ H.print =<< [r| foo3_hs(as.integer(3)) |]
 
 -- | should be [1] 99
 let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
@@ -64,13 +64,13 @@ H.print =<< [r| foo4_hs(33, 66) |]
 
 -- Should be [1] 120 but it doesn't work
 let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap (fromSEXP . R.cast R.Int) [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
-unsafeRunRegion $ H.print =<< [r| fact_hs(as.integer(5)) |]
+runR $ H.print =<< [r| fact_hs(as.integer(5)) |]
 
 :set -XDataKinds
 -- Should be [1] 29
 let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
 let apply = (\n m -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (\z -> Foreign.R.Internal.SomeSEXP $ Foreign.R.unSEXP z))) ([r| .Call(n_hs, m_hs) |])) :: R.Callback s -> Int32 -> R s (UnsafeValue Foreign.R.Internal.SomeSEXP)
-unsafeRunRegion $ H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
+runR $ H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
 sym <- H.install "blah"
 H.print sym
@@ -96,7 +96,7 @@ let hFib :: R.SEXP s Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal
 :}
 
 -- Should be [1] 4181
-unsafeRunRegion $ H.print =<< hFib =<< H.Prelude.mkSEXP (19 :: Int32)
+runR $ H.print =<< hFib =<< H.Prelude.mkSEXP (19 :: Int32)
 
 -- s4 objects test
 -- Create an S4 class

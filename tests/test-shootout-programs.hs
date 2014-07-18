@@ -36,7 +36,7 @@ runCompileQQTest fp = do
       , ""
       , ""
       , "main :: IO ()"
-      , "main = withR defaultConfig $"
+      , "main = withR defaultConfig $ runR $ do "
       , "    void $(quoteExp r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
       ]
 
@@ -63,7 +63,7 @@ runQQTest fp = readProcess "sh" [ "tests" </> "ghciH.sh", "-v0", "-ghci-script",
       , "import System.IO.Unsafe"
       , ""
       , ""
-      , "void $ H.performR $(quoteExp H.r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
+      , "void $ $(quoteExp H.r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
       ]
 #endif
 

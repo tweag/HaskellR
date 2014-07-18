@@ -39,34 +39,36 @@ newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
 -- computations.
 --
 -- 'SEXP' from a different regions can not be shared.
-withR :: Config -> (forall s. R s a) -> IO a
-withR config r = bracket_ (initialize config) finalize (unsafeRunInRThread $ internalRunRegion r)
+withR :: Config -> IO a -> IO a
+withR config = bracket_ (initialize config) finalize
 
 -- | Run a region without 'Foreign.R.unprotect'in return value.
 --
--- This method doesn't guarantee that R thread and R runtime exists.
+-- This method doesn't guarantee that R thread and R runtime exists. So ideally
+-- it should be run either from `unsafeRunInRThread` block or in main thread
+-- provided by `withR`.
+--
 -- Incorrect usage of this method can lead to a 'SEXP' leaking from a region.
-internalRunRegion :: (forall s.R s a) -> IO a
-internalRunRegion f = newIORef 0 >>= internalRunRegionWith f
+runR :: (forall s. R s a) -> IO a
+runR f = newIORef 0 >>= runRWith f
 
 -- | Run regions with supplied counter.
-internalRunRegionWith :: (forall s.R s a) -> IORef Int -> IO a
-internalRunRegionWith f x = runReaderT (unR f) x `finally` (readIORef x >>= R.unprotect)
-
-runRegionReader :: ReaderT (IORef Int) IO a -> IO a
-runRegionReader f =
-  bracket (newIORef 0)
-          (readIORef >=> R.unprotect)
-	  (runReaderT f)
+--
+-- see 'runR' for additional comments.
+runRWith :: (forall s.R s a) -> IORef Int -> IO a
+runRWith f x = unsafeRunInRThread $ runReaderT (unR f) x `finally` (readIORef x >>= R.unprotect)
 
 -- | Run an R action in the global R instance from the IO monad.
 --
 -- This method doesn't guarantee that R runtime is initialized.
 --
--- This call doesn't affect R state so it can't protect or unprotect variables
--- use with the great caution.
+-- This method allow to discard `s` parameter and break a guarantees provided by
+-- R Monad.
 unsafeRToIO :: R s a -> IO a
-unsafeRToIO (R m) = runReaderT m =<< newIORef 0
+unsafeRToIO (R m) =
+  bracket (newIORef 0)
+          (readIORef >=> R.unprotect)
+	  (runReaderT m)
 
 -- | Lift IO action into R monad
 unsafeIOToR :: IO a -> R s a

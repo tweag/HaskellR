@@ -57,25 +57,26 @@ module Control.Monad.R
     R
   , io
   , MonadR
-  , withR
+  , Unsafe.withR
     -- * Regions
     -- ** Execution
+  , runR
   , runRegion
-  , unsafeRunRegion
   , SubRegion(..)
   , newRegion
     -- * Protection
   , Protect(..)
   , Unprotect(..)
-  , UnsafeValue
-  , unsafeUseValue
+  , Unsafe.UnsafeValue
+  , Unsafe.unsafeUseValue
     -- * Operations lifting
   , Foreign.R.liftProtect
   ) where
 
-import Control.Monad.R.Unsafe
 import Control.Monad.R.Class
 import Foreign.R
+import           Control.Monad.R.Unsafe (R(..))
+import qualified Control.Monad.R.Unsafe as Unsafe
 
 import Control.Monad.Reader
 import Data.IORef
@@ -85,16 +86,13 @@ import Data.IORef
 -- 'Unprotect' constraint allow to run unprotect procedure on the values that
 -- leaving a channel.
 runRegion :: (Unprotect a) => (forall s. R s a) -> R s' (UnprotectElt a)
-runRegion = R . ReaderT . const . unsafeRunRegion
+runRegion = R . ReaderT . const . runR
 
 -- | Run R region inside an IO monad.
 --
 -- This method will not allow to to return a values that have an @s@ variable
-unsafeRunRegion :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
-unsafeRunRegion f = internalRunRegion (unprotect =<< f)
-
-unsafeRunRegionWith :: (Unprotect a) => (forall s .R s a) -> IORef Int -> IO (UnprotectElt a)
-unsafeRunRegionWith f x = internalRunRegionWith (unprotect =<< f) x
+runR :: (Unprotect a) => (forall s . R s a) -> IO (UnprotectElt a)
+runR f = Unsafe.runR (unprotect =<< f)
 
 -- | A witness that the region 'r' is older than
 -- (or, is the parent of, the subtype of) the region labeled 's'
@@ -122,5 +120,5 @@ newRegion body = R $ do
    -- Create a 'witness' function that changes the label of the region. this function
    -- unsafely runs a function from the parent region with _current_ counter. The
    -- result will be tagged with the current region
-   let witness (R m) = unsafeIOToR $ runReaderT m t
-   ReaderT $ const $ unsafeRunRegionWith (body (SubRegion witness)) t
+   let witness (R m) = R $ ReaderT $ \_ -> runReaderT m t
+   ReaderT $ const $ Unsafe.runRWith (unprotect =<< body (SubRegion witness)) t
