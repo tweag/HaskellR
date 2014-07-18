@@ -22,7 +22,7 @@ defaultMain [
       [ bench "runtime-qq" $
           whnfIO $ H.unsafeRToIO [r| fib(10) |]
       , bench "runtime-qq-hybrid" $
-          whnfIO $ H.Prelude.unsafeRToIO $ hFib $ H.Prelude.mkSEXP (10 :: Int32)
+          whnfIO $ H.Prelude.unsafeRToIO $ hFib =<< H.Prelude.unsafeIOToR (Language.R.Literal.Unsafe.unsafeMkSEXP (10 :: Int32))
       ]
    ]
 :}

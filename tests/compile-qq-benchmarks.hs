@@ -43,6 +43,6 @@ main = do
                    , bench "compile-time-qq" $
                        unsafeRToIO [r| fib(18) |]
                    , bench "compile-time-qq-hybrid" $
-                       unsafeRToIO $ hFib $! mkSEXP (18 :: Int32)
+                       unsafeRToIO $ hFib =<< unsafeIOToR (unsafeMkSEXP (18 :: Int32))
                    ]
                ]

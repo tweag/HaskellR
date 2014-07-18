@@ -23,7 +23,7 @@ tests = testGroup "regions"
      ((assertBool "RVal was collected") =<<) $ do
         unsafeRunRegion $ do
          _ <- [r| gctorture(TRUE) |]         -- Start gctorture
-         y <- R.protect $ mkSEXP (42::Int32) -- allocate a varaible inside a region
+         y <- mkSEXP (42::Int32)             -- allocate a varaible inside a region
          _ <-[r| 1 + 1|]                     -- force gc
          return $ isInt (R.typeOf y)         -- Test is value was not freed
   , testCase "region/return" $ preserveDir $ do

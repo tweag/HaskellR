@@ -20,6 +20,8 @@ import System.Environment
 import System.Exit ( exitFailure )
 import System.Process ( readProcess )
 
+import System.IO.Unsafe ( unsafePerformIO )
+
 main :: IO ()
 main = do
     args <- getArgs
@@ -48,6 +50,12 @@ main = do
       else putStrLn "OK"
     else rTests
 
+-- In order to not rewrite a bunch of tests we introduce an unsafe function
+-- that was removed
+{-# NOINLINE mkSEXP' #-}
+mkSEXP' :: Literal a b => a -> R.SEXP b
+mkSEXP' = unsafePerformIO . unsafeMkSEXP
+
 hFib :: SEXP R.Int -> R s (SEXP R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32))  = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
@@ -59,7 +67,7 @@ rTests = H.runR H.defaultConfig $ do
 
     -- Should be [1] 4181
     -- Placing it before enabling gctorture2 for speed.
-    H.print =<< hFib (mkSEXP (19 :: Int32))
+    H.print =<< hFib (mkSEXP' (19 :: Int32))
 
     _ <- [r| gctorture2(1,0,TRUE) |]
 
