@@ -45,11 +45,10 @@ module Language.R.HExp.Unsafe
 import           H.Constraints
 import           H.Internal.Error
 import qualified Language.R.Globals.Unsafe as H
-import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE)
+import           Foreign.R.Internal (SEXP, SomeSEXP(..), SEXPTYPE, withProtected)
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Type as R
 import           Foreign.R.Internal (SEXPREC)
-import           Language.R.GC (withProtected)
 
 import qualified Data.Vector.SEXP as Vector
 

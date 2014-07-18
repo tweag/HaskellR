@@ -58,6 +58,7 @@ library
                        Foreign.R.Parse
                        Foreign.R.Type
                        Foreign.R.Runner
+                       Foreign.R.GC
                        Foreign.R
                        H.Constraints
                        H.Prelude

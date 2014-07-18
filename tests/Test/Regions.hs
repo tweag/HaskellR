@@ -36,10 +36,10 @@ tests = testGroup "regions"
       ((assertBool "not Nil") =<<) $ do
         runR $ do
           _ <- [r| gctorture(TRUE) |]
-	  x <- mkSEXP (42::Int32)
-	  newRegion $ \(SubRegion wtn) -> do
-	    y <- wtn $ R.getAttribute x
-	    return $ isNil (R.typeOf y)
+          x <- mkSEXP (42::Int32)
+          newRegion $ \(SubRegion wtn) -> do
+            y <- wtn $ R.getAttribute x
+            return $ isNil (R.typeOf y)
   , testCase "region/subregion-improved" $ preserveDir $ do
       ((assertBool "not List") =<<) $ do
         runR $ do
@@ -50,6 +50,38 @@ tests = testGroup "regions"
             wtn $ R.setAttribute x l
             y <- wtn $ R.getAttribute x
             return $ isList (R.typeOf y)
+  ,  testCase "RVal is not collected by R GC" $
+      bracket getCurrentDirectory setCurrentDirectory $ const $ do
+        ((assertBool "RVal was collected" . isInt) =<<) $ do
+          -- double initialization is not supported!
+          runR $ do
+            _ <- [r| gctorture(TRUE) |]  -- Start gctorture
+            y <- runRegion $ newRVal =<< mkSEXP (42::Int32)
+            _ <- [r| 1 + 1 |]            -- force gc
+            withRVal y (const $ return . R.typeOf)
+    , testCase "It's possible to share RVal between regions" $
+      bracket getCurrentDirectory setCurrentDirectory $ const $ do
+        runR $ do
+          y <- runRegion $ newRVal =<< mkSEXP (42::Int32)
+          runRegion $ withRVal y (const . const $ return ())
+    , testCase "Lift value into the withRVal region" $ do
+      bracket getCurrentDirectory setCurrentDirectory $ const $ do
+        runR $ do
+            y <- mkSEXP (42::Int32) :: R s (R.SEXP s R.Int)
+            x <- newRVal =<< mkSEXP (42::Int32)
+            _ <- runRegion $ withRVal x (const . const $ return y)
+            return ()
+    , testCase "Lift value into the withRVal region" $ do
+      bracket getCurrentDirectory setCurrentDirectory $ const $ do
+        runR $ do
+         runRegion $ do
+           y <- protect =<< mkSEXP (42::Int32) :: R s (R.SEXP s R.Int)
+           runRegion $ do
+             x <- newRVal =<< mkSEXP (42::Int32)
+             _ <- runRegion $ withRVal x $ \(SubRegion wt) x1 -> do
+                let f a b = [r| a_hs + b_hs |]
+                wt $(f x1) y
+             return ()
   ]
   where
     isInt (R.Int) = True

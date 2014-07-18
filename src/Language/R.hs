@@ -37,7 +37,7 @@ module Language.R
 import qualified Data.Vector.SEXP as Vector
 import Control.Monad.R.Class
 import           Control.Monad.R
-import Foreign.R.Internal (SEXP, SomeSEXP(..))
+import Foreign.R.Internal (SEXP, SomeSEXP(..), withProtected)
 import qualified Foreign.R.Internal as R
 import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
