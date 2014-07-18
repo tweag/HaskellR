@@ -23,7 +23,7 @@ import           Language.R.Literal.Unsafe (Literal, unsafeMkSEXP)
 import qualified Language.R.Literal.Unsafe as Unsafe
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
-import           Control.Monad.R.Unsafe (unsafeRToIO, UnsafeValue, unsafeUseValue)
+import           Control.Monad.R.Unsafe (UnsafeValue, unsafeUseValue, runRegionReader, unR)
 
 import           Data.Singletons
 import           Foreign          ( FunPtr )
@@ -67,7 +67,7 @@ class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
 instance Literal a la => HFunWrap (R s a) (IO (R.SEXP la)) where
-    hFunWrap a = (unsafeMkSEXP $!) =<< unsafeRToIO a
+    hFunWrap a = (unsafeMkSEXP $!) =<< runRegionReader (unR a)
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (R.SEXP la -> wb) where

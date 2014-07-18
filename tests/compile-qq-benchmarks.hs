@@ -30,9 +30,9 @@ fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
 
 hFib :: R.SEXP R.Int -> R s (R.SEXP R.Int)
-hFib (Unsafe.fromSEXP -> (0 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
-hFib (Unsafe.fromSEXP -> (1 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
-hFib n = protectRegion $ do
+hFib (Unsafe.fromSEXP -> (0 :: Int32)) = fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
+hFib (Unsafe.fromSEXP -> (1 :: Int32)) = fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
+hFib n =
     fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 
 main :: IO ()

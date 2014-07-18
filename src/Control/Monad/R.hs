@@ -61,7 +61,6 @@ module Control.Monad.R
     -- * Regions
     -- ** Execution
   , runRegion
-  , protectRegion
   , unsafeRunRegion
   , SubRegion(..)
   , newRegion

@@ -16,7 +16,7 @@ import 		 Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow, mask_)
 import           Control.Monad.R.Class
 
 import Control.Applicative
-import Control.Exception ( bracket_, finally)
+import Control.Exception ( bracket, bracket_, finally)
 import Control.Monad.Reader
 import Data.IORef
 import System.IO.Unsafe ( unsafePerformIO )
@@ -42,19 +42,22 @@ newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
 runR :: Config -> (forall s. R s a) -> IO a
 runR config r = bracket_ (initialize config) finalize (internalRunRegion r)
 
--- | A method that allowes to return from a region, can be used in callbacks SEXP.
-protectRegion :: (forall s . R s (R.SEXP a)) -> R s' (R.SEXP a)
-protectRegion = R . ReaderT . const . internalRunRegion
-
--- | Run a region without calling forcing return value
+-- | Run a region without 'Foreign.R.unprotect'in return value.
 --
--- This action is unsafe because it does not guarantee that R runtime is initialized.
+-- This method doesn't guarantee that R thread and R runtime exists.
+-- Incorrect usage of this method can lead to a 'SEXP' leaking from a region.
 internalRunRegion :: (forall s.R s a) -> IO a
 internalRunRegion f = newIORef 0 >>= internalRunRegionWith f
 
 -- | Run regions with supplied counter.
 internalRunRegionWith :: (forall s.R s a) -> IORef Int -> IO a
 internalRunRegionWith f x = runReaderT (unR f) x `finally` (readIORef x >>= R.unprotect)
+
+runRegionReader :: ReaderT (IORef Int) IO a -> IO a
+runRegionReader f =
+  bracket (newIORef 0)
+          (readIORef >=> R.unprotect)
+	  (runReaderT f)
 
 -- | Run an R action in the global R instance from the IO monad.
 --
@@ -112,4 +115,3 @@ unsafeUseValue (UnsafeValue a) f = f a
 
 mkUnsafe :: a -> UnsafeValue a
 mkUnsafe = UnsafeValue
-

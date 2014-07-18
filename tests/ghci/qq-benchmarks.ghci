@@ -9,9 +9,9 @@ import Control.Monad.R.Unsafe
 
 :{
 let hFib :: SEXP s Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
-    hFib n@(H.fromSEXP -> (0 :: Int32)) = H.protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(0) |]
-    hFib n@(H.fromSEXP -> (1 :: Int32)) = H.protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(1) |]
-    hFib n                              = H.protectRegion $ do
+    hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(0) |]
+    hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(1) |]
+    hFib n                              =
         fmap (Foreign.R.unSEXP . Foreign.R.cast Foreign.R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 :}
 

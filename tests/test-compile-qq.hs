@@ -59,9 +59,9 @@ mkSEXP' :: Literal a b => a -> R.SEXP b
 mkSEXP' = unsafePerformIO . Unsafe.unsafeMkSEXP
 
 hFib :: Foreign.R.SEXP s R.Int -> R s (R.SEXP R.Int)
-hFib (H.fromSEXP -> (0 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
-hFib (H.fromSEXP -> (1 :: Int32)) = protectRegion $ fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
-hFib n = protectRegion $ do
+hFib (H.fromSEXP -> (0 :: Int32)) = fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(0) |]
+hFib (H.fromSEXP -> (1 :: Int32)) = fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(1) |]
+hFib n =
     fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 
 rTests :: IO ()
