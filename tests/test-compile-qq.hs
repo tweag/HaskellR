@@ -65,7 +65,7 @@ hFib n =
     fmap (Foreign.R.unSEXP . Foreign.R.cast R.Int) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 
 rTests :: IO ()
-rTests = H.runR H.defaultConfig $ do
+rTests = H.withR H.defaultConfig $ do
 
     -- Should be [1] 4181
     -- Placing it before enabling gctorture2 for speed.

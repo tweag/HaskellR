@@ -16,7 +16,7 @@ module H.Prelude.Interactive
   )
   where
 
-import H.Prelude hiding (runR)
+import H.Prelude hiding (withR)
 import qualified H.Prelude as H
 import Foreign.R.Internal as R
 import Foreign.R as FR

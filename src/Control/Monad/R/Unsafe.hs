@@ -39,8 +39,8 @@ newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
 -- computations.
 --
 -- 'SEXP' from a different regions can not be shared.
-runR :: Config -> (forall s. R s a) -> IO a
-runR config r = bracket_ (initialize config) finalize (internalRunRegion r)
+withR :: Config -> (forall s. R s a) -> IO a
+withR config r = bracket_ (initialize config) finalize (unsafeRunInRThread $ internalRunRegion r)
 
 -- | Run a region without 'Foreign.R.unprotect'in return value.
 --

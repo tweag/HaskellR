@@ -57,7 +57,7 @@ module Control.Monad.R
     R
   , io
   , MonadR
-  , runR
+  , withR
     -- * Regions
     -- ** Execution
   , runRegion

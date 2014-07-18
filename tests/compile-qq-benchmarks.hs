@@ -37,7 +37,7 @@ hFib n =
 
 main :: IO ()
 main = do
-    H.runR H.defaultConfig $ do
+    H.withR H.defaultConfig $ do
       _ <- $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
       io $ defaultMain [
              bgroup "fib"
