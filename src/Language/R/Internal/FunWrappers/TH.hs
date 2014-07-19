@@ -71,10 +71,11 @@ thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 -- @
 thWrapperLiteral :: Int -> Q Dec
 thWrapperLiteral n = do
+    let s = varT =<< newName "s"
     names1 <- replicateM (n + 1) $ newName "a"
     names2 <- replicateM (n + 1) $ newName "i"
     let mkTy []     = impossible "thWrapperLiteral"
-        mkTy [x]    = [t| $nR $x |]
+        mkTy [x]    = [t| $nR $s $x |]
         mkTy (x:xs) = [t| $x -> $(mkTy xs) |]
         ctx = cxt (zipWith f (map varT names1) (map varT names2))
           where
