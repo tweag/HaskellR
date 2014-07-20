@@ -6,7 +6,7 @@
 -- allocated from the R heap, and in such a way that they can be converted to
 -- a 'SEXP' through simple pointer arithmetic (see 'toSEXP').
 --
--- The main difference between 'Data.Vector.SEXP.Vector' and 
+-- The main difference between 'Data.Vector.SEXP.Vector' and
 -- 'Data.Vector.Storable.Vector' is that the former uses header-prefixed data layout.
 -- This means that no additional pointer jump is needed to reach the vector data.
 -- The trade-off is that all slicing operations are O(N) instead of O(1) and there
@@ -66,7 +66,7 @@ module Data.Vector.SEXP
   , accum{-, accumulate_-}
   , unsafeAccum{-, unsafeAccumulate_-}
 
-  -- ** Permutations 
+  -- ** Permutations
   , reverse{-, backpermute-}{-, unsafeBackpermute -}
 
   -- ** Safe destructive updates
@@ -158,11 +158,11 @@ import Foreign.Storable
 import Foreign.Marshal.Array ( copyArray )
 
 import Prelude hiding ( length, head, null, last, drop, tail, splitAt, init, take,
-  foldl, foldl1, mapM_, mapM, concatMap, 
+  foldl, foldl1, mapM_, mapM, concatMap,
   foldr, foldr1, product, maximum, minimum, scanr, scanr1, scanl, scanl1,
   dropWhile, takeWhile, filter, map, reverse, concat, (++), replicate, enumFromTo, enumFromThenTo,
   span, break, elem, notElem, zipWith, zipWith3, sum)
-import qualified Prelude  
+import qualified Prelude
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -191,14 +191,14 @@ instance (IsVector ty, Storable a, SingI ty, a ~ ElemRep ty)
               (toMVecPtr mv)
               l
     G.basicUnsafeFreeze mv
-  basicUnsafeIndexM v i          = return . unsafeInlineIO 
+  basicUnsafeIndexM v i          = return . unsafeInlineIO
                                  $ peekElemOff (toVecPtr v) i
   basicUnsafeCopy   mv v         = unsafePrimToPrim $
     copyArray (toVecPtr v)
               (toMVecPtr mv)
               (G.basicLength v)
 
-  elemseq _                      = seq 
+  elemseq _                      = seq
 
 toVecPtr :: Vector ty a -> Ptr a
 toVecPtr mv = castPtr (R.unsafeSEXPToVectorPtr $ unVector mv)
@@ -242,12 +242,12 @@ toString v = unsafeInlineIO $ peekCString . castPtr
 
 -- | /O(1)/ Convert a character vector into a strict 'ByteString'.
 toByteString :: Vector 'Char Word8 -> ByteString
-toByteString v@(Vector p) = unsafeInlineIO 
+toByteString v@(Vector p) = unsafeInlineIO
         $ B.unsafePackCStringLen (castPtr $! R.unsafeSEXPToVectorPtr p, G.length v)
 
 type SexpVector ty a = (Storable a, IsVector ty, SingI ty, ElemRep ty ~ a)
 
-------------------------------------------------------------------------             
+------------------------------------------------------------------------
 -- Vector API
 --
 
@@ -376,7 +376,7 @@ slice :: SexpVector ty a
 {-# INLINE slice #-}
 slice = G.slice
 
--- | /O(N)/ Yield all but the last element, this operation will copy an array. 
+-- | /O(N)/ Yield all but the last element, this operation will copy an array.
 -- The vector may not be empty.
 init :: SexpVector ty a => Vector ty a -> Vector ty a
 {-# INLINE init #-}
@@ -621,7 +621,7 @@ force = G.force
 -- > <5,9,2,7> // [(2,1),(0,3),(2,8)] = <3,9,8,7>
 --
 (//) :: SexpVector ty a => Vector ty a   -- ^ initial vector (of length @m@)
-                -> [(Int, a)] -- ^ list of index/value pairs (of length @n@) 
+                -> [(Int, a)] -- ^ list of index/value pairs (of length @n@)
                 -> Vector ty a
 {-# INLINE (//) #-}
 (//) = (G.//)
@@ -1229,7 +1229,7 @@ postscanl' = G.postscanl'
 -- >         yi = f y(i-1) x(i-1)
 --
 -- Example: @scanl (+) 0 \<1,2,3,4\> = \<0,1,3,6,10\>@
--- 
+--
 scanl :: (SexpVector ty a, SexpVector ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
 {-# INLINE scanl #-}
 scanl = G.scanl
@@ -1358,7 +1358,7 @@ unsafeCopy
   :: (SexpVector ty a, PrimMonad m) => MVector ty (PrimState m) a -> Vector ty a -> m ()
 {-# INLINE unsafeCopy #-}
 unsafeCopy = G.unsafeCopy
-           
+
 -- | /O(n)/ Copy an immutable vector into a mutable one. The two vectors must
 -- have the same length.
 copy :: (SexpVector ty a, PrimMonad m) => MVector ty (PrimState m) a -> Vector ty a -> m ()
