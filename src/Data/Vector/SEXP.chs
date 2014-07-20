@@ -148,7 +148,7 @@ import Data.ByteString ( ByteString )
 import qualified Data.ByteString.Unsafe as B
 import Data.Singletons (SingI)
 
--- import Control.Arrow ( first )
+import Control.Applicative ((<$>))
 import Control.Monad ( liftM )
 import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
 import Data.Word ( Word8 )
@@ -182,8 +182,9 @@ instance (IsVector ty, Storable a, SingI ty, a ~ ElemRep ty)
          => G.Vector (Vector ty) a where
   basicUnsafeFreeze (MVector s)  = return (Vector s)
   basicUnsafeThaw   (Vector s)   = return (MVector s)
-  basicLength       (Vector s)   = unsafeInlineIO $
-    fmap fromIntegral ({# get VECSEXP->vecsxp.length #} s)
+  basicLength       (Vector s)   =
+      unsafeInlineIO $
+      fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
   -- | Basic unsafe slice is O(N) complexity as it allocates a copy of vector,
   basicUnsafeSlice i l v         = unsafeInlineIO $ do
     mv <- Mutable.new l

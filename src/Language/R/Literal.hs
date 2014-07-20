@@ -177,12 +177,12 @@ instance (Literal a a0, Literal b b0, Literal c c0)
 class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
-instance Literal a la => HFunWrap (R s a) (IO (SEXP la)) where
-    hFunWrap a = (mkSEXPIO $!) =<< unsafeRToIO a
+instance Literal a la => HFunWrap (R s a) (IO R.SEXP0) where
+    hFunWrap a = fmap R.unsexp $ (mkSEXPIO $!) =<< unsafeRToIO a
 
 instance (Literal a la, HFunWrap b wb)
-         => HFunWrap (a -> b) (SEXP la -> wb) where
-    hFunWrap f a = hFunWrap $ f $! fromSEXP a
+         => HFunWrap (a -> b) (R.SEXP0 -> wb) where
+    hFunWrap f a = hFunWrap $ f $! fromSEXP (R.sexp a :: SEXP la)
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr a -> IO (SEXP R.ExtPtr)

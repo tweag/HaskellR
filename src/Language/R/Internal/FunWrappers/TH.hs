@@ -21,8 +21,8 @@ import Language.Haskell.TH
 -- GHC panics because it fails to link in all adequate object files to
 -- resolve all R symbols. So instead we build the symbol names
 -- programmatically, using mkName...
-nSEXP :: Q Type
-nSEXP = conT (mkName "SEXP")
+nSEXP0 :: Q Type
+nSEXP0 = conT (mkName "SEXP0")
 
 -- | Generate wrappers from n to m.
 thWrappers :: Int -> Int -> Q [Dec]
@@ -47,13 +47,12 @@ thWrapper n = do
     let vars = map (mkName . return) $ take (n + 1) ['a'..]
         ty = go (map varT vars)
     forImpD cCall safe "wrapper" (mkName $ "wrap" ++ show n) $
-      forallT (map PlainTV vars) (cxt []) $
       [t| $ty -> IO (FunPtr $ty) |]
   where
     go :: [Q Type] -> Q Type
     go [] = impossible "thWrapper"
-    go [x] = [t| IO ($nSEXP $x) |]
-    go (x:xs) = [t| $nSEXP $x -> $(go xs) |]
+    go [_] = [t| IO $nSEXP0 |]
+    go (_:xs) = [t| $nSEXP0 -> $(go xs) |]
 
 thWrapperLiterals :: Int -> Int -> Q [Dec]
 thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
