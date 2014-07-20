@@ -27,7 +27,7 @@ module Language.R.GC
 
 import H.Internal.Prelude
 import Control.Applicative
-import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr, castPtr )
+import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Concurrent ( newForeignPtr )
 import qualified Foreign.R as R
@@ -45,7 +45,7 @@ newRVal :: MonadR m => R.SEXP a -> m (RVal a)
 newRVal s = io $ do
     R.preserveObject s
     post <- getPostToCurrentRThread
-    fp <- newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
+    fp <- newForeignPtr (R.unsexp s) (post $ R.releaseObject s)
     return (RVal fp)
 
 -- | Keep SEXP value from the garbage collection.
@@ -86,7 +86,7 @@ newSomeRVal :: MonadR m => SomeSEXP -> m SomeRVal
 newSomeRVal (SomeSEXP s) = io $ do
     R.preserveObject s
     post <- getPostToCurrentRThread
-    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
+    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.releaseObject s)
 
 -- | Keep 'SEXP' value from the garbage collection.
 touchSomeRVal :: MonadR m => SomeRVal -> m ()

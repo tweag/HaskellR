@@ -258,7 +258,7 @@ instance Storable (HExp a) where
   sizeOf _ = {#sizeof SEXPREC #}
   alignment _ = {#alignof SEXPREC #}
   poke = pokeHExp
-  peek = peekHExp
+  peek = peekHExp . R.SEXP
   {-# INLINE peek #-}
 
 {-# INLINE peekHExp #-}
@@ -267,35 +267,37 @@ peekHExp s = do
     let coerce :: IO (HExp a) -> IO (HExp b)
         coerce = unsafeCoerce
 
+        sptr = R.unsexp s
+
     case R.typeOf s of
       R.Nil       -> coerce $ return Nil
       R.Symbol    -> coerce $
-        Symbol    <$> (R.sexp <$> {#get SEXP->u.symsxp.pname #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.symsxp.value #} s)
-                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.symsxp.internal #} s))
+        Symbol    <$> (R.sexp <$> {#get SEXP->u.symsxp.pname #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.symsxp.value #} sptr)
+                  <*> (maybeNil =<< R.sexp <$> {#get SEXP->u.symsxp.internal #} sptr)
       R.List      -> coerce $
-        List      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} s)
-                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s))
-                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s))
+        List      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} sptr)
+                  <*> (maybeNil =<< R.sexp <$> {#get SEXP->u.listsxp.cdrval #} sptr)
+                  <*> (maybeNil =<< R.sexp <$> {#get SEXP->u.listsxp.tagval #} sptr)
       R.Env       -> coerce $
-        Env       <$> (R.sexp <$> {#get SEXP->u.envsxp.frame #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.envsxp.enclos #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.envsxp.hashtab #} s)
+        Env       <$> (R.sexp <$> {#get SEXP->u.envsxp.frame #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.envsxp.enclos #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.envsxp.hashtab #} sptr)
       R.Closure   -> coerce $
-        Closure   <$> (R.sexp <$> {#get SEXP->u.closxp.formals #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.closxp.body #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.closxp.env #} s)
+        Closure   <$> (R.sexp <$> {#get SEXP->u.closxp.formals #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.closxp.body #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.closxp.env #} sptr)
       R.Promise   -> coerce $
-        Promise   <$> (R.sexp <$> {#get SEXP->u.promsxp.value #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.promsxp.expr #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.promsxp.env #} s)
+        Promise   <$> (R.sexp <$> {#get SEXP->u.promsxp.value #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.promsxp.expr #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.promsxp.env #} sptr)
       R.Lang      -> coerce $
-        Lang      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} s)
-                  <*> (maybeNil =<< (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s))
+        Lang      <$> (R.sexp <$> {#get SEXP->u.listsxp.carval #} sptr)
+                  <*> (maybeNil =<< R.sexp <$> {#get SEXP->u.listsxp.cdrval #} sptr)
       R.Special   -> coerce $
-        Special   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
+        Special   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} sptr)
       R.Builtin   -> coerce $
-        Builtin   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} s)
+        Builtin   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} sptr)
       R.Char      -> coerce $ Char    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Logical   -> coerce $ Logical <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Int       -> coerce $ Int     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
@@ -304,24 +306,24 @@ peekHExp s = do
       R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Vector    -> coerce $
-        Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+        Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} sptr)
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Expr      -> coerce $
-        Expr      <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} s)
+        Expr      <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} sptr)
                   <*> Vector.unsafeFromSEXP (unsafeCoerce s)
       R.Bytecode  -> return $ Bytecode
       R.ExtPtr    -> coerce $
-        ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} s)
-                  <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} s)
+        ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} sptr)
+                  <*> (R.sexp <$> {#get SEXP->u.listsxp.tagval #} sptr)
       R.WeakRef   -> coerce $
         WeakRef   <$> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 0)
                   <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 1)
                   <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
                   <*> (R.sexp <$> peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
       R.Raw       -> coerce $ Raw     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.S4        -> coerce $ 
-        S4        <$> (R.sexp <$> {# get SEXP->u.listsxp.tagval #} s)
+      R.S4        -> coerce $
+        S4        <$> (R.sexp <$> {# get SEXP->u.listsxp.tagval #} sptr)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
 
 pokeHExp :: Ptr (HExp a) -> HExp a -> IO ()
@@ -377,7 +379,7 @@ pokeHExp s h = do
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
 hexp :: SEXP a -> HExp a
-hexp = unsafeInlineIO . peek
+hexp = unsafeInlineIO . peek . R.unSEXP
 {-# INLINE hexp #-}
 
 -- | Inverse hexp view to the real structure, note that for scalar types
@@ -393,13 +395,13 @@ unhexp = unsafePerformIO . unhexpIO
 unhexpIO :: HExp a -> IO (SEXP a)
 unhexpIO   Nil         = return H.nilValue
 unhexpIO s@(Symbol{})  =
-    withProtected (R.allocSEXP R.SSymbol) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SSymbol) (\x -> poke (R.unSEXP x) s >> return x)
 unhexpIO (List c md mt) = do
     void $ R.protect c
     void $ R.protect d
     void $ R.protect t
     z <- R.cons c d
-    {# set SEXP->u.listsxp.tagval#} z (R.unsexp t)
+    {# set SEXP->u.listsxp.tagval#} (R.unsexp z) (R.unsexp t)
     R.unprotect 3 -- - $ maybe 2 (const 3) mt
     return z
   where
@@ -415,15 +417,15 @@ unhexpIO (Lang carval mbcdrval)   = do
     R.unprotect 2
     return x
 unhexpIO s@(Env{})     =
-    withProtected (R.allocSEXP R.SEnv) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SEnv) (\x -> poke (R.unSEXP x) s >> return x)
 unhexpIO s@(Closure{}) =
-    withProtected (R.allocSEXP R.SClosure) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SClosure) (\x -> poke (R.unSEXP x) s >> return x)
 unhexpIO s@(Special{}) =
-    withProtected (R.allocSEXP R.SSpecial) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SSpecial) (\x -> poke (R.unSEXP x) s >> return x)
 unhexpIO s@(Builtin{}) =
-    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke (R.unSEXP x) s >> return x)
 unhexpIO s@(Promise{}) =
-    withProtected (R.allocSEXP R.SPromise) (\x -> poke x s >> return x)
+    withProtected (R.allocSEXP R.SPromise) (\x -> poke (R.unSEXP x) s >> return x)
 unhexpIO  (Bytecode{}) = unimplemented "unhexp"
 unhexpIO (Real vt)     = Vector.unsafeToSEXP vt
 unhexpIO (Logical vt)  = Vector.unsafeToSEXP vt
@@ -464,6 +466,6 @@ maybeNil s = do
 -- whose value is itself.
 selfSymbol :: SEXP R.Char -> IO (SEXP R.Symbol)
 selfSymbol pname = do
-    let s = unhexp $ Symbol pname nullPtr Nothing
+    let s = unhexp $ Symbol pname (R.sexp nullPtr) Nothing
     R.setCdr s s
     return s

@@ -29,7 +29,7 @@ module Foreign.R
     -- * Internal R structures
   , SEXPTYPE(..)
   , R.Logical(..)
-  , SEXP
+  , SEXP(..)
   , SomeSEXP(..)
   , Callback
   , unSomeSEXP
@@ -136,7 +136,7 @@ module Foreign.R
   , unsexp
   ) where
 
-import {-# SOURCE #-} Language.R.HExp
+import {-# SOURCE #-} Language.R.HExp (HExp)
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
@@ -170,10 +170,15 @@ const char *(R_CHAR)(SEXP x);
 -- R data structures                                                          --
 --------------------------------------------------------------------------------
 
+data SEXPREC
+
 -- | The basic type of all R expressions, classified by the form of the
 -- expression.
-type SEXP (a :: SEXPTYPE) = Ptr (HExp a)
-data SEXPREC
+newtype SEXP (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp a) }
+  deriving (Eq, Storable)
+
+instance Show (SEXP a) where
+  show (SEXP ptr) = show ptr
 
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
@@ -182,11 +187,11 @@ data SEXPREC
 
 -- | Add a type index to the pointer.
 sexp :: SEXP0 -> SEXP a
-sexp = castPtr
+sexp = SEXP . castPtr
 
 -- | Remove the type index from the pointer.
 unsexp :: SEXP a -> SEXP0
-unsexp = castPtr
+unsexp = castPtr . unSEXP
 
 -- | Like 'sexp' but for 'SomeSEXP'.
 somesexp :: SEXP0 -> SomeSEXP
@@ -231,7 +236,7 @@ cIntFromEnum = cIntConv . fromEnum
 -- function is pure because the type of an object does not normally change over
 -- the lifetime of the object.
 typeOf :: SEXP a -> SEXPTYPE
-typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
+typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} (unsexp s)
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP a' } -> `SEXP b' sexp #}
@@ -244,15 +249,15 @@ typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} s
 
 -- | Set CAR field of object, when object is viewed as a cons cell.
 setCar :: SEXP a -> SEXP b -> IO ()
-setCar s s' = {#set SEXP->u.listsxp.carval #} (castPtr s) (castPtr s')
+setCar s s' = {#set SEXP->u.listsxp.carval #} (unsexp s) (castPtr $ unsexp s')
 
 -- | Set CDR field of object, when object is viewed as a cons cell.
 setCdr :: SEXP a -> SEXP b -> IO ()
-setCdr s s' = {#set SEXP->u.listsxp.cdrval #} (castPtr s) (castPtr s')
+setCdr s s' = {#set SEXP->u.listsxp.cdrval #} (unsexp s) (castPtr $ unsexp s')
 
 -- | Set TAG field of object, when object is viewed as a cons cell.
 setTag :: SEXP a -> SEXP b -> IO ()
-setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
+setTag s s' = {#set SEXP->u.listsxp.tagval #} (unsexp s) (castPtr $ unsexp s')
 
 --------------------------------------------------------------------------------
 -- Coercion functions                                                         --
@@ -286,7 +291,7 @@ asTypeOf s s' = typeOf s' `unsafeCast` s
 -- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
 -- any dynamic check at runtime.
 unsafeCoerce :: SEXP a -> SEXP b
-unsafeCoerce = castPtr
+unsafeCoerce = sexp . castPtr . unsexp
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
@@ -333,7 +338,7 @@ unsafeCoerce = castPtr
 
 -- | Length of the vector.
 length :: R.IsVector a => SEXP a -> IO Int
-length s = fromIntegral <$> {#get VECSEXP->vecsxp.length #} s
+length s = fromIntegral <$> {#get VECSEXP->vecsxp.length #} (unsexp s)
 
 -- | Read True Length vector field.
 {#fun TRUELENGTH as trueLength `R.IsVector a' => { unsexp `SEXP a' } -> `CInt' id #}
@@ -368,11 +373,11 @@ type Logical = 'R.Logical
 
 -- | Extract the data pointer from a vector.
 unsafeSEXPToVectorPtr :: SEXP a -> Ptr ()
-unsafeSEXPToVectorPtr s = s `plusPtr` {#sizeof SEXPREC_ALIGN #}
+unsafeSEXPToVectorPtr s = (unsexp s) `plusPtr` {#sizeof SEXPREC_ALIGN #}
 
 -- | Inverse of 'vectorPtr'.
 unsafeVectorPtrToSEXP :: Ptr a -> SomeSEXP
-unsafeVectorPtrToSEXP s = SomeSEXP $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
+unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 
 {# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a' => { unsexp `SEXP a', `Int', unsexp `SEXP b'}
        -> `SEXP b' sexp #}
@@ -597,11 +602,11 @@ named v ts = {#set SEXP->sxpinfo.named #} (unsexp ts) (fromIntegral v)
 
 -- | Get the attribute list from the given object.
 getAttribute :: SEXP a -> IO (SEXP b)
-getAttribute s = castPtr <$> ({#get SEXP->attrib #} (unsexp s))
+getAttribute s = sexp . castPtr <$> ({#get SEXP->attrib #} (unsexp s))
 
 -- | Set the attribute list.
 setAttribute :: SEXP a -> SEXP b -> IO ()
-setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr v)
+setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr $ unsexp v)
 
 -------------------------------------------------------------------------------
 -- Encoding                                                                  --

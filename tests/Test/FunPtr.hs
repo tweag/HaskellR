@@ -27,13 +27,13 @@ import Control.Applicative
 import Control.Concurrent.MVar
 import Control.Monad
 import Data.ByteString.Char8
-import Foreign
+import Foreign (FunPtr, castFunPtr, peek)
 import System.Mem.Weak
 import System.Mem
 
 data HaveWeak a b = HaveWeak
-       (R.SEXP a->IO (R.SEXP b))
-       (MVar (Weak (FunPtr (R.SEXP a->IO (R.SEXP b)))))
+       (R.SEXP0 -> IO R.SEXP0)
+       (MVar (Weak (FunPtr (R.SEXP0 -> IO R.SEXP0))))
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr () -> IO (R.SEXP R.Any)
@@ -42,7 +42,7 @@ instance Literal (HaveWeak a b) R.ExtPtr where
   mkSEXPIO (HaveWeak a box) = do
       z <- R.wrap1 a
       putMVar box =<< mkWeakPtr z Nothing
-      fmap castPtr . funPtrToSEXP . castFunPtr $ z
+      fmap R.unsafeCoerce . funPtrToSEXP . castFunPtr $ z
   fromSEXP = error "not now"
 
 tests :: TestTree

@@ -35,21 +35,21 @@ module Language.R.Internal.FunWrappers
   , wrap25
   ) where
 
-import           H.Internal.Prelude
-import           Language.R.Internal.FunWrappers.TH
-import           Foreign ( FunPtr )
+import Foreign.R (SEXP0)
+import Language.R.Internal.FunWrappers.TH
+import Foreign ( FunPtr )
 
-foreign import ccall "wrapper" wrap0 :: IO (SEXP a) -> IO (FunPtr (IO (SEXP a)))
+foreign import ccall "wrapper" wrap0 :: IO SEXP0 -> IO (FunPtr (IO SEXP0))
 
 foreign import ccall "wrapper" wrap1
-    :: (SEXP a -> IO (SEXP b)) -> IO (FunPtr (SEXP a -> IO (SEXP b)))
+    :: (SEXP0 -> IO SEXP0) -> IO (FunPtr (SEXP0 -> IO SEXP0))
 
 foreign import ccall "wrapper" wrap2
-    :: (SEXP a -> SEXP b -> IO (SEXP c))
-    -> IO (FunPtr (SEXP a -> SEXP b -> IO (SEXP c)))
+    :: (SEXP0 -> SEXP0 -> IO SEXP0)
+    -> IO (FunPtr (SEXP0 -> SEXP0 -> IO SEXP0))
 
 foreign import ccall "wrapper" wrap3
-    :: (SEXP a -> SEXP b -> SEXP c -> IO (SEXP d))
-    -> IO (FunPtr (SEXP a -> SEXP b -> SEXP c -> IO (SEXP d)))
+    :: (SEXP0 -> SEXP0 -> SEXP0 -> IO SEXP0)
+    -> IO (FunPtr (SEXP0 -> SEXP0 -> SEXP0 -> IO SEXP0))
 
 $(thWrappers 4 25)

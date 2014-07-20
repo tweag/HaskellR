@@ -53,6 +53,7 @@ import Data.Vector.SEXP.Base
 import qualified Foreign.R as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
+import Control.Applicative ((<$>))
 import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
 import qualified Data.Vector.Generic.Mutable as G
 import qualified Data.Vector.Storable.Mutable as Storable
@@ -83,12 +84,13 @@ type SexpVector ty a = (Storable a, IsVector ty, SingI ty, ElemRep ty ~ a)
 instance (IsVector ty, SingI ty, Storable a, a ~ ElemRep ty)
          => G.MVector (MVector ty) a where
   basicLength (MVector s) = unsafeInlineIO $
-    fmap fromIntegral ({# get VECSEXP->vecsxp.length #} s)
+    fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
   basicUnsafeSlice j m v
     | j == 0 && m == G.basicLength v = v
     | j == 0 = unsafeInlineIO $ do
 --      FIXME temporary hack to workaround this change will break evething
-        poke ((castPtr $ unMVector v :: Ptr ()) `plusPtr` 24) (fromIntegral m :: CInt)
+        poke ((castPtr $ R.unsexp $ unMVector v :: Ptr ()) `plusPtr` 24)
+             (fromIntegral m :: CInt)
 --        {# set VECSEXP->vecsxp.length #} (unMVector v) (fromIntegral m :: CInt)
         return v
     | otherwise = error "unsafeSlice is not supported for SEXP vectors, to perform slicing convert vector to Storable"
@@ -137,14 +139,17 @@ toSEXP = unMVector
 -- | Length of the mutable vector.
 length :: SexpVector ty a => MVector ty s a -> Int
 {-# INLINE length #-}
-length (MVector s) = unsafeInlineIO $
-    fmap fromIntegral ({# get VECSEXP->vecsxp.length #} s)
+length (MVector s) =
+    unsafeInlineIO $
+    fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
 
 -- | Check whether the vector is empty
 null :: SexpVector ty a => (MVector ty) s a -> Bool
 {-# INLINE null #-}
-null (MVector s) = unsafeInlineIO $
-    fmap ((/= (0::Int)) . fromIntegral) ({# get VECSEXP->vecsxp.length #} s)
+null (MVector s) =
+    unsafeInlineIO $
+    ((/= (0::Int)) . fromIntegral) <$>
+    {# get VECSEXP->vecsxp.length #} (R.unsexp s)
 
 -- Initialisation
 -- --------------
@@ -288,7 +293,7 @@ unsafeToStorable :: (PrimMonad m, SexpVector ty a)
 unsafeToStorable v@(MVector p) = unsafePrimToPrim $ do
   R.preserveObject p
   post <- getPostToCurrentRThread
-  ptr <- newForeignPtr (toVecPtr v) (post $ R.releaseObject (castPtr $ toVecPtr v))
+  ptr <- newForeignPtr (toVecPtr v) (post $ R.releaseObject (R.sexp $ castPtr $ toVecPtr v))
   return $ Storable.unsafeFromForeignPtr0 ptr (length v)
 
 -- | O(N) Convertion from storable vector to SEXP vector.
