@@ -40,7 +40,6 @@ import Data.List (isSuffixOf)
 import Data.Complex (Complex)
 import Data.Int (Int32)
 import Data.Word (Word8)
-import Foreign (castPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
@@ -185,13 +184,13 @@ instance TH.Lift (IO (Vector.Vector R.String (SEXP R.Char))) where
 
 instance TH.Lift (IO (Vector.Vector R.Vector SomeSEXP)) where
     lift = runIO >=> \v -> do
-      let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
+      let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
                           $ Vector.toList v :: IO [SEXP R.Any]
       [| fmap vector $ mkProtectedSEXPVectorIO SingR.SVector =<< xsio |]
 
 instance TH.Lift (IO (Vector.Vector R.Expr SomeSEXP)) where
     lift = runIO >=> \v -> do
-      let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
+      let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
                           $ Vector.toList v :: IO [SEXP R.Any]
       [| fmap vector . mkProtectedSEXPVectorIO SingR.SExpr =<< xsio |]
 
@@ -240,7 +239,7 @@ instance TH.Lift (IO (SEXP a)) where
     -- for vectors will allocate a node of VECSXP type, when the node is real an
     -- EXPRSXP.
       (hexp -> Expr n v) ->
-        let xsio = returnIO $ map (\(SomeSEXP s) -> castPtr s)
+        let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
                             $ Vector.toList v :: IO [SEXP R.Any]
          in [| withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
                  unhexpIO . Expr n . vector
