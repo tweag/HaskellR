@@ -74,7 +74,7 @@ library
                        Control.Monad.R.Class
                        H.Internal.Error
                        H.Internal.Prelude
-  build-depends:       base >= 4.6 && < 5
+  build-depends:       base >= 4.7 && < 5
                      , aeson >= 0.6
                      , bytestring >= 0.10
                      , pretty >= 1.1
@@ -126,7 +126,7 @@ library
 executable H
   main-is:             src/Main.hs
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , bytestring >= 0.10
                      , cmdargs >= 0.10.5
                      , pretty >= 1.1
@@ -156,7 +156,7 @@ test-suite tests
   main-is:             tests.hs
   type:                exitcode-stdio-1.0
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , bytestring >= 0.10
                      , directory >= 1.2
                      , filepath >= 1.3
@@ -181,7 +181,7 @@ test-suite test-compile-qq
   main-is:             test-compile-qq.hs
   type:                exitcode-stdio-1.0
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , process >= 1.2
   ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
@@ -191,7 +191,7 @@ test-suite test-shootout-programs
   main-is:             test-shootout-programs.hs
   type:                exitcode-stdio-1.0
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
   ghc-options:         -Wall -threaded
@@ -222,7 +222,7 @@ benchmark compile-qq-benchmarks
   main-is:             compile-qq-benchmarks.hs
   type:                exitcode-stdio-1.0
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , criterion >= 0.8
                      , filepath >= 1.3
                      , process >= 1.2
@@ -235,7 +235,7 @@ benchmark runtime-qq-benchmarks
   main-is:             runtime-qq-benchmarks.hs
   type:                exitcode-stdio-1.0
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
   ghc-options:         -Wall -threaded
@@ -246,7 +246,7 @@ benchmark hexp-benchmark
   main-is:             hexp-bench.hs
   type:                exitcode-stdio-1.0
   build-depends:       H
-                     , base >= 4.6 && < 5
+                     , base >= 4.7 && < 5
                      , criterion >= 0.8
                      , primitive >= 0.5
                      , vector >= 0.10

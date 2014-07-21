@@ -59,7 +59,7 @@ parseEval :: ByteString -> IO SomeSEXP
 parseEval txt = useAsCString txt $ \ctxt ->
   withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
-      nil <- peek nilValuePtr
+      nil <- peek R.nilValue
       withProtected (R.parseVector rtxt 1 status nil) $ \exprs -> do
         rc <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum rc) $
@@ -147,7 +147,7 @@ evalEnvIO x rho =
 
 -- | Evaluate an expression in the global environment.
 evalIO :: SEXP a -> IO SomeSEXP
-evalIO x = peek globalEnvPtr >>= evalEnvIO x
+evalIO x = peek R.globalEnv >>= evalEnvIO x
 
 evalEnv :: MonadR m => SEXP a -> SEXP R.Env -> m SomeSEXP
 evalEnv = (io .). evalEnvIO
