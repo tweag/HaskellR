@@ -11,24 +11,23 @@ module Language.R.Globals
   , missingArg
   ) where
 
-import Foreign ( peek )
-import Foreign.R  (SEXP, SEXPTYPE(..))
-import qualified Language.R.Instance as R
-import System.IO.Unsafe ( unsafePerformIO )
+import qualified Language.R.Globals.Unsafe as Unsafe
+import           Foreign.R (SEXP, SEXPTYPE(..))
+import qualified Foreign.R as R
 
 -- | Special value to which all symbols unbound in the current environment
 -- resolve to.
-unboundValue :: SEXP Symbol
-unboundValue = unsafePerformIO $ peek R.unboundValuePtr
+unboundValue :: SEXP s Symbol
+unboundValue = R.SEXP Unsafe.unboundValue 
 
 -- | R's @NULL@ value.
-nilValue :: SEXP Nil
-nilValue = unsafePerformIO $ peek R.nilValuePtr
+nilValue :: SEXP s Nil
+nilValue = R.SEXP Unsafe.nilValue
 
 -- | Value substituted for all missing actual arguments of a function call.
-missingArg :: SEXP Symbol
-missingArg = unsafePerformIO $ peek R.missingArgPtr
+missingArg :: SEXP s Symbol
+missingArg = R.SEXP Unsafe.missingArg
 
 -- | The global environment.
-globalEnv :: SEXP Env
-globalEnv = unsafePerformIO $ peek R.globalEnvPtr
+globalEnv :: SEXP s Env
+globalEnv = R.SEXP Unsafe.globalEnv

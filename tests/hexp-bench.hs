@@ -21,11 +21,11 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
-import Foreign.R (integer, SEXP)
-import qualified Foreign.R as R (SEXPTYPE(Int), typeOf)
-import H.Prelude (runR, defaultConfig, io)
-import Language.R.Literal (mkSEXP)
-import Language.R.HExp (hexp, HExp(..))
+import Foreign.R.Internal (integer, SEXP)
+import qualified Foreign.R.Internal as R (SEXPTYPE(Int), typeOf)
+import H.Prelude (withR, defaultConfig)
+import Language.R.Literal.Unsafe (unsafeMkSEXP)
+import Language.R.HExp.Unsafe (hexp, HExp(..))
 
 import Control.Monad.Primitive
 import Criterion.Main
@@ -37,8 +37,8 @@ import System.IO.Unsafe (unsafePerformIO)
 
 
 main :: IO ()
-main = runR defaultConfig $ io $ do
-    let x = mkSEXP (1 :: Int32)
+main = withR defaultConfig $ do
+    x <- unsafeMkSEXP (1 :: Int32)
     defaultMain
       [ bgroup "vector access"
           [ bench "integer" $ whnfIO $ benchInteger x
@@ -55,7 +55,7 @@ benchInteger x = do
       R.Int -> integer x >>= (peek :: Ptr Int32 -> IO Int32)
       _ -> error "unexpected SEXP"
 
-benchHExp :: Foreign.R.SEXP a -> Int32
+benchHExp :: Foreign.R.Internal.SEXP a -> Int32
 benchHExp x =
     case hexp x of
       Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0

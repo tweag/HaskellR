@@ -7,7 +7,7 @@
 :set -XTemplateHaskell
 :set -XViewPatterns
 
-import Language.R.HExp as H
+import Language.R.HExp.Unsafe as H
 import qualified H.Prelude.Interactive as H
 import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
@@ -15,13 +15,13 @@ import Language.R.QQ as H (r, rexp, rsafe)
 
 :{
 Language.R.pokeRVariables
-    ( Foreign.R.globalEnv
-    , Foreign.R.baseEnv
-    , Foreign.R.nilValue
-    , Foreign.R.unboundValue
-    , Foreign.R.missingArg
-    , Foreign.R.rInteractive
-    , Foreign.R.rInputHandlers
+    ( Foreign.R.Internal.globalEnv
+    , Foreign.R.Internal.baseEnv
+    , Foreign.R.Internal.nilValue
+    , Foreign.R.Internal.unboundValue
+    , Foreign.R.Internal.missingArg
+    , Foreign.R.Internal.rInteractive
+    , Foreign.R.Internal.rInputHandlers
     )
 :}
-Language.R.Instance.initialize Language.R.Instance.defaultConfig
+Foreign.R.Runner.initialize Foreign.R.Runner.defaultConfig

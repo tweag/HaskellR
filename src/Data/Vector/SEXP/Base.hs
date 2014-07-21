@@ -8,7 +8,7 @@
 module Data.Vector.SEXP.Base where
 
 import Foreign.R.Type
-import Foreign.R (SEXP, SomeSEXP)
+import Foreign.R.Internal (SEXP, SomeSEXP)
 
 import Data.Complex (Complex)
 import Data.Word (Word8)

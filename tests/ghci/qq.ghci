@@ -1,7 +1,8 @@
 :set -XDataKinds
 :set -XScopedTypeVariables
 :m +Data.Int
-import qualified Foreign.R as R
+import H.Prelude.Interactive
+import Foreign.R as R
 
 -- Should be: [1] 1
 H.print =<< [r| 1 |]
@@ -18,11 +19,11 @@ H.print =<< [r| x <- 2 |] :: IO ()
 -- Should be: [1] 3
 H.print =<< [r| x+1 |]
 
----- Should be: [1] 6
+-- Should be: [1] 6
 let y = (5::Double)
 H.print =<< [r| y_hs + 1 |]
 
----- Should be: Closure ???
+-- Should be: Closure ???
 H.print =<< [r| function(y) y_hs + y |]
 
 -- Should be 8
@@ -31,8 +32,8 @@ H.print =<< [r| z(3) |]
 
 -- Should be [1] 1 2 3 4 5 6 7 8 9 10
 H.print =<< [r| y <- c(1:10) |]
-let foo1 = (\x -> (return $ x+1 :: R Double))
-let foo2 = (\x -> (return $ map (+1) x :: R [Int32]))
+let foo1 = (\x -> (return $ x+1 :: R s Double))
+let foo2 = (\x -> (return $ map (+1) x :: R s [Int32]))
 
 -- Should be [1] 2
 H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
@@ -53,25 +54,23 @@ H.print =<< [r| foo1_hs(7) |]
 -- Should be NULL
 H.unsafeRunInRThread (H.unsafeRunInRThread $ H.print H.nilValue)
 
-let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
-
 -- Should be [1] 3
-let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R Int32
-H.print =<< [r| foo3_hs(as.integer(3)) |]
+let foo3 = (\n -> runRegion $ (fmap (fromSEXP . R.cast R.Int) [r| n_hs |] :: R s Int32)) :: Int32 -> R s Int32
+runR $ H.print =<< [r| foo3_hs(as.integer(3)) |]
 
--- | should be 3
-let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R Double
+-- | should be [1] 99
+let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
 H.print =<< [r| foo4_hs(33, 66) |]
 
 -- Should be [1] 120 but it doesn't work
-let fact n = if n == (0 :: Int32) then (return 1 :: R Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
-H.print =<< [r| fact_hs(as.integer(5)) |]
+let fact n = runRegion $ if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap (fromSEXP . R.cast R.Int) [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+runR $ H.print =<< [r| fact_hs(as.integer(5)) |]
 
 :set -XDataKinds
 -- Should be [1] 29
-let foo5  = (\n -> return (n+1)) :: Int32 -> R Int32
-let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R R.SomeSEXP
-H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
+let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
+let apply = (\n m -> runRegion $ fmap (\s -> (Foreign.R.unSomeSEXP s (\z -> Foreign.R.Internal.SomeSEXP $ Foreign.R.unSEXP z))) ([r| .Call(n_hs, m_hs) |])) :: R.Callback s -> Int32 -> R s (UnsafeValue Foreign.R.Internal.SomeSEXP)
+runR $ H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
 sym <- H.install "blah"
 H.print sym
@@ -87,15 +86,17 @@ H.print =<< [r| base::`+`(10,10) |]
 _ <- [r| `+` <- base::`+` |]
 
 :{
-let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R (Foreign.R.SEXP Foreign.R.Int)
-    hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-    hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-    hFib n                              = H.withProtected (return n) $ const $
-        fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+let hFib :: R.SEXP s Foreign.R.Internal.Int -> H.Prelude.R s (Foreign.R.Internal.SEXP Foreign.R.Internal.Int)
+    hFib n@(H.fromSEXP -> (0 :: Int32)) =
+        fmap (Foreign.R.unSEXP . (R.cast Foreign.R.Int)) [r| as.integer(0) |]
+    hFib n@(H.fromSEXP -> (1 :: Int32)) =
+        fmap (Foreign.R.unSEXP . (R.cast Foreign.R.Int)) [r| as.integer(1) |]
+    hFib n                              =
+ 	fmap (Foreign.R.unSEXP . (R.cast Foreign.R.Int)) [r| as.integer(hFib_hs(as.integer(n_hs-1)) + hFib_hs(as.integer(n_hs -2))) |]
 :}
 
 -- Should be [1] 4181
--- H.print =<< H.Prelude.runR H.defaultConfig (hFib (H.Prelude.mkSEXP (19 :: Int32))) -- XXX produces wrong result.
+runR $ H.print =<< hFib =<< H.Prelude.mkSEXP (19 :: Int32)
 
 -- s4 objects test
 -- Create an S4 class
@@ -105,7 +106,7 @@ H.print =<< [r| x <- new("x-test") |]
 -- instantiate and object and pass it to H as-is
 x <- [r| new("x-test") |]
 -- prevent x from being garbage collected
-rv <- H.newSomeRVal x
+-- rv <- H.newSomeRVal x
 -- show object
 H.print x
 -- Should be 1. Use slot accessor on R object.
@@ -118,9 +119,9 @@ H.print =<< [r| typeof(x) |]
 H.print =<< [r| typeof(x_hs) |]
 
 :{
-let testpm (SomeSEXP z) = case hexp z of
-                  S4 p | H.Prelude.toBool [rsafe| z_hs @ a > 0 |] -> H.print z
-                  _    -> print "unexpected value"
+let testpm (SomeSEXP z) = case hexp (unSEXP z) of
+               H.S4 p | H.Prelude.toBool [rsafe| z_hs @ a > 0 |] -> H.print z
+               _    -> Prelude.print "unexpected value"
 :}
 
 testpm x
