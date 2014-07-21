@@ -23,7 +23,7 @@
 
 import Foreign.R (integer, SEXP)
 import qualified Foreign.R as R (SEXPTYPE(Int), typeOf)
-import H.Prelude (runR, defaultConfig, io)
+import H.Prelude (withEmbeddedR, defaultConfig)
 import Language.R.Literal (mkSEXP)
 import Language.R.HExp (hexp, HExp(..))
 
@@ -37,7 +37,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 
 main :: IO ()
-main = runR defaultConfig $ io $ do
+main = withEmbeddedR defaultConfig $ do
     let x = mkSEXP (1 :: Int32)
     defaultMain
       [ bgroup "vector access"
