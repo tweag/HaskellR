@@ -13,15 +13,4 @@ import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
 import Language.R.QQ as H (r, rexp, rsafe)
 
-:{
-Language.R.pokeRVariables
-    ( Foreign.R.globalEnv
-    , Foreign.R.baseEnv
-    , Foreign.R.nilValue
-    , Foreign.R.unboundValue
-    , Foreign.R.missingArg
-    , Foreign.R.rInteractive
-    , Foreign.R.rInputHandlers
-    )
-:}
 Language.R.Instance.initialize Language.R.Instance.defaultConfig
