@@ -7,6 +7,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- For the 'Vector' instance of 'Lift'.
 {-# LANGUAGE OverlappingInstances #-}
 
@@ -18,6 +19,7 @@ module Language.R.QQ
   , rsafe
   ) where
 
+import           Control.Memory.Region
 import H.Internal.Prelude
 import qualified H.Prelude as H
 import           Language.R.HExp
@@ -90,7 +92,7 @@ parseEval txt = do
         in go vs
       _ -> error "Impossible happen."
   where
-    go :: [SomeSEXP] -> Q TH.Exp
+    go :: [SomeSEXP s] -> Q TH.Exp
     go []     = error "Impossible happen."
     go [SomeSEXP (returnIO -> a)]    = [| H.withProtected (io a) eval |]
     go (SomeSEXP (returnIO -> a) : as) =
@@ -101,7 +103,7 @@ parseEval txt = do
 returnIO :: a -> IO a
 returnIO = return
 
-parse :: String -> Q (R.SEXP R.Expr)
+parse :: String -> Q (R.SEXP V R.Expr)
 parse txt = runIO $ do
     H.initialize H.defaultConfig
     unsafeRunInRThread $ parseText txt False
@@ -110,18 +112,18 @@ parseExp :: String -> Q TH.Exp
 parseExp txt = TH.lift . returnIO =<< parse txt
 
 -- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
-instance TH.Lift (IO SomeSEXP) where
+instance TH.Lift (IO (SomeSEXP s)) where
   lift = runIO >=> \s -> R.unSomeSEXP s (TH.lift . returnIO)
 
 deriveLift ''SEXPInfo
 deriveLift ''Complex
 deriveLift ''R.Logical
 
-instance TH.Lift (IO (Maybe (SEXP a))) where
+instance TH.Lift (IO (Maybe (SEXP s a))) where
   lift = runIO >=> return . fmap returnIO >=>
            maybe [| return Nothing |] (\vio -> [| fmap Just vio |])
 
-instance TH.Lift (IO [SEXP a]) where
+instance TH.Lift (IO [SEXP s a]) where
     lift = runIO >=> go
       where
         go []                       = [| return [] |]
@@ -141,7 +143,7 @@ instance TH.Lift Word8 where
 instance TH.Lift Double where
     lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
 
-instance TH.Lift (IO (Vector.Vector R.Raw Word8)) where
+instance TH.Lift (IO (Vector.Vector s R.Raw Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
     lift = runIO >=> \v -> do
@@ -149,7 +151,7 @@ instance TH.Lift (IO (Vector.Vector R.Raw Word8)) where
           xs = map (toEnum . fromIntegral) $ Vector.toList v
       [| fmap vector $ string xs |]
 
-instance TH.Lift (IO (Vector.Vector R.Char Word8)) where
+instance TH.Lift (IO (Vector.Vector s R.Char Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
     lift = runIO >=> \ v -> do
@@ -157,41 +159,41 @@ instance TH.Lift (IO (Vector.Vector R.Char Word8)) where
           xs = map (toEnum . fromIntegral) $ Vector.toList v
       [| fmap vector $ string xs |]
 
-instance TH.Lift (IO (Vector.Vector 'R.Logical R.Logical)) where
+instance TH.Lift (IO (Vector.Vector s 'R.Logical R.Logical)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SLogical xs |]
 
-instance TH.Lift (IO (Vector.Vector R.Int Int32)) where
+instance TH.Lift (IO (Vector.Vector s R.Int Int32)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SInt xs |]
 
-instance TH.Lift (IO (Vector.Vector R.Real Double)) where
+instance TH.Lift (IO (Vector.Vector s R.Real Double)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SReal xs |]
 
-instance TH.Lift (IO (Vector.Vector R.Complex (Complex Double))) where
+instance TH.Lift (IO (Vector.Vector s R.Complex (Complex Double))) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SComplex xs |]
 
-instance TH.Lift (IO (Vector.Vector R.String (SEXP R.Char))) where
+instance TH.Lift (IO (Vector.Vector s R.String (SEXP s R.Char))) where
     lift = runIO >=> \v -> do
       let xsio = returnIO $ Vector.toList v
       [| fmap vector . mkProtectedSEXPVectorIO SingR.SString =<< xsio |]
 
-instance TH.Lift (IO (Vector.Vector R.Vector SomeSEXP)) where
+instance TH.Lift (IO (Vector.Vector s R.Vector (SomeSEXP s))) where
     lift = runIO >=> \v -> do
       let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                          $ Vector.toList v :: IO [SEXP R.Any]
+                          $ Vector.toList v :: IO [SEXP s R.Any]
       [| fmap vector $ mkProtectedSEXPVectorIO SingR.SVector =<< xsio |]
 
-instance TH.Lift (IO (Vector.Vector R.Expr SomeSEXP)) where
+instance TH.Lift (IO (Vector.Vector s R.Expr (SomeSEXP s))) where
     lift = runIO >=> \v -> do
       let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                          $ Vector.toList v :: IO [SEXP R.Any]
+                          $ Vector.toList v :: IO [SEXP s R.Any]
       [| fmap vector . mkProtectedSEXPVectorIO SingR.SExpr =<< xsio |]
 
 -- | Returns 'True' if the variable name is in fact a Haskell value splice.
@@ -203,7 +205,7 @@ isSplice = ("_hs" `isSuffixOf`)
 spliceNameChop :: String -> String
 spliceNameChop name = take (length name - 3) name
 
-instance TH.Lift (IO (SEXP a)) where
+instance TH.Lift (IO (SEXP s a)) where
     -- Special case some forms, rather than relying on the default code
     -- generated by 'deriveLift'.
     lift = runIO >=> \case
@@ -240,14 +242,14 @@ instance TH.Lift (IO (SEXP a)) where
     -- EXPRSXP.
       (hexp -> Expr n v) ->
         let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                            $ Vector.toList v :: IO [SEXP R.Any]
+                            $ Vector.toList v :: IO [SEXP s R.Any]
          in [| withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
                  unhexpIO . Expr n . vector
              |]
       (returnIO . hexp -> iot) ->
         [| unhexpIO =<< iot |]
 
-instance TH.Lift (IO (HExp a)) where
+instance TH.Lift (IO (HExp s a)) where
   lift = runIO >=> \case
     Nil -> [| return Nil |]
     Symbol (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->

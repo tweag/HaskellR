@@ -56,22 +56,22 @@ main = runR defaultConfig $ io $ do
           ]
       ]
 
-benchInteger :: SEXP R.Int -> IO Int32
+benchInteger :: SEXP s R.Int -> IO Int32
 benchInteger x = do
     case R.typeOf x of
       R.Int -> integer x >>= (peek :: Ptr Int32 -> IO Int32)
       _ -> error "unexpected SEXP"
 
-benchHExp :: Foreign.R.SEXP a -> Int32
+benchHExp :: SEXP s a -> Int32
 benchHExp x =
     case hexp x of
       Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0
       _ -> error "unexpected SEXP"
 
-benchUncheckedInteger :: SEXP R.Int -> IO Int32
+benchUncheckedInteger :: SEXP s R.Int -> IO Int32
 benchUncheckedInteger x = integer x >>= (peek :: Ptr Int32 -> IO Int32)
 
-benchCast :: SomeSEXP -> Int32
+benchCast :: SomeSEXP s -> Int32
 benchCast x@(SomeSEXP z) =
  let y = R.cast (sing :: R.SSEXPTYPE R.Int) x
  in case hexp y of

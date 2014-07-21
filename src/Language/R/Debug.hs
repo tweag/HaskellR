@@ -55,7 +55,7 @@ instance ToJSON a => ToJSON (Complex a) where
   toJSON (x :+ y) =
     object ["Re" .= x, "Im" .= y]
 
-instance ToJSON (SEXP a) where
+instance ToJSON (SEXP s a) where
   toJSON x =
       object
         [ "header" .= info
@@ -63,8 +63,8 @@ instance ToJSON (SEXP a) where
         , tp .= go x
         ]
     where
-      vector :: (IsVector a, ToJSON (Vector.ElemRep a), Storable (Vector.ElemRep a))
-             => Vector.Vector a (Vector.ElemRep a) -> V.Vector Value
+      vector :: (IsVector a, ToJSON (Vector.ElemRep s a), Storable (Vector.ElemRep s a))
+             => Vector.Vector s a (Vector.ElemRep s a) -> V.Vector Value
       vector = V.fromList . map toJSON . Vector.toList -- XXX: do not use lists
       ub = R.unsexp H.unboundValue
       nil = R.unsexp H.nilValue
@@ -72,7 +72,7 @@ instance ToJSON (SEXP a) where
       info = unsafePerformIO $ R.peekInfo x
       attr = unsafePerformIO $ R.getAttribute x
       tp = T.pack . show $ R.infoType info
-      go :: SEXP a -> Value
+      go :: SEXP s a -> Value
       go y | R.unsexp y == ub   = A.String "UnboundValue"
            | R.unsexp y == nil  = A.String "NilValue"
            | R.unsexp y == miss = A.String "MissingArg"
@@ -131,8 +131,8 @@ instance ToJSON (SEXP a) where
           object [ "tagval" .= s ]
       go _ = A.String "Unimplemented."
 
-instance ToJSON SomeSEXP where
+instance ToJSON (SomeSEXP s) where
   toJSON (R.SomeSEXP s) = toJSON s
 
-inspect :: SEXP a -> String
+inspect :: SEXP s a -> String
 inspect = LBS.unpack . A.encode

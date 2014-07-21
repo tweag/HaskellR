@@ -6,6 +6,6 @@ module Language.R.HExp where
 import Foreign.R.Type (SEXPTYPE)
 
 #if __GLASGOW_HASKELL__ > 706
-type role HExp nominal
+type role HExp nominal nominal
 #endif
-data HExp :: SEXPTYPE -> *
+data HExp :: * -> SEXPTYPE -> *

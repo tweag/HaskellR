@@ -13,6 +13,7 @@ module Test.FunPtr
   ( tests )
   where
 
+import Control.Memory.Region
 import H.Prelude
 import qualified Language.R.Internal.FunWrappers as R
 import qualified Foreign.R as R
@@ -36,7 +37,7 @@ data HaveWeak a b = HaveWeak
        (MVar (Weak (FunPtr (R.SEXP0 -> IO R.SEXP0))))
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
-    :: FunPtr () -> IO (R.SEXP R.Any)
+    :: FunPtr () -> IO (R.SEXP s R.Any)
 
 instance Literal (HaveWeak a b) R.ExtPtr where
   mkSEXPIO (HaveWeak a box) = do
@@ -53,7 +54,7 @@ tests = testGroup "funptr"
          e <- peek R.globalEnv
          _ <- R.withProtected (return $ mkSEXP hwr) $
            \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
-         replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP R.Real))
+         replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
