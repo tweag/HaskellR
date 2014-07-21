@@ -43,24 +43,24 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    mkSEXPIO :: a -> IO (SEXP b)
-    fromSEXP :: SEXP c -> a
+    mkSEXPIO :: a -> IO (SEXP s b) -- XXX: should be `a -> IO (SEXP V b)`
+    fromSEXP :: SEXP s c -> a
 
 {-# NOINLINE mkSEXP #-}
-mkSEXP :: Literal a b => a -> SEXP b
+mkSEXP :: Literal a b => a -> SEXP s b
 mkSEXP = unsafePerformIO . mkSEXPIO
 
 {-# NOINLINE mkSEXPVector #-}
-mkSEXPVector :: (Storable (SVector.ElemRep a), IsVector a)
+mkSEXPVector :: (Storable (SVector.ElemRep s a), IsVector a)
              => SSEXPTYPE a
-             -> [SVector.ElemRep a]
-             -> SEXP a
+             -> [SVector.ElemRep s a]
+             -> SEXP s a
 mkSEXPVector ty xs = unsafePerformIO $ mkSEXPVectorIO ty xs
 
-mkSEXPVectorIO :: (Storable (SVector.ElemRep a), IsVector a)
+mkSEXPVectorIO :: (Storable (SVector.ElemRep s a), IsVector a)
                => SSEXPTYPE a
-               -> [SVector.ElemRep a]
-               -> IO (SEXP a)
+               -> [SVector.ElemRep s a]
+               -> IO (SEXP s a)
 mkSEXPVectorIO ty xs =
     withProtected (R.allocVector ty $ length xs) $ \vec -> do
       let ptr = castPtr $ R.unsafeSEXPToVectorPtr vec
@@ -70,14 +70,14 @@ mkSEXPVectorIO ty xs =
 {-# NOINLINE mkProtectedSEXPVector #-}
 mkProtectedSEXPVector :: IsVector b
                       => SSEXPTYPE b
-                      -> [SEXP a]
-                      -> SEXP b
+                      -> [SEXP s a]
+                      -> SEXP s b
 mkProtectedSEXPVector ty xs = unsafePerformIO $ mkProtectedSEXPVectorIO ty xs
 
 mkProtectedSEXPVectorIO :: IsVector b
                         => SSEXPTYPE b
-                        -> [SEXP a]
-                        -> IO (SEXP b)
+                        -> [SEXP s a]
+                        -> IO (SEXP s b)
 mkProtectedSEXPVectorIO ty xs = do
     mapM_ (void . R.protect) xs
     z <- withProtected (R.allocVector ty $ length xs) $ \vec -> do
@@ -114,7 +114,7 @@ instance Literal [Complex Double] R.Complex where
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
 -- | Named after eponymous "GHC.Exts" function.
-the :: IsVector a => Literal [SVector.ElemRep a] a => SEXP a -> SVector.ElemRep a
+the :: IsVector a => Literal [SVector.ElemRep s a] a => SEXP s a -> SVector.ElemRep s a
 the (fromSEXP -> xs)
   | length xs == 1 = head xs
   | otherwise = failure "the" "Not a singleton vector."
@@ -145,19 +145,19 @@ instance Literal (Complex Double) R.Complex where
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
-instance SingI a => Literal (SEXP a) a where
-    mkSEXPIO  = return
-    fromSEXP = R.cast (fromSing (sing :: SSEXPTYPE a)) . SomeSEXP
+instance SingI a => Literal (SEXP s a) a where
+    mkSEXPIO  = fmap R.unsafeRelease . return
+    fromSEXP = R.cast (fromSing (sing :: SSEXPTYPE a)) . SomeSEXP . R.unsafeRelease
 
-instance Literal SomeSEXP R.Any where
+instance Literal (SomeSEXP s) R.Any where
     -- The ANYSXP type in R plays the same role as SomeSEXP in H. It is a dummy
     -- type tag, that is never seen in any object. It serves only as a stand-in
     -- when the real type is not known.
-    mkSEXPIO (SomeSEXP s) = return $ R.unsafeCoerce s
-    fromSEXP = SomeSEXP
+    mkSEXPIO (SomeSEXP s) = return . R.unsafeRelease $ R.unsafeCoerce s
+    fromSEXP = SomeSEXP . R.unsafeRelease
 
 instance Literal String R.String where
-    mkSEXPIO x = R.mkString =<< newCString x
+    mkSEXPIO x = fmap R.unsafeRelease $ R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
 instance Literal a b => Literal (R s a) R.ExtPtr where
@@ -182,12 +182,12 @@ instance Literal a la => HFunWrap (R s a) (IO R.SEXP0) where
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (R.SEXP0 -> wb) where
-    hFunWrap f a = hFunWrap $ f $! fromSEXP (R.sexp a :: SEXP la)
+    hFunWrap f a = hFunWrap $ f $! fromSEXP (R.sexp a :: SEXP s la)
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
-    :: FunPtr a -> IO (SEXP R.ExtPtr)
+    :: FunPtr a -> IO (SEXP s R.ExtPtr)
 
-funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> IO (SEXP R.ExtPtr)
+funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> IO (SEXP s R.ExtPtr)
 funToSEXP w x = funPtrToSEXP =<< w (hFunWrap x)
 
 $(thWrapperLiterals 3 25)

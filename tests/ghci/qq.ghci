@@ -70,7 +70,7 @@ H.print =<< [r| fact_hs(as.integer(5)) |]
 :set -XDataKinds
 -- Should be [1] 29
 let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
-let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.Callback -> Int32 -> R s R.SomeSEXP
+let apply = (\n m -> [r| .Call(n_hs, m_hs) |]) :: R.Callback V -> Int32 -> R s (R.SomeSEXP V)
 H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
 sym <- H.install "blah"
@@ -87,7 +87,7 @@ H.print =<< [r| base::`+`(10,10) |]
 _ <- [r| `+` <- base::`+` |]
 
 :{
-let hFib :: Foreign.R.SEXP Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP Foreign.R.Int)
+let hFib :: Foreign.R.SEXP V Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP V Foreign.R.Int)
     hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
     hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
     hFib n                              = H.withProtected (return n) $ const $

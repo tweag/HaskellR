@@ -70,6 +70,7 @@ library
                        Language.R.Internal.FunWrappers.TH
                        Language.R.Literal
                        Language.R.QQ
+                       Control.Memory.Region
   other-modules:       Control.Concurrent.OSThread
                        Control.Monad.R.Class
                        H.Internal.Error

@@ -24,7 +24,7 @@ module H.Prelude
   , toBool
   ) where
 
-
+import           Control.Memory.Region
 import           Control.Monad.R.Class
 import           H.Internal.Prelude
 import qualified Foreign.R as R
@@ -66,30 +66,30 @@ show :: Show a => a -> Text
 show = unsafePerformIO . showIO
 
 
-instance Show (SEXP a) where
-  showIO s = Language.R.withProtected (return s) $ \_ ->
+instance Show (SEXP s a) where
+  showIO s = Language.R.withProtected (return (R.release s)) $ \_ ->
            withCString "quote" $ R.install >=> \quote ->
-           R.lang2 quote s >>= r1 "deparse" >>= \(SomeSEXP slang) ->
+           R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
            return .
            Text.Lazy.fromChunks .
            map (Text.pack . Vector.toString . vector) .
            Vector.toList .
            vector $
-           (R.unsafeCoerce slang :: SEXP R.String)
+           (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
 
-  print e = io $ Language.R.withProtected (return e) R.printValue
+  print e = io $ Language.R.withProtected (return (R.release e)) R.printValue
 
-instance Show R.SomeSEXP where
+instance Show (R.SomeSEXP s) where
   showIO s = R.unSomeSEXP s showIO
   print s = R.unSomeSEXP s print
 
-withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP a) -> ((SEXP a) -> m b) -> m b
+withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP s a) -> ((SEXP s a) -> m b) -> m b
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
             (const (io $ R.unprotect 1))
 
 -- | Convert Logical value into boolean.
-toBool :: SomeSEXP -> Bool
+toBool :: SomeSEXP s -> Bool
 toBool (SomeSEXP z) = case hexp z of
   Logical vt -> vt `unsafeIndex` 0 == R.True
   _          -> False

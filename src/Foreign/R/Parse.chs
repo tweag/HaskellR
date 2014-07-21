@@ -35,8 +35,8 @@ import Foreign.C
 -- TODO: use ParseStatus or write a wrapper for parseVector.
 {#fun R_ParseVector as parseVector
   `(In a (R.Nil :+: R.String))'
-  => { unsexp `SEXP (R.String)'
+  => { unsexp `SEXP s (R.String)'
      , `Int'
      , id `Ptr CInt'
-     , unsexp `SEXP a' }
-  -> `SEXP (R.Expr)' sexp #}
+     , unsexp `SEXP s a' }
+  -> `SEXP s (R.Expr)' sexp #}

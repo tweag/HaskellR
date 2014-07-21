@@ -10,6 +10,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 
+import Control.Memory.Region
 import Foreign.R as R
 import Language.R as R
 import H.Prelude as H
@@ -26,7 +27,7 @@ fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
 
-hFib :: SEXP R.Int -> R s (SEXP R.Int)
+hFib :: SEXP V R.Int -> R s (SEXP V R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
 hFib n                            = H.withProtected (return n) $ const $
