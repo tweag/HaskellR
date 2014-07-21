@@ -35,7 +35,7 @@ hFib n                            = H.withProtected (return n) $ const $
 
 main :: IO ()
 main = do
-    H.runR H.defaultConfig $ do
+    H.withEmbeddedR H.defaultConfig $ runRegion $ do
       _ <- $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
       io $ defaultMain [
              bgroup "fib"

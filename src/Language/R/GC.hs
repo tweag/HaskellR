@@ -74,9 +74,9 @@ withProtected :: (MonadIO m, MonadCatch m, MonadMask m)
               => m (R.SEXP V a)      -- Action to acquire resource
               -> (R.SEXP s a -> m b) -- Action
               -> m b
-withProtected acquire f =
+withProtected create f =
     bracket
-      (do { x <- acquire; _ <- liftIO $ R.protect x; return x })
+      (do { x <- create; _ <- liftIO $ R.protect x; return x })
       (const $ liftIO $ R.unprotect 1)
       (f . R.unsafeRelease)
 
