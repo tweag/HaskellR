@@ -60,7 +60,7 @@ tests = testGroup "funptr"
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
   , testCase "funptr works in quasi-quotes" $
        (((2::Double) @=?) =<<) $ unsafeRunInRThread $ unsafeRToIO $ do
-         let foo = (\x -> return $ x + 1) :: Double -> R Double
+         let foo = (\x -> return $ x + 1) :: Double -> R s Double
 	 s <- [r| foo_hs(1) |]
 	 return $ R.unSomeSEXP s fromSEXP
   ]
