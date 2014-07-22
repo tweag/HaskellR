@@ -104,8 +104,6 @@ H.print =<< [r| setClass("x-test",representation(a = "numeric", b = "numeric"), 
 H.print =<< [r| x <- new("x-test") |]
 -- instantiate and object and pass it to H as-is
 x <- [r| new("x-test") |]
--- prevent x from being garbage collected
-rv <- H.newSomeRVal x
 -- show object
 H.print x
 -- Should be 1. Use slot accessor on R object.
