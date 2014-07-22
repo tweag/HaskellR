@@ -16,7 +16,7 @@ module Test.FunPtr
 import Control.Memory.Region
 import H.Prelude
 import qualified Language.R.Internal.FunWrappers as R
-import qualified Foreign.R as R
+import qualified Foreign.R as R hiding (withProtected)
 import qualified Foreign.R.Type as SingR
 import qualified Language.R as R (withProtected, r2)
 import           Language.R.QQ

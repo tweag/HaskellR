@@ -16,7 +16,7 @@ import qualified Test.RVal
 import H.Prelude
 import H.Constraints
 import qualified Language.R.HExp as H
-import qualified Foreign.R as R
+import qualified Foreign.R as R hiding (withProtected)
 import qualified Language.R.Instance as R
     ( initialize
     , defaultConfig )
