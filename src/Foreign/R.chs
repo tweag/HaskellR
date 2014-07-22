@@ -22,6 +22,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R
@@ -201,7 +202,7 @@ unsexp = castPtr . unSEXP
 somesexp :: SEXP0 -> SomeSEXP s
 somesexp = SomeSEXP . sexp
 
-release :: SEXP s a -> SEXP V a
+release :: (IsAncestor k v  ~ True) => SEXP k a -> SEXP v a
 release = unsafeRelease
 
 unsafeRelease :: SEXP s a -> SEXP r a
@@ -439,7 +440,7 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN
       -> `SEXP V a' sexp #}
 
 allocVectorProtected :: (R.IsVector a) => SSEXPTYPE a -> Int -> IO (SEXP s a)
-allocVectorProtected ty n = fmap unsafeRelease (protect =<< allocVector ty n)
+allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 
 -- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
 {#fun Rf_cons as cons { unsexp `SEXP s a', unsexp `SEXP s b' } -> `SEXP V R.List' sexp #}

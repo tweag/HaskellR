@@ -45,7 +45,7 @@ import           Language.R.Instance
 
 import Control.Applicative
 import Control.Exception ( throwIO )
-import Control.Monad ( (>=>), when, unless, forM, void )
+import Control.Monad ( (>=>), when, unless, forM, void, (<=<) )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
 import Foreign
@@ -133,7 +133,7 @@ evalEnvIO (hexp -> Expr _ v) rho =
     alloca $ \p -> do
       mapM_ (\(SomeSEXP s) -> void $ R.protect s) (Vector.toList v)
       x <- Prelude.last <$> forM (Vector.toList v) (\(SomeSEXP s) -> do
-          z <- R.tryEvalSilent (R.release s) (R.release rho) p
+          z <- R.tryEvalSilent s rho p
           e <- peek p
           when (e /= 0) $ throwR rho
           return z)
@@ -141,20 +141,20 @@ evalEnvIO (hexp -> Expr _ v) rho =
       return x
 evalEnvIO x rho =
     alloca $ \p -> do
-        v <- R.tryEvalSilent (R.release x) (R.release rho) p
+        v <- R.tryEvalSilent x rho p
         e <- peek p
         when (e /= 0) $ throwR rho
         return v
 
 -- | Evaluate an expression in the global environment.
 evalIO :: SEXP s a -> IO (SomeSEXP V)
-evalIO x = peek R.globalEnv >>= evalEnvIO (R.release x) . R.release
+evalIO x = peek R.globalEnv >>= evalEnvIO x . R.release
 
-evalEnv :: MonadR m => SEXP s a -> SEXP s R.Env -> m (SomeSEXP V)
-evalEnv = (io .). evalEnvIO
+evalEnv :: MonadR m => SEXP s a -> SEXP s R.Env -> m (SomeSEXP (Region m))
+evalEnv x e = acquireSome =<< io (evalEnvIO x e)
 
-eval :: MonadR m => SEXP s a -> m (SomeSEXP V)
-eval = io . evalIO
+eval :: MonadR m => SEXP s a -> m (SomeSEXP (Region m))
+eval = acquireSome <=< io . evalIO
 
 -- | Silent version of 'evalIO' function that discards it's result.
 eval_ :: MonadR m => SEXP s a -> m ()

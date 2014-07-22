@@ -11,7 +11,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Main where
 
-import Control.Memory.Region
 import Foreign.R as R
 import H.Prelude as H
 import Language.R.QQ
@@ -49,7 +48,7 @@ main = do
       else putStrLn "OK"
     else rTests
 
-hFib :: SEXP V R.Int -> R s (SEXP V R.Int)
+hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
 hFib n                            = withProtected (return n) $ const $
@@ -136,7 +135,7 @@ rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
 
     -- Should be [1] 29
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
-    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s (R.SomeSEXP V)
+    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s (R.SomeSEXP s)
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
     sym <- H.install "blah"

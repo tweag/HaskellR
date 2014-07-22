@@ -167,7 +167,7 @@ unitTests = testGroup "Unit tests"
               \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
                           sf
                           (mkSEXP (2::Double))
-                     >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval (R.release s) (R.release e) p
+                     >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
       key  <- return $ mkSEXP (return 4 :: R s Int32)
       val  <- return $ mkSEXP (return 5 :: R s Int32)
