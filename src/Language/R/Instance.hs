@@ -108,7 +108,7 @@ instance MonadR (R s) where
   type Region (R s) = s
   io m = R $ ReaderT $ \_ -> m
   acquire s = R $ ReaderT $ \cnt -> do
-    x <- R.unsafeRelease <$> R.protect s
+    x <- R.release <$> R.protect s
     modifyIORef' cnt succ
     return x
 
