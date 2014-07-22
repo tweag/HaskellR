@@ -52,7 +52,7 @@ import           Language.R.GC (withProtected)
 
 import qualified Data.Vector.SEXP as Vector
 
-import Control.Monad ( void )
+import Control.Monad ( (<=<) )
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Int (Int32)
 import Data.Maybe (fromJust)
@@ -62,7 +62,6 @@ import GHC.Ptr (Ptr(..))
 import Foreign.Storable
 import Foreign.C
 import Foreign ( castPtr, nullPtr )
-import System.IO.Unsafe (unsafePerformIO)
 import Unsafe.Coerce (unsafeCoerce)
 
 #define USE_RINTERNALS
@@ -383,64 +382,65 @@ hexp :: SEXP s a -> HExp s a
 hexp = unsafeInlineIO . peek . R.unSEXP
 {-# INLINE hexp #-}
 
+-- | Function for backcompatibility, this functions runs a subregion and returns
+-- an unprotected 'SEXP'.
+unhexpIO :: HExp s a -> IO (SEXP s a)
+unhexpIO = unsafeRToIO . unhexp
+
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
-unhexp :: HExp s a -> SEXP s a
-unhexp = unsafePerformIO . unhexpIO
-{-# NOINLINE unhexp #-}
-
--- The basic idea over unhexpIO is that fields of non vector elements are lazy
--- so they will be forced in poke (so inside withProtected object) this guarantees
--- the safeness of memory allocation.
-unhexpIO :: HExp s a -> IO (SEXP s a)
-unhexpIO   Nil         = return $ R.unsafeRelease H.nilValue
-unhexpIO s@(Symbol{})  =
-    withProtected (R.allocSEXP R.SSymbol) (\x -> poke (R.unSEXP x) s >> return x)
-unhexpIO (List c md mt) = do
-    void $ R.protect c
-    void $ R.protect d
-    void $ R.protect t
-    z <- R.cons c d
-    {# set SEXP->u.listsxp.tagval#} (R.unsexp z) (R.unsexp t)
-    R.unprotect 3 -- - $ maybe 2 (const 3) mt
-    return $ R.unsafeRelease z
-  where
-    d = maybe (R.unsafeCoerce $ R.unsafeRelease H.nilValue) id md
-    t = maybe (R.unsafeCoerce $ R.unsafeRelease H.nilValue) id mt
-unhexpIO (Lang carval mbcdrval)   = do
-    let cdrval = maybe (R.unsafeCoerce $ R.unsafeRelease H.nilValue) id mbcdrval
-    void $ R.protect carval
-    void $ R.protect cdrval
-    x <- R.unsafeRelease <$> R.allocSEXP R.SLang
-    R.setCar x carval
-    R.setCdr x cdrval
+unhexp :: MonadR m => HExp (Region m) a -> m (SEXP (Region m) a)
+unhexp   Nil = return $ R.release H.nilValue
+unhexp s@(Symbol{}) =
+  withProtected (io $ R.allocSEXP R.SSymbol)
+                (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp (List c md mt) = acquire <=< io $ do
+  rc <- R.protect c
+  rd <- R.protect $ maybe (R.unsafeCoerce $ R.unsafeRelease $ H.nilValue) id md
+  rt <- R.protect $ maybe (R.unsafeCoerce $ R.unsafeRelease $ H.nilValue) id mt
+  z  <- R.cons rc rd
+  {# set SEXP-> u.listsxp.tagval #} (R.unsexp z) (R.unsexp rt)
+  R.unprotect 3
+  return z
+unhexp (Lang carval mbcdrval) = acquire <=< io $ do
+    carval' <- R.protect carval
+    cdrval' <- R.protect $
+      maybe (R.unsafeCoerce $ R.unsafeRelease H.nilValue) id mbcdrval
+    x <- R.allocSEXP R.SLang
+    R.setCar x (R.release carval')
+    R.setCdr x (R.release cdrval')
     R.unprotect 2
     return x
-unhexpIO s@(Env{})     =
-    withProtected (R.allocSEXP R.SEnv) (\x -> poke (R.unSEXP x) s >> return x)
-unhexpIO s@(Closure{}) =
-    withProtected (R.allocSEXP R.SClosure) (\x -> poke (R.unSEXP x) s >> return x)
-unhexpIO s@(Special{}) =
-    withProtected (R.allocSEXP R.SSpecial) (\x -> poke (R.unSEXP x) s >> return x)
-unhexpIO s@(Builtin{}) =
-    withProtected (R.allocSEXP R.SBuiltin) (\x -> poke (R.unSEXP x) s >> return x)
-unhexpIO s@(Promise{}) =
-    withProtected (R.allocSEXP R.SPromise) (\x -> poke (R.unSEXP x) s >> return x)
-unhexpIO  (Bytecode{}) = unimplemented "unhexp"
-unhexpIO (Real vt)     = Vector.unsafeToSEXP vt
-unhexpIO (Logical vt)  = Vector.unsafeToSEXP vt
-unhexpIO (Int vt)      = Vector.unsafeToSEXP vt
-unhexpIO (Complex vt)  = Vector.unsafeToSEXP vt
-unhexpIO (Vector _ vt) = Vector.unsafeToSEXP vt
-unhexpIO (Char vt)     = Vector.unsafeToSEXP vt
-unhexpIO (String vt)   = Vector.unsafeToSEXP vt
-unhexpIO (Raw vt)      = Vector.unsafeToSEXP vt
-unhexpIO S4{}          = unimplemented "unhexp"
-unhexpIO (Expr _ vt)   = Vector.unsafeToSEXP vt
-unhexpIO WeakRef{}     = error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
-unhexpIO DotDotDot{}   = unimplemented "unhexp"
-unhexpIO ExtPtr{}      = unimplemented "unhexp"
+unhexp s@(Env{})     =
+    withProtected (io $ R.allocSEXP R.SEnv)
+                  (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp s@(Closure{}) =
+    withProtected (io $ R.allocSEXP R.SClosure)
+                  (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp s@(Special{}) =
+    withProtected (io $ R.allocSEXP R.SSpecial)
+                  (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp s@(Builtin{}) =
+    withProtected (io $ R.allocSEXP R.SBuiltin)
+                  (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp s@(Promise{}) =
+    withProtected (io $ R.allocSEXP R.SPromise)
+                  (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp  (Bytecode{}) = unimplemented "unhexp"
+unhexp (Real vt)     = io $ Vector.unsafeToSEXP vt
+unhexp (Logical vt)  = io $ Vector.unsafeToSEXP vt
+unhexp (Int vt)      = io $ Vector.unsafeToSEXP vt
+unhexp (Complex vt)  = io $ Vector.unsafeToSEXP vt
+unhexp (Vector _ vt) = io $ Vector.unsafeToSEXP vt
+unhexp (Char vt)     = io $ Vector.unsafeToSEXP vt
+unhexp (String vt)   = io $ Vector.unsafeToSEXP vt
+unhexp (Raw vt)      = io $ Vector.unsafeToSEXP vt
+unhexp S4{}          = unimplemented "unhexp"
+unhexp (Expr _ vt)   = io $ Vector.unsafeToSEXP vt
+unhexp WeakRef{}     = io $ error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
+unhexp DotDotDot{}   = unimplemented "unhexp"
+unhexp ExtPtr{}      = unimplemented "unhexp"
 
 -- | Project the vector out of 'SEXP's.
 vector :: R.IsVector a => SEXP s a -> Vector.Vector s a (Vector.ElemRep s a)
@@ -467,6 +467,6 @@ maybeNil s = do
 -- whose value is itself.
 selfSymbol :: SEXP s R.Char -> IO (SEXP s R.Symbol)
 selfSymbol pname = do
-    let s = unhexp $ Symbol pname (R.sexp nullPtr) Nothing
+    s <- unhexpIO $ Symbol pname (R.sexp nullPtr) Nothing
     R.setCdr s s
     return s
