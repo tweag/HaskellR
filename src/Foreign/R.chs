@@ -138,6 +138,7 @@ module Foreign.R
   , unsexp
   , release
   , unsafeRelease
+  , withProtected
   ) where
 
 import Control.Memory.Region
@@ -147,6 +148,7 @@ import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
 import Control.Applicative
 import Control.Monad.Primitive ( unsafeInlineIO )
+import Control.Exception (bracket)
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
@@ -630,3 +632,16 @@ setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr $ unsexp v)
 
 -- | Content encoding.
 {#enum cetype_t as CEType {} deriving (Eq, Show) #}
+
+-- | Perform an action with resource while protecting it from the garbage
+-- collection. This function is a safer alternative to 'R.protect' and
+-- 'R.unprotect', guaranteeing that a protected resource gets unprotected
+-- irrespective of the control flow, much like 'Control.Exception.bracket_'.
+withProtected :: IO (SEXP V a)      -- Action to acquire resource
+              -> (SEXP s a -> IO b) -- Action
+              -> IO b
+withProtected create f =
+    bracket
+      (do { x <- create; _ <- protect x; return x })
+      (const $ unprotect 1)
+      (f . unsafeRelease)

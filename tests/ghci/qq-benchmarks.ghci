@@ -10,7 +10,7 @@ import System.FilePath
  
 
 :{
-let hFib :: Foreign.R.SEXP V Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP V Foreign.R.Int)
+let hFib :: Foreign.R.SEXP s Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP s Foreign.R.Int)
     hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
     hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
     hFib n                              = H.withProtected (return n) $ const $
