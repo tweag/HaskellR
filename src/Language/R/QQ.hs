@@ -27,7 +27,7 @@ import           Language.R.Literal
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Type as SingR
-import           Language.R (parseText, installIO, string, eval, withProtected)
+import           Language.R (parseText, installIO, string, evalIO)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -37,7 +37,7 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), (<=<))
 import Data.List (isSuffixOf)
 import Data.Complex (Complex)
 import Data.Int (Int32)
@@ -75,9 +75,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $
-                               eval =<< io $(parseExp txt)
-                           |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ evalIO =<< $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -89,15 +87,15 @@ parseEval txt = do
     case hexp sexp of
       Expr _ v ->
         let vs = Vector.toList v
-        in go vs
+        in [| acquireSome <=< io $ $(go vs) |]
       _ -> error "Impossible happen."
   where
     go :: [SomeSEXP s] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| H.withProtected (io a) eval |]
+    go [SomeSEXP (returnIO -> a)]    = [| R.withProtected a evalIO |]
     go (SomeSEXP (returnIO -> a) : as) =
-        [| H.withProtected (io a) $ eval >=> \(SomeSEXP s) ->
-             H.withProtected (return s) (const $(go as))
+        [| R.withProtected a $ evalIO >=> \(SomeSEXP s) ->
+             R.withProtected (return s) (const $(go as))
          |]
 
 returnIO :: a -> IO a
@@ -129,7 +127,7 @@ instance TH.Lift (IO [SEXP s a]) where
         go []                       = [| return [] |]
         go [returnIO -> xio]        = [| xio >>= return . (:[]) |]
         go ((returnIO -> xio) : xs) =
-          [| withProtected xio $ $(go xs) . fmap . (:) |]
+          [| R.withProtected xio $ $(go xs) . fmap . (:) |]
 
 instance TH.Lift BS.ByteString where
     lift bs = let s = BS.unpack bs in [| BS.pack s |]
@@ -232,8 +230,8 @@ instance TH.Lift (IO (SEXP s a)) where
         , isSplice name -> do
           let nm = spliceNameChop name
           hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
-          [| withProtected (installIO ".Call") $ \call ->
-             withProtected (H.mkSEXPIO $hvar) $ \f -> do
+          [| R.withProtected (installIO ".Call") $ \call ->
+             R.withProtected (H.mkSEXPIO $hvar) $ \f -> do
                 rands <- randsio
                 unhexpIO . Lang call . Just =<< unhexpIO (List f rands Nothing)
            |]
@@ -243,7 +241,7 @@ instance TH.Lift (IO (SEXP s a)) where
       (hexp -> Expr n v) ->
         let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
                             $ Vector.toList v :: IO [SEXP s R.Any]
-         in [| withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
+         in [| R.withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
                  unhexpIO . Expr n . vector
              |]
       (returnIO . hexp -> iot) ->
@@ -253,37 +251,37 @@ instance TH.Lift (IO (HExp s a)) where
   lift = runIO >=> \case
     Nil -> [| return Nil |]
     Symbol (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| withProtected x0io $ \x0 ->
-         withProtected x1io $ \x1 ->
+      [| R.withProtected x0io $ \x0 ->
+         R.withProtected x1io $ \x1 ->
            fmap (Symbol x0 x1) x2io
         |]
     List (returnIO -> x0io) x1m (returnIO -> x2io) ->
-      [| withProtected x0io $ \x0 ->
+      [| R.withProtected x0io $ \x0 ->
            $(case x1m of
                Nothing  -> [| fmap (List x0 Nothing) x2io |]
                Just (returnIO -> x1io) ->
-                 [| withProtected x1io $ \x1 ->
+                 [| R.withProtected x1io $ \x1 ->
                       fmap (List x0 (Just x1)) x2io
                   |]
             )
         |]
     Env (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| withProtected x0io $ \x0 ->
-         withProtected x1io $ \x1 ->
+      [| R.withProtected x0io $ \x0 ->
+         R.withProtected x1io $ \x1 ->
            fmap (Env x0 x1) x2io
         |]
     Closure (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| withProtected x0io $ \x0 ->
-         withProtected x1io $ \x1 ->
+      [| R.withProtected x0io $ \x0 ->
+         R.withProtected x1io $ \x1 ->
            fmap (Closure x0 x1) x2io
         |]
     Promise (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| withProtected x0io $ \x0 ->
-         withProtected x1io $ \x1 ->
+      [| R.withProtected x0io $ \x0 ->
+         R.withProtected x1io $ \x1 ->
            fmap (Promise x0 x1) x2io
         |]
     Lang (returnIO -> x0io) (returnIO -> x1io) ->
-      [| withProtected x0io $ \x0 ->
+      [| R.withProtected x0io $ \x0 ->
            fmap (Lang x0) x1io
         |]
     Special                  x0  -> [| return $ Special x0 |]
@@ -301,9 +299,9 @@ instance TH.Lift (IO (HExp s a)) where
     ExtPtr _ _ _ -> violation "TH.Lift.lift HExp" "Attempted to lift an ExtPtr."
     WeakRef (returnIO -> x0io) (returnIO -> x1io)
             (returnIO -> x2io) (returnIO -> x3io) ->
-      [| withProtected x0io $ \x0 ->
-         withProtected x1io $ \x1 ->
-         withProtected x2io $ \x2 ->
+      [| R.withProtected x0io $ \x0 ->
+         R.withProtected x1io $ \x1 ->
+         R.withProtected x2io $ \x2 ->
            fmap (WeakRef x0 x1 x2) x3io
         |]
     Raw (returnIO -> x0io) -> [| fmap Raw x0io |]
