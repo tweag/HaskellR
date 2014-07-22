@@ -442,7 +442,7 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN
       -> `SEXP V a' sexp #}
 
 allocVectorProtected :: (R.IsVector a) => SSEXPTYPE a -> Int -> IO (SEXP s a)
-allocVectorProtected ty n = unsafeRelease <$> allocVector ty n
+allocVectorProtected ty n = fmap unsafeRelease (protect =<< allocVector ty n)
 
 -- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
 {#fun Rf_cons as cons { unsexp `SEXP s a', unsexp `SEXP s b' } -> `SEXP V R.List' sexp #}
