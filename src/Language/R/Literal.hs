@@ -15,6 +15,7 @@ module Language.R.Literal
   , mkSEXP
   , mkSEXPVector
   , mkSEXPVectorIO
+  , unsafeMkSEXP
   , HFunWrap(..)
   , funToSEXP
   , mkProtectedSEXPVector
@@ -22,6 +23,7 @@ module Language.R.Literal
     -- * wrapper helpers
   ) where
 
+import           Control.Memory.Region
 import           H.Internal.Prelude
 import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
@@ -43,12 +45,15 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    mkSEXPIO :: a -> IO (SEXP s b) -- XXX: should be `a -> IO (SEXP V b)`
+    mkSEXPIO :: a -> IO (SEXP V b)
     fromSEXP :: SEXP s c -> a
 
 {-# NOINLINE mkSEXP #-}
-mkSEXP :: Literal a b => a -> SEXP s b
-mkSEXP = unsafePerformIO . mkSEXPIO
+unsafeMkSEXP :: Literal a b => a -> SEXP V b
+unsafeMkSEXP = unsafePerformIO . mkSEXPIO
+
+mkSEXP :: (Literal a b, MonadR m) => a -> m (SEXP (Region m) b)
+mkSEXP x = acquire =<< io (mkSEXPIO x)
 
 {-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep s a), IsVector a)
