@@ -28,9 +28,10 @@ import Control.Applicative
 import Control.Concurrent.MVar
 import Control.Monad
 import Data.ByteString.Char8
-import Foreign (FunPtr, castFunPtr, peek)
+import Foreign (FunPtr, castFunPtr)
 import System.Mem.Weak
 import System.Mem
+import System.IO.Unsafe (unsafePerformIO)
 
 data HaveWeak a b = HaveWeak
        (R.SEXP0 -> IO R.SEXP0)
@@ -51,8 +52,8 @@ tests = testGroup "funptr"
   [ testCase "funptr is freed from R" $ do
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
-         _ <- R.withProtected (return $ mkSEXP hwr) $
-           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
+         _ <- R.withProtected (mkSEXPIO hwr) $
+           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (unsafeMkSEXP (2::Double))
          replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
@@ -63,3 +64,8 @@ tests = testGroup "funptr"
          s <- [r| foo_hs(1) |]
          return $ R.unSomeSEXP s fromSEXP
   ]
+
+
+unsafeMkSEXP :: Literal a b => a -> R.SEXP V b
+unsafeMkSEXP = unsafePerformIO . mkSEXPIO
+
