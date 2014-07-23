@@ -139,16 +139,19 @@ module Foreign.R
   , release
   , unsafeRelease
   , withProtected
+  , apply1
   ) where
 
 import Control.Memory.Region
 import {-# SOURCE #-} Language.R.HExp (HExp)
 import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
+import qualified Foreign.R.Error as R
 
 import Control.Applicative
+import Control.Monad (when, (>=>))
 import Control.Monad.Primitive ( unsafeInlineIO )
-import Control.Exception (bracket)
+import Control.Exception (bracket, throwIO)
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
@@ -157,6 +160,7 @@ import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
 #endif
+import Foreign (alloca)
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
@@ -642,3 +646,19 @@ withProtected create f =
       (do { x <- create; _ <- protect x; return x })
       (const $ unprotect 1)
       (f . unsafeRelease)
+
+-- | Call a pure unary R function of the given name in the global environment.
+--
+-- This function is here mainly for testing purposes.
+apply1 :: String -> SEXP s a -> IO (SomeSEXP V)
+apply1 fn a = do
+    rho <- peek globalEnv
+    withCString fn $ \cfn -> install cfn >>= \f ->
+      withProtected (lang2 f (release a)) $ \s ->
+        alloca $ \p -> do
+          z <- tryEvalSilent s rho p
+          e <- peek p
+          when (e /= 0) $ throwIO . R.RError =<< 
+	     (withProtected (withCString "geterrmessage" (install >=> lang1)) $ \g ->
+	       peekCString =<< char =<< peek =<< string . cast R.String =<< eval g (release rho))
+          return z

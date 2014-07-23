@@ -10,6 +10,7 @@ module Main where
 import qualified Test.Constraints
 import qualified Test.FunPtr
 import qualified Test.RVal
+import           Test.Missing
 
 import H.Prelude
 import H.Constraints
@@ -19,15 +20,13 @@ import qualified Language.R.Instance as R
     ( initialize
     , defaultConfig )
 import qualified Language.R as R
-    ( withProtected
-    , r2 )
+    ( withProtected )
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
 import Test.Tasty.Golden.Manage
 import Test.Tasty.HUnit
 
-import qualified Data.ByteString.Char8 (pack)
 import           Data.Text (Text)
 import qualified Data.Text    as T
 import qualified Data.Text.IO as T (readFile)
@@ -164,7 +163,7 @@ unitTests = testGroup "Unit tests"
           alloca $ \p -> do
             e <- peek R.globalEnv
             R.withProtected (return $ unsafeMkSEXP $ \x -> return $ x + 1 :: R s Double) $
-              \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
+              \sf -> apply2 ".Call"
                           sf
                           (unsafeMkSEXP (2::Double))
                      >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s (R.release e) p

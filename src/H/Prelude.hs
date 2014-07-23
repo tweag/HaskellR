@@ -69,7 +69,7 @@ show = unsafePerformIO . showIO
 instance Show (SEXP s a) where
   showIO s = Language.R.withProtected (return (R.release s)) $ \_ ->
            withCString "quote" $ R.install >=> \quote ->
-           R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
+           R.lang2 quote (R.release s) >>= R.apply1 "deparse" >>= \(SomeSEXP slang) ->
            return .
            Text.Lazy.fromChunks .
            map (Text.pack . Vector.toString . vector) .

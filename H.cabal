@@ -171,6 +171,7 @@ test-suite tests
   other-modules:       Test.RVal
                        Test.FunPtr
                        Test.Constraints
+                       Test.Missing
   ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
