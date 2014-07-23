@@ -24,7 +24,7 @@
 import Foreign.R (integer, SEXP, SomeSEXP(..))
 import qualified Foreign.R as R (SSEXPTYPE, SEXPTYPE(Int), typeOf, cast)
 import H.Prelude (withEmbeddedR, defaultConfig)
-import Language.R.Literal (mkSEXP)
+import Language.R.Literal (mkSEXPIO)
 import Language.R.HExp (hexp, HExp(..))
 import Data.Singletons (sing)
 
@@ -39,7 +39,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 main :: IO ()
 main = withEmbeddedR defaultConfig $ do
-    let x = mkSEXP (1 :: Int32)
+    x <- mkSEXPIO (1 :: Int32)
     defaultMain
       [ bgroup "vector access"
           [ bench "typeof>integer"   $ whnfIO $ benchInteger x
