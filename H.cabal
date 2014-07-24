@@ -178,6 +178,7 @@ test-suite tests
                        Test.FunPtr
                        Test.Constraints
                        Test.HExp
+                       Test.Regions
   -- Adding -j4 causes quasiquoters to be compiled concurrently
   -- in tests, which helps testing for race conditions when
   -- trying to initialize R from multiple threads.
