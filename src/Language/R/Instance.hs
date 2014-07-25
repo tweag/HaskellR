@@ -50,6 +50,9 @@ import Control.Concurrent.MVar
     ( newEmptyMVar
     , putMVar
     , takeMVar
+    , newMVar
+    , withMVar
+    , MVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
@@ -85,6 +88,7 @@ import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
@@ -145,26 +149,35 @@ initialize :: Config
            -> IO ()
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    unless initialized $ mdo
-      -- Grab addresses of R global variables
-      startRThread eventLoopThread
-      eventLoopThread <- forkIO $ forever $ do
-        threadDelay 30000
+    -- we check twice if R is initialized. The first test is fast since it
+    -- happens without taking an MVar. If R needs initialization, after
+    -- taking the MVar we check again if R is initialized to avoid
+    -- concurrent threads from initializing R multiple times. The user is
+    -- not expected to call initialize multiple times concurrently, but
+    -- there is nothing stopping the compiler from doing so when compiling
+    -- quasiquotes.
+    unless initialized $ withMVar initLock $ const $ do
+      initialized2 <- fmap (==1) $ peek isRInitializedPtr
+      unless initialized2 $ mdo
+        -- Grab addresses of R global variables
+        startRThread eventLoopThread
+        eventLoopThread <- forkIO $ forever $ do
+          threadDelay 30000
 #ifdef H_ARCH_WINDOWS
-        unsafeRunInRThread R.processEvents
+          unsafeRunInRThread R.processEvents
 #else
-        unsafeRunInRThread $
-          R.processGUIEventsUnix R.rInputHandlers
+          unsafeRunInRThread $
+            R.processGUIEventsUnix R.rInputHandlers
 #endif
-      unsafeRunInRThread $ do
-        populateEnv
-        args <- (:) <$> maybe getProgName return configProgName
-                    <*> pure configArgs
-        argv <- mapM newCString args
-        let argc = length argv
-        newCArray argv $ R.initUnlimitedEmbeddedR argc
-        poke R.rInteractive 0
-        poke isRInitializedPtr 1
+        unsafeRunInRThread $ do
+          populateEnv
+          args <- (:) <$> maybe getProgName return configProgName
+                      <*> pure configArgs
+          argv <- mapM newCString args
+          let argc = length argv
+          newCArray argv $ R.initUnlimitedEmbeddedR argc
+          poke R.rInteractive 0
+          poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
 finalize :: IO ()
@@ -261,3 +274,11 @@ unsafeRunInRThread action = do
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
+
+
+-- 'initialize' function should be run only once, but this is not a
+-- case in at the compile time, so we need to protect 'rIsInitialized'
+-- with this global lock.
+initLock :: MVar ()
+initLock = unsafePerformIO $ newMVar ()
+{-# NOINLINE initLock #-}

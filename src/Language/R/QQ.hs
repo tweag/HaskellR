@@ -105,7 +105,7 @@ returnIO = return
 parse :: String -> Q (R.SEXP R.Expr)
 parse txt = runIO $ do
     H.initialize H.defaultConfig
-    parseText txt False
+    unsafeRunInRThread $ parseText txt False
 
 parseExp :: String -> Q TH.Exp
 parseExp txt = TH.lift . returnIO =<< parse txt
