@@ -50,6 +50,9 @@ import Control.Concurrent.MVar
     ( newEmptyMVar
     , putMVar
     , takeMVar
+    , newMVar
+    , withMVar
+    , MVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
@@ -85,6 +88,7 @@ import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
@@ -140,31 +144,50 @@ newCArray xs k =
       zipWithM_ (pokeElemOff ptr) [0..] xs
       k ptr
 
+-- | An MVar to make an atomic step of checking whether R is initialized and
+-- initializing it if needed.
+initLock :: MVar ()
+initLock = unsafePerformIO $ newMVar ()
+{-# NOINLINE initLock #-}
+
+-- Note [Concurrent initialization]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- In 'initialize' we check a first time if R is initialized. This test is fast
+-- since it happens without taking an MVar. If R needs initialization, after
+-- taking the MVar we check again if R is initialized to avoid concurrent
+-- threads from initializing R multiple times. The user is not expected to call
+-- initialize multiple times concurrently, but there is nothing stopping the
+-- compiler from doing so when compiling quasiquotes.
+
 -- | Create a new embedded instance of the R interpreter.
 initialize :: Config
            -> IO ()
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    unless initialized $ mdo
-      -- Grab addresses of R global variables
-      startRThread eventLoopThread
-      eventLoopThread <- forkIO $ forever $ do
-        threadDelay 30000
+    -- See note [Concurrent initialization]
+    unless initialized $ withMVar initLock $ const $ do
+      initialized2 <- fmap (==1) $ peek isRInitializedPtr
+      unless initialized2 $ mdo
+        -- Grab addresses of R global variables
+        startRThread eventLoopThread
+        eventLoopThread <- forkIO $ forever $ do
+          threadDelay 30000
 #ifdef H_ARCH_WINDOWS
-        unsafeRunInRThread R.processEvents
+          unsafeRunInRThread R.processEvents
 #else
-        unsafeRunInRThread $
-          R.processGUIEventsUnix R.rInputHandlers
+          unsafeRunInRThread $
+            R.processGUIEventsUnix R.rInputHandlers
 #endif
-      unsafeRunInRThread $ do
-        populateEnv
-        args <- (:) <$> maybe getProgName return configProgName
-                    <*> pure configArgs
-        argv <- mapM newCString args
-        let argc = length argv
-        newCArray argv $ R.initUnlimitedEmbeddedR argc
-        poke R.rInteractive 0
-        poke isRInitializedPtr 1
+        unsafeRunInRThread $ do
+          populateEnv
+          args <- (:) <$> maybe getProgName return configProgName
+                      <*> pure configArgs
+          argv <- mapM newCString args
+          let argc = length argv
+          newCArray argv $ R.initUnlimitedEmbeddedR argc
+          poke R.rInteractive 0
+          poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
 finalize :: IO ()
