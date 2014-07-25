@@ -149,6 +149,13 @@ initialize :: Config
            -> IO ()
 initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
+    -- we check twice if R is initialized. The first test is fast since it
+    -- happens without taking an MVar. If R needs initialization, after
+    -- taking the MVar we check again if R is initialized to avoid
+    -- concurrent threads from initializing R multiple times. The user is
+    -- not expected to call initialize multiple times concurrently, but
+    -- there is nothing stopping the compiler from doing so when compiling
+    -- quasiquotes.
     unless initialized $ withMVar initLock $ const $ do
       initialized2 <- fmap (==1) $ peek isRInitializedPtr
       unless initialized2 $ mdo
