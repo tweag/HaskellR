@@ -50,6 +50,9 @@ import Control.Concurrent.MVar
     ( newEmptyMVar
     , putMVar
     , takeMVar
+    , newMVar
+    , withMVar
+    , MVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
@@ -85,6 +88,7 @@ import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
@@ -143,7 +147,7 @@ newCArray xs k =
 -- | Create a new embedded instance of the R interpreter.
 initialize :: Config
            -> IO ()
-initialize Config{..} = do
+initialize Config{..} = withMVar initLock $ const $ do -- XXX see initLog definition
     initialized <- fmap (==1) $ peek isRInitializedPtr
     unless initialized $ mdo
       -- Grab addresses of R global variables
@@ -261,3 +265,11 @@ unsafeRunInRThread action = do
 
 -- | A static address that survives GHCi reloadings.
 foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (StablePtr (OSThreadId,Chan (IO ())))
+
+
+-- 'initialize' function should be run only once, but this is not a
+-- case in at the compile time, so we need to protect 'rIsInitialized'
+-- with this global lock.
+initLock :: MVar ()
+initLock = unsafePerformIO $ newMVar ()
+{-# NOINLINE initLock #-}
