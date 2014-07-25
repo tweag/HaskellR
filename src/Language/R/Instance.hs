@@ -147,28 +147,30 @@ newCArray xs k =
 -- | Create a new embedded instance of the R interpreter.
 initialize :: Config
            -> IO ()
-initialize Config{..} = withMVar initLock $ const $ do -- XXX see initLog definition
+initialize Config{..} = do
     initialized <- fmap (==1) $ peek isRInitializedPtr
-    unless initialized $ mdo
-      -- Grab addresses of R global variables
-      startRThread eventLoopThread
-      eventLoopThread <- forkIO $ forever $ do
-        threadDelay 30000
+    unless initialized $ withMVar initLock $ const $ do
+      initialized2 <- fmap (==1) $ peek isRInitializedPtr
+      unless initialized2 $ mdo
+        -- Grab addresses of R global variables
+        startRThread eventLoopThread
+        eventLoopThread <- forkIO $ forever $ do
+          threadDelay 30000
 #ifdef H_ARCH_WINDOWS
-        unsafeRunInRThread R.processEvents
+          unsafeRunInRThread R.processEvents
 #else
-        unsafeRunInRThread $
-          R.processGUIEventsUnix R.rInputHandlers
+          unsafeRunInRThread $
+            R.processGUIEventsUnix R.rInputHandlers
 #endif
-      unsafeRunInRThread $ do
-        populateEnv
-        args <- (:) <$> maybe getProgName return configProgName
-                    <*> pure configArgs
-        argv <- mapM newCString args
-        let argc = length argv
-        newCArray argv $ R.initUnlimitedEmbeddedR argc
-        poke R.rInteractive 0
-        poke isRInitializedPtr 1
+        unsafeRunInRThread $ do
+          populateEnv
+          args <- (:) <$> maybe getProgName return configProgName
+                      <*> pure configArgs
+          argv <- mapM newCString args
+          let argc = length argv
+          newCArray argv $ R.initUnlimitedEmbeddedR argc
+          poke R.rInteractive 0
+          poke isRInitializedPtr 1
 
 -- | Finalize an R instance.
 finalize :: IO ()
