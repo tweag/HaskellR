@@ -5,6 +5,7 @@
 -- comparing the output of H with the output of R.
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Main where
 
 import qualified Test.Constraints
@@ -21,6 +22,7 @@ import qualified Language.R.Instance as R
 import qualified Language.R as R
     ( withProtected
     , r2 )
+import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
@@ -183,6 +185,7 @@ unitTests = testGroup "Unit tests"
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests
+  , testCase "qq/double-initialization" $ unsafeRunInRThread $ unsafeRToIO $ [r| 1 |] >> return ()
   , testCase "sanity check " $ unsafeRunInRThread $ return ()
   ]
 
