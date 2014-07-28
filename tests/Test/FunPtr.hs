@@ -8,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Test.FunPtr
   ( tests )
   where
@@ -17,6 +18,7 @@ import qualified Language.R.Internal.FunWrappers as R
 import qualified Foreign.R as R
 import qualified Foreign.R.Type as SingR
 import qualified Language.R as R (withProtected, r2)
+import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
@@ -44,7 +46,7 @@ instance Literal (HaveWeak a b) R.ExtPtr where
   fromSEXP = error "not now"
 
 tests :: TestTree
-tests = testGroup "Tests"
+tests = testGroup "funptr"
   [ testCase "funptr is freed from R" $ do
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
@@ -55,4 +57,9 @@ tests = testGroup "Tests"
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
+  , testCase "funptr works in quasi-quotes" $
+       (((2::Double) @=?) =<<) $ unsafeRunInRThread $ unsafeRToIO $ do
+         let foo = (\x -> return $ x + 1) :: Double -> R Double
+	 s <- [r| foo_hs(1) |]
+	 return $ R.unSomeSEXP s fromSEXP
   ]

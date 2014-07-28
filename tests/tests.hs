@@ -6,6 +6,7 @@
 
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Main where
 
 import qualified Test.Constraints
@@ -22,6 +23,7 @@ import qualified Language.R.Instance as R
 import qualified Language.R as R
     ( withProtected
     , r2 )
+import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.Golden.Advanced
@@ -110,8 +112,8 @@ scriptCase name scriptPath =
     -- output is not very predictable it can output up to 6
     -- characters or round them.
     compareValues :: Text -> Text -> Bool
-    compareValues r h =
-      let (r': rs') = T.words r
+    compareValues rO h =
+      let (r': rs') = T.words rO
           (h': hs') = T.words h
       in (r' == h') && (all eqEpsilon $ zip (map (read . T.unpack) rs' :: [Double]) (map (read . T.unpack) hs' :: [Double]))
     eqEpsilon :: (Double, Double) -> Bool
@@ -192,6 +194,10 @@ unitTests = testGroup "Unit tests"
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests
+    -- This test helps compiling quasiquoters concurrently from
+    -- multiple modules. This in turns helps testing for race
+    -- conditions when initializing R from multiple threads.
+  , testCase "qq/concurrent-initialization" $ unsafeRunInRThread $ unsafeRToIO $ [r| 1 |] >> return ()
   , testCase "sanity check " $ unsafeRunInRThread $ return ()
   ]
 
