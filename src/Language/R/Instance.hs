@@ -31,6 +31,7 @@ module Language.R.Instance
   , unsafeRToIO
   , Config(..)
   , defaultConfig
+  , MonadR(..)
   -- * R instance creation
   , initialize
   , getPostToCurrentRThread

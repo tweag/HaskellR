@@ -169,9 +169,11 @@ test-suite tests
                      , tasty >= 0.3
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
+                     , tasty-smallcheck
                      , text >= 0.11
                      , vector
                      , singletons
+                     , smallcheck >= 0.11
   other-modules:       Test.RVal
                        Test.FunPtr
                        Test.Constraints
