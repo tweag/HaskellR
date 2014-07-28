@@ -170,7 +170,7 @@ data HExp :: SEXPTYPE -> * where
 newtype E a = E (SEXP a)
 
 instance HEq E where
-  E (hexp -> t1) === E (hexp -> t2) = t1 === t2
+  E x@(hexp -> t1) === E y@(hexp -> t2) = R.unsexp x == R.unsexp y || t1 === t2
 
 heqMaybe :: Maybe (SEXP a) -> Maybe (SEXP b) -> Bool
 heqMaybe (Just x) (Just y) = E x === E y
