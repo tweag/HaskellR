@@ -90,6 +90,7 @@ library
                      , singletons >= 0.9
                      , th-lift >= 0.6
                      , transformers >= 0.3
+                     , deepseq >= 1.3
   hs-source-dirs:      src
   includes:            cbits/Hcompat.h cbits/missing_r.h
   c-sources:           cbits/missing_r.c
@@ -171,6 +172,8 @@ test-suite tests
   other-modules:       Test.RVal
                        Test.FunPtr
                        Test.Constraints
+                       Test.Missing
+                       Test.Regions
   ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010

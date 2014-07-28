@@ -10,9 +10,7 @@
 {-# Language GADTs #-}
 
 module Language.R
-  ( r1
-  , r2
-  , parseFile
+  ( parseFile
   , parseText
   , install
   , installIO
@@ -74,20 +72,6 @@ parseEval txt = useAsCString txt $ \ctxt ->
 -- a low level and wraps are simple that are too cheap to run under high
 -- level interface.
 
--- | Call a pure unary R function of the given name in the global environment.
---
--- This function is here mainly for testing purposes.
-r1 :: ByteString -> SEXP s a -> IO (SomeSEXP V)
-r1 fn a =
-    useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      withProtected (R.lang2 f (R.release a)) evalIO
-
--- | Call a pure binary R function. See 'r1' for additional comments.
-r2 :: ByteString -> SEXP s a -> SEXP s b -> IO (SomeSEXP V)
-r2 fn a b =
-    useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      withProtected (R.lang3 f (R.release a) (R.release b)) evalIO
-
 -- | Parse file and perform some actions on parsed file.
 --
 -- This function uses continuation because this is an easy way to make
@@ -98,7 +82,7 @@ parseFile :: FilePath -> (SEXP s R.Expr -> IO a) -> IO a
 parseFile fl f = do
     withCString fl $ \cfl ->
       withProtected (R.mkString cfl) $ \rfl ->
-        r1 (C8.pack "parse") rfl >>= \(R.SomeSEXP s) ->
+        R.apply1 "parse" rfl >>= \(R.SomeSEXP s) ->
           return (R.unsafeCoerce s) `withProtected` f
 
 parseText :: String                               -- ^ Text to parse

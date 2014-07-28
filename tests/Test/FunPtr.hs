@@ -17,7 +17,9 @@ import H.Prelude
 import qualified Language.R.Internal.FunWrappers as R
 import qualified Foreign.R as R hiding (withProtected)
 import qualified Foreign.R.Type as SingR
-import qualified Language.R as R (withProtected, r2)
+import qualified Language.R as R (withProtected)
+
+import Test.Missing
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
@@ -25,7 +27,6 @@ import Test.Tasty.HUnit
 import Control.Applicative
 import Control.Concurrent.MVar
 import Control.Monad
-import Data.ByteString.Char8
 import Foreign (FunPtr, castFunPtr, peek)
 import System.Mem.Weak
 import System.Mem
@@ -50,8 +51,8 @@ tests = testGroup "Tests"
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
          e <- peek R.globalEnv
-         _ <- R.withProtected (return $ mkSEXP hwr) $
-           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
+         _ <- R.withProtected (mkSEXPIO hwr) $
+           \sf -> return $ apply2 ".Call" sf (unsafeMkSEXP (2::Double))
          replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
