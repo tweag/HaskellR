@@ -31,6 +31,8 @@ module Language.R.Instance
   , unsafeRToIO
   , Config(..)
   , defaultConfig
+  , io
+  , acquire
   -- * R instance creation
   , initialize
   , getPostToCurrentRThread
@@ -111,6 +113,13 @@ instance MonadR (R s) where
     x <- R.release <$> R.protect s
     modifyIORef' cnt succ
     return x
+
+{-
+instance (MonadMask (m r), MonadCatch (m r), MonadTrans m, MonadR r) => MonadR (m r) where
+  type Region (m r) = Region r
+  io = lift . io
+  acquire = lift . acquire
+-}
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance. 

@@ -40,6 +40,7 @@ module Language.R.HExp
   , unhexp
   , vector
   , selfSymbol
+  , heqMaybe
   ) where
 
 import Control.Applicative
@@ -175,7 +176,9 @@ instance HEq (E s) where
 heqMaybe :: Maybe (SEXP s a) -> Maybe (SEXP s b) -> Bool
 heqMaybe (Just x) (Just y) = E x === E y
 heqMaybe Nothing Nothing = True
-heqMaybe _ _  = False
+heqMaybe (Just nl) Nothing  | R.unsexp nl == R.unsexp H.nilValue  = True
+heqMaybe Nothing  (Just nl) | R.unsexp nl == R.unsexp H.nilValue  = True
+heqMaybe _ _ = False
 
 instance HEq (HExp s) where
   Nil === Nil = True
