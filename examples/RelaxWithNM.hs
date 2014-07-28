@@ -1,3 +1,7 @@
+-- This program was contributed by Dominic Steinitz
+--
+-- Runs an optimization based on the Nelder-Mean method
+-- that allows to work with non smooth functions.
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE LambdaCase #-}
@@ -19,7 +23,6 @@ import qualified Foreign.R as R
 
 import Data.Int
 
-
 import Control.DeepSeq
 import Control.Applicative
 import Control.Monad
@@ -29,19 +32,28 @@ import Numeric.Integration.TanhSinh
 instance Num a => Num (b -> a) where
   (+) = liftM2 (+)
 
+---------------------------------------------------------------------------------
+-- Helpers
+---------------------------------------------------------------------------------
+
+-- | Safe version of a 'head' function. This function will return
+-- print a predefined error message when list is empty
 safeHead :: String -> [a] -> a
 safeHead msg [] = error $ "You have erred: " ++ msg
 safeHead _   xs = head xs
 
+-- | Maximum number of interations
 maxRelaxIters :: Int
 maxRelaxIters = 100
 
+-- | Force as a function of time
 forcingFunction :: Double -> Double
 forcingFunction = (\t -> bigA * sin (omega * t))
   where
     omega = 1.0
     bigA  = 1.0
 
+-- | Convolution function
 (.*.) :: (Double -> Double)
          -> (Double -> Double) -> Double -> Double
 f .*. g = h
