@@ -5,6 +5,7 @@
 -- comparing the output of H with the output of R.
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 module Main where
 
 import qualified Test.Constraints
@@ -32,6 +33,7 @@ import           Data.Text (Text)
 import qualified Data.Text    as T
 import qualified Data.Text.IO as T (readFile)
 import           Data.Vector.Generic (basicUnsafeIndexM)
+import           Data.Singletons (sing)
 
 import Control.Monad (guard)
 import Control.Monad.Trans
@@ -183,7 +185,7 @@ unitTests = testGroup "Unit tests"
       return ()
   , testCase "Hexp works" $ unsafeRunInRThread $
       (((42::Double) @=?) =<<) $
-         let y = R.cast R.Real (R.SomeSEXP (mkSEXP (42::Double)))
+         let y = R.scast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
          in case H.hexp y of
               H.Bytecode -> return 15 
               H.Real s -> basicUnsafeIndexM s 0

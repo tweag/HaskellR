@@ -36,6 +36,7 @@ module Foreign.R
     -- * Casts and coercions
     -- $cast-coerce
   , cast
+  , scast
   , asTypeOf
   , unsafeCoerce
     -- * Node creation
@@ -273,6 +274,10 @@ cast :: SEXPTYPE -> SomeSEXP -> SEXP b
 cast ty (SomeSEXP s)
   | ty == typeOf s = unsafeCoerce s
   | otherwise = error "cast: Dynamic type cast failed."
+
+
+scast :: SSEXPTYPE a -> SomeSEXP -> SEXP a
+scast ty s = cast (fromSing ty) s
 
 -- | Cast form of first argument to that of the second argument.
 asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
