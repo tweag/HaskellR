@@ -89,12 +89,12 @@
 		</ComponentGroup>
 		<!-- 4. Manual -->
 		<Component Id="ComponentManual" Directory="DirectoryManuals">
-			<File Id="FileUserManualPdf" Name="H-user.pdf" DiskId="1" Source="H/H-user.pdf" KeyPath="yes">
+			<File Id="FileUserManualPdf" Name="H-user.html" DiskId="1" Source="H/H-user.html" KeyPath="yes">
 				<Shortcut Id="StartmenuManual" Directory="ProgramMenuDir" Name="User's Manual" Advertise="yes"/>
 			</File>
 		</Component>
 		<Component Id="ComponentManual2" Directory="DirectoryManuals">
-			<File Id="FileUserManualPdf2" Name="H-ints.pdf" DiskId="1" Source="H/H-ints.pdf" KeyPath="yes">
+			<File Id="FileUserManualPdf2" Name="H-ints.html" DiskId="1" Source="H/H-ints.html" KeyPath="yes">
 				<Shortcut Id="StartmenuManual2" Directory="ProgramMenuDir" Name="H Internals Manual" Advertise="yes"/>
 			</File>
 		</Component>
