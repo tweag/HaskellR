@@ -36,10 +36,10 @@ H-$(VERSION):
 
 prepare-pdf: H/H-user.pdf H/H-ints.pdf
 
-H/H-user.pdf:
+H/H-user.html:
 	$(PANDOC) -f markdown -s -S --toc ../../doc/H-user.md -o $@
 
-H/H-ints.pdf:
+H/H-ints.html:
 	$(PANDOC) -f markdown -s -S --toc ../../doc/H-ints.md -o $@
 
 HP/$(HP_INSTALLER):
