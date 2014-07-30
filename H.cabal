@@ -18,6 +18,7 @@ extra-source-files:   cbits/Hcompat.h
                       tests/ghci/qq.ghci.golden.output
                       tests/ghci/qq-stderr.ghci.golden.output
                       tests/ghci/compile-qq.ghci.golden.output
+                      tests/ghci/qq-benchmarks.ghci
                       tests/shootout/binarytrees.R
                       tests/shootout/fasta.R
                       tests/shootout/knucleotide.R
