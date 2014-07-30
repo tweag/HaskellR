@@ -33,6 +33,7 @@ extra-source-files:   cbits/Hcompat.h
                       tests/shootout/spectralnorm-math.R
                       tests/shootout/fannkuchredux.R
                       tests/R/fib.R
+                      tests/R/fib-benchmark.R
                       tests/ghciH.sh
                       tests/ghcH.sh
                       tests/sandbox-utils.sh
