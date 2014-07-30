@@ -22,7 +22,7 @@
 {-# LANGUAGE DataKinds #-}
 
 import Foreign.R (integer, SEXP, SomeSEXP(..))
-import qualified Foreign.R as R (SSEXPTYPE, SEXPTYPE(Int), typeOf, scast)
+import qualified Foreign.R as R (SSEXPTYPE, SEXPTYPE(Int), typeOf, cast)
 import H.Prelude (runR, defaultConfig, io)
 import Language.R.Literal (mkSEXP)
 import Language.R.HExp (hexp, HExp(..))
@@ -73,7 +73,7 @@ benchUncheckedInteger x = integer x >>= (peek :: Ptr Int32 -> IO Int32)
 
 benchCast :: SomeSEXP -> Int32
 benchCast x@(SomeSEXP z) =
- let y = R.scast (sing :: R.SSEXPTYPE R.Int) x
+ let y = R.cast (sing :: R.SSEXPTYPE R.Int) x
  in case hexp y of
       Bytecode -> error $ "hello! ^_^" ++ show (R.typeOf z, R.typeOf y)
       Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0

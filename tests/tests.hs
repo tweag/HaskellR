@@ -170,7 +170,7 @@ unitTests = testGroup "Unit tests"
               \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
                           sf
                           (mkSEXP (2::Double))
-                     >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s e p
+                     >>= \(R.SomeSEXP s) -> R.cast (sing :: R.SSEXPTYPE R.Real) <$> R.tryEval s e p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
       key  <- return $ mkSEXP (return 4 :: R Int32)
       val  <- return $ mkSEXP (return 5 :: R Int32)
@@ -185,7 +185,7 @@ unitTests = testGroup "Unit tests"
       return ()
   , testCase "Hexp works" $ unsafeRunInRThread $
       (((42::Double) @=?) =<<) $
-         let y = R.scast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
+         let y = R.cast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
          in case H.hexp y of
               H.Bytecode -> return 15 
               H.Real s -> basicUnsafeIndexM s 0
