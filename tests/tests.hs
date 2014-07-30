@@ -5,6 +5,7 @@
 -- comparing the output of H with the output of R.
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 module Main where
 
 import qualified Test.Constraints
@@ -31,6 +32,8 @@ import qualified Data.ByteString.Char8 (pack)
 import           Data.Text (Text)
 import qualified Data.Text    as T
 import qualified Data.Text.IO as T (readFile)
+import           Data.Vector.Generic (basicUnsafeIndexM)
+import           Data.Singletons (sing)
 
 import Control.Monad (guard)
 import Control.Monad.Trans
@@ -167,7 +170,7 @@ unitTests = testGroup "Unit tests"
               \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
                           sf
                           (mkSEXP (2::Double))
-                     >>= \(R.SomeSEXP s) -> R.cast R.Real <$> R.tryEval s e p
+                     >>= \(R.SomeSEXP s) -> R.cast (sing :: R.SSEXPTYPE R.Real) <$> R.tryEval s e p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
       key  <- return $ mkSEXP (return 4 :: R Int32)
       val  <- return $ mkSEXP (return 5 :: R Int32)
@@ -180,6 +183,12 @@ unitTests = testGroup "Unit tests"
                   return $ (R.unsexp c) == (R.unsexp (H.unhexp H.Nil))
                 _ -> error "unexpected type"
       return ()
+  , testCase "Hexp works" $ unsafeRunInRThread $
+      (((42::Double) @=?) =<<) $
+         let y = R.cast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
+         in case H.hexp y of
+              H.Bytecode -> return 15 
+              H.Real s -> basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests

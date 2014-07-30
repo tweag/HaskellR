@@ -31,7 +31,7 @@ import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Language.R ( withProtected )
 
-import Data.Singletons ( SingI, fromSing, sing )
+import Data.Singletons ( SingI, sing )
 
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
@@ -147,7 +147,7 @@ instance Literal (Complex Double) R.Complex where
 
 instance SingI a => Literal (SEXP a) a where
     mkSEXPIO  = return
-    fromSEXP = R.cast (fromSing (sing :: SSEXPTYPE a)) . SomeSEXP
+    fromSEXP = R.cast (sing :: SSEXPTYPE a) . SomeSEXP
 
 instance Literal SomeSEXP R.Any where
     -- The ANYSXP type in R plays the same role as SomeSEXP in H. It is a dummy

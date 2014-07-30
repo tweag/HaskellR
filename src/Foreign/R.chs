@@ -266,17 +266,20 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (castPtr s) (castPtr s')
 -- akin to the difference between a C-style typecasts and C++-style
 -- @dynamic_cast@'s.
 
--- | Cast the type of a 'SEXP' into another type. This function is partial: at
--- runtime, an error is raised if the source form tag does not match the target
--- form tag.
-cast :: SEXPTYPE -> SomeSEXP -> SEXP b
-cast ty (SomeSEXP s)
+unsafeCast :: SEXPTYPE -> SomeSEXP -> SEXP b
+unsafeCast ty (SomeSEXP s)
   | ty == typeOf s = unsafeCoerce s
   | otherwise = error "cast: Dynamic type cast failed."
 
+-- | Cast the type of a 'SEXP' into another type. This function is partial: at
+-- runtime, an error is raised if the source form tag does not match the target
+-- form tag.
+cast :: SSEXPTYPE a -> SomeSEXP -> SEXP a
+cast ty s = unsafeCast (fromSing ty) s
+
 -- | Cast form of first argument to that of the second argument.
 asTypeOf :: SomeSEXP -> SEXP a -> SEXP a
-asTypeOf s s' = typeOf s' `cast` s
+asTypeOf s s' = typeOf s' `unsafeCast` s
 
 -- | Unsafe coercion from one form to another. This is unsafe, in the sense that
 -- using this function improperly could cause code to crash in unpredictable

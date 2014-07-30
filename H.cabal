@@ -167,6 +167,8 @@ test-suite tests
                      , tasty-golden >= 2.1
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11
+                     , vector
+                     , singletons
   other-modules:       Test.RVal
                        Test.FunPtr
                        Test.Constraints
@@ -250,6 +252,7 @@ benchmark hexp-benchmark
                      , criterion >= 0.8
                      , primitive >= 0.5
                      , vector >= 0.10
+                     , singletons
   ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010

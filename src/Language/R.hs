@@ -52,6 +52,7 @@ import Foreign
     , castPtr
     , peek
     )
+import Data.Singletons (sing)
 import Foreign.C.String ( withCString, peekCString )
 
 -- | Parse and then evaluate expression.
@@ -106,7 +107,7 @@ parseText :: String                               -- ^ Text to parse
 parseText txt b = do
     s <- parseEval $ C8.pack $
          "parse(text=" ++ show txt ++ ", keep.source=" ++ keep ++ ")"
-    return $ R.Expr `R.cast` s
+    return $ (sing :: R.SSEXPTYPE R.Expr) `R.cast` s
   where
     keep | b         = "TRUE"
          | otherwise = "FALSE"
@@ -172,4 +173,4 @@ throwRMessage = throwIO . R.RError
 getErrMsg :: R.SEXP R.Env -> IO String
 getErrMsg e = do
   f <- withCString "geterrmessage" (R.install >=> R.lang1)
-  peekCString =<< R.char =<< peek =<< R.string . R.cast R.String =<< R.eval f e
+  peekCString =<< R.char =<< peek =<< R.string . R.cast (sing :: R.SSEXPTYPE R.String) =<< R.eval f e
