@@ -31,6 +31,7 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Language.R.HExp
@@ -162,6 +163,8 @@ data HExp :: * -> SEXPTYPE -> * where
   -- Fields: tagval.
   S4        :: SEXP s a
             -> HExp s R.S4
+
+deriving instance Show (HExp s a)
 
 -- | Wrapper for partially applying a type synonym.
 newtype E s a = E (SEXP s a)
