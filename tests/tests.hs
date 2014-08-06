@@ -147,20 +147,20 @@ ghciSession name scriptPath =
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
   [ testCase "fromSEXP . mkSEXP" $ unsafeRunInRThread $
-      (2 :: Double) @=? fromSEXP (mkSEXP (2 :: Double))
+      (2 :: Double) @=? fromSEXP (unsafeMkSEXP (2 :: Double))
   , testCase "HEq HExp" $ unsafeRunInRThread $ do
       -- XXX ideally randomly generate input.
       let x = 2 :: Double
       assertBool "reflexive" $
-          let s = H.hexp $ mkSEXP x in s === s
+          let s = H.hexp $ unsafeMkSEXP x in s === s
       assertBool "symmetric" $
-          let s1 = H.hexp $ mkSEXP x
-              s2 = H.hexp $ mkSEXP x
+          let s1 = H.hexp $ unsafeMkSEXP x
+              s2 = H.hexp $ unsafeMkSEXP x
           in s1 === s2 && s2 === s1
       assertBool "transitive" $
-          let s1 = H.hexp $ mkSEXP x
-              s2 = H.hexp $ mkSEXP x
-              s3 = H.hexp $ mkSEXP x
+          let s1 = H.hexp $ unsafeMkSEXP x
+              s2 = H.hexp $ unsafeMkSEXP x
+              s3 = H.hexp $ unsafeMkSEXP x
           in s1 === s2 && s2 === s3 && s1 === s3
   , testCase "Haskell function from R" $ unsafeRunInRThread $ do
 --      (("[1] 3.0" @=?) =<<) $
@@ -168,14 +168,15 @@ unitTests = testGroup "Unit tests"
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
-            R.withProtected (return $ mkSEXP $ \x -> return $ x + 1 :: R s Double) $
+            R.withProtected (return $ unsafeMkSEXP $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.r2 (Data.ByteString.Char8.pack ".Call")
                           sf
-                          (mkSEXP (2::Double))
-                     >>= \(R.SomeSEXP s) -> R.cast (sing :: R.SSEXPTYPE R.Real) <$> R.tryEval s (R.release e) p
+                          (unsafeMkSEXP (2::Double))
+                     >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE R.Real)
+                                                    <$> R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ runRegion $ do
-      key  <- return $ mkSEXP (return 4 :: R s Int32)
-      val  <- return $ mkSEXP (return 5 :: R s Int32)
+      key  <- mkSEXP (return 4 :: R s Int32)
+      val  <- mkSEXP (return 5 :: R s Int32)
       True <- return $ R.typeOf val == R.ExtPtr
       n    <- H.unhexp H.Nil
       rf   <- io $ R.mkWeakRef key val n True
@@ -187,11 +188,12 @@ unitTests = testGroup "Unit tests"
                 _ -> error "unexpected type"
       return ()
   , testCase "Hexp works" $ unsafeRunInRThread $
-      (((42::Double) @=?) =<<) $
-         let y = R.cast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
-         in case H.hexp y of
-              H.Bytecode -> return 15 
-              H.Real s -> basicUnsafeIndexM s 0
+      (((42::Double) @=?) =<<) $ runRegion $ do
+         y <- R.cast (sing :: R.SSEXPTYPE R.Real) . R.SomeSEXP
+                     <$> mkSEXP (42::Double)
+         case H.hexp y of
+           H.Bytecode -> return 15
+           H.Real s -> io $ basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.RVal.tests

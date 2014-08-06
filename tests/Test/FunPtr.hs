@@ -52,8 +52,8 @@ tests = testGroup "funptr"
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
          e <- peek R.globalEnv
-         _ <- R.withProtected (return $ mkSEXP hwr) $
-           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
+         _ <- R.withProtected (mkSEXPIO hwr) $
+           \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (unsafeMkSEXP (2::Double))
          replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
