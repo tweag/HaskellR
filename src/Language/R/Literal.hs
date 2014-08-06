@@ -43,7 +43,11 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    mkSEXPIO :: a -> IO (SEXP s b) -- XXX: should be `a -> IO (SEXP V b)`
+    mkSEXPIO :: a -> IO (SEXP s b)
+    -- XXX: should be `a -> IO (SEXP V b)`
+    -- The problem here is that SEXP is not protected, so effectively
+    -- it's in a void region, except the cases when 'a' is protected
+    -- in 's'.
     fromSEXP :: SEXP s c -> a
 
 {-# NOINLINE mkSEXP #-}
