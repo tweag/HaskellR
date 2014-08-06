@@ -204,7 +204,7 @@ unsexp = castPtr . unSEXP
 somesexp :: SEXP0 -> SomeSEXP s
 somesexp = SomeSEXP . sexp
 
-release :: ((k `IsAncestorOf` v)  ~ True) => SEXP k a -> SEXP v a
+release :: (k `IsAncestorOf` v) => SEXP k a -> SEXP v a
 release = unsafeRelease
 
 unsafeRelease :: SEXP s a -> SEXP r a
