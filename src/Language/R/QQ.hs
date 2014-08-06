@@ -308,3 +308,7 @@ instance TH.Lift (IO (HExp s a)) where
         |]
     Raw (returnIO -> x0io) -> [| fmap Raw x0io |]
     S4  (returnIO -> x0io) -> [| fmap S4  x0io |]
+
+unhexpIO :: HExp s a -> IO (SEXP s a)
+unhexpIO = unsafeRToIO . unhexp
+

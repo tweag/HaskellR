@@ -37,7 +37,6 @@ module Language.R.HExp
   ( HExp(..)
   , hexp
   , unhexp
-  , unhexpIO
   , vector
   , selfSymbol
   ) where
@@ -383,9 +382,6 @@ hexp = unsafeInlineIO . peek . R.unSEXP
 
 -- | Function for backcompatibility, this functions runs a subregion and returns
 -- an unprotected 'SEXP'.
-unhexpIO :: HExp s a -> IO (SEXP s a)
-unhexpIO = unsafeRToIO . unhexp
-
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
