@@ -204,7 +204,10 @@ unsexp = castPtr . unSEXP
 somesexp :: SEXP0 -> SomeSEXP s
 somesexp = SomeSEXP . sexp
 
-release :: (k `IsAncestorOf` v) => SEXP k a -> SEXP v a
+-- | Release object into another region. Releasing is safe so long as the target
+-- region is "smaller" than the source region, in the sense of
+-- '(Control.Memory.Region.<=)'.
+release :: (t <= s) => SEXP s a -> SEXP t a
 release = unsafeRelease
 
 unsafeRelease :: SEXP s a -> SEXP r a

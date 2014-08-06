@@ -7,11 +7,18 @@ module Control.Memory.Region where
 import GHC.Exts (Constraint)
 
 data GlobalRegion
+
 data Void
 
+-- | Convenient shorthand.
 type G = GlobalRegion
+
+-- | Convenient shorthand.
 type V = Void
 
-type family   IsAncestorOf a b :: Constraint
-type instance IsAncestorOf G x = ()
-type instance IsAncestorOf x V = ()
+-- | A partial order on regions. In fact regions form a lattice, with
+-- 'GlobalRegion' being the supremum and 'Void' the infimum.
+type family   a <= b :: Constraint
+type instance a <= a = ()
+type instance a <= G = ()
+type instance V <= b = ()
