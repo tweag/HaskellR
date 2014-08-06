@@ -465,7 +465,7 @@ maybeNil s = do
 -- | Symbols can have values attached to them. This function creates a symbol
 -- whose value is itself.
 selfSymbol :: SEXP s R.Char -> IO (SEXP s R.Symbol)
-selfSymbol pname = do
-    s <- unhexpIO $ Symbol pname (R.sexp nullPtr) Nothing
-    R.setCdr s s
+selfSymbol pname = unsafeRToIO $ do
+    s <- unhexp $ Symbol pname (R.sexp nullPtr) Nothing
+    io $ R.setCdr s s
     return s
