@@ -46,8 +46,7 @@ import H.Internal.Prelude
 import qualified Language.R.Globals as H
 import qualified Foreign.R      as R
 import qualified Foreign.R.Type as R
-import           Foreign.R (SEXPREC)
-import           Language.R.GC (withProtected)
+import           Foreign.R (SEXPREC, withProtected)
 
 import qualified Data.Vector.SEXP as Vector
 
@@ -387,9 +386,9 @@ hexp = unsafeInlineIO . peek . R.unSEXP
 -- however for vector types it will return original SEXP.
 unhexp :: MonadR m => HExp (Region m) a -> m (SEXP (Region m) a)
 unhexp   Nil = return $ R.release H.nilValue
-unhexp s@(Symbol{}) =
-  withProtected (io $ R.allocSEXP R.SSymbol)
-                (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp s@(Symbol{}) = io $
+  withProtected (R.allocSEXP R.SSymbol)
+                (\x -> poke (R.unSEXP x) s >> return x)
 unhexp (List c md mt) = acquire <=< io $ do
   rc <- R.protect c
   rd <- R.protect $ maybe (R.unsafeCoerce $ R.unsafeRelease $ H.nilValue) id md
@@ -407,21 +406,21 @@ unhexp (Lang carval mbcdrval) = acquire <=< io $ do
     R.setCdr x (R.release cdrval')
     R.unprotect 2
     return x
-unhexp s@(Env{})     =
-    withProtected (io $ R.allocSEXP R.SEnv)
-                  (\x -> io $ poke (R.unSEXP x) s >> return x)
-unhexp s@(Closure{}) =
-    withProtected (io $ R.allocSEXP R.SClosure)
-                  (\x -> io $ poke (R.unSEXP x) s >> return x)
-unhexp s@(Special{}) =
-    withProtected (io $ R.allocSEXP R.SSpecial)
-                  (\x -> io $ poke (R.unSEXP x) s >> return x)
-unhexp s@(Builtin{}) =
-    withProtected (io $ R.allocSEXP R.SBuiltin)
-                  (\x -> io $ poke (R.unSEXP x) s >> return x)
-unhexp s@(Promise{}) =
-    withProtected (io $ R.allocSEXP R.SPromise)
-                  (\x -> io $ poke (R.unSEXP x) s >> return x)
+unhexp s@(Env{})     = io $
+    withProtected (R.allocSEXP R.SEnv)
+                  (\x -> poke (R.unSEXP x) s >> return x)
+unhexp s@(Closure{}) = io $
+    withProtected (R.allocSEXP R.SClosure)
+                  (\x -> poke (R.unSEXP x) s >> return x)
+unhexp s@(Special{}) = io $
+    withProtected (R.allocSEXP R.SSpecial)
+                  (\x -> poke (R.unSEXP x) s >> return x)
+unhexp s@(Builtin{}) = io $
+    withProtected (R.allocSEXP R.SBuiltin)
+                  (\x -> poke (R.unSEXP x) s >> return x)
+unhexp s@(Promise{}) = io $
+    withProtected (R.allocSEXP R.SPromise)
+                  (\x -> poke (R.unSEXP x) s >> return x)
 unhexp  (Bytecode{}) = unimplemented "unhexp"
 unhexp (Real vt)     = io $ Vector.unsafeToSEXP vt
 unhexp (Logical vt)  = io $ Vector.unsafeToSEXP vt
