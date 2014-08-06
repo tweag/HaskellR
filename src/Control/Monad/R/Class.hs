@@ -23,10 +23,14 @@ import Control.Monad.Trans (MonadIO(..))
 class (Applicative m, MonadIO m, MonadCatch m, MonadMask m) => MonadR m where
   type Region m :: *
   type Region m = G
+
   -- | Lift an 'IO' action.
   io :: IO a -> m a
   io = liftIO
-  -- | Accuire
+
+  -- | Acquire ownership in the current region of the given object. This means
+  -- that the liveness of the object is guaranteed so long as the current region
+  -- remains active (the R garbage collector will not attempt to free it).
   acquire :: SEXP V a -> m (SEXP (Region m) a)
   default acquire :: (MonadIO m, Region m ~ G) => SEXP V a -> m (SEXP G a)
   acquire = liftIO . protect
