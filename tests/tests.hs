@@ -173,12 +173,12 @@ unitTests = testGroup "Unit tests"
                           sf
                           (mkSEXP (2::Double))
                      >>= \(R.SomeSEXP s) -> R.cast (sing :: R.SSEXPTYPE R.Real) <$> R.tryEval s (R.release e) p
-  , testCase "Weak Ptr test" $ unsafeRunInRThread $ do
+  , testCase "Weak Ptr test" $ unsafeRunInRThread $ runRegion $ do
       key  <- return $ mkSEXP (return 4 :: R s Int32)
       val  <- return $ mkSEXP (return 5 :: R s Int32)
       True <- return $ R.typeOf val == R.ExtPtr
       n    <- H.unhexp H.Nil
-      rf   <- R.mkWeakRef key val n True
+      rf   <- io $ R.mkWeakRef key val n True
       True <- case H.hexp rf of
                 H.WeakRef a b c _ -> do
                   True <- return $ (R.unsexp a) == (R.unsexp key)
