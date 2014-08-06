@@ -379,8 +379,6 @@ hexp :: SEXP s a -> HExp s a
 hexp = unsafeInlineIO . peek . R.unSEXP
 {-# INLINE hexp #-}
 
--- | Function for backcompatibility, this functions runs a subregion and returns
--- an unprotected 'SEXP'.
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
