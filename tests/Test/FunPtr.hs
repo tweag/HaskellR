@@ -51,7 +51,6 @@ tests = testGroup "funptr"
   [ testCase "funptr is freed from R" $ do
       ((Nothing @=?) =<<) $ do
          hwr <- HaveWeak return <$> newEmptyMVar
-         e <- peek R.globalEnv
          _ <- R.withProtected (return $ mkSEXP hwr) $
            \sf -> return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf (mkSEXP (2::Double))
          replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V R.Real))
@@ -61,6 +60,6 @@ tests = testGroup "funptr"
   , testCase "funptr works in quasi-quotes" $
        (((2::Double) @=?) =<<) $ unsafeRunInRThread $ unsafeRToIO $ do
          let foo = (\x -> return $ x + 1) :: Double -> R s Double
-	 s <- [r| foo_hs(1) |]
-	 return $ R.unSomeSEXP s fromSEXP
+         s <- [r| foo_hs(1) |]
+         return $ R.unSomeSEXP s fromSEXP
   ]
