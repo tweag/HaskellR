@@ -35,6 +35,6 @@ class (Applicative m, MonadIO m, MonadCatch m, MonadMask m) => MonadR m where
   default acquire :: (MonadIO m, Region m ~ G) => SEXP V a -> m (SEXP G a)
   acquire = liftIO . protect
 
--- | Helper that allow to protect @SomeSEXP s@ inside a region.
+-- | 'acquire' for 'SomeSEXP'.
 acquireSome :: (MonadR m) => SomeSEXP V -> m (SomeSEXP (Region m))
 acquireSome (SomeSEXP s) = SomeSEXP <$> acquire s
