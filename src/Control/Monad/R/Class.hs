@@ -32,7 +32,7 @@ class (Applicative m, MonadIO m, MonadCatch m, MonadMask m) => MonadR m where
   -- that the liveness of the object is guaranteed so long as the current region
   -- remains active (the R garbage collector will not attempt to free it).
   acquire :: SEXP V a -> m (SEXP (Region m) a)
-  default acquire :: (MonadIO m, Region m ~ G) => SEXP V a -> m (SEXP G a)
+  default acquire :: (MonadIO m, Region m ~ G) => SEXP s a -> m (SEXP G a)
   acquire = liftIO . protect
 
 -- | 'acquire' for 'SomeSEXP'.
