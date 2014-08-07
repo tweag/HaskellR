@@ -156,11 +156,30 @@ import Foreign.C
 import Foreign.Storable
 import Foreign.Marshal.Array ( copyArray )
 
-import Prelude hiding ( length, head, null, last, drop, tail, splitAt, init, take,
-  foldl, foldl1, mapM_, mapM, concatMap,
-  foldr, foldr1, product, maximum, minimum, scanr, scanr1, scanl, scanl1,
-  dropWhile, takeWhile, filter, map, reverse, concat, (++), replicate, enumFromTo, enumFromThenTo,
-  span, break, elem, notElem, zipWith, zipWith3, sum)
+import Prelude
+  ( Eq(..)
+  , Enum
+  , Monad(..)
+  , Num(..)
+  , Ord(..)
+  , Show(..)
+  , Bool
+  , Int
+  , IO
+  , Maybe
+  , Ordering
+  , String
+  , (.)
+  , ($)
+  , ($!)
+  , all
+  , and
+  , any
+  , fromIntegral
+  , or
+  , seq
+  , uncurry
+  )
 import qualified Prelude
 
 #include <R.h>
