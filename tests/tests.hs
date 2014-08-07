@@ -11,7 +11,8 @@ module Main where
 
 import qualified Test.Constraints
 import qualified Test.FunPtr
-import qualified Test.RVal
+import qualified Test.HExp
+import qualified Test.GC
 
 import H.Prelude
 import H.Constraints
@@ -194,7 +195,8 @@ unitTests = testGroup "Unit tests"
               H.Real s -> basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
-  , Test.RVal.tests
+  , Test.HExp.tests
+  , Test.GC.tests
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.

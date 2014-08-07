@@ -53,7 +53,6 @@ import qualified Data.Vector.SEXP as Vector
 import Control.Monad ( (<=<) )
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Int (Int32)
-import Data.Maybe (fromJust)
 import Data.Word (Word8)
 import Data.Complex
 import GHC.Ptr (Ptr(..))
@@ -168,7 +167,7 @@ data HExp :: * -> SEXPTYPE -> * where
 newtype E s a = E (SEXP s a)
 
 instance HEq (E s) where
-  E (hexp -> t1) === E (hexp -> t2) = t1 === t2
+  E x@(hexp -> t1) === E y@(hexp -> t2) = R.unsexp x == R.unsexp y || t1 === t2
 
 heqMaybe :: Maybe (SEXP s a) -> Maybe (SEXP s b) -> Bool
 heqMaybe (Just x) (Just y) = E x === E y
@@ -180,11 +179,11 @@ instance HEq (HExp s) where
   Symbol pname1 value1 internal1 === Symbol pname2 value2 internal2 =
       E pname1 === E pname2 &&
       E value1 === E value2 &&
-      (fromJust $ (===) <$> fmap E internal1 <*> fmap E internal2 <|> return True)
+      heqMaybe internal1 internal2
   List carval1 cdrval1 tagval1 === List carval2 cdrval2 tagval2 =
       E carval1 === E carval2 &&
-      (fromJust $ (===) <$> fmap E cdrval1 <*> fmap E cdrval2 <|> return True) &&
-      (fromJust $ (===) <$> fmap E tagval1 <*> fmap E tagval2 <|> return True)
+      heqMaybe cdrval1 cdrval2 &&
+      heqMaybe tagval1 tagval2
   Env frame1 enclos1 hashtab1 === Env frame2 enclos2 hashtab2 =
       E frame1 === E frame2 &&
       E enclos1 === E enclos2 &&
@@ -379,8 +378,6 @@ hexp :: SEXP s a -> HExp s a
 hexp = unsafeInlineIO . peek . R.unSEXP
 {-# INLINE hexp #-}
 
--- | Function for backcompatibility, this functions runs a subregion and returns
--- an unprotected 'SEXP'.
 -- | Inverse hexp view to the real structure, note that for scalar types
 -- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
 -- however for vector types it will return original SEXP.
