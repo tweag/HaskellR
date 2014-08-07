@@ -4,17 +4,18 @@
 -- Vectors that can be passed to and from R with no copying at all. These
 -- vectors are wrappers over SEXP vectors used by R. Memory for vectors is
 -- allocated from the R heap, and in such way that they can be converted to
--- a 'SEXP' through a simple pointer arithmetics (see 'toSEXP').
+-- a 'SEXP' by simple pointer arithmetic (see 'toSEXP').
 --
--- 'SEXP' Vectors are not protected by the Haskell, so all protection rules
--- for 'SEXP' are applied to 'SEXP' vectors, so one may need to protect and
--- unprotect values manually.
+-- The main difference between "Data.Vector.SEXP.Mutable" and
+-- "Data.Vector.Storable" is that the former uses a header-prefixed data layout
+-- (the header immediately precedes the payload of the vector). This means that
+-- no additional pointer dereferencing is needed to reach the vector data. The
+-- trade-off is, for mutable vectors, slicing is not supported. The reason is
+-- that slicing header-prefixed vectors is generally not possible without
+-- copying, which breaks the semantics of the API for 'MVector'.
 --
--- SEXP header is allocated before a data, so there is no additional pointer
--- jump to reach the data, but the tradeoff is that all slicing operations
--- are banned. If you need to use slicing operations you may convert vector
--- to Storable, see 'toStorable' and 'unsafeToStorable'.
-
+-- To perform slicing, it is necessary to convert to a "Data.Vector.Storable"
+-- vector first, using 'unsafeToStorable'.
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds #-}
@@ -23,25 +24,38 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Vector.SEXP.Mutable
-  (
-    -- * Mutable vectors of 'SEXP' types
-    MVector(..), IOVector, STVector
-  -- * Accessors
-  -- ** Length information
-  , length, null
-  -- * Construction
-  -- ** Initialisation
-  , new, unsafeNew, replicate, replicateM, clone
-  -- ** Restricting memory usage
+  ( -- * Mutable vectors of 'SEXP' types
+    MVector(..)
+  , IOVector
+  , STVector
+    -- * Accessors
+    -- ** Length information
+  , length
+  , null
+    -- * Construction
+    -- ** Initialisation
+  , new
+  , unsafeNew
+  , replicate
+  , replicateM
+  , clone
+    -- ** Restricting memory usage
   , clear
-  -- * Accessing individual elements
-  , read, write, swap
-  , unsafeRead, unsafeWrite, unsafeSwap
-  -- * Modifying vectors
-  -- ** Filling and copying
-  , set, copy, move, unsafeCopy, unsafeMove
-
-  -- * SEXP specific.
+    -- * Accessing individual elements
+  , read
+  , write
+  , swap
+  , unsafeRead
+  , unsafeWrite
+  , unsafeSwap
+    -- * Modifying vectors
+    -- ** Filling and copying
+  , set
+  , copy
+  , move
+  , unsafeCopy
+  , unsafeMove
+    -- * SEXP specific.
   , fromSEXP
   , toSEXP
   , unsafeToStorable
@@ -54,7 +68,8 @@ import qualified Foreign.R as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
 import Control.Applicative ((<$>))
-import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
+import Control.Monad.Primitive
+  (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
 import qualified Data.Vector.Generic.Mutable as G
 import qualified Data.Vector.Storable.Mutable as Storable
 import Data.Singletons (fromSing, sing)
@@ -63,9 +78,9 @@ import Foreign (castPtr, Ptr, withForeignPtr, plusPtr)
 import Foreign.Concurrent (newForeignPtr)
 import Foreign.C
 import Foreign.Storable
-import Foreign.Marshal.Array ( copyArray, moveArray )
+import Foreign.Marshal.Array (copyArray, moveArray)
 
-import Prelude hiding ( length, null, replicate, read  )
+import Prelude hiding (length, null, replicate, read)
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -73,7 +88,8 @@ import Prelude hiding ( length, null, replicate, read  )
 
 -- | Mutable R vector. They are represented in memory with the same header as
 -- 'SEXP' nodes. The second type paramater is a phantom parameter reflecting at
--- the type level the tag of the vector when viewed as a 'SEXP'.
+-- the type level the tag of the vector when viewed as a 'SEXP'. The tag of the
+-- vector and the representation type are related via 'ElemRep'.
 newtype MVector s (ty :: SEXPTYPE) r a = MVector { unMVector :: SEXP s ty }
 
 type IOVector s ty   = MVector s ty RealWorld
@@ -91,7 +107,9 @@ instance (VECTOR s ty a)
              (fromIntegral m :: CInt)
 --        {# set VECSEXP->vecsxp.length #} (unMVector v) (fromIntegral m :: CInt)
         return v
-    | otherwise = error "unsafeSlice is not supported for SEXP vectors, to perform slicing convert vector to Storable"
+    | otherwise =
+      failure "Data.Vector.SEXP.Mutable.slice"
+              "unsafeSlice is not supported for SEXP vectors, to perform slicing convert vector to Storable."
   basicOverlaps mv1 mv2   = unMVector mv1 == unMVector mv2
   basicUnsafeNew n
     -- R calls using allocVector() for CHARSXP "defunct"...

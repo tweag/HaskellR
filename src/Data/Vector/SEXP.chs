@@ -2,23 +2,26 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 -- Vectors that can be passed to and from R with no copying at all. These
--- vectors are a special instance of "Data.Vector.Storable" where the memory is
--- allocated from the R heap, and in such a way that they can be converted to
--- a 'SEXP' through simple pointer arithmetic (see 'toSEXP').
+-- vectors are an instance of "Data.Vector.Storable", where the memory is
+-- allocated from the R heap, in such a way that they can be converted to
+-- a 'SEXP' through simple pointer arithmetic (see 'toSEXP') /in constant time/.
 --
--- The main difference between 'Data.Vector.SEXP.Vector' and
--- 'Data.Vector.Storable.Vector' is that the former uses header-prefixed data layout.
--- This means that no additional pointer jump is needed to reach the vector data.
--- The trade-off is that all slicing operations are O(N) instead of O(1) and there
--- is no mutable instance of the SEXP vector.
+-- The main difference between "Data.Vector.SEXP" and "Data.Vector.Storable" is
+-- that the former uses a header-prefixed data layout (the header immediately
+-- precedes the payload of the vector). This means that no additional pointer
+-- dereferencing is needed to reach the vector data. The trade-off is that most
+-- slicing operations are O(N) instead of O(1).
 --
--- Note that since 'unstream' relies on slicing operations, it will still be an O(N)
--- operation but it will copy vector data twice unlike most vector implementations.
+-- If you make heavy use of slicing, then it's best to convert to
+-- a "Data.Vector.Storable" vector first.
 --
+-- Note that since 'unstream' relies on slicing operations, it will still be an
+-- O(N) operation but it will copy vector data twice.
+
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Data.Vector.SEXP
   ( Vector(..)
@@ -186,6 +189,9 @@ import qualified Prelude
 #define USE_RINTERNALS
 #include <Rinternals.h>
 
+-- | Immutable vectors. The second type paramater is a phantom parameter
+-- reflecting at the type level the tag of the vector when viewed as a 'SEXP'.
+-- The tag of the vector and the representation type are related via 'ElemRep'.
 newtype Vector s (ty :: SEXPTYPE) a = Vector { unVector :: SEXP s ty }
 
 type instance G.Mutable (Vector r ty) = MVector r ty
@@ -203,7 +209,9 @@ instance (VECTOR s ty a)
   basicLength       (Vector s)   =
       unsafeInlineIO $
       fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
-  -- | Basic unsafe slice is O(N) complexity as it allocates a copy of vector,
+  -- XXX Basic unsafe slice is O(N) complexity as it allocates a copy of
+  -- a vector, due to limitations of R's VECSXP structure, which we reuse
+  -- directly.
   basicUnsafeSlice i l v         = unsafeInlineIO $ do
     mv <- Mutable.new l
     copyArray (toVecPtr v `plusPtr` i)
