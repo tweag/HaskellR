@@ -216,6 +216,9 @@ unsafeRelease = sexp . unsexp
 -- | A 'SEXP' of unknown form.
 data SomeSEXP s = forall a. SomeSEXP {-# UNPACK #-} !(SEXP s a)
 
+instance Show (SomeSEXP s) where
+  show s = unSomeSEXP s show
+
 instance Storable (SomeSEXP s) where
   sizeOf _ = sizeOf (undefined :: SEXP s a)
   alignment _ = alignment (undefined :: SEXP s a)
