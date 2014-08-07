@@ -15,6 +15,7 @@ import H.Prelude as H
 import Language.R.QQ
 
 import qualified Foreign.R as R
+import qualified Foreign.R.Type as R
 
 import Data.Int
 
@@ -154,14 +155,14 @@ cost n alpha beta gamma =
 nmMin :: Int -> IO (Double, Double, Double, Double, Double, Int32, Int32)
 nmMin n = runRegion $ do
     initParms <- [r| c(-1.9,-0.1,-2.9) |]
-    initVal  <- H.fromSEXP . R.cast R.Real <$> [r|(function(v) costH_hs(v[1], v[2], v[3]))(initParms_hs)|]
+    initVal  <- H.fromSEXP . R.cast R.SReal <$> [r|(function(v) costH_hs(v[1], v[2], v[3]))(initParms_hs)|]
     relaxMin <- [r| optimx(c(-1.9,-0.1,-2.9), function(v) costH_hs(v[1], v[2], v[3]), method = "Nelder-Mead") |]
-    aMin     <- H.fromSEXP . R.cast R.Real <$> [r| relaxMin_hs$p1 |]
-    bMin     <- H.fromSEXP . R.cast R.Real <$> [r| relaxMin_hs$p2 |]
-    cMin     <- H.fromSEXP . R.cast R.Real <$> [r| relaxMin_hs$p3 |]
-    vMin     <- H.fromSEXP . R.cast R.Real <$> [r| relaxMin_hs$value |]
-    fEvals   <- H.fromSEXP . R.cast R.Int  <$> [r| as.integer(relaxMin_hs$fevals) |]
-    convCode <- H.fromSEXP . R.cast R.Int  <$> [r| as.integer(relaxMin_hs$convcode) |]
+    aMin     <- H.fromSEXP . R.cast R.SReal <$> [r| relaxMin_hs$p1 |]
+    bMin     <- H.fromSEXP . R.cast R.SReal <$> [r| relaxMin_hs$p2 |]
+    cMin     <- H.fromSEXP . R.cast R.SReal <$> [r| relaxMin_hs$p3 |]
+    vMin     <- H.fromSEXP . R.cast R.SReal <$> [r| relaxMin_hs$value |]
+    fEvals   <- H.fromSEXP . R.cast R.SInt  <$> [r| as.integer(relaxMin_hs$fevals) |]
+    convCode <- H.fromSEXP . R.cast R.SInt  <$> [r| as.integer(relaxMin_hs$convcode) |]
     return $!! (initVal,aMin,bMin,cMin,vMin,fEvals,convCode)
   where
     costH :: Double -> Double -> Double -> R s Double
