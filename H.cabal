@@ -46,7 +46,7 @@ source-repository head
   type:     git
   location: git://github.com/ps-labs/H.git
 
-Flag documentation 
+Flag documentation
   description:         Generate H manuals (requires pandoc).
   default:             False
 
@@ -123,6 +123,8 @@ library
     if os(darwin)
       cpp-options:     -DH_ARCH_UNIX_DARWIN
       cc-options:      -DH_ARCH_UNIX_DARWIN
+  -- XXX -fcontext-stack=32 required on GHC >= 7.8 to allow foreign
+  -- export function -wrappers of high arities.
   -- XXX -cpp is a temp workaround for GHC 7.8.
   ghc-options:         -Wall -Werror -cpp -fcontext-stack=32
 
