@@ -4,17 +4,18 @@
 -- Vectors that can be passed to and from R with no copying at all. These
 -- vectors are wrappers over SEXP vectors used by R. Memory for vectors is
 -- allocated from the R heap, and in such way that they can be converted to
--- a 'SEXP' through a simple pointer arithmetics (see 'toSEXP').
+-- a 'SEXP' by simple pointer arithmetic (see 'toSEXP').
 --
--- 'SEXP' Vectors are not protected by the Haskell, so all protection rules
--- for 'SEXP' are applied to 'SEXP' vectors, so one may need to protect and
--- unprotect values manually.
+-- The main difference between "Data.Vector.SEXP.Mutable" and
+-- "Data.Vector.Storable" is that the former uses a header-prefixed data layout
+-- (the header immediately precedes the payload of the vector). This means that
+-- no additional pointer dereferencing is needed to reach the vector data. The
+-- trade-off is, for mutable vectors, slicing is not supported. The reason is
+-- that slicing header-prefixed vectors is generally not possible without
+-- copying, which breaks the semantics of the API for 'MVector'.
 --
--- SEXP header is allocated before a data, so there is no additional pointer
--- jump to reach the data, but the tradeoff is that all slicing operations
--- are banned. If you need to use slicing operations you may convert vector
--- to Storable, see 'toStorable' and 'unsafeToStorable'.
-
+-- To perform slicing, it is necessary to convert to a "Data.Vector.Storable"
+-- vector first, using 'unsafeToStorable'.
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds #-}
@@ -23,25 +24,38 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Vector.SEXP.Mutable
-  (
-    -- * Mutable vectors of 'SEXP' types
-    MVector(..), IOVector, STVector
-  -- * Accessors
-  -- ** Length information
-  , length, null
-  -- * Construction
-  -- ** Initialisation
-  , new, unsafeNew, replicate, replicateM, clone
-  -- ** Restricting memory usage
+  ( -- * Mutable vectors of 'SEXP' types
+    MVector(..)
+  , IOVector
+  , STVector
+    -- * Accessors
+    -- ** Length information
+  , length
+  , null
+    -- * Construction
+    -- ** Initialisation
+  , new
+  , unsafeNew
+  , replicate
+  , replicateM
+  , clone
+    -- ** Restricting memory usage
   , clear
-  -- * Accessing individual elements
-  , read, write, swap
-  , unsafeRead, unsafeWrite, unsafeSwap
-  -- * Modifying vectors
-  -- ** Filling and copying
-  , set, copy, move, unsafeCopy, unsafeMove
-
-  -- * SEXP specific.
+    -- * Accessing individual elements
+  , read
+  , write
+  , swap
+  , unsafeRead
+  , unsafeWrite
+  , unsafeSwap
+    -- * Modifying vectors
+    -- ** Filling and copying
+  , set
+  , copy
+  , move
+  , unsafeCopy
+  , unsafeMove
+    -- * SEXP specific.
   , fromSEXP
   , toSEXP
   , unsafeToStorable
@@ -54,18 +68,19 @@ import qualified Foreign.R as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
 import Control.Applicative ((<$>))
-import Control.Monad.Primitive (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
+import Control.Monad.Primitive
+  (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
 import qualified Data.Vector.Generic.Mutable as G
 import qualified Data.Vector.Storable.Mutable as Storable
-import Data.Singletons (SingI, fromSing, sing)
+import Data.Singletons (fromSing, sing)
 
 import Foreign (castPtr, Ptr, withForeignPtr, plusPtr)
 import Foreign.Concurrent (newForeignPtr)
 import Foreign.C
 import Foreign.Storable
-import Foreign.Marshal.Array ( copyArray, moveArray )
+import Foreign.Marshal.Array (copyArray, moveArray)
 
-import Prelude hiding ( length, null, replicate, read  )
+import Prelude hiding (length, null, replicate, read)
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -73,15 +88,14 @@ import Prelude hiding ( length, null, replicate, read  )
 
 -- | Mutable R vector. They are represented in memory with the same header as
 -- 'SEXP' nodes. The second type paramater is a phantom parameter reflecting at
--- the type level the tag of the vector when viewed as a 'SEXP'.
+-- the type level the tag of the vector when viewed as a 'SEXP'. The tag of the
+-- vector and the representation type are related via 'ElemRep'.
 newtype MVector s (ty :: SEXPTYPE) r a = MVector { unMVector :: SEXP s ty }
 
 type IOVector s ty   = MVector s ty RealWorld
 type STVector s ty r = MVector s ty s
 
-type SexpVector s ty a = (Storable a, IsVector ty, SingI ty, ElemRep s ty ~ a)
-
-instance (SexpVector s ty a)
+instance (VECTOR s ty a)
          => G.MVector (MVector s ty) a where
   basicLength (MVector s) = unsafeInlineIO $
     fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
@@ -93,7 +107,9 @@ instance (SexpVector s ty a)
              (fromIntegral m :: CInt)
 --        {# set VECSEXP->vecsxp.length #} (unMVector v) (fromIntegral m :: CInt)
         return v
-    | otherwise = error "unsafeSlice is not supported for SEXP vectors, to perform slicing convert vector to Storable"
+    | otherwise =
+      failure "Data.Vector.SEXP.Mutable.slice"
+              "unsafeSlice is not supported for SEXP vectors, to perform slicing convert vector to Storable."
   basicOverlaps mv1 mv2   = unMVector mv1 == unMVector mv2
   basicUnsafeNew n
     -- R calls using allocVector() for CHARSXP "defunct"...
@@ -137,14 +153,14 @@ toSEXP = unMVector
 -- ------------------
 
 -- | Length of the mutable vector.
-length :: SexpVector s ty a => MVector s ty r a -> Int
+length :: VECTOR s ty a => MVector s ty r a -> Int
 {-# INLINE length #-}
 length (MVector s) =
     unsafeInlineIO $
     fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
 
 -- | Check whether the vector is empty
-null :: SexpVector s ty a => (MVector s ty) r a -> Bool
+null :: VECTOR s ty a => (MVector s ty) r a -> Bool
 {-# INLINE null #-}
 null (MVector s) =
     unsafeInlineIO $
@@ -155,29 +171,29 @@ null (MVector s) =
 -- --------------
 
 -- | Create a mutable vector of the given length.
-new :: (PrimMonad m, SexpVector s ty a) => Int -> m (MVector s ty (PrimState m) a)
+new :: (PrimMonad m, VECTOR s ty a) => Int -> m (MVector s ty (PrimState m) a)
 {-# INLINE new #-}
 new = G.new
 
 -- | Create a mutable vector of the given length. The length is not checked.
-unsafeNew :: (PrimMonad m, SexpVector s ty a) => Int -> m (MVector s ty (PrimState m) a)
+unsafeNew :: (PrimMonad m, VECTOR s ty a) => Int -> m (MVector s ty (PrimState m) a)
 {-# INLINE unsafeNew #-}
 unsafeNew = G.unsafeNew
 
 -- | Create a mutable vector of the given length (0 if the length is negative)
 -- and fill it with an initial value.
-replicate :: (PrimMonad m, SexpVector s ty a) => Int -> a -> m (MVector s ty (PrimState m) a)
+replicate :: (PrimMonad m, VECTOR s ty a) => Int -> a -> m (MVector s ty (PrimState m) a)
 {-# INLINE replicate #-}
 replicate = G.replicate
 
 -- | Create a mutable vector of the given length (0 if the length is negative)
 -- and fill it with values produced by repeatedly executing the monadic action.
-replicateM :: (PrimMonad m, SexpVector s ty a) => Int -> m a -> m (MVector s ty (PrimState m) a)
+replicateM :: (PrimMonad m, VECTOR s ty a) => Int -> m a -> m (MVector s ty (PrimState m) a)
 {-# INLINE replicateM #-}
 replicateM = G.replicateM
 
 -- | Create a copy of a mutable vector.
-clone :: (PrimMonad m, SexpVector s ty a)
+clone :: (PrimMonad m, VECTOR s ty a)
       => MVector s ty (PrimState m) a -> m (MVector s ty (PrimState m) a)
 {-# INLINE clone #-}
 clone = G.clone
@@ -187,7 +203,7 @@ clone = G.clone
 
 -- | Reset all elements of the vector to some undefined value, clearing all
 -- references to external objects. This is usually a noop for unboxed vectors.
-clear :: (PrimMonad m, SexpVector s ty a) => MVector s ty (PrimState m) a -> m ()
+clear :: (PrimMonad m, VECTOR s ty a) => MVector s ty (PrimState m) a -> m ()
 {-# INLINE clear #-}
 clear = G.clear
 
@@ -195,38 +211,37 @@ clear = G.clear
 -- -----------------------------
 
 -- | Yield the element at the given position.
-read :: (PrimMonad m, SexpVector s ty a)
+read :: (PrimMonad m, VECTOR s ty a)
      => MVector s ty (PrimState m) a -> Int -> m a
 {-# INLINE read #-}
 read = G.read
 
 -- | Replace the element at the given position.
-write :: (PrimMonad m, SexpVector s ty a)
+write :: (PrimMonad m, VECTOR s ty a)
       => MVector s ty (PrimState m) a -> Int -> a -> m ()
 {-# INLINE write #-}
 write = G.write
 
 -- | Swap the elements at the given positions.
-swap :: (PrimMonad m, SexpVector s ty a)
+swap :: (PrimMonad m, VECTOR s ty a)
      => MVector s ty (PrimState m) a -> Int -> Int -> m ()
 {-# INLINE swap #-}
 swap = G.swap
 
-
 -- | Yield the element at the given position. No bounds checks are performed.
-unsafeRead :: (PrimMonad m, SexpVector s ty a)
+unsafeRead :: (PrimMonad m, VECTOR s ty a)
            => MVector s ty (PrimState m) a -> Int -> m a
 {-# INLINE unsafeRead #-}
 unsafeRead = G.unsafeRead
 
 -- | Replace the element at the given position. No bounds checks are performed.
-unsafeWrite :: (PrimMonad m, SexpVector s ty a)
+unsafeWrite :: (PrimMonad m, VECTOR s ty a)
             => MVector s ty (PrimState m) a -> Int -> a -> m ()
 {-# INLINE unsafeWrite #-}
 unsafeWrite = G.unsafeWrite
 
 -- | Swap the elements at the given positions. No bounds checks are performed.
-unsafeSwap :: (PrimMonad m, SexpVector s ty a)
+unsafeSwap :: (PrimMonad m, VECTOR s ty a)
            => MVector s ty (PrimState m) a -> Int -> Int -> m ()
 {-# INLINE unsafeSwap #-}
 unsafeSwap = G.unsafeSwap
@@ -235,13 +250,13 @@ unsafeSwap = G.unsafeSwap
 -- -------------------
 
 -- | Set all elements of the vector to the given value.
-set :: (PrimMonad m, SexpVector s ty a) => MVector s ty (PrimState m) a -> a -> m ()
+set :: (PrimMonad m, VECTOR s ty a) => MVector s ty (PrimState m) a -> a -> m ()
 {-# INLINE set #-}
 set = G.set
 
 -- | Copy a vector. The two vectors must have the same length and may not
 -- overlap.
-copy :: (PrimMonad m, SexpVector s ty a)
+copy :: (PrimMonad m, VECTOR s ty a)
      => MVector s ty (PrimState m) a
      -> MVector s ty (PrimState m) a
      -> m ()
@@ -250,7 +265,7 @@ copy = G.copy
 
 -- | Copy a vector. The two vectors must have the same length and may not
 -- overlap. This is not checked.
-unsafeCopy :: (PrimMonad m, SexpVector s ty a)
+unsafeCopy :: (PrimMonad m, VECTOR s ty a)
            => MVector s ty (PrimState m) a   -- ^ target
            -> MVector s ty (PrimState m) a   -- ^ source
            -> m ()
@@ -264,7 +279,7 @@ unsafeCopy = G.unsafeCopy
 -- Otherwise, the copying is performed as if the source vector were
 -- copied to a temporary vector and then the temporary vector was copied
 -- to the target vector.
-move :: (PrimMonad m, SexpVector s ty a)
+move :: (PrimMonad m, VECTOR s ty a)
      => MVector s ty (PrimState m) a
      -> MVector s ty (PrimState m) a
      -> m ()
@@ -278,7 +293,7 @@ move = G.move
 -- Otherwise, the copying is performed as if the source vector were
 -- copied to a temporary vector and then the temporary vector was copied
 -- to the target vector.
-unsafeMove :: (PrimMonad m, SexpVector s ty a)
+unsafeMove :: (PrimMonad m, VECTOR s ty a)
            => MVector s ty (PrimState m) a          -- ^ target
            -> MVector s ty (PrimState m) a          -- ^ source
            -> m ()
@@ -286,7 +301,7 @@ unsafeMove :: (PrimMonad m, SexpVector s ty a)
 unsafeMove = G.unsafeMove
 
 -- | O(1) Inplace convertion to Storable vector.
-unsafeToStorable :: (PrimMonad m, SexpVector s ty a)
+unsafeToStorable :: (PrimMonad m, VECTOR s ty a)
                  => MVector s ty (PrimState m) a           -- ^ target
                  -> m (Storable.MVector (PrimState m) a) -- ^ source
 {-# INLINE unsafeToStorable #-}
@@ -297,7 +312,7 @@ unsafeToStorable v@(MVector p) = unsafePrimToPrim $ do
   return $ Storable.unsafeFromForeignPtr0 ptr (length v)
 
 -- | O(N) Convertion from storable vector to SEXP vector.
-fromStorable :: (PrimMonad m, SexpVector s ty a)
+fromStorable :: (PrimMonad m, VECTOR s ty a)
              => Storable.MVector (PrimState m) a
              -> m (MVector s ty (PrimState m) a)
 {-# INLINE fromStorable #-}

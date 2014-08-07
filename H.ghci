@@ -12,6 +12,5 @@ import qualified H.Prelude.Interactive as H
 import Foreign.R as R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
 import Language.R as R (R)
 import Language.R.QQ as H (r, rexp, rsafe)
-import Control.Memory.Region
 
 Language.R.Instance.initialize Language.R.Instance.defaultConfig

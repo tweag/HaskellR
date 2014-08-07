@@ -26,23 +26,23 @@ import Data.AEq
 
 import Test.Tasty
 import Test.Tasty.QuickCheck
-import Test.QuickCheck.Assertions 
+import Test.QuickCheck.Assertions
 
 main :: IO ()
 main = do
   _ <- R.initialize R.defaultConfig
   defaultMain tests
 
-instance (Arbitrary a, V.SexpVector s ty a) => Arbitrary (V.Vector s ty a) where
+instance (Arbitrary a, V.VECTOR s ty a) => Arbitrary (V.Vector s ty a) where
     arbitrary = fmap V.fromList arbitrary
 
 instance Arbitrary a => Arbitrary (S.Stream a) where
     arbitrary = fmap S.fromList arbitrary
 
-instance (AEq a, V.SexpVector s ty a) => AEq (V.Vector s ty a) where
+instance (AEq a, V.VECTOR s ty a) => AEq (V.Vector s ty a) where
     a ~== b   = all (uncurry (~==)) $ zip (V.toList a) (V.toList b)
 
-testSanity :: (Eq a, Show a, Arbitrary a, V.SexpVector s ty a, AEq a) => V.Vector s ty a -> TestTree
+testSanity :: (Eq a, Show a, Arbitrary a, V.VECTOR s ty a, AEq a) => V.Vector s ty a -> TestTree
 testSanity dummy = testGroup "Test sanity"
     [ testProperty "fromList.toList == id" (prop_fromList_toList dummy)
     , testProperty "toList.fromList == id" (prop_toList_fromList dummy)
@@ -60,7 +60,7 @@ testSanity dummy = testGroup "Test sanity"
 --      = ((G.stream :: V.Vector ty a -> S.Stream a) . G.unstream) s == s
 
 
-testPolymorphicFunctions :: (Eq a, Show a, Arbitrary a, V.SexpVector s ty a, AEq a) => V.Vector s ty a -> TestTree
+testPolymorphicFunctions :: (Eq a, Show a, Arbitrary a, V.VECTOR s ty a, AEq a) => V.Vector s ty a -> TestTree
 testPolymorphicFunctions dummy = testGroup "Polymorphic functions."
     [ -- Length information
       testProperty "prop_length" (prop_length dummy)
@@ -84,14 +84,14 @@ testPolymorphicFunctions dummy = testGroup "Polymorphic functions."
       | V.length v == 0 = True
       | otherwise = (last . V.toList) v == V.last v
 
-testGeneralSEXPVector :: (Eq a, Show a, Arbitrary a, V.SexpVector s ty a, AEq a) => V.Vector s ty a -> TestTree
+testGeneralSEXPVector :: (Eq a, Show a, Arbitrary a, V.VECTOR s ty a, AEq a) => V.Vector s ty a -> TestTree
 testGeneralSEXPVector dummy = testGroup "General Vector"
   [ testSanity dummy
   , testPolymorphicFunctions dummy
   ]
 
 
-testNumericSEXPVector :: (Eq a, Show a, Arbitrary a, V.SexpVector s ty a, AEq a) => V.Vector s ty a -> TestTree
+testNumericSEXPVector :: (Eq a, Show a, Arbitrary a, V.VECTOR s ty a, AEq a) => V.Vector s ty a -> TestTree
 testNumericSEXPVector dummy = testGroup "Test Numeric Vector"
   [ testGeneralSEXPVector dummy
   ]
@@ -101,4 +101,3 @@ tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"  [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Int Int32)]
   , testGroup "Data.Vector.Storable.Vector (Double)" [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Real Double)]
   ]
-
