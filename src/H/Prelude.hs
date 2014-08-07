@@ -20,6 +20,7 @@ module H.Prelude
   , Show(..)
   , show
   , withProtected
+  , withProtectedSome
   -- * Type convertion helpers.
   , toBool
   ) where
@@ -86,6 +87,11 @@ instance Show (R.SomeSEXP s) where
 withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP s a) -> ((SEXP s a) -> m b) -> m b
 withProtected accure =
     bracket (accure >>= \x -> io $ R.protect x >> return x)
+            (const (io $ R.unprotect 1))
+
+withProtectedSome :: (MonadR m, MonadCatch m, MonadMask m) => m SomeSEXP -> (SomeSEXP -> m b) -> m b
+withProtectedSome accure =
+    bracket (accure >>= \x@(SomeSEXP s) -> io $ R.protect s >> return x)
             (const (io $ R.unprotect 1))
 
 -- | Convert Logical value into boolean.
