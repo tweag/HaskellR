@@ -13,7 +13,7 @@
 -- slicing operations are O(N) instead of O(1).
 --
 -- If you make heavy use of slicing, then it's best to convert to
--- a "Data.Vector.Storable" vector first.
+-- a "Data.Vector.Storable" vector first, using 'unsafeToStorable'.
 --
 -- Note that since 'unstream' relies on slicing operations, it will still be an
 -- O(N) operation but it will copy vector data twice.
@@ -133,7 +133,8 @@ module Data.Vector.SEXP
   -- ** SEXP specific
   , toString
   , toByteString
-
+  , unsafeToStorable
+  , fromStorable
   ) where
 
 import Data.Vector.SEXP.Base
@@ -147,6 +148,7 @@ import Control.Monad.Primitive ( PrimMonad, PrimState )
 import Control.Monad.ST (ST)
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as Stream
+import qualified Data.Vector.Storable as Storable
 import Data.ByteString ( ByteString )
 import qualified Data.ByteString.Unsafe as B
 
@@ -175,6 +177,7 @@ import Prelude
   , (.)
   , ($)
   , ($!)
+  , (=<<)
   , all
   , and
   , any
@@ -1389,3 +1392,19 @@ unsafeCopy = G.unsafeCopy
 copy :: (VECTOR s ty a, PrimMonad m) => MVector s ty (PrimState m) a -> Vector s ty a -> m ()
 {-# INLINE copy #-}
 copy = G.copy
+
+-- | O(1) Inplace convertion to Storable vector.
+unsafeToStorable :: VECTOR s ty a
+                 => Vector s ty a         -- ^ target
+                 -> Storable.Vector a     -- ^ source
+{-# INLINE unsafeToStorable #-}
+unsafeToStorable v = unsafeInlineIO $
+  G.unsafeFreeze =<< Mutable.unsafeToStorable =<< G.unsafeThaw v
+
+-- | O(N) Convertion from storable vector to SEXP vector.
+fromStorable :: VECTOR s ty a
+             => Storable.Vector a
+             -> Vector s ty a
+{-# INLINE fromStorable #-}
+fromStorable v = unsafeInlineIO $
+  G.unsafeFreeze =<< Mutable.fromStorable =<< G.unsafeThaw v
