@@ -25,9 +25,10 @@ module Language.R.GC
   , withProtected
   ) where
 
+import Control.Memory.Region
 import H.Internal.Prelude
 import Control.Applicative
-import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr, castPtr )
+import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr )
 import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
 import Foreign.Concurrent ( newForeignPtr )
 import qualified Foreign.R as R
@@ -41,11 +42,11 @@ import Control.Monad.Trans ( MonadIO(..) )
 newtype RVal (a :: R.SEXPTYPE) = RVal (ForeignPtr R.SEXPREC)
 
 -- | Create R value and automatically protect it.
-newRVal :: MonadR m => R.SEXP a -> m (RVal a)
+newRVal :: MonadR m => R.SEXP s a -> m (RVal a)
 newRVal s = io $ do
     R.preserveObject s
     post <- getPostToCurrentRThread
-    fp <- newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
+    fp <- newForeignPtr (R.unsexp s) (post $ R.releaseObject (R.unsafeRelease s))
     return (RVal fp)
 
 -- | Keep SEXP value from the garbage collection.
@@ -53,7 +54,7 @@ touchRVal :: MonadR m => RVal a -> m ()
 touchRVal (RVal s) = io (touchForeignPtr s)
 
 -- | This is a way to look inside RValue object.
-withRVal :: MonadR m => RVal a -> (R.SEXP a -> m b) -> m b
+withRVal :: MonadR m => RVal a -> (R.SEXP V a -> m b) -> m b
 withRVal (RVal s) f = do
         let s' = unsafeForeignPtrToPtr s
         x <- f (R.sexp s')
@@ -70,30 +71,31 @@ unprotectRVal (RVal s) = io (finalizeForeignPtr s)
 -- 'R.unprotect', guaranteeing that a protected resource gets unprotected
 -- irrespective of the control flow, much like 'Control.Exception.bracket_'.
 withProtected :: (MonadIO m, MonadCatch m, MonadMask m)
-              => m (R.SEXP a)      -- Action to acquire resource
-              -> (R.SEXP a -> m b) -- Action
+              => m (R.SEXP V a)      -- Action to acquire resource
+              -> (R.SEXP s a -> m b) -- Action
               -> m b
-withProtected acquire =
+withProtected create f =
     bracket
-      (do { x <- acquire; _ <- liftIO $ R.protect x; return x })
+      (do { x <- create; _ <- liftIO $ R.protect x; return x })
       (const $ liftIO $ R.unprotect 1)
+      (f . R.unsafeRelease)
 
 -- | Non type indexed version of 'RVal'.
 newtype SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)
 
 -- | Create R value and automatically protect it.
-newSomeRVal :: MonadR m => SomeSEXP -> m SomeRVal
+newSomeRVal :: MonadR m => SomeSEXP s -> m SomeRVal
 newSomeRVal (SomeSEXP s) = io $ do
     R.preserveObject s
     post <- getPostToCurrentRThread
-    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.releaseObject (castPtr $ R.unsexp s))
+    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.releaseObject (R.unsafeRelease s))
 
 -- | Keep 'SEXP' value from the garbage collection.
 touchSomeRVal :: MonadR m => SomeRVal -> m ()
 touchSomeRVal (SomeRVal s) = io (touchForeignPtr s)
 
 -- | This is a way to look inside RValue object.
-withSomeRVal :: MonadR m => SomeRVal -> (SomeSEXP -> m b) -> m b
+withSomeRVal :: MonadR m => SomeRVal -> (SomeSEXP V -> m b) -> m b
 withSomeRVal (SomeRVal s) f = do
         let s' = unsafeForeignPtrToPtr s
         x <- f (SomeSEXP (R.sexp s'))

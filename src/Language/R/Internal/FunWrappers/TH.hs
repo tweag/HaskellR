@@ -1,5 +1,8 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
+
+{-# LANGUAGE TemplateHaskell #-}
+
 module Language.R.Internal.FunWrappers.TH
   ( thWrappers
   , thWrapper
@@ -8,12 +11,21 @@ module Language.R.Internal.FunWrappers.TH
   ) where
 
 import H.Internal.Error
+import qualified Foreign.R.Type as R
 
-import Language.Haskell.TH
 import Control.Monad (replicateM)
+import Foreign (FunPtr)
+import Language.Haskell.TH
+
+-- XXX: If we build quotes that mention names imported from Foreign.R, then
+-- GHC panics because it fails to link in all adequate object files to
+-- resolve all R symbols. So instead we build the symbol names
+-- programmatically, using mkName...
+nSEXP0 :: Q Type
+nSEXP0 = conT (mkName "SEXP0")
 
 -- | Generate wrappers from n to m.
-thWrappers :: Int -> Int -> DecsQ
+thWrappers :: Int -> Int -> Q [Dec]
 thWrappers n m = mapM thWrapper [n..m]
 
 -- | Generate wrapper.
@@ -30,24 +42,19 @@ thWrappers n m = mapM thWrapper [n..m]
 --                  )
 --          )
 -- @
-thWrapper :: Int -> DecQ
+thWrapper :: Int -> Q Dec
 thWrapper n = do
-    forImpD cCall safe "wrapper" (mkName $ "wrap"++show n) $
-      forallT (map PlainTV vars) (cxt []) $
-        (appT arrowT (go vars))  `appT`
-        ( conT (mkName "IO") `appT` (conT (mkName "FunPtr") `appT` (go vars)))
+    let vars = map (mkName . return) $ take (n + 1) ['a'..]
+        ty = go (map varT vars)
+    forImpD cCall safe "wrapper" (mkName $ "wrap" ++ show n) $
+      [t| $ty -> IO (FunPtr $ty) |]
   where
-    vars :: [Name]
-    vars = take (n+1) $ map (mkName.return) ['a'..]
-    go :: [Name] -> TypeQ
+    go :: [Q Type] -> Q Type
     go [] = impossible "thWrapper"
-    go [x] =
-      conT (mkName "IO") `appT` (conT (mkName "SEXP") `appT` (varT x))
-    go (x:xs) =
-      (appT arrowT (conT (mkName "SEXP") `appT` (varT x)))
-        `appT` (go xs)
+    go [_] = [t| IO $nSEXP0 |]
+    go (_:xs) = [t| $nSEXP0 -> $(go xs) |]
 
-thWrapperLiterals :: Int -> Int -> DecsQ
+thWrapperLiterals :: Int -> Int -> Q [Dec]
 thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 
 -- | Generate Literal Instance for wrapper.
@@ -61,26 +68,26 @@ thWrapperLiterals n m = mapM thWrapperLiteral [n..m]
 --    mkSEXP = funToSEXP wrap6
 --    fromSEXP = error \"Unimplemented.\"
 -- @
-thWrapperLiteral :: Int -> DecQ
+thWrapperLiteral :: Int -> Q Dec
 thWrapperLiteral n = do
-    tyvars1 <- replicateM (n + 1) (newName "a")
-    tyvars2 <- replicateM (n + 1) (newName "i")
+    let s = varT =<< newName "s"
+    names1 <- replicateM (n + 1) $ newName "a"
+    names2 <- replicateM (n + 1) $ newName "i"
     let mkTy []     = impossible "thWrapperLiteral"
-        mkTy [x]    = conT (mkName "R") `appT` varT x
-        mkTy (x:xs) = arrowT `appT` varT x `appT` mkTy xs
-        ctx = cxt (zipWith f tyvars1 tyvars2)
+        mkTy [x]    = [t| $nR $s $x |]
+        mkTy (x:xs) = [t| $x -> $(mkTy xs) |]
+        ctx = cxt (zipWith f (map varT names1) (map varT names2))
           where
-            f tv1 tv2 = classP (mkName "Literal") [varT tv1, varT tv2]
-        typ = conT (mkName "Literal") `appT` mkTy tyvars1 `appT` conT (mkName "R.ExtPtr")
-    instanceD ctx typ
+            f tv1 tv2 = classP (mkName "Literal") [tv1, tv2]
+        -- XXX: Ideally would import these names from their defining module, but
+        -- see GHC bug #1012. Using 'mkName' is a workaround.
+        nR = conT $ mkName "R"
+        nwrapn = varE $ mkName $ "wrap" ++ show n
+        nfunToSEXP = varE $ mkName "Language.R.Literal.funToSEXP"
+        nLiteral = conT $ mkName "Literal"
+    instanceD ctx [t| $nLiteral $(mkTy $ map varT names1) R.ExtPtr |]
       [ funD (mkName "mkSEXPIO")
-             [ clause []
-                      (normalB $ appE (varE (mkName "Language.R.Literal.funToSEXP"))
-                                      (varE (mkName ("wrap" ++ show n))))
-                      [] ]
+          [ clause [] (normalB [| $nfunToSEXP $nwrapn |]) [] ]
       , funD (mkName "fromSEXP")
-             [ clause []
-                      (normalB $ appE (varE (mkName "unimplemented"))
-                                      (litE (stringL "thWrapperLiteral fromSEXP")))
-                      [] ]
+          [ clause [] (normalB [| unimplemented "thWrapperLiteral fromSEXP" |]) [] ]
       ]

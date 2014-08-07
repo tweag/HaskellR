@@ -36,7 +36,7 @@ runCompileQQTest fp = do
       , ""
       , ""
       , "main :: IO ()"
-      , "main = runR defaultConfig $"
+      , "main = withEmbeddedR defaultConfig $ runRegion $ "
       , "    void $(quoteExp r $ unsafePerformIO $ readFile " ++ show fp ++ ")"
       ]
 

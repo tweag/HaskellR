@@ -26,7 +26,7 @@ fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
 
-hFib :: SEXP R.Int -> R (SEXP R.Int)
+hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
 hFib n                            = H.withProtected (return n) $ const $
@@ -34,7 +34,7 @@ hFib n                            = H.withProtected (return n) $ const $
 
 main :: IO ()
 main = do
-    H.runR H.defaultConfig $ do
+    H.withEmbeddedR H.defaultConfig $ runRegion $ do
       _ <- $(quoteExp (quoteFile r) ("tests" </> "R" </> "fib.R"))
       io $ defaultMain [
              bgroup "fib"

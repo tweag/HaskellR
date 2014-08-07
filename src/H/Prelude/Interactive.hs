@@ -11,7 +11,7 @@ module H.Prelude.Interactive
   )
   where
 
-import H.Prelude hiding (runR)
+import H.Prelude hiding (withEmbeddedR)
 import qualified H.Prelude as H
 
 instance MonadR IO where

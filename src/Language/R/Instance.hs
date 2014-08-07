@@ -8,6 +8,9 @@
 --
 -- The 'R' monad defined here serves to give static guarantees that an instance
 -- is only ever used after it has been initialized and before it is finalized.
+-- Doing otherwise should result in a type error. This is done in the same way
+-- that the 'Control.Monad.ST' monad encapsulates side effects: by assigning
+-- a rank-2 type to the only run function for the monad.
 --
 -- This module is intended to be imported qualified.
 
@@ -17,13 +20,15 @@
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.R.Instance
   ( -- * The R monad
     R
-  , runR
-  , unsafeRToIO
+  , withEmbeddedR
+  , runRegion
   , unsafeRunInRThread
+  , unsafeRToIO
   , Config(..)
   , defaultConfig
   -- * R instance creation
@@ -58,6 +63,7 @@ import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
 import Control.Exception
     ( SomeException
     , AsyncException(ThreadKilled)
+    , bracket
     , bracket_
     , finally
     , throwIO
@@ -65,6 +71,7 @@ import Control.Exception
     )
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
 import Control.Monad.Reader
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 
 import Foreign
     ( Ptr
@@ -94,24 +101,42 @@ import System.IO.Unsafe (unsafePerformIO)
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
 -- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
 -- be lifted to 'R' actions.
-newtype R a = R { _unR :: IO a }
-  deriving (Monad, MonadIO, Functor, MonadCatch, MonadMask, MonadThrow, Applicative)
+newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
+  deriving (Applicative, Functor, Monad, MonadIO, MonadCatch, MonadMask, MonadThrow)
 
-
-instance MonadR R where
-  io m = R $ unsafeRunInRThread m
+instance MonadR (R s) where
+  type Region (R s) = s
+  io m = R $ ReaderT $ \_ -> m
+  acquire s = R $ ReaderT $ \cnt -> do
+    x <- R.release <$> R.protect s
+    modifyIORef' cnt succ
+    return x
 
 -- | Initialize a new instance of R, execute actions that interact with the
--- R instance and then finalize the instance.
-runR :: Config -> R a -> IO a
-runR config (R m) = bracket_ (initialize config) finalize m
+-- R instance and then finalize the instance. 
+--
+-- > main = withEmbeddedR $ do {...}
+withEmbeddedR :: Config -> IO a -> IO a
+withEmbeddedR config = bracket_ (initialize config) finalize
 
 -- | Run an R action in the global R instance from the IO monad. This action is
--- unsafe in the sense that use of it doesn't make sure that an R instance was
--- indeed initialized and has not yet been finalized. It is a backdoor that
--- should not normally be used.
-unsafeRToIO :: R a -> IO a
-unsafeRToIO (R m) = m
+-- unsafe in the sense that use of it bypasses any static guarantees provided by
+-- the R monad, in particular that the R instance was indeed initialized and has
+-- not yet been finalized. It is a backdoor that should not normally be used.
+runRegion :: (forall s . R s a) -> IO a
+runRegion r =  unsafeRunInRThread $
+  bracket (newIORef 0)
+          (R.unprotect <=< readIORef)
+          (runReaderT (unR r))
+
+-- | An unsafe version of runRegion. This version allow @s@ variable to escape
+-- the scope, but this function is required for internal functions that may
+-- want to run 'R' monad.
+unsafeRToIO :: R s a -> IO a
+unsafeRToIO r = unsafeRunInRThread $
+  bracket (newIORef 0)
+          (R.unprotect <=< readIORef)
+          (runReaderT (unR r))
 
 -- | Configuration options for R runtime.
 data Config = Config
