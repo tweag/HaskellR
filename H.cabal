@@ -125,8 +125,7 @@ library
       cc-options:      -DH_ARCH_UNIX_DARWIN
   -- XXX -fcontext-stack=32 required on GHC >= 7.8 to allow foreign
   -- export function -wrappers of high arities.
-  -- XXX -cpp is a temp workaround for GHC 7.8.
-  ghc-options:         -Wall -Werror -cpp -fcontext-stack=32
+  ghc-options:         -Wall -Werror -fcontext-stack=32
 
 executable H
   main-is:             src/Main.hs
