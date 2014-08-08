@@ -1,5 +1,6 @@
 :set -XBangPatterns -XGADTs -XDataKinds
 :l system.hs
+:m +Control.Memory.Region
 
 let next = getLine >> return ()
 
@@ -8,25 +9,14 @@ putStrLn $ unlines
     [ "Next task will be testing our facilities to inspect values"
     , "As in previous demo we will use haskell functions to create data set:"
     , " H.print =<< [r| xs <- c(1:100) |]"
-    , " store <- H.newRVal =<< [r| ys <- generate_lifted_hs(xs) |]"
+    , " store <- [r| ys <- generate_lifted_hs(xs) |]"
     ]
 :}
 next
 
-rx <- H.preserveSome =<< [r| xs <- c(1:100) |]
-store <- H.preserveSome =<< [r| ys <- generate_lifted_hs(xs) |]
+rx <- [r| xs <- c(1:100) |]
+store <- [r| ys <- generate_lifted_hs(xs) |]
 
-:{
-putStrLn $ unlines 
-    [ "Lets discuss it a but now we have used more compicated code"
-    , "This is required because this demo uses more memory then previous one"
-    , "And R starts garbage collection process"
-    , "To protect variables from garbage collection we place them inside protection box"
-    , "With API similar to ForeignPtr"
-    ]
-:}
-next
- 
 :{
 putStrLn $ unlines
   [ "Now we want to aproximate this function by polinomial"
@@ -89,50 +79,21 @@ putStrLn $ unlines ["now we may want to run different polynomial"
 :}
 
 putStrLn "2:"
-val2 <- H.preserveSome =<< mkFormula 2
+val2 <- mkFormula 2
 H.print val2
 z <- [r| summary(val2_hs)$sigma |]
 R.unSomeSEXP z (head . H.fromSEXP) :: Double
 
 getLine
 
--- :{
--- putStrLn $ unlines 
---    [ "generally we are too lazy to write big functions by hands so introducing a function:"
---    , "let go n = do"
---    , "    valN <- H.newRVal =<< mkFormula n"
---    , "    H.withRVal valN $ \\y -> do"
---    , "       H.print y"
---    , "       v <- fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double"
---    , "       Prelude.print v"
---    , "       return valN"
---    ]
--- :}
--- :{
---let go n = do
---    valN <- H.newRVal =<< mkFormula n
---    H.withRVal valN $ \y -> do
---       H.print y 
---       v <- fmap (head . H.fromSEXP) [r| summary(y_hs)$sigma |] :: IO Double
---       Prelude.print v
---       return valN
--- :}
--- val3 <- go 3
--- getLine
--- putStrLn "run it for 4,5,6,7"
--- val4 <- go 4
--- val5 <- go 5
--- val6 <- go 6
--- val7 <- go 7
-
 putStrLn "3:"
-val3 <- H.preserveSome =<< mkFormula 3
+val3 <- mkFormula 3
 H.print val3
 z <- [r| summary(val3_hs)$sigma |]
 R.unSomeSEXP z (head . H.fromSEXP) :: Double
 
 putStrLn "4:"
-val4 <- H.preserveSome =<< mkFormula 4
+val4 <- mkFormula 4
 H.print val4
 z <- [r| summary(val4_hs)$sigma |]
 R.unSomeSEXP z (head . H.fromSEXP) :: Double
@@ -150,7 +111,7 @@ putStrLn ":m +Control.Exception"
 :m +Control.Exception
 putStrLn "5:"
 putStrLn "eval5 <- try (H.newRVal =<< mkFormula 5) :: IO (Either SomeException (RVal R.Any))"
-eval5 <- try (H.preserveSome =<< mkFormula 5) :: IO (Either SomeException (SomeSEXP G))
+eval5 <- try (mkFormula 5) :: IO (Either SomeException (SomeSEXP G))
 :{
 case eval5 of
     Right val5 -> do H.print val5
@@ -160,7 +121,7 @@ case eval5 of
 :}
 putStrLn "6:"
 putStrLn "eval6 <- try (H.newRVal =<< mkFormula 6) :: IO (Either SomeException (RVal Foreign.R.Any))"
-eval6 <- try (H.preserveSome =<< mkFormula 6) :: IO (Either SomeException (SomeSEXP G))
+eval6 <- try (mkFormula 6) :: IO (Either SomeException (SomeSEXP G))
 :{
 case eval6 of
     Right val6 -> do H.print val6
@@ -170,7 +131,7 @@ case eval6 of
 :}
 putStrLn "7:"
 putStrLn "eval7 <- try (H.newRVal =<< mkFormula 7) :: IO (Either SomeException (RVal Foreign.R.Any))"
-eval7 <- try (H.preserveSome =<< mkFormula 7) :: IO (Either SomeException (SomeSEXP G))
+eval7 <- try (mkFormula 7) :: IO (Either SomeException (SomeSEXP G))
 :{
 case eval7 of
     Right val7 -> do H.print val7
