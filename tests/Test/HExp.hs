@@ -8,6 +8,9 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NamedFieldPuns #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Test.HExp ( tests ) where
 
 import H.Constraints
@@ -26,7 +29,6 @@ import Test.SmallCheck.Series
 import Test.Tasty.SmallCheck
 import Unsafe.Coerce (unsafeCoerce)
 
--- Smallcheck stull
 import Test.Tasty.Providers
 import Test.Tasty.Options
 import qualified Test.SmallCheck.Drivers as SC
@@ -135,7 +137,7 @@ newtype MonadicProperty2 = MonadicProperty2 (Depth -> (SC.TestQuality -> IO ()) 
 instance IsTest MonadicProperty2 where
   testOptions = return [Option (Proxy :: Proxy SmallCheckDepth)]
 
-  run opts (MonadicProperty2 run) yeildProgress = do
+  run opts (MonadicProperty2 runMP2) yeildProgress = do
      let SmallCheckDepth depth = lookupOption opts
 
      counter <- newIORef (0 :: Int, 0 :: Int)
@@ -153,7 +155,7 @@ instance IsTest MonadicProperty2 where
            , progressPercent = 0
            }
 
-     scResult <- run depth hook
+     scResult <- runMP2 depth hook
 
      (total, bad) <- readIORef counter
      let

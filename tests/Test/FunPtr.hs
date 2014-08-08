@@ -28,7 +28,7 @@ import Control.Applicative
 import Control.Concurrent.MVar
 import Control.Monad
 import Data.ByteString.Char8
-import Foreign (FunPtr, castFunPtr, peek)
+import Foreign (FunPtr, castFunPtr)
 import System.Mem.Weak
 import System.Mem
 
