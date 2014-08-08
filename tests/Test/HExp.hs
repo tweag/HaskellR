@@ -3,9 +3,7 @@ module Test.HExp ( tests ) where
 
 import H.Constraints
 import qualified Language.R.HExp as H
-import           Language.R as R
-import           Foreign.R as R hiding (withProtected)
-import           Language.R.QQ
+import           Foreign.R as R
 
 import Foreign.C
 

@@ -64,7 +64,7 @@ show = unsafePerformIO . showIO
 
 
 instance Show (SEXP s a) where
-  showIO s = Language.R.withProtected (return s) $ \_ ->
+  showIO s =
            withCString "quote" $ R.install >=> \quote ->
            R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
            return .
@@ -74,7 +74,7 @@ instance Show (SEXP s a) where
            vector $
            (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
 
-  print e = io $ Language.R.withProtected (return e) R.printValue
+  print = io . R.printValue
 
 instance Show (R.SomeSEXP s) where
   showIO s = R.unSomeSEXP s showIO
