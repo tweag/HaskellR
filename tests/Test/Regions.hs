@@ -40,6 +40,3 @@ tests = testGroup "regions"
         j <- peek R.ppStackTop
         assertEqual "protection stack should be balanced" i j
     ]
-  where
-    isInt (R.Int) = True
-    isInt _       = False
