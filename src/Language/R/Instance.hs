@@ -114,7 +114,7 @@ instance MonadR (R s) where
     return x
 
 -- | Initialize a new instance of R, execute actions that interact with the
--- R instance and then finalize the instance. 
+-- R instance and then finalize the instance.
 --
 -- > main = withEmbeddedR $ do {...}
 withEmbeddedR :: Config -> IO a -> IO a
@@ -124,6 +124,8 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- unsafe in the sense that use of it bypasses any static guarantees provided by
 -- the R monad, in particular that the R instance was indeed initialized and has
 -- not yet been finalized. It is a backdoor that should not normally be used.
+--
+-- @runRegion m@ is strict in the result of action @m@.
 runRegion :: NFData a => (forall s . R s a) -> IO a
 runRegion r =  unsafeRunInRThread $
   bracket (newIORef 0)
