@@ -174,7 +174,7 @@ test-suite tests
                      , text >= 0.11
                      , vector
                      , singletons
-  other-modules:       Test.RVal
+  other-modules:       Test.GC
                        Test.FunPtr
                        Test.Constraints
                        Test.HExp

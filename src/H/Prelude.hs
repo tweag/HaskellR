@@ -19,7 +19,6 @@ module H.Prelude
   , module Language.R.Globals
   , Show(..)
   , show
-  , withProtected
   -- * Type convertion helpers.
   , toBool
   ) where
@@ -35,11 +34,9 @@ import qualified Data.Vector.SEXP as Vector
 import           Language.R.Globals
 import           Language.R.Literal
 import Language.R.Instance
-import           Language.R hiding ( withProtected )
-import qualified Language.R ( withProtected )
+import           Language.R
 import Foreign.R.Error
 
-import Control.Monad.Catch
 import qualified Data.Text.Lazy.IO as Text
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Text.Lazy
@@ -67,26 +64,21 @@ show = unsafePerformIO . showIO
 
 
 instance Show (SEXP s a) where
-  showIO s = Language.R.withProtected (return (R.release s)) $ \_ ->
-           withCString "quote" $ R.install >=> \quote ->
-           R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
-           return .
-           Text.Lazy.fromChunks .
-           map (Text.pack . Vector.toString . vector) .
-           Vector.toList .
-           vector $
-           (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
+  showIO s =
+      withCString "quote" $ R.install >=> \quote ->
+      R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
+      return .
+      Text.Lazy.fromChunks .
+      map (Text.pack . Vector.toString . vector) .
+      Vector.toList .
+      vector $
+      (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
 
-  print e = io $ Language.R.withProtected (return (R.release e)) R.printValue
+  print = io . R.printValue
 
 instance Show (R.SomeSEXP s) where
   showIO s = R.unSomeSEXP s showIO
   print s = R.unSomeSEXP s print
-
-withProtected :: (MonadR m, MonadCatch m, MonadMask m) => m (SEXP s a) -> ((SEXP s a) -> m b) -> m b
-withProtected accure =
-    bracket (accure >>= \x -> io $ R.protect x >> return x)
-            (const (io $ R.unprotect 1))
 
 -- | Convert Logical value into boolean.
 toBool :: SomeSEXP s -> Bool

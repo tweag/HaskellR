@@ -1,108 +1,56 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This module provides helper functions and structures for safe memory
--- management when communicating with R.
+-- Facilities to get Haskell's garbage collector to manage the liveness of
+-- values allocated on the R heap. By default, R values remain live so long as
+-- the current region is extant. The R garbage collector may only free them
+-- after the end of the region. Sometimes, this discipline incurs too high of
+-- a memory usage and nested regions are not always a solution.
 --
--- 'RVal' is a wrapper around 'SEXP' preventing the 'SEXP' from being garbage
--- collected by R until the Haskell garbage collector signals that it is safe to
--- do so.
+-- This module enables registering a callback with the GHC garbage collector. In
+-- this way, when the GHC garbage collector detects that a value is no longer
+-- live, we can notify the R garbage collector of this fact. The R garbage
+-- collector is then free to deallocate the memory associated with the value
+-- soon after that.
+--
+-- This module hence offers an alternative, more flexible memory management
+-- discipline, at a performance cost. In particular, collections of many small,
+-- short-lived objects are best managed using regions.
 
 module Language.R.GC
-  ( -- * RVal
-    RVal
-  , newRVal
-  , touchRVal
-  , withRVal
-  , unprotectRVal
-    -- * SomeRVal
-  , SomeRVal
-  , newSomeRVal
-  , touchSomeRVal
-  , withSomeRVal
-  , unprotectSomeRVal
-    -- * Helpers
-  , withProtected
+  ( automatic
+  , automaticSome
   ) where
 
 import Control.Memory.Region
 import H.Internal.Prelude
-import Control.Applicative
-import Foreign ( ForeignPtr, touchForeignPtr, finalizeForeignPtr )
-import Foreign.ForeignPtr.Unsafe ( unsafeForeignPtrToPtr )
-import Foreign.Concurrent ( newForeignPtr )
 import qualified Foreign.R as R
+import System.Mem.Weak (addFinalizer)
 
-import Control.Monad.Catch ( MonadCatch, MonadMask, bracket )
-import Control.Monad.Trans ( MonadIO(..) )
-
--- | An 'RVal' is a reference to a /protected/ R object that is maintained by
--- R storage memory. If GHC's GC determines that the object has become
--- unreachable from Haskell, then object is unprotected.
-newtype RVal (a :: R.SEXPTYPE) = RVal (ForeignPtr R.SEXPREC)
-
--- | Create R value and automatically protect it.
-newRVal :: MonadR m => R.SEXP s a -> m (RVal a)
-newRVal s = io $ do
-    R.preserveObject s
+-- | Declare memory management for this value to be automatic. That is, the
+-- memory associated with it may be freed as soon as the garbage collector
+-- notices that it is safe to do so.
+--
+-- Values with automatic memory management are tagged with the global region.
+-- The reason is that just like for other global values, deallocation of the
+-- value can never be observed. Indeed, it is a mere "optimization" to
+-- deallocate the value sooner - it would still be semantically correct to never
+-- deallocate it at all.
+automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
+automatic s = io $ do
+    R.preserveObject s'
     post <- getPostToCurrentRThread
-    fp <- newForeignPtr (R.unsexp s) (post $ R.releaseObject (R.unsafeRelease s))
-    return (RVal fp)
+    s' `addFinalizer` (post $ R.releaseObject (R.unsafeRelease s'))
+    return s'
+  where
+    s' = R.unsafeRelease s
 
--- | Keep SEXP value from the garbage collection.
-touchRVal :: MonadR m => RVal a -> m ()
-touchRVal (RVal s) = io (touchForeignPtr s)
-
--- | This is a way to look inside RValue object.
-withRVal :: MonadR m => RVal a -> (R.SEXP V a -> m b) -> m b
-withRVal (RVal s) f = do
-        let s' = unsafeForeignPtrToPtr s
-        x <- f (R.sexp s')
-        io $ touchForeignPtr s
-        return x
-
--- | Unprotect 'SEXP' in R memory. This doesn't mean that value will be
--- immideately deallocated, just that it may be deallocated on the next GC.
-unprotectRVal :: MonadR m => RVal a -> m ()
-unprotectRVal (RVal s) = io (finalizeForeignPtr s)
-
--- | Perform an action with resource while protecting it from the garbage
--- collection. This function is a safer alternative to 'R.protect' and
--- 'R.unprotect', guaranteeing that a protected resource gets unprotected
--- irrespective of the control flow, much like 'Control.Exception.bracket_'.
-withProtected :: (MonadIO m, MonadCatch m, MonadMask m)
-              => m (R.SEXP V a)      -- Action to acquire resource
-              -> (R.SEXP s a -> m b) -- Action
-              -> m b
-withProtected create f =
-    bracket
-      (do { x <- create; _ <- liftIO $ R.protect x; return x })
-      (const $ liftIO $ R.unprotect 1)
-      (f . R.unsafeRelease)
-
--- | Non type indexed version of 'RVal'.
-newtype SomeRVal = SomeRVal (ForeignPtr R.SEXPREC)
-
--- | Create R value and automatically protect it.
-newSomeRVal :: MonadR m => SomeSEXP s -> m SomeRVal
-newSomeRVal (SomeSEXP s) = io $ do
-    R.preserveObject s
+-- | 'automatic' for 'SomeSEXP'.
+automaticSome :: MonadR m => R.SomeSEXP s -> m (R.SomeSEXP G)
+automaticSome (SomeSEXP s) = io  $ do
+    R.preserveObject s'
     post <- getPostToCurrentRThread
-    SomeRVal <$> newForeignPtr (R.unsexp s) (post $ R.releaseObject (R.unsafeRelease s))
-
--- | Keep 'SEXP' value from the garbage collection.
-touchSomeRVal :: MonadR m => SomeRVal -> m ()
-touchSomeRVal (SomeRVal s) = io (touchForeignPtr s)
-
--- | This is a way to look inside RValue object.
-withSomeRVal :: MonadR m => SomeRVal -> (SomeSEXP V -> m b) -> m b
-withSomeRVal (SomeRVal s) f = do
-        let s' = unsafeForeignPtrToPtr s
-        x <- f (SomeSEXP (R.sexp s'))
-        io $ touchForeignPtr s
-        return x
-
--- | Unprotect 'SEXP' in R memory. This doesn't mean that value will be
--- immediately deallocated, just that it may be deallocated on the next GC.
-unprotectSomeRVal :: MonadR m => SomeRVal -> m ()
-unprotectSomeRVal (SomeRVal s) = io (finalizeForeignPtr s)
+    s' `addFinalizer` (post $ R.releaseObject s')
+    return $ SomeSEXP s'
+  where
+    s' = R.unsafeRelease s

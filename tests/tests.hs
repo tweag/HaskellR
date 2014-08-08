@@ -11,19 +11,17 @@ module Main where
 
 import qualified Test.Constraints
 import qualified Test.FunPtr
-import qualified Test.RVal
 import qualified Test.HExp
+import qualified Test.GC
 
 import H.Prelude
 import H.Constraints
 import qualified Language.R.HExp as H
-import qualified Foreign.R as R hiding (withProtected)
+import qualified Foreign.R as R
 import qualified Language.R.Instance as R
     ( initialize
     , defaultConfig )
-import qualified Language.R as R
-    ( withProtected
-    , r2 )
+import qualified Language.R as R ( r2 )
 import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
@@ -191,12 +189,12 @@ unitTests = testGroup "Unit tests"
       (((42::Double) @=?) =<<) $
          let y = R.cast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
          in case H.hexp y of
-              H.Bytecode -> return 15 
+              H.Bytecode -> return 15
               H.Real s -> basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
-  , Test.RVal.tests
   , Test.HExp.tests
+  , Test.GC.tests
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.

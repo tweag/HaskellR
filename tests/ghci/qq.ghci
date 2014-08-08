@@ -2,6 +2,7 @@
 :set -XScopedTypeVariables
 :m +Data.Int
 import qualified Foreign.R as R
+import Control.Applicative ((<$>))
 
 -- Should be: [1] 1
 H.print =<< [r| 1 |]
@@ -90,8 +91,9 @@ _ <- [r| `+` <- base::`+` |]
 let hFib :: Foreign.R.SEXP s Foreign.R.Int -> H.Prelude.R s (Foreign.R.SEXP s Foreign.R.Int)
     hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
     hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-    hFib n                              = H.withProtected (return n) $ const $
-        fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+    hFib n =
+        (`R.asTypeOf` n) <$>
+          [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 :}
 
 -- Should be [1] 4181
@@ -104,8 +106,6 @@ H.print =<< [r| setClass("x-test",representation(a = "numeric", b = "numeric"), 
 H.print =<< [r| x <- new("x-test") |]
 -- instantiate and object and pass it to H as-is
 x <- [r| new("x-test") |]
--- prevent x from being garbage collected
-rv <- H.newSomeRVal x
 -- show object
 H.print x
 -- Should be 1. Use slot accessor on R object.

@@ -29,7 +29,6 @@ import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector
 import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
-import           Language.R ( withProtected )
 
 import Data.Singletons ( SingI, sing )
 
@@ -66,7 +65,7 @@ mkSEXPVectorIO :: (Storable (SVector.ElemRep s a), IsVector a)
                -> [SVector.ElemRep s a]
                -> IO (SEXP s a)
 mkSEXPVectorIO ty xs =
-    withProtected (R.allocVector ty $ length xs) $ \vec -> do
+    R.withProtected (R.allocVector ty $ length xs) $ \vec -> do
       let ptr = castPtr $ R.unsafeSEXPToVectorPtr vec
       zipWithM_ (pokeElemOff ptr) [0..] xs
       return vec
@@ -84,7 +83,7 @@ mkProtectedSEXPVectorIO :: IsVector b
                         -> IO (SEXP s b)
 mkProtectedSEXPVectorIO ty xs = do
     mapM_ (void . R.protect) xs
-    z <- withProtected (R.allocVector ty $ length xs) $ \vec -> do
+    z <- R.withProtected (R.allocVector ty $ length xs) $ \vec -> do
            let ptr = castPtr $ R.unsafeSEXPToVectorPtr vec
            zipWithM_ (pokeElemOff ptr) [0..] xs
            return vec

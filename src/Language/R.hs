@@ -60,10 +60,10 @@ import Foreign.C.String ( withCString, peekCString )
 -- | Parse and then evaluate expression.
 parseEval :: ByteString -> IO (SomeSEXP V)
 parseEval txt = useAsCString txt $ \ctxt ->
-  withProtected (R.mkString ctxt) $ \rtxt ->
+  R.withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
       nil <- peek R.nilValue
-      withProtected (R.parseVector rtxt 1 status (R.release nil)) $ \exprs -> do
+      R.withProtected (R.parseVector rtxt 1 status (R.release nil)) $ \exprs -> do
         rc <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum rc) $
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
@@ -81,13 +81,13 @@ parseEval txt = useAsCString txt $ \ctxt ->
 r1 :: ByteString -> SEXP s a -> IO (SomeSEXP V)
 r1 fn a =
     useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      withProtected (R.lang2 f (R.release a)) evalIO
+      R.withProtected (R.lang2 f (R.release a)) evalIO
 
 -- | Call a pure binary R function. See 'r1' for additional comments.
 r2 :: ByteString -> SEXP s a -> SEXP s b -> IO (SomeSEXP V)
 r2 fn a b =
     useAsCString fn $ \cfn -> R.install cfn >>= \f ->
-      withProtected (R.lang3 f (R.release a) (R.release b)) evalIO
+      R.withProtected (R.lang3 f (R.release a) (R.release b)) evalIO
 
 -- | Parse file and perform some actions on parsed file.
 --
@@ -98,9 +98,9 @@ r2 fn a b =
 parseFile :: FilePath -> (SEXP s R.Expr -> IO a) -> IO a
 parseFile fl f = do
     withCString fl $ \cfl ->
-      withProtected (R.mkString cfl) $ \rfl ->
+      R.withProtected (R.mkString cfl) $ \rfl ->
         r1 (C8.pack "parse") rfl >>= \(R.SomeSEXP s) ->
-          return (R.unsafeCoerce s) `withProtected` f
+          return (R.unsafeCoerce s) `R.withProtected` f
 
 parseText :: String                               -- ^ Text to parse
           -> Bool                                 -- ^ Whether to annotate the

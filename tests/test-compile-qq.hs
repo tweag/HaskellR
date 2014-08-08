@@ -9,13 +9,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
+
 module Main where
 
-import Foreign.R as R hiding (withProtected)
+import qualified Foreign.R as R
+import Foreign.R (SEXP)
 import H.Prelude as H
 import Language.R.QQ
 import Data.Int
 
+import Control.Applicative ((<$>))
 import System.Environment
 import System.Exit ( exitFailure )
 import System.Process ( readProcess )
@@ -51,8 +54,9 @@ main = do
 hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-hFib n                            = withProtected (return n) $ const $
-    fmap (flip R.asTypeOf n) [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+hFib n =
+    (`R.asTypeOf` n) <$>
+      [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
 
 rTests :: IO ()
 rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
