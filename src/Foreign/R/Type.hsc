@@ -35,6 +35,7 @@ import qualified Language.Haskell.TH.Lib as Hs
 
 import Data.Singletons.TH
 
+import Control.DeepSeq (NFData(..))
 import Foreign (castPtr)
 import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
@@ -141,6 +142,9 @@ instance Enum SEXPTYPE where
   toEnum (#const FREESXP)    = Free
   toEnum (#const FUNSXP)     = Fun
   toEnum _                   = violation "toEnum" "Unknown R type."
+
+instance NFData SEXPTYPE where
+  rnf = (`seq` ())
 
 genSingletons [''SEXPTYPE]
 

@@ -153,6 +153,7 @@ import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
 import Data.Singletons (fromSing)
+import Control.DeepSeq (NFData(..))
 import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
@@ -186,6 +187,9 @@ newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
 
 instance Show (SEXP s a) where
   show (SEXP ptr) = show ptr
+
+instance NFData (SEXP s a) where
+  rnf = (`seq` ())
 
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
@@ -224,6 +228,10 @@ instance Storable (SomeSEXP s) where
   alignment _ = alignment (undefined :: SEXP s a)
   peek ptr = SomeSEXP <$> peek (castPtr ptr)
   poke ptr (SomeSEXP s) = poke (castPtr ptr) s
+
+
+instance NFData (SomeSEXP s) where
+  rnf (`seq` ())
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
