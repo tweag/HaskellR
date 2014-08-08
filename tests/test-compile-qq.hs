@@ -63,7 +63,7 @@ rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
 
     -- Should be [1] 4181
     -- Placing it before enabling gctorture2 for speed.
-    H.print =<< hFib (mkSEXP (19 :: Int32))
+    H.print =<< hFib =<< mkSEXP (19 :: Int32)
 
     _ <- [r| gctorture2(1,0,TRUE) |]
 
