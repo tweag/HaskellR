@@ -20,19 +20,19 @@ import System.Mem (performMajorGC)
 
 tests :: TestTree
 tests = testGroup "HVal"
-    [ testCase "Preserved value is not collected by R GC" $
+    [ testCase "Automatic value is not collected by R GC" $
       bracket getCurrentDirectory setCurrentDirectory $ const $ do
-        ((assertBool "Preserved value was collected" . isInt) =<<) $ do
+        ((assertBool "Automatic value was collected" . isInt) =<<) $ do
             unsafeRunInRThread $ unsafeRToIO $ do
-              x <- preserve =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP V R.Int))
+              x <- automatic =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP V R.Int))
               io $ R.gc
               return $ R.typeOf x
-    , testCase "Preserved value works after release" $
+    , testCase "Automatic value works after release" $
       bracket getCurrentDirectory setCurrentDirectory $ const $ do
-        ((assertBool "Preserved value was collected" . isInt) =<<) $ do
+        ((assertBool "Automatic value was collected" . isInt) =<<) $ do
            unsafeRunInRThread $ runRegion $ do
               _ <- [r| gctorture(TRUE) |]
-              x <- preserve =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP V R.Int))
+              x <- automatic =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP V R.Int))
               y <- return $ R.release x
               io $ performMajorGC
               _ <- io $ R.allocList 1
