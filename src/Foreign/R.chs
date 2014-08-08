@@ -229,9 +229,8 @@ instance Storable (SomeSEXP s) where
   peek ptr = SomeSEXP <$> peek (castPtr ptr)
   poke ptr (SomeSEXP s) = poke (castPtr ptr) s
 
-
 instance NFData (SomeSEXP s) where
-  rnf (`seq` ())
+  rnf = (`seq` ())
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
