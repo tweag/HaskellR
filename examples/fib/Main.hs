@@ -6,12 +6,11 @@ import Fib
 
 import qualified H.Prelude as H
 import           Language.R.QQ
-import qualified Language.R.Instance
 import           Control.Monad.IO.Class
       ( liftIO  )
 
 main :: IO ()
-main = H.runR Language.R.Instance.defaultConfig $ do
+main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
   H.print =<< [r| "test" |]
   H.print =<< [r| 1+2 |]
   liftIO $ putStrLn "[r| neg_hs(TRUE, as.integer(5)) |]"

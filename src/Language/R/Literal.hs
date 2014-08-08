@@ -22,6 +22,7 @@ module Language.R.Literal
     -- * wrapper helpers
   ) where
 
+import           Control.Memory.Region
 import           H.Internal.Prelude
 import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
@@ -43,16 +44,16 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    mkSEXPIO :: a -> IO (SEXP s b)
-    -- XXX: should be `a -> IO (SEXP V b)`
-    -- The problem here is that SEXP is not protected, so effectively
-    -- it's in a void region, except the cases when 'a' is protected
-    -- in 's'.
+    -- | Low level function for creation a SEXP value.
+    -- This function work in IO monad and doesn't protect
+    -- a value, in most cases you are interested in 'mkSEXP'
+    -- function that does a protection.
+    mkSEXPIO :: a -> IO (SEXP V b)
     fromSEXP :: SEXP s c -> a
 
-{-# NOINLINE mkSEXP #-}
-mkSEXP :: Literal a b => a -> SEXP s b
-mkSEXP = unsafePerformIO . mkSEXPIO
+-- |  Create a SEXP value and protect it in current region
+mkSEXP :: (Literal a b, MonadR m) => a -> m (SEXP (Region m) b)
+mkSEXP x = acquire =<< io (mkSEXPIO x)
 
 {-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep s a), IsVector a)

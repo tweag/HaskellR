@@ -180,7 +180,7 @@ const char *(R_CHAR)(SEXP x);
 data SEXPREC
 
 -- | The basic type of all R expressions, classified by the form of the
--- expression.
+-- expression, and the memory region in which it has been allocated.
 newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
   deriving (Eq, Storable)
 
@@ -215,6 +215,9 @@ unsafeRelease = sexp . unsexp
 
 -- | A 'SEXP' of unknown form.
 data SomeSEXP s = forall a. SomeSEXP {-# UNPACK #-} !(SEXP s a)
+
+instance Show (SomeSEXP s) where
+  show s = unSomeSEXP s show
 
 instance Storable (SomeSEXP s) where
   sizeOf _ = sizeOf (undefined :: SEXP s a)
