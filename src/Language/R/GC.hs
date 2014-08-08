@@ -44,7 +44,7 @@ preserveSome (SomeSEXP s) = io  $ do
 -- 'R.unprotect', guaranteeing that a protected resource gets unprotected
 -- irrespective of the control flow, much like 'Control.Exception.bracket_'.
 withProtected :: (MonadIO m, MonadCatch m, MonadMask m)
-              => m (R.SEXP V a)      -- Action to acquire resource
+              => m (R.SEXP z a)      -- Action to acquire resource
               -> (R.SEXP s a -> m b) -- Action
               -> m b
 withProtected create f =
