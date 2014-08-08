@@ -144,7 +144,7 @@ instance Enum SEXPTYPE where
   toEnum _                   = violation "toEnum" "Unknown R type."
 
 instance NFData SEXPTYPE where
-  rnf x = x `seq` ()
+  rnf = (`seq` ())
 
 genSingletons [''SEXPTYPE]
 

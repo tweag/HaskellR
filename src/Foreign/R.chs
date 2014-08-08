@@ -189,7 +189,7 @@ instance Show (SEXP s a) where
   show (SEXP ptr) = show ptr
 
 instance NFData (SEXP s a) where
-  rnf (SEXP x) = x `seq` ()
+  rnf = (`seq` ())
 
 -- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
 -- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
@@ -231,7 +231,7 @@ instance Storable (SomeSEXP s) where
 
 
 instance NFData (SomeSEXP s) where
-  rnf (SomeSEXP s) = s `seq` ()
+  rnf (`seq` ())
 
 -- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
