@@ -11,6 +11,7 @@ module Fib
   ) where
 
 import           H.Prelude as H
+import           Foreign.R.Type as R
 import qualified Foreign.R as R
 import           Foreign.R (SEXP)
 import           Data.Int (Int32)
@@ -33,8 +34,8 @@ fib (fromSEXP -> n :: Int32) = [r| fib_hs(as.integer(n_hs - 1)) + fib_hs(as.inte
 
 fact :: Int32 -> R s Int32
 fact 0 = return 1
-fact n = fmap (H.fromSEXP . R.cast R.Int) [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+fact n = fmap (H.fromSEXP . R.cast R.SInt) [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
 
 factSexp :: SEXP s 'R.Int -> R s (SEXP s 'R.Int)
 factSexp (fromSEXP -> 0 :: Int32) = mkSEXP (1::Int32)
-factSexp (fromSEXP -> n :: Int32) = fmap (H.fromSEXP.R.cast R.Int) [r| as.integer(n_hs * fact_hs(as.integer(n_hs -1))) |]
+factSexp (fromSEXP -> n :: Int32) = fmap (H.fromSEXP.R.cast R.SInt) [r| as.integer(n_hs * fact_hs(as.integer(n_hs -1))) |]
