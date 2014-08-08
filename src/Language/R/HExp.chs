@@ -40,7 +40,6 @@ module Language.R.HExp
   , unhexp
   , vector
   , selfSymbol
-  , heqMaybe
   ) where
 
 import Control.Applicative
