@@ -189,7 +189,7 @@ unitTests = testGroup "Unit tests"
       (((42::Double) @=?) =<<) $
          let y = R.cast (sing :: R.SSEXPTYPE R.Real) (R.SomeSEXP (mkSEXP (42::Double)))
          in case H.hexp y of
-              H.Bytecode -> return 15 
+              H.Bytecode -> return 15
               H.Real s -> basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests

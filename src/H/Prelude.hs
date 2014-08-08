@@ -65,14 +65,14 @@ show = unsafePerformIO . showIO
 
 instance Show (SEXP s a) where
   showIO s =
-           withCString "quote" $ R.install >=> \quote ->
-           R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
-           return .
-           Text.Lazy.fromChunks .
-           map (Text.pack . Vector.toString . vector) .
-           Vector.toList .
-           vector $
-           (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
+      withCString "quote" $ R.install >=> \quote ->
+      R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
+      return .
+      Text.Lazy.fromChunks .
+      map (Text.pack . Vector.toString . vector) .
+      Vector.toList .
+      vector $
+      (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
 
   print = io . R.printValue
 
