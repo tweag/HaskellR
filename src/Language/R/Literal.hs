@@ -44,10 +44,8 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
 class Literal a b | a -> b where
-    -- | Low level function for creation a SEXP value.
-    -- This function work in IO monad and doesn't protect
-    -- a value, in most cases you are interested in 'mkSEXP'
-    -- function that does a protection.
+    -- | Internal function for converting a literal to a 'SEXP' value. You
+    -- probably want to be using 'mkSEXP' instead.
     mkSEXPIO :: a -> IO (SEXP V b)
     fromSEXP :: SEXP s c -> a
 
