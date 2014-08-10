@@ -198,5 +198,5 @@ type IsVector (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': '[])
 -- R source distribution.
 type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [Vector, Expr, WeakRef])
 
--- | @IsList a@ holds iff R's @is.vector()@ returns @TRUE@.
+-- | @IsList a@ holds iff R's @is.list()@ returns @TRUE@.
 type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': List ': '[])
