@@ -16,6 +16,7 @@ infix 1 :∈
 
 -- | The predicate @a :∈ as@ states that @a@ is a member type of the set @as@.
 type family (a :: SEXPTYPE) :∈ (as :: [SEXPTYPE]) :: Constraint where
+  Any :∈ as = ()
   a :∈ (a ': as) = ()
   a :∈ (b ': as) = a :∈ as
 

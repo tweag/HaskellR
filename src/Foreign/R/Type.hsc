@@ -200,3 +200,6 @@ type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [Vector, Expr, WeakRef])
 
 -- | @IsList a@ holds iff R's @is.list()@ returns @TRUE@.
 type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': List ': '[])
+
+-- | @IsPairList a@ holds iff R's @is.pairlist()@ returns @TRUE@.
+type IsPairList (a :: SEXPTYPE) = (SingI a, a :∈ [List, Nil])
