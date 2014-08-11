@@ -167,7 +167,8 @@ The `R` monad is intended for compiled code. Functions are provided to
 initialize R and to run `R` computations in the `IO` monad.
 
 ```Haskell
-withEmbeddedR :: Config -> (forall s. R s a) -> IO a
+withEmbeddedR :: Config -> IO a -> IO a
+runRegion     :: (forall s . R s a) -> IO a
 io            :: IO a -> R s a
 unsafeRToIO   :: R s a -> IO a
 ```
