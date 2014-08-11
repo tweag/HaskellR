@@ -32,8 +32,8 @@ a value.
 We do not normally manipulate R values directly, instead leaving them
 alone for R to manage. In Haskell, we manipulate *handles* to
 R values, rather than the values themselves directly. Handles have
-types of the form `SEXP a`, which is actually a type synonym for
-a pointer type, so values of type `SEXP a` are not terribly
+types of the form `SEXP s a`, which is actually a type synonym for
+a pointer type, so values of type `SEXP s a` are not terribly
 interesting in their own right: they are just memory addresses, as
 seen above. However, one can use `H.print` to ask R to show us the
 value pointed to by a handle:
@@ -100,8 +100,8 @@ and R values.
 
 ```Haskell
 class Literal a b | a -> b where
-  mkSEXP   ::      a -> SEXP b
-  fromSEXP :: SEXP c ->      a
+  mkSEXP   ::      a -> SEXP s b
+  fromSEXP :: SEXP s c ->      a
 ```
 
 Some predefined instances are:
@@ -111,7 +111,7 @@ instance Literal      Double (R.Vector Double)
 instance Literal    [Double] (R.Vector Double)
 instance Literal       Int32  (R.Vector Int32)
 instance Literal     [Int32]  (R.Vector Int32)
-instance Literal    (SEXP a)                 b
+instance Literal    (SEXP s a)                 b
 instance Literal      String        (R.String)
 
 -- several instances of the form:
@@ -139,9 +139,9 @@ The R monad
 All expressions like
 
 ```Haskell
-[r| ... |]   :: MonadR m => m (SEXP b)
+[r| ... |]   :: MonadR m => m (SEXP s b)
 H.print sexp :: MonadR m => m ()
-H.eval sexp  :: MonadR m => m (SEXP b)
+H.eval sexp  :: MonadR m => m (SEXP s b)
 ```
 
 are computations in a monad instantiating `MonadR`.
@@ -153,9 +153,11 @@ class (Applicative m, MonadIO m) => MonadR m where
 
 These monads ensure that:
 
- 1. the R interpreter is initialized, and
- 2. the computations run in a special OS thread reserved for R calls
-    (so called the R thread).
+ 1. the R interpreter is initialized;
+ 1. resources managed by the R interpreter do not extrude its
+    lifetime;
+ 1. constraints concerning on which system thread the R interpreter
+    can run are respected.
 
 There are two instances of `MonadR`: `IO` and `R`. Which instance one
 uses depends on the context: the `IO` monad in an interactive session,
@@ -165,18 +167,18 @@ The `R` monad is intended for compiled code. Functions are provided to
 initialize R and to run `R` computations in the `IO` monad.
 
 ```Haskell
-runR         :: Config -> (forall s. R s a) -> IO a
-io           :: IO a -> R s a
-unsafeRToIO  :: R s a -> IO a
+withEmbeddedR :: Config -> (forall s. R s a) -> IO a
+io            :: IO a -> R s a
+unsafeRToIO   :: R s a -> IO a
 ```
 
 The `IO` monad is used instead in GHCi, as a mere convenience. It
 allows evaluating expressions without the need to wrap every command
-at the prompt with the function `runR`. The `IO` monad is not as safe
-as the `R` monad, because it does not guarantee that R has been
-properly initialized, but in the context of an interactive session
-this is superfluous as the `H --interactive` command takes care of
-initialization at startup.
+at the prompt with a function to run the R monad. The `IO` monad is in
+theory not as safe as the `R` monad, because it does not statically
+guarantee that R has been properly initialized, but in the context of
+an interactive session this is superfluous as the `H --interactive`
+command takes care of initialization at startup.
 
 How to analyze R values in Haskell
 ==================================
@@ -193,7 +195,7 @@ matched, provided a *view function* constructing a *view* of any given
 R value as an algebraic datatype. H provides one such view function:
 
 ```Haskell
-hexp :: SEXP a -> HExp a
+hexp :: SEXP s a -> HExp a
 ```
 
 The `HExp` datatype is a *view type* for `SEXP`. Matching on a value
@@ -224,7 +226,7 @@ f (hexp -> Closure args body@(hexp -> Lang _ _) env) = ...
 
 ### R values and side effects
 
-As explained previously, values of type `SEXP a` are in fact pointers
+As explained previously, values of type `SEXP s a` are in fact pointers
 to structures stored on the R heap, an area of memory managed by the
 R interpreter. As such, one must take heed of the following two
 observations when using a pure function such as `hexp` to dereference
@@ -244,7 +246,7 @@ once, at the entry point of the binary (i.e., C's main() function).
 The second observation is that the `hexp` view function does pointer
 dereferencing, which is a side-effect, yet it claims to be a pure
 function. The pointer that is being dereferenced is the argument to
-the function, of type `SEXP a`. The reason dereferencing a pointer is
+the function, of type `SEXP s a`. The reason dereferencing a pointer is
 considered an effect is because its value depends on the state of the
 global memory at the time when it occurs. This is because a pointer
 identifies a memory location, called a *cell*, whose content can be
@@ -298,7 +300,7 @@ Conversely, evaluating any `SEXP` in a pure context in Haskell is
 example,
 
 ```Haskell
-f :: SEXP a -> (R s SomeSEXP,HExp a)
+f :: SEXP s a -> (R s SomeSEXP,HExp a)
 f x = let h = hexp x
          in ([r| x_hs <- 'hello' |], h)
 ```
@@ -314,7 +316,7 @@ that can detect bad side-effects.
 ### Physical and structural equality on R values
 
 The standard library defines an `Eq` instance for `Ptr`, which simply
-compares the addresses of the pointers. Because `SEXP a` is a `Ptr` in
+compares the addresses of the pointers. Because `SEXP s a` is a `Ptr` in
 disguise, `s1 == s2` where `s1`, `s2` are `SEXP`s tests for *physical
 equality*, namely whether `s1` and `s2` are one and the same object.
 
@@ -328,9 +330,9 @@ uniform type is too restrictive for `HExp` which is a GADT. Consider
 symbols, which can be viewed using the `Symbol` constructor:
 
 ```Haskell
-Symbol :: SEXP (R.Vector Word8)
-       -> SEXP a
-       -> Maybe (SEXP b)
+Symbol :: SEXP s (R.Vector Word8)
+       -> SEXP s a
+       -> Maybe (SEXP s b)
        -> HExp R.Symbol
 ```
 
@@ -389,12 +391,12 @@ known *a priori*, which is not always the case. In particular, the
 type of the result of a call to the `r` quasiquoter is always
 `SomeSEXP`, meaning that the form of the result is not statically
 known. If the result needs to be passed to a function with a precise
-signature, say `SEXP R.Real -> SEXP R.Logical`, then one needs to
+signature, say `SEXP s R.Real -> SEXP s R.Logical`, then one needs to
 either discover the form of the result, by first performing pattern
 matching on the result before passing it to the function:
 
 ```Haskell
-f :: SEXP R.Real -> SEXP R.Logical
+f :: SEXP s R.Real -> SEXP s R.Logical
 
 g = do SomeSEXP x <- [r| 1 + 1 |]
        case x of
@@ -408,7 +410,7 @@ know that `[r| 1 + 1 |]` will always return a real. We can use *casts*
 or *coercions* to inform the type checker of this:
 
 ```Haskell
-f :: SEXP R.Real -> SEXP R.Logical
+f :: SEXP s R.Real -> SEXP s R.Logical
 
 g = do x <- [r| 1 + 1 |]
        return $ f (R.Int `R.cast` x)
@@ -421,7 +423,7 @@ form, she may use *coercions* to avoid even the dynamic check, when
 the situation warrants it (say in tight loops). This is done with
 
 ```Haskell
-unsafeCoerce :: SEXP a -> SEXP b
+unsafeCoerce :: SEXP s a -> SEXP s b
 ```
 
 This function is highly unsafe - it is H's equivalent of Haskell's
@@ -443,6 +445,9 @@ make garbage collection unsafe because neither GC's have a global view
 of the object graph, only a partial view corresponding to the objects
 in the heaps of each GC.
 
+Memory protection
+-----------------
+
 Fortunately, R provides a mechanism to "protect" objects from garbage
 collection until they are unprotected. We can use this mechanism to
 prevent R's GC from deallocating objects that are still referenced by
@@ -450,61 +455,71 @@ at least one object in the Haskell heap.
 
 One particular difficulty with protection is that one must not forget
 to unprotect objects that have been protected, in order to avoid
-memory leaks. H provides the following facility for pinning an object
-in memory and guaranteeing unprotection when a function returns:
+memory leaks. H uses "regions" for pinning an object in memory and
+guaranteeing unprotection when the control flow exits a region.
+
+Memory regions
+--------------
+
+There is currently one global region for R values, but in the future
+H will have support for multiple (nested) regions. A region is opened
+with the `runRegion` action, which creates a new region and executes
+the given action in the scope of that region. All allocation of
+R values during the course of the execution of the given action will
+happen within this new region. All such values will remain protected
+(i.e. pinned in memory) within the region. Once the action returns,
+all allocated R values are freed all at once.
 
 ```Haskell
-withProtected :: IO (SEXP a)      -- ^ Action to acquire resource
-              -> (SEXP a -> IO b) -- ^ Action
-              -> IO b
+runRegion :: (forall s . R s a) -> IO a
 ```
 
-An example of bad memory usage
-------------------------------
+Automatic memory management
+---------------------------
+
+Nested regions work well as a memory management discipline for simple
+scenarios when the lifetime of an object can easily be made to fit
+within nested scopes. For more complex scenarios, it is often much
+easier to let memory be managed completely automatically, though at
+the cost of some memory overhead and performance penalty. H provides
+a mechanism to attach finalizers to R values. This mechanism
+piggybacks Haskell's GC to notify R's GC when it is safe to deallocate
+a value.
 
 ```Haskell
-do x <- [rexp| 2 |]
-   y <- [rexp| 3 |]
-   [rexp| x_hs + y_hs |]
+automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
 ```
 
-Since the R garbage collector may kick-in before trying to allocate
-more objects, there is the potential for `x` to be collected when `y`
-is allocated. Moreover, both `x` and `y` may be collected when [r| x +
-y |] allocates and evaluates the expression `x_hs + y_hs`.
+In this way, values may be deallocated far earlier than reaching the
+end of a region: As soon as Haskell's GC recognizes a value to no
+longer be reachable, and if the R GC agrees, the value is prone to be
+deallocated. The essential difference is that with automatic memory
+management, memory management becomes non-deterministic, while with
+regions alone, memory management is deterministic. Because automatic
+values have a lifetime independent of the scope of the current region,
+they are tagged with the global region `G` (a type synonym for
+`GlobalRegion`).
 
-A way around this is to use `withProtected`.
+For example:
 
 ```Haskell
-withProtected [rexp| 2 |] >>= \x ->
-  withProtected [rexp| 3 |] >>= \y ->
-    [rexp| x_hs + y_hs |]
+do x <- [r| 1:1000 |]
+   y <- [r| 2 |]
+   return $ automatic [r| x_hs * y_hs |]
 ```
 
-The `withProtect` pattern for memory protection works well for simple
-scenarios when the lifetime of an object follows lexical scope. For
-more complex scenarios, H provides a mechanism to wrap `SEXP`s as
-foreign pointers, called `RVal`s. This mechanism piggybacks Haskell's
-GC to notify R's GC when it is safe to deallocate. The downside of
-`RVal`s is that one must frequently unwrap them when passing them as
-arguments to R primitives and other functions.
+Automatic values can be mixed freely with other values.
 
-Continuing with our example, we could use `RVal`s as follows:
-
-```Haskell
-do rx <- newSomeRVal =<< [r| 2 |]
-   ry <- newSomeRVal =<< [r| 3 |]
-   withSomeRVal rx $ \x ->
-     withSomeRVal ry $ \y ->
-       newSomeRVal =<< [r| x_hs + y_hs |]
-```
+Diagnosing memory problems
+--------------------------
 
 A good way to stress test whether R values are being protected
 adequately is to turn on `gctorture`:
 
 ```Haskell
-do [r| gctorture2(1, 0, TRUE) |]
-   ...   
+main = withEmbeddedR $ do
+    [r| gctorture2(1, 0, TRUE) |]
+    ...
 ```
 
 This instructs R to run a GC sweep at every allocation, hence making
