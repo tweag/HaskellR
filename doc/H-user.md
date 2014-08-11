@@ -52,9 +52,9 @@ The `r` quasiquoter hides much of the heavy lifting of building
 expressions ourselves, allowing us to conveniently use R syntax to
 denote R expressions. The next sections document some advanced uses of
 quasiquotes. But for now, note that `r` is not the only quasiquoter
-and one is free to implement new quasiquoters[[1]](#mainland-quasiquotes)
-if needed. One such alternative quasiquoter is `rexp`, also defined in
-H, which acts in much the same way as `r`, except that it returns
+and one is free to implement [new quasiquoters][quasitquotes] if
+needed. One such alternative quasiquoter is `rexp`, also defined in H,
+which acts in much the same way as `r`, except that it returns
 R expressions unevaluated:
 
     H> H.printQuote [rexp| 1 + 1 |]
@@ -599,8 +599,5 @@ main = do
 References
 ==========
 
-[1]
-   <a name=mainland-quasiquotes></a>
-   Geoffrey B. Mainland. _Why it’s nice to be quoted: Quasiquoting for Haskell_.
-   Proceedings of the ACM SIGPLAN workshop on Haskell workshop, Pages 73-82, ACM New York, NY, 2007.
+[quasiquoters]: http://dl.acm.org/citation.cfm?id=1291211
 [gctorture]: http://stat.ethz.ch/R-manual/R-patched/library/base/html/gctorture.html
