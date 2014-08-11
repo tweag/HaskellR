@@ -187,7 +187,7 @@ introduce the following *view function* to *locally* convert to
 a `HExp`, given a `SEXP` from R.
 
 ```Haskell
-hexp :: SEXP -> HExp
+hexp :: SEXP s -> HExp
 ```
 
 The fact that this conversion is local is crucial for good performance
@@ -232,7 +232,7 @@ us to do so.
 
 For this reason, H allows the `SEXP` and `HExp` types to be indexed by
 the form of the expression. For example, a value which is known to be
-a real number can be given the type `SEXP R.Real`. In general, one
+a real number can be given the type `SEXP s R.Real`. In general, one
 does not always know *a priori* the form of an R expression, but
 pattern matching on an algebraic view of the expression allows us to
 "discover" the form at runtime. In H, we define the `HExp` algebraic
@@ -242,15 +242,15 @@ datatype](http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-exte
 assumption that the scrutinee matches the pattern in the left hand
 side of the branch. For example, in the body of a branch with pattern
 `Real x`, the type checker can refine the type of the scrutinee to
-`SEXP R.Real`. In H, `HExp` is defined as follows:
+`SEXP s R.Real`. In H, `HExp` is defined as follows:
 
 ```Haskell
 data HExp (a :: SEXPTYPE) where
   Nil       :: HExp R.Nil
   -- Fields: pname, value, internal.
-  Symbol    :: SEXP R.Char
-            -> SEXP a
-            -> Maybe (SEXP b)
+  Symbol    :: SEXP s R.Char
+            -> SEXP s a
+            -> Maybe (SEXP s b)
             -> HExp R.Symbol
   Int       :: {-# UNPACK #-} !(Vector.Vector R.Int Int32)
             -> HExp R.Int
@@ -414,6 +414,11 @@ variables in H.
     in the toplevel (see [Toplevel
     expressions](#toplevel-expressions)).
 
+Using these low-level functions directly is not normally necessary:
+the regions mechanism is a thin layer on top of them that offers
+a number of static guarantees. See `Language.R.Instance` and
+`Language.R.GC`.
+
 ### Allocating SEXP
 
 SEXP allocation can be done in the following ways:
@@ -435,22 +440,12 @@ Most parameter types cannot cross memory boundaries or are explicitly
 copied when they are passed to and from functions. However it possible
 to coerce some types with zero-copying:
 
-  * `SEXP a` -> `SEXP b`
-  * `SEXP (Vector Real)` -> Vector.Storable Double
-  * `SEXP (Vector Int)`  -> Vector.Storable Int
-  * `SEXP (Vector Logical)` -> Vector.Storable Bool
-  * `SEXP (Vector Char)`    -> Vector.Storable Word8
-  * `SEXP (Vector Char)`    -> Vector.Storable ByteString
-
-### Toplevel expressions
-
-Toplevel R expressions should be protected by hiding them in `RVal`
-
-```haskell
-newtype RVal a = RVal { unRVal :: ForeignPtr (SEXP a) }
-```
-
-With following API:
+  * `SEXP s a` -> `SEXP s b`
+  * `SEXP s (Vector Real)` -> Vector.Storable Double
+  * `SEXP s (Vector Int)`  -> Vector.Storable Int
+  * `SEXP s (Vector Logical)` -> Vector.Storable Bool
+  * `SEXP s (Vector Char)`    -> Vector.Storable Word8
+  * `SEXP s (Vector Char)`    -> Vector.Storable ByteString
 
   * `newRVal` - create new wrapper
   * `withRVal` - run continuation with rvalue.
