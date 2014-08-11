@@ -1,3 +1,5 @@
+-- | Contributed by Dominic Steinitz
+
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE LambdaCase #-}
@@ -10,6 +12,8 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind   #-}
 {-# OPTIONS_GHC -fno-warn-missing-methods  #-}
 {-# OPTIONS_GHC -fno-warn-orphans          #-}
+
+module Main where
 
 import H.Prelude as H
 import Language.R.QQ
