@@ -114,16 +114,20 @@ instance MonadR (R s) where
     return x
 
 -- | Initialize a new instance of R, execute actions that interact with the
--- R instance and then finalize the instance.
+-- R instance and then finalize the instance. This is typically called at the
+-- very beginning of the @main@ function of the program.
 --
 -- > main = withEmbeddedR $ do {...}
+--
+-- Note that R does not currently support reinitialization after finalization,
+-- so this cation can be executed only once during the lifetime of the program.
 withEmbeddedR :: Config -> IO a -> IO a
 withEmbeddedR config = bracket_ (initialize config) finalize
 
--- | Run an R action in the global R instance from the IO monad. This action is
--- unsafe in the sense that use of it bypasses any static guarantees provided by
--- the R monad, in particular that the R instance was indeed initialized and has
--- not yet been finalized. It is a backdoor that should not normally be used.
+-- | Run an R action in the global R instance from the IO monad. This action
+-- provides no static guarantees that the R instance was indeed initialized and
+-- has not yet been finalized. Make sure to call it within the scope of
+-- `withEmbeddedR`.
 --
 -- @runRegion m@ is strict in the result of action @m@.
 runRegion :: NFData a => (forall s . R s a) -> IO a
@@ -132,9 +136,8 @@ runRegion r =  unsafeRunInRThread $
           (R.unprotect <=< readIORef)
           (runReaderT (unR r))
 
--- | An unsafe version of runRegion. This version allow @s@ variable to escape
--- the scope, but this function is required for internal functions that may
--- want to run 'R' monad.
+-- | An unsafe version of runRegion, providing no static guarantees that
+-- resources do not extrude the scope of their region. For internal use only.
 unsafeRToIO :: R s a -> IO a
 unsafeRToIO r = unsafeRunInRThread $
   bracket (newIORef 0)
