@@ -447,21 +447,27 @@ to coerce some types with zero-copying:
   * `SEXP s (Vector Char)`    -> Vector.Storable Word8
   * `SEXP s (Vector Char)`    -> Vector.Storable ByteString
 
-  * `newRVal` - create new wrapper
-  * `withRVal` - run continuation with rvalue.
-  * `peekRVal` - noop function that may be used to
-        protect from early collection of protection variable.
+### Automatic `SEXP`'s
 
-Toplevel haskell expressions are protected by using `ExtPtr` in R. For
-example this is done automatically for function wrappers that are used
-internally to call haskell code.
+Some `SEXP` values have automatic memory memory management. See
+`Language.R.GC`. This automatic memory management comes at
+a performance cost, and does not scale to more than a few hundred
+automatically managed values.
 
 To protect Haskell variables from the GC, a global registry is used,
 which is a global mutable variable that maintains a list of variables
-that are used by R code. As much of the rest of the R library, the
-code for manipulating this global registry is non reentrant. So great
-care should be taken in a concurrent setting, whose performance,
-moreover, could well be affected by the synchronization point that is
-the global registry.
+that are used by R code. As is the case for much of the rest of the
+R library, the code for manipulating this global registry is non
+reentrant. So great care should be taken in a concurrent setting,
+whose performance, moreover, could well be affected by the
+synchronization point that is the global registry.
+
+Currently, this global registry is the one already provided by the
+R interpreter (documented [here][R-exts-gc]), in the
+form of the `R_PreserveObject()`/`R_ReleaseObject()` pair of
+functions. Internally, these functions keep track of protected values
+in a linked list, which `R_ReleaseObject()` scans linearly.
 
 [R-ints]: http://cran.r-project.org/doc/manuals/R-ints.html
+[R-exts]: http://cran.r-project.org/doc/manuals/r-release/R-exts.html
+[R-exts-gc]: http://cran.r-project.org/doc/manuals/r-release/R-exts.html#Garbage-Collection
