@@ -1,0 +1,30 @@
+module Foreign.R.Type where
+
+data SEXPTYPE
+    = Nil
+    | Symbol
+    | List
+    | Closure
+    | Env
+    | Promise
+    | Lang
+    | Special
+    | Builtin
+    | Char
+    | Logical
+    | Int
+    | Real
+    | Complex
+    | String
+    | DotDotDot
+    | Any
+    | Vector
+    | Expr
+    | Bytecode
+    | ExtPtr
+    | WeakRef
+    | Raw
+    | S4
+    | New
+    | Free
+    | Fun

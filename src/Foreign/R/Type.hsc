@@ -178,24 +178,28 @@ instance Storable Logical where
 -- regular lists.
 type PairList = List
 
+-- Use a macro to avoid having to define append at the type level.
 #let VECTOR_FORMS = " 'Char \
-                  :+: 'Logical \
-                  :+: 'Int \
-                  :+: 'Real \
-                  :+: 'Complex \
-                  :+: 'String \
-                  :+: 'Vector \
-                  :+: 'Expr \
-                  :+: 'WeakRef \
-                  :+: 'Raw"
+                   ': 'Logical \
+                   ': 'Int \
+                   ': 'Real \
+                   ': 'Complex \
+                   ': 'String \
+                   ': 'Vector \
+                   ': 'Expr \
+                   ': 'WeakRef \
+                   ': 'Raw"
 
 -- | Constraint synonym grouping all vector forms into one class. @IsVector a@
 -- holds iff R's @is.vector()@ returns @TRUE@.
-type IsVector (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS})
+type IsVector (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': '[])
 
 -- | Non-atomic vector forms. See @src\/main\/memory.c:SET_VECTOR_ELT@ in the
 -- R source distribution.
-type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ Vector :+: Expr :+: WeakRef)
+type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [Vector, Expr, WeakRef])
 
--- | @IsList a@ holds iff R's @is.vector()@ returns @TRUE@.
-type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} :+: List)
+-- | @IsList a@ holds iff R's @is.list()@ returns @TRUE@.
+type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': List ': '[])
+
+-- | @IsPairList a@ holds iff R's @is.pairlist()@ returns @TRUE@.
+type IsPairList (a :: SEXPTYPE) = (SingI a, a :∈ [List, Nil])

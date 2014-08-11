@@ -4,6 +4,7 @@
 -- Bindings for @<R/R_exts/Parse.h>@.
 
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 #include "Hcompat.h"
@@ -34,7 +35,7 @@ import Foreign.C
 
 -- TODO: use ParseStatus or write a wrapper for parseVector.
 {#fun R_ParseVector as parseVector
-  `(In a (R.Nil :+: R.String))'
+  `(In a [R.Nil, R.String])'
   => { unsexp `SEXP s (R.String)'
      , `Int'
      , id `Ptr CInt'
