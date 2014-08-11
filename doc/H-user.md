@@ -157,11 +157,12 @@ These monads ensure that:
  2. the computations run in a special OS thread reserved for R calls
     (so called the R thread).
 
-There are two instances of `MonadR`, which are `IO` and `R`.
+There are two instances of `MonadR`: `IO` and `R`. Which instance one
+uses depends on the context: the `IO` monad in an interactive session,
+the `R` monad in compiled code.
 
-The `R` monad is intended to be used in compiled code. Functions are
-provided to initialize R and to run `R` computations in the `IO`
-monad.
+The `R` monad is intended for compiled code. Functions are provided to
+initialize R and to run `R` computations in the `IO` monad.
 
 ```Haskell
 runR         :: Config -> (forall s. R s a) -> IO a
@@ -169,20 +170,13 @@ io           :: IO a -> R s a
 unsafeRToIO  :: R s a -> IO a
 ```
 
-The `IO` monad is used instead in GHCi, as it allows evaluating
-expressions without the need to wrap every command at the prompt with
-the function `runR`. The `IO` monad is not as safe as the `R` monad,
-because it does not guarantee that R has been properly initialized,
-but in the context of an interactive session this is superfluous as
-the `H --interactive` command takes care of this at startup.
-
-The `io` method of `MonadR` is used in both monads to bring
-computations to the R thread.
-
-Additionally, callback functions passed from Haskell to R are expected
-to produce computations in the `R` monad, as in the example shown in
-the previous section, where the type given to `f` is `Double ->
-R s Double`.
+The `IO` monad is used instead in GHCi, as a mere convenience. It
+allows evaluating expressions without the need to wrap every command
+at the prompt with the function `runR`. The `IO` monad is not as safe
+as the `R` monad, because it does not guarantee that R has been
+properly initialized, but in the context of an interactive session
+this is superfluous as the `H --interactive` command takes care of
+initialization at startup.
 
 How to analyze R values in Haskell
 ==================================
