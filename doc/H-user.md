@@ -596,8 +596,5 @@ main = do
     R.runR R.defaultConfig (hello name)
 ```
 
-References
-==========
-
 [quasiquoters]: http://dl.acm.org/citation.cfm?id=1291211
 [gctorture]: http://stat.ethz.ch/R-manual/R-patched/library/base/html/gctorture.html
