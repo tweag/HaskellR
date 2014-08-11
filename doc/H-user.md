@@ -527,7 +527,8 @@ recommended to use a version of R that has been compiled with
 `--enable-strict-barrier`.
 
 See The Haddock generated documentation for the `Language.R.GC` module
-for further details.
+for further details, and the [R documentation][gctorture] for
+`gctorture`.
 
 Catching runtime errors
 =======================
@@ -602,3 +603,4 @@ References
    <a name=mainland-quasiquotes></a>
    Geoffrey B. Mainland. _Why it’s nice to be quoted: Quasiquoting for Haskell_.
    Proceedings of the ACM SIGPLAN workshop on Haskell workshop, Pages 73-82, ACM New York, NY, 2007.
+[gctorture]: http://stat.ethz.ch/R-manual/R-patched/library/base/html/gctorture.html
