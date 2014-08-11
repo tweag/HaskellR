@@ -469,7 +469,8 @@ the given action in the scope of that region. All allocation of
 R values during the course of the execution of the given action will
 happen within this new region. All such values will remain protected
 (i.e. pinned in memory) within the region. Once the action returns,
-all allocated R values are freed all at once.
+all allocated R values are marked as deallocatable garbage all at
+once.
 
 ```Haskell
 runRegion :: (forall s . R s a) -> IO a
@@ -494,12 +495,9 @@ automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
 In this way, values may be deallocated far earlier than reaching the
 end of a region: As soon as Haskell's GC recognizes a value to no
 longer be reachable, and if the R GC agrees, the value is prone to be
-deallocated. The essential difference is that with automatic memory
-management, memory management becomes non-deterministic, while with
-regions alone, memory management is deterministic. Because automatic
-values have a lifetime independent of the scope of the current region,
-they are tagged with the global region `G` (a type synonym for
-`GlobalRegion`).
+deallocated. Because automatic values have a lifetime independent of
+the scope of the current region, they are tagged with the global
+region `G` (a type synonym for `GlobalRegion`).
 
 For example:
 
