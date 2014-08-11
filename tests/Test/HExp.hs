@@ -118,8 +118,20 @@ tests = testGroup "hexp"
       [ testPropertyM "hexp.unhexp " $ MonadicProperty2 $ \depth hook ->
           runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \p -> monadic $
            fmap ((===) p) (fmap H.hexp $ H.unhexp p)
+      , testPropertyM "reflexivity"  $ MonadicProperty2 $ \depth hook ->
+          runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \p -> monadic $
+           fixSVar p (\x -> x === x)
+      , testPropertyM "symmetry" $ MonadicProperty2 $ \depth hook ->
+          runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \p -> monadic $
+           fixSVar p $ \x -> forAll $ \y -> y === x ==> x === y
+      , testPropertyM "transitivity" $ MonadicProperty2 $ \depth hook ->
+          runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \p -> monadic $
+           fixSVar p $ \x ->
+             forAll $ \y -> x === y ==>
+               forAll $ \z -> y === z ==> x === z
       , testPropertyM "unhexp-on-field" $ MonadicProperty2 $ \depth hook ->
-          runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \p -> monadic $ fmap (all ((===) p)) (unhexpOnFields p)
+          runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \p -> monadic $
+            fmap (all ((===) p)) (unhexpOnFields p)
       , testPropertyM "uniq ===" $ MonadicProperty2 $ \depth hook ->
           runRegion $ SC.smallCheckWithHook depth (liftIO . hook) $ \(p :: H.HExp s a) -> prop2 p
       ]
@@ -169,3 +181,9 @@ instance IsTest MonadicProperty2 where
        case scResult of
          Nothing -> testPassed desc
          Just f  -> testFailed $ SC.ppFailure f
+
+-- | This method is used to help typechecker infer `s` variable in tests,
+-- otherwise is pure tests there is no information tat `s` is the same
+-- as in region in which test is run.
+fixSVar :: H.HExp s a -> (H.HExp s a -> b) -> R s b
+fixSVar h f = return (f h)
