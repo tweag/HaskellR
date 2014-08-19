@@ -118,7 +118,7 @@ library
     cc-options:        -DH_ARCH_WINDOWS
   else
     build-depends:     unix >= 2.6
-    pkgconfig-depends: libR >= 3.0
+    pkgconfig-depends: libR >= 3.1
     cpp-options:       -DH_ARCH_UNIX
     cc-options:        -DH_ARCH_UNIX
     if os(darwin)
