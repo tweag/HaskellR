@@ -7,7 +7,7 @@ Prerequisites
 * A UNIX-like programming environment (Linux, OS X, *BSD, etc)
 * Git
 * `pkg-config`
-* R version 3.0.2 or later.
+* R version 3.0.2 or later (3.1 or later required for test suite).
 * `cabal-install` version 1.16.0.2 or later.
 * Haskell Platform version 2013.2.0.0 or later.
 * `c2hs` version 0.17.3 or later.

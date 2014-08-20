@@ -15,7 +15,8 @@ Installation steps
 
 In the following, we assume "joe" is the name of the user. We assume
 version 3.0.2 or later for R and version 2013.2.0.0 or later for the
-Haskell Platform.
+Haskell Platform. You will need at least R version 3.1 to run the
+test suite.
 
 Cygwin 32-bit installation
 --------------------------
