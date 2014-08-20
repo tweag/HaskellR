@@ -139,7 +139,6 @@ module Foreign.R
   , release
   , unsafeRelease
   , withProtected
-  , ppStackTop
   ) where
 
 import Control.Memory.Region
@@ -659,5 +658,3 @@ withProtected create f =
       (do { x <- create; _ <- protect x; return x })
       (const $ unprotect 1)
       (f . unsafeRelease)
-
-foreign import ccall "&R_PPStackTop" ppStackTop :: Ptr Int
