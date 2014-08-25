@@ -4,6 +4,13 @@
 
 \include{definitions}
 
+%include lambda.fmt
+%include polycode.fmt
+%subst conid a = "\mathsf{" a "}"
+%subst varid a = "\mathsf{" a "}"
+% UGLY HACK: we abuse string literals to denote quasiquotes.
+%subst string txt = "\llbracket r|\texttt{\;" txt "\;}\rrbracket"
+
 \begin{document}
 
 \conferenceinfo{IFL'14}{October 1--3, 2014, Boston, MA, USA}
@@ -104,37 +111,44 @@ function, as in the example below:
 %%   poke ptr (TimeSpec ss ns) = do
 %%       pokeByteOff ptr 0 ss
 %%       pokeByteOff ptr 0 ns
-\begin{verbatim}
+
+%format INCLUDE_TIME_H = "\texttt{\#include <time.h>}"
+%format CLOCK_GETTIME = "\char34" clock_gettime "\char34"
+%format GETTIME = "\char34" getTime "\char34"
+%format cid = "\textit{cid}"
+%format ts = "\textit{ts}"
+%format foreign = "\mathbf{foreign}"
+%format ccall = "\mathbf{ccall}"
+\begin{code}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Example1 (getTime) where
 import Foreign
 import Foreign.C
 
-#include <time.h>
+INCLUDE_TIME_H
 
 data TimeSpec = TimeSpec
-  { seconds :: Int64
-  , nanoseconds :: Int32
+  { seconds      :: Int64
+  , nanoseconds  :: Int32
   }
 
-foreign import ccall "clock_gettime"
+foreign import ccall CLOCK_GETTIME
   c_clock_gettime :: ClockId -> Ptr TimeSpec -> IO CInt
 
 getTime :: ClockId -> IO TimeSpec
 getTime cid = alloca $ \ts -> do
-    throwErrnoIfMinus1_ "getTime" $
+    throwErrnoIfMinus1_ GETTIME $
       c_clock_gettime cid ts
     peek ts
-\end{verbatim}
-In the above, \verb|c_clock_gettime| is a binding to the
+\end{code}
+In the above, |c_clock_gettime| is a binding to the
 \verb|clock_gettime()| C function. The API conventions of C functions
 are often quite different from that of the host language, so that it
-is convenient to export the wrapper function \verb|getTime| rather
-than the binding directly. The wrapper function takes care of
-converting from C representations of arguments to values of user
-defined data types (performed by the \verb|peek| function, not shown),
-as well as mapping any foreign language error condition to a host
-language exception.
+is convenient to export the wrapper function |getTime| rather than the
+binding directly. The wrapper function takes care of converting from
+C representations of arguments to values of user defined data types
+(performed by the |peek| function, not shown), as well as mapping any
+foreign language error condition to a host language exception.
 
 These bindings are tedious and error prone to write, verbose, hard to
 read and a pain to maintain as the API of the underlying library
@@ -185,14 +199,15 @@ It just so happens that the source language for these code generators
 is R itself. In this way, users of H may express invocation of an
 R function using the full set of syntactical conveniences that
 R provides (named arguments, variadic functions, {\em etc.}). R has
-it's own equivalent to \verb|clock_gettime()|, called
+its own equivalent to \verb|clock_gettime()|, called
 \verb|Sys.time()|. With an embedding of R in this fashion, calling it
 is as simple as:
-\begin{verbatim}
+%format GREETING = "\texttt{\char34 The current time is:\;\char34}"
+\begin{code}
 main = do
-    now <- [r| Sys.time() |]
-    putStrLn ("The current time is: " ++ fromSEXP now)
-\end{verbatim}
+    now <- "Sys.time()"
+    putStrLn (GREETING ++ fromSEXP now)
+\end{code}
 
 \section{Overall architecture}
 
