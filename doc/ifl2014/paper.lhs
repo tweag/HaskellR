@@ -11,6 +11,8 @@
 %format a = "\mathit{a}"
 %format b = "\mathit{b}"
 %format s = "\mathit{s}"
+%format x = "\mathit{x}"
+%format y = "\mathit{y}"
 % UGLY HACK: we abuse string literals to denote quasiquotes.
 %subst string txt = "\llbracket \mathsf{r}|\texttt{\;" txt "\;}\rrbracket"
 
@@ -246,7 +248,127 @@ related work (Section \ref{sec:related-work}).
 \section{Overall architecture}
 \label{sec:architecture}
 
-- Embedded R.
+\subsection{Interoperating scripting languages}
+
+R source code is organized as a set of {\em scripts}, which are loaded
+one by one into the R interpreter. Each statement in a each script is
+evaluated in-order and affects the global environment maintained by
+the R interpreter, which maps symbols to values. In its simplest form,
+H is an interactive environment much like R, with a global environment
+altered by the in-order evaluation of statements.
+
+The central and most general mechanism by which H allows
+interoperating with R is quasiquotation. A {\em quasiquote} is
+a partial R script --- that is, a script with holes in it that stand
+in for as of yet undetermined portions. An example quasiquote in
+Haskell of an R snippet is:
+\begin{code}
+"function(x) x + 1"
+\end{code}
+This quasiquote is {\em ground}, in that it does not contain any holes
+(called {\em antiquotes}), unlike the below quasiquote:
+\begin{code}
+let y = mkSEXP 1
+in "function(x) x + y_hs"
+\end{code}
+By convention, any symbol with a @_hs@ suffix is treated specially. It
+is interpreted as a reference to a Haskell variable defined somewhere
+in the ambient source code. Given any quasiquote, it is possible to
+obtain a full R script, with no holes in it, by {\em splicing} the
+value of the Haskell variables into the quasiquote, in place of the
+antiquotes.
+
+At a high-level, H is a desugarer for quasiquotes. It defines how to
+translate a quasiquotation into a Haskell expression. Hence the
+H interactive environment is an interpreter for sequences of
+quasiquotes, containing R code snippets, and other Haskell
+snippets.
+
+H is structured as a library. The H interactive environment is
+a simple launcher for GHCi that loads the H library into the session
+and sets a number of parameters.
+
+The library itself is structured as two layers: a bottom-half binding
+to low-level internal functions of the R interpreter, using the
+|Foreign.R.*| namespace, and a top-half building higher-level
+functionality upon the bottom-half, using the |Language.R.*|
+namespace.
+
+\subsection{Rationale}
+
+\paragraph{Rebinding and dynamic code construction}
+
+R is a very dynamic language, allowing many code modifications during
+runtime, such as rebinding of top-level definitions, super assignment
+(modifying bindings in parent scopes), (quasi-)quotation and
+evaluation of expressions constructed dynamically. The R programming
+language is also so-called "latently typed" - types are checked during
+execution of the code, not ahead of time. Many of these features are
+not compiler friendly.
+
+Haskell, by contrast, is designed to be much easier to compile. This
+means that not all R constructs and primitives can be readily mapped
+to statically generated Haskell code with decent performance. In
+particular, top-level definitions in Haskell are never dynamically
+rebound at runtime: a known function call is hence often a direct
+jump, rather than incurring a dynamic lookup in a symbol table (the
+environment).
+
+Much of the dynamic flavour of R likely stems from the fact that it is
+a scripting language. The content of a script is meant to be evaluated
+in sequential order in an interactive R prompt. The effect of loading
+multiple R scripts at the prompt is in general different depending on
+the order of the scripts.
+
+Central to the design of Haskell, by contrast, is the notion of
+separately compilable units of code, called {\em modules}. Modules can
+be compiled separately and in any order (provided some amount of
+metadata about dependencies). Contrary to R scripts, the order in
+which modules are loaded into memory is non-deterministic.
+
+For this reason, in keeping to a simple solution to interoperating
+with R, we choose to devolve as much processing of R code as possible
+to an embedded instance of the R interpreter and retain the notion of
+global environment that R provides. This global environment can
+readily be manipulated from an interactive environment such as GHCi.
+In compiled modules, access to the environment as well as
+encapsulation of any effects can be mediated through a custom monad,
+which we call the |R| monad.
+
+\paragraph{Dynamic typing}
+
+Haskell is also statically typed. However, this apparent mismatch does
+not cause any particular problem in practice. This is because the
+distinction between "statically typed" languages and "dynamically
+typed" languages is largely artificial, stemming from the conflation
+of two distinct concepts: that of a *class* and that of a *type* (TODO
+ref Harper's book).
+
+The prototypical example of a type with multiple classes of values is
+that of complex numbers. There is {\em one} type of complex numbers,
+but {\em two} (interchangeable) classes of complex numbers: those in
+rectangular coordinates and those in polar coordinates. Both classes
+represent values of the same type. Harper further points out:
+
+\begin{quotation}
+  Crucially, the distinction between the two classes of complex number
+  is dynamic in that a given computation may result in a number of
+  either class, according to convenience or convention. A program may
+  test whether a complex number is in polar or rectangular form, and
+  we can form data structures such as sets of complex numbers in which
+  individual elements can be of either form.
+\end{quotation}
+
+Hence what R calls "types" are better thought of as "classes" in the
+above sense. They correspond to *variants* (or *constructors*) of
+a single type in the Haskell sense. R is really a unityped language.
+
+We call the type of all the classes that exist in R the *universe*
+(See Section~\ref{sec:hexp}).
+
+Because "class" is already an overloaded term in both R and in
+Haskell, in the following we use the term *form* to refer to what the
+above calls a "class".
 
 \section{Special topics}
 
@@ -274,11 +396,11 @@ would go along the lines of:
 We define one constructor for each value of the |SEXPTYPE| enumeration
 in @<RInternals.h>@.
 
-For the sake of efficiency, we do *not* use |HExp| as the basic
-datatype that all H generated code expects. That is, we do not use
-|HExp| as the universe of R expressions, merely as a *view*. We
-introduce the following *view function* to *locally* convert to
-a |HExp|, given a |SEXP| from R.
+For the sake of efficiency, we do not use |HExp| as the basic datatype
+that all H generated code expects. That is, we do not use |HExp| as
+the universe of R expressions, merely as a {\em view}. We introduce
+the following {\em view function} to locally convert to a |HExp|,
+given a |SEXP| from R.
 \begin{code}
 hexp :: SEXP s -> HExp
 \end{code}
@@ -312,6 +434,8 @@ unhexp :: HExp -> SEXP
 
 \subsection{R values are (usually) vectors}
 \label{sec:vectors}
+
+TODO
 
 \subsection{Memory management}
 \label{sec:regions}
