@@ -8,8 +8,11 @@
 %include polycode.fmt
 %subst conid a = "\mathsf{" a "}"
 %subst varid a = "\mathsf{" a "}"
+%format a = "\mathit{a}"
+%format b = "\mathit{b}"
+%format s = "\mathit{s}"
 % UGLY HACK: we abuse string literals to denote quasiquotes.
-%subst string txt = "\llbracket r|\texttt{\;" txt "\;}\rrbracket"
+%subst string txt = "\llbracket \mathsf{r}|\texttt{\;" txt "\;}\rrbracket"
 
 \begin{document}
 
@@ -116,8 +119,8 @@ example below:
 %format INCLUDE_TIME_H = "\texttt{\#include <time.h>}"
 %format CLOCK_GETTIME = "\char34" clock_gettime "\char34"
 %format GETTIME = "\char34" getTime "\char34"
-%format cid = "\textit{cid}"
-%format ts = "\textit{ts}"
+%format cid = "\mathit{cid}"
+%format ts = "\mathit{ts}"
 %format foreign = "\mathbf{foreign}"
 %format ccall = "\mathbf{ccall}"
 \begin{code}
