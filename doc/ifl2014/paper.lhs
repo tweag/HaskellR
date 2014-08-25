@@ -87,18 +87,19 @@ overheads typically associated with more traditional approaches. Our
 goal is to allow for the seamless integration of R with Haskell ---
 invoking R functions on Haskell data and {\em vice versa}.
 
-The complexity of modern software environments makes it all but
-essential to interoperate software components implemented in different
-programming languages. Most high-level programming languages today
-include a {\em foreign function interface (FFI)}, which allows
-interfacing with lower-level programming languages to get access to
-existing system and/or purpose-specific libraries (TODO refs). An FFI
-allows the programmer to give enough information to the compiler of
-the host language to figure out how to {\em invoke} a foreign function
-included as part of a foreign library, and how to {\em marshal}
-arguments to the function in a form that the foreign function expects.
-This information is typically given as a set of bindings, one for each
-function, as in the example below:
+\paragraph{Foreign Function Interfaces} The complexity of modern
+software environments makes it all but essential to interoperate
+software components implemented in different programming languages.
+Most high-level programming languages today include a {\em foreign
+  function interface (FFI)}, which allows interfacing with lower-level
+programming languages to get access to existing system and/or
+purpose-specific libraries (TODO refs). An FFI allows the programmer
+to give enough information to the compiler of the host language to
+figure out how to {\em invoke} a foreign function included as part of
+a foreign library, and how to {\em marshal} arguments to the function
+in a form that the foreign function expects. This information is
+typically given as a set of bindings, one for each function, as in the
+example below:
 %% newtype ClockId = ClockId Int32
 %%
 %% instance Storable TimeSpec where
@@ -150,7 +151,7 @@ C representations of arguments to values of user defined data types
 (performed by the |peek| function, not shown), as well as mapping any
 foreign language error condition to a host language exception.
 
-These bindings are tedious and error prone to write, verbose, hard to
+\paragraph{Binding generators} These bindings are tedious and error prone to write, verbose, hard to
 read and a pain to maintain as the API of the underlying library
 shifts over time. To ease the pain, over the years, {\em binding
   generators} have appeared (TODO ref), in the form of pre-processors
@@ -198,16 +199,46 @@ exactly how to perform the R function call -- no binding necessary.
 It just so happens that the source language for these code generators
 is R itself. In this way, users of H may express invocation of an
 R function using the full set of syntactical conveniences that
-R provides (named arguments, variadic functions, {\em etc.}). R has
-its own equivalent to \verb|clock_gettime()|, called
-\verb|Sys.time()|. With an embedding of R in this fashion, calling it
-is as simple as:
+R provides (named arguments, variadic functions, {\em etc.}), or
+indeed write arbitrary R expressions. R has its own equivalent to
+\verb|clock_gettime()|, called \verb|Sys.time()|. With an embedding of
+R in this fashion, calling it is as simple as:
 %format GREETING = "\texttt{\char34 The current time is:\;\char34}"
+%format now = "\mathit{now}"
 \begin{code}
-main = do
+printCurrentTime = do
     now <- "Sys.time()"
     putStrLn (GREETING ++ fromSEXP now)
 \end{code}
+The key syntactical device here is {\em quasiquotes} (TODO ref), which
+allow mixing code fragments with different syntax in the same source
+file --- anything within an |"..."| pair of brackets is to be
+understood as R syntax.
+
+\paragraph{Contributions} In this paper, we advocate for a novel
+approach to programming with foreign libraries, and illustrate this
+approach with the first complete, high-performance tool to access all
+of R from a statically typed, compiled language. We highlight the
+difficulties of mixing and matching two garbage collected languages
+that know nothing about each other, and how to solve them by bringing
+together existing techniques in the literature for safe memory
+management (TODO ref). Finally, we show how to allow optionally
+ascribing precise types to R functions, as a form of compiler-checked
+documentation and to offer better safety guarantees.
+
+\paragraph{Outline} The paper is organized as follows. We will first
+walk through typical uses of H, before presenting its overall
+architecture (Section \ref{sec:architecture}). We delve into a number
+of special topics in later sections, covering how to represent foreign
+values efficiently in a way that still allows for pattern matching
+(Section \ref{sec:hexp}), optional static typing of dynamically typed
+foreign values (Section \ref{sec:types}), creating R values from
+Haskell (Section \ref{sec:vectors}) and efficient memory management in
+the presence of two separately managed heaps with objects pointing to
+arbitrary other objects in either heaps (Section \ref{sec:regions}).
+We conclude with a discussion of the overheads of cross language
+communication (Section \ref{sec:benchmarks}) and an overview of
+related work (Section \ref{sec:related-work}).
 
 \section{Overall architecture}
 
