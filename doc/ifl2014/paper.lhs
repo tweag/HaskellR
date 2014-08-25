@@ -244,26 +244,154 @@ communication (Section \ref{sec:benchmarks}) and an overview of
 related work (Section \ref{sec:related-work}).
 
 \section{Overall architecture}
+\label{sec:architecture}
+
+- Embedded R.
 
 \section{Special topics}
 
-\subsection{The hexp view function}
+\subsection{A native view of foreign values}
+\label{sec:hexp}
+
+By default, and in order to avoid having to pay marshalling and
+unmarshalling costs for each argument every time one invokes an
+internal R function, we represent R values in exactly the same way
+R does, as a pointer to a |SEXPREC| structure (defined in
+@R/Rinternals.h@). This choice has a downside, however: Haskell's
+pattern matching facilities are not immediately available, since only
+algebraic datatypes can be pattern matched.
+
+|HExp| is R's |SEXP| (or @*SEXPREC@) structure represented as
+a (generalized) algebraic datatype. A simplified definition of |HExp|
+would go along the lines of:
+\begin{code}
+  data HExp
+  = Nil                                           -- NILSXP
+  | Symbol { ... }                                -- SYMSXP
+  | Real { ... }                                  -- REALSXP
+  | ...
+\end{code}
+We define one constructor for each value of the |SEXPTYPE| enumeration
+in @<RInternals.h>@.
+
+For the sake of efficiency, we do *not* use |HExp| as the basic
+datatype that all H generated code expects. That is, we do not use
+|HExp| as the universe of R expressions, merely as a *view*. We
+introduce the following *view function* to *locally* convert to
+a |HExp|, given a |SEXP| from R.
+\begin{code}
+hexp :: SEXP s -> HExp
+\end{code}
+The fact that this conversion is local is crucial for good performance
+of the translated code. It means that conversion happens at each use
+site, and happens against values with a statically known form. Thus we
+expect that the view function can usually be inlined, and the
+short-lived |HExp| values that it creates compiled away by code
+simplification rules applied by GHC. In this manner, we get the
+convenience of pattern matching that comes with a *bona fide*
+algebraic datatype, but without paying the penalty of allocating
+long-lived data structures that need to be converted to and from
+R internals every time we invoke internal R functions or C extension
+functions.
+
+Using an algebraic datatype for viewing R internal functions further
+has the advantage that invariants about these structures can readily
+be checked and enforced, including invariants that R itself does not
+check for (e.g. that types that are special forms of the list type
+really do have the right number of elements). The algebraic type
+statically guarantees that no ill-formed type will ever be constructed
+on the Haskell side and passed to R.
+
+We also define an inverse of the view function:
+\begin{code}
+unhexp :: HExp -> SEXP
+\end{code}
 
 \subsection{Types for R}
+\label{sec:types}
 
 \subsection{R values are (usually) vectors}
+\label{sec:vectors}
 
 \subsection{Memory management}
+\label{sec:regions}
 
-\section{Examples}
+One tricky aspect of bridging two languages with automatic memory
+management such as R and Haskell is that we must be careful that the
+garbage collectors (GC) of both languages see eye-to-eye. The embedded
+R instance manages objects in its own heap, separate from the heap
+that the GHC runtime manages. However, objects from one heap can
+reference objects in the other heap and the other way around. This can
+make garbage collection unsafe because neither GC's have a global view
+of the object graph, only a partial view corresponding to the objects
+in the heaps of each GC.
+
+\subsubsection{Memory protection}
+
+Fortunately, R provides a mechanism to "protect" objects from garbage
+collection until they are unprotected. We can use this mechanism to
+prevent R's GC from deallocating objects that are still referenced by
+at least one object in the Haskell heap.
+
+One particular difficulty with protection is that one must not forget
+to unprotect objects that have been protected, in order to avoid
+memory leaks. H uses "regions" for pinning an object in memory and
+guaranteeing unprotection when the control flow exits a region.
+
+\subsubsection{Memory regions}
+
+There is currently one global region for R values, but in the future
+H will have support for multiple (nested) regions. A region is opened
+with the |runRegion| action, which creates a new region and executes
+the given action in the scope of that region. All allocation of
+R values during the course of the execution of the given action will
+happen within this new region. All such values will remain protected
+(i.e. pinned in memory) within the region. Once the action returns,
+all allocated R values are marked as deallocatable garbage all at
+once.
+
+\begin{code}
+runRegion :: (forall s . R s a) -> IO a
+\end{code}
+
+\subsubsection{Automatic memory management}
+
+Nested regions work well as a memory management discipline for simple
+scenarios when the lifetime of an object can easily be made to fit
+within nested scopes. For more complex scenarios, it is often much
+easier to let memory be managed completely automatically, though at
+the cost of some memory overhead and performance penalty. H provides
+a mechanism to attach finalizers to R values. This mechanism
+piggybacks Haskell's GC to notify R's GC when it is safe to deallocate
+a value.
+\begin{code}
+automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
+\end{code}
+In this way, values may be deallocated far earlier than reaching the
+end of a region: As soon as Haskell's GC recognizes a value to no
+longer be reachable, and if the R GC agrees, the value is prone to be
+deallocated. Because automatic values have a lifetime independent of
+the scope of the current region, they are tagged with the global
+region |G| (a type synonym for |GlobalRegion|).
+
+For example:
+\begin{code}
+do  x <- "1:1000"
+    y <- "2"
+    return $ automatic "x_hs * y_hs"
+\end{code}
+Automatic values can be mixed freely with other values.
 
 \section{Benchmarks}
+\label{sec:benchmarks}
 
 \section{Related Work}
+\label{sec:related-work}
 
 \section{Conclusion}
+\label{sec:conclusion}
 
-\acks
+%\acks
 
 \bibliographystyle{abbrvnat}
 \bibliography{references}
