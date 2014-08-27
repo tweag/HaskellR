@@ -413,8 +413,8 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN
      -> `SEXP s a' sexp #}
 
 {# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a'
-     => { unsexp `SEXP s a', `Int', unsexp `SEXP s b'}
-     -> `SEXP s b' sexp #}
+     => { unsexp `SEXP s a', `Int', unsexp `SEXP s b' }
+     -> `SEXP s a' sexp #}
 
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
