@@ -266,13 +266,13 @@ typeOf :: SEXP s a -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} (unsexp s)
 
 -- | read CAR object value
-{#fun CAR as car { unsexp `SEXP s a' } -> `SEXP s b' sexp #}
+{#fun CAR as car { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}
 
 -- | read CDR object
-{#fun CDR as cdr { unsexp `SEXP s a' } -> `SEXP s b' sexp #}
+{#fun CDR as cdr { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}
 
 -- | read object`s Tag
-{# fun TAG as tag { unsexp `SEXP s a' } -> `SEXP s b' sexp #}  --- XXX: add better constraint
+{# fun TAG as tag { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}  --- XXX: add better constraint
 
 -- | Set CAR field of object, when object is viewed as a cons cell.
 setCar :: SEXP s a -> SEXP s b -> IO ()
