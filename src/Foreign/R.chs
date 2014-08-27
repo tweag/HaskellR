@@ -91,6 +91,7 @@ module Foreign.R
   , string
   , unsafeSEXPToVectorPtr
   , unsafeVectorPtrToSEXP
+  , indexVector
   , writeVector
     -- * Evaluation
   , eval
@@ -406,6 +407,10 @@ unsafeSEXPToVectorPtr s = (unsexp s) `plusPtr` {#sizeof SEXPREC_ALIGN #}
 -- | Inverse of 'vectorPtr'.
 unsafeVectorPtrToSEXP :: Ptr a -> SomeSEXP s
 unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
+
+{# fun VECTOR_ELT as indexVector `R.IsGenericVector a'
+     => { unsexp `SEXP s a', `Int' }
+     -> `SEXP s a' sexp #}
 
 {# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a'
      => { unsexp `SEXP s a', `Int', unsexp `SEXP s b'}
