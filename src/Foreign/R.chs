@@ -300,7 +300,9 @@ setTag s s' = {#set SEXP->u.listsxp.tagval #} (unsexp s) (castPtr $ unsexp s')
 unsafeCast :: SEXPTYPE -> SomeSEXP s -> SEXP s b
 unsafeCast ty (SomeSEXP s)
   | ty == typeOf s = unsafeCoerce s
-  | otherwise = error "cast: Dynamic type cast failed."
+  | otherwise =
+    error $ "cast: Dynamic type cast failed. Expected: " ++ show ty ++
+            ". Actual: " ++ show (typeOf s) ++ "."
 
 -- | Cast the type of a 'SEXP' into another type. This function is partial: at
 -- runtime, an error is raised if the source form tag does not match the target
