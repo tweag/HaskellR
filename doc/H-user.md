@@ -593,7 +593,7 @@ main :: IO ()
 main = do
     putStrLn "Name?"
     name <- getLine
-    R.runR R.defaultConfig (hello name)
+    R.withEmbeddedR R.defaultConfig (hello name)
 ```
 
 [quasiquoters]: http://dl.acm.org/citation.cfm?id=1291211
