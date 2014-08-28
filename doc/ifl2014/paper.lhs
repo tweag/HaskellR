@@ -1,11 +1,15 @@
 \documentclass[preprint,authoryear]{sigplanconf}
 
+\usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{graphicx}
 
 \include{definitions}
 
 %include lambda.fmt
 %include polycode.fmt
+%options ghci -fglasgow-exts
+
 %subst conid a = "\mathsf{" a "}"
 %subst varid a = "\mathsf{" a "}"
 %format a = "\mathit{a}"
@@ -26,12 +30,14 @@
 \title{Project H: Programming R in Haskell}
 \subtitle{(Extended Abstract)}
 
-\authorinfo{Name1}
-           {Affiliation1}
-           {Email1}
-\authorinfo{Name2\and Name3}
-           {Affiliation2/3}
-           {Email2/3}
+\authorinfo{Mathieu Boespflug \and Facundo Domínguez \and Alexander Vershilov}
+           {Tweag I/O}
+           {}
+%           {@{m,facundo.dominguez,alexander.vershilov}@@tweag.io@}
+\authorinfo{Allen Brown}
+           {Amgen}
+           {}
+%           {@allbrown@@amgen.com@}
 
 \maketitle
 
@@ -63,7 +69,7 @@
 language embedding, memory regions
 
 \section{Introduction}
-  
+
 The success or failure in the industry of a programming language
 within a particular problem domain is often predicated upon the
 availability of a sufficiently plethoric set of good quality libraries
@@ -79,9 +85,9 @@ crucial that we aggressively minimize the risk that any bug in our
 code, which could lead to numerical, logical or modelling errors with
 tragic consequences, goes undetected.
 
-TODO more about the needs of Amgen and why it uses Haskell.
-
-TODO more about the needs of Amgen and why it needs R.
+%% TODO more about the needs of Amgen and why it uses Haskell.
+%%
+%% TODO more about the needs of Amgen and why it needs R.
 
 %% R is a free software environment for statistical computing and
 %% graphics. It includes a full blown programming language for
@@ -98,13 +104,13 @@ software components implemented in different programming languages.
 Most high-level programming languages today include a {\em foreign
   function interface (FFI)}, which allows interfacing with lower-level
 programming languages to get access to existing system and/or
-purpose-specific libraries (TODO refs). An FFI allows the programmer
-to give enough information to the compiler of the host language to
-figure out how to {\em invoke} a foreign function included as part of
-a foreign library, and how to {\em marshal} arguments to the function
-in a form that the foreign function expects. This information is
-typically given as a set of bindings, one for each function, as in the
-example below:
+purpose-specific libraries \cite{chakravarty:haskell-ffi,milner:sml}.
+An FFI allows the programmer to give enough information to the
+compiler of the host language to figure out how to {\em invoke}
+a foreign function included as part of a foreign library, and how to
+{\em marshal} arguments to the function in a form that the foreign
+function expects. This information is typically given as a set of
+bindings, one for each function, as in the example below:
 %% newtype ClockId = ClockId Int32
 %%
 %% instance Storable TimeSpec where
@@ -159,9 +165,10 @@ foreign language error condition to a host language exception.
 \paragraph{Binding generators} These bindings are tedious and error prone to write, verbose, hard to
 read and a pain to maintain as the API of the underlying library
 shifts over time. To ease the pain, over the years, {\em binding
-  generators} have appeared (TODO ref), in the form of pre-processors
-that can parse C header files and automate the construction of binding
-wrapper functions and argument marshalling. However, these tools:
+  generators} have appeared \cite{chakravarty:c2hs}, in the form of
+pre-processors that can parse C header files and automate the
+construction of binding wrapper functions and argument marshalling.
+However, these tools:
 \begin{enumerate}
 \item do not alleviate the programmer from the need to repeat in the
   host language the type of the foreign function;
@@ -215,10 +222,10 @@ printCurrentTime = do
     now <- "Sys.time()"
     putStrLn (GREETING ++ fromSEXP now)
 \end{code}
-The key syntactical device here is {\em quasiquotes} (TODO ref), which
-allow mixing code fragments with different syntax in the same source
-file --- anything within an |"..."| pair of brackets is to be
-understood as R syntax.
+The key syntactical device here is {\em quasiquotes}
+\cite{mainland:quasiquotes}, which allow mixing code fragments with
+different syntax in the same source file --- anything within an
+|"..."| pair of brackets is to be understood as R syntax.
 
 \paragraph{Contributions} In this paper, we advocate for a novel
 approach to programming with foreign libraries, and illustrate this
@@ -227,9 +234,9 @@ of R from a statically typed, compiled language. We highlight the
 difficulties of mixing and matching two garbage collected languages
 that know nothing about each other, and how to solve them by bringing
 together existing techniques in the literature for safe memory
-management (TODO ref). Finally, we show how to allow optionally
-ascribing precise types to R functions, as a form of compiler-checked
-documentation and to offer better safety guarantees.
+management \cite{kiselyov:regions}. Finally, we show how to allow
+optionally ascribing precise types to R functions, as a form of
+compiler-checked documentation and to offer better safety guarantees.
 
 \paragraph{Outline} The paper is organized as follows. We will first
 walk through typical uses of H, before presenting its overall
@@ -248,14 +255,50 @@ related work (Section \ref{sec:related-work}).
 \section{Overall architecture}
 \label{sec:architecture}
 
+\subsection{Foreign values}
+\label{sec:foreign-values}
+
+Foreign functions act on {\em values}, for which presumably these
+foreign functions know the representation in order to compute with
+them. In the specific case of R, {\em all} values share a common
+structure. Internally, R represents every entity that it manipulates,
+be they scalars, vectors, uninterpreted term expressions, functions or
+external resources such as sockets, as pointers to a @SEXPREC@
+structure, defined in C as follows:
+\begin{verbatim}
+typedef struct SEXPREC {
+    SEXPREC_HEADER;
+    union {
+        struct primsxp_struct primsxp;
+        struct symsxp_struct symsxp;
+        struct listsxp_struct listsxp;
+        struct envsxp_struct envsxp;
+        struct closxp_struct closxp;
+        struct promsxp_struct promsxp;
+    } u;
+} SEXPREC, *SEXP;
+\end{verbatim}
+Each variant of the union struct corresponds to a different form of
+value. However, no matter the form, all values at least share the same
+header (called @SEXPREC_HEADER@). The type of pointers to @SEXPREC@s
+is abbreviated as @SEXP@. In order to invoke functions defined in
+R then, we simply need a way to construct the right @SEXPREC@
+representing that invocation, and then have R interpret that
+invocation. We will cover how to do so in the next sections, but for
+now we do need to define in Haskell what a @SEXP@ is:
+\begin{code}
+data SEXPREC
+type SEXP = Ptr SEXPREC
+\end{code}
+
 \subsection{Interoperating scripting languages}
 
 R source code is organized as a set of {\em scripts}, which are loaded
 one by one into the R interpreter. Each statement in a each script is
 evaluated in-order and affects the global environment maintained by
 the R interpreter, which maps symbols to values. In its simplest form,
-H is an interactive environment much like R, with a global environment
-altered by the in-order evaluation of statements.
+H is an {\em interactive environment} much like R, with a global
+environment altered by the in-order evaluation of statements.
 
 The central and most general mechanism by which H allows
 interoperating with R is quasiquotation. A {\em quasiquote} is
@@ -266,37 +309,115 @@ Haskell of an R snippet is:
 "function(x) x + 1"
 \end{code}
 This quasiquote is {\em ground}, in that it does not contain any holes
-(called {\em antiquotes}), unlike the below quasiquote:
+(called {\em antiquotes}), but one can also antiquote inside
+a quasiquote:
 \begin{code}
 let y = mkSEXP 1
 in "function(x) x + y_hs"
 \end{code}
 By convention, any symbol with a @_hs@ suffix is treated specially. It
 is interpreted as a reference to a Haskell variable defined somewhere
-in the ambient source code. Given any quasiquote, it is possible to
-obtain a full R script, with no holes in it, by {\em splicing} the
-value of the Haskell variables into the quasiquote, in place of the
-antiquotes.
+in the ambient source code. That is, any occurrence of a symbol of the
+form @x_hs@ does denote a variable of the object language --- it is an
+antiquote referring to variable |x| in the host language. Given any
+quasiquote, it is possible to obtain a full R script, with no holes in
+it, by {\em splicing} the value of the Haskell variables into the
+quasiquote, in place of the antiquotes.
 
-At a high-level, H is a desugarer for quasiquotes. It defines how to
-translate a quasiquotation into a Haskell expression. Hence the
-H interactive environment is an interpreter for sequences of
-quasiquotes, containing R code snippets, and other Haskell
-snippets.
+At a high-level, H is a desugarer for quasiquotes implemented on top
+of a Haskell interactive environment, such as GHCi \cite{ghc}. It
+defines how to translate a quasiquotation into a Haskell expression.
+Just as R includes an interactive environment, H includes an
+interactive environment, where the input is a sequence of Haskell
+expressions including quasiquoted R code snippets, such as in the
+following session, where we plot part of the quadratic function,
+directly from the Haskell interactive prompt:
+%format H_PROMPT = "\mathtt{H\rangle}\;"
+%format x__2 = "x^2"
+%format xs = "\mathit{xs}"
+%format ys = "\mathit{ys}"
+%format R_OUTPUT1 = "\texttt{[1] \char34 1\char34\; \char34 4\char34\; \char34 9\char34\; \char34 16\char34\; \char34 25\char34\; \char34 36\char34\; \char34 49\char34\; \char34 64\char34\;\ldots}"
+%format R_OUTPUT2 = "\langle \textrm{graphic output (See Figure~\ref{fig:quadratic})} \rangle"
+\begin{code}
+H_PROMPT let xs = [1..10] :: [Double]
+H_PROMPT let ys = [ x__2 | x <- xs ]
+H_PROMPT result <- "as.character(ys_hs)"
+H_PROMPT H.print result
+R_OUTPUT1
+H_PROMPT "plot(xs_hs, ys_hs)"
+R_OUTPUT2
+\end{code}
 
-H is structured as a library. The H interactive environment is
-a simple launcher for GHCi that loads the H library into the session
-and sets a number of parameters.
+\begin{figure}
+  \centering
+  \includegraphics[width=5.5cm]{r-quadratic.pdf}
+  \caption{Output of |"plot(xs_hs, ys_hs)"|. The data is generated from Haskell.
+R draws the plot.}
 
-The library itself is structured as two layers: a bottom-half binding
-to low-level internal functions of the R interpreter, using the
-|Foreign.R.*| namespace, and a top-half building higher-level
-functionality upon the bottom-half, using the |Language.R.*|
-namespace.
+  \label{fig:quadratic}
+\end{figure}
 
-\subsection{Rationale}
+Now say that we are given a set of random points, roughly fitted by
+some non-linear model. For the sake of example, we can use points
+generated at random along some polynomial curve of degree 4 by the
+following Haskell function:
+\begin{code}
+import System.Random.MWC
+import System.Random.MWC.Distributions
 
-\paragraph{Rebinding and dynamic code construction}
+generate :: Int32 -> IO Double
+generate ix =
+  withSystemRandom . asGenIO $ \gen ->
+    let r =  (x-10)*(x-20)*(x-40)*(x-70)
+             + 28*x*(log x)
+    in do v <- standard gen
+          return $ r * (1 + 0.15 * v)
+  where x = fromIntegral ix
+\end{code}
+Our goal is to ask R to compute estimates of the parameters of the
+model, given the set of points generated in Haskell. The R standard
+library provides the @nls@ function to compute the non-linear
+least-squares estimate of the parameters of the model.
+
+\subsection{Scripting from compiled modules}
+
+While an interactive prompt is extremely useful for exploratory
+programming, writing a program as a sequence of inputs for a prompt is
+a very imperative style of programming with limited abstraction
+facilities. Fortuntaly, H is also a library. Importing the library
+brings in scope the necessary definitions in order to embed
+quasiquotes such as the above in modules of a compiled program.
+
+Behind the scenes, the H library nurtures an {\em embedded instance}
+of the R interpreter, available at runtime. As in the interactive
+environment, this embedded instance is stateful. It is possible to
+mutate the global environment maintained by the interpreter, say by
+introducing a new top-level definition. Therefore, interaction with
+this embedded instance must be sequential. In order to enforce
+sequential access to the interpreter, we introduce the |R| monad and
+make all code that ultimately calls into the interpreter {\em actions}
+of the R monad. As a first approximation, the |R| monad is a simple
+wrapper around the |IO| monad (but see
+Section~\ref{sec:regions})\footnote{This definition does not guarantee
+  that |R| actions will only be executed when the associated
+  R interpreter instance is extant. See Section~\ref{sec:regions} for
+  a fix.}.
+\begin{code}
+newtype R a = R (IO a)
+
+withEmbeddedR :: R a -> IO a
+\end{code}
+|withEmbeddedR| first spawns an embedded instance, runs the provided
+action, then finalizes the embedded instance. There is no other way to
+run the |R| monad.
+
+%% The library itself is structured as two layers: a bottom-half binding
+%% to low-level internal functions of the R interpreter, using the
+%% |Foreign.R.*| namespace, and a top-half building higher-level
+%% functionality upon the bottom-half, using the |Language.R.*|
+%% namespace.
+
+\subsection{Rebinding and dynamic code construction}
 
 R is a very dynamic language, allowing many code modifications during
 runtime, such as rebinding of top-level definitions, super assignment
@@ -330,45 +451,10 @@ For this reason, in keeping to a simple solution to interoperating
 with R, we choose to devolve as much processing of R code as possible
 to an embedded instance of the R interpreter and retain the notion of
 global environment that R provides. This global environment can
-readily be manipulated from an interactive environment such as GHCi.
-In compiled modules, access to the environment as well as
+readily be manipulated from an interactive environment such as GHCi
+\cite{ghc}. In compiled modules, access to the environment as well as
 encapsulation of any effects can be mediated through a custom monad,
 which we call the |R| monad.
-
-\paragraph{Dynamic typing}
-
-Haskell is also statically typed. However, this apparent mismatch does
-not cause any particular problem in practice. This is because the
-distinction between "statically typed" languages and "dynamically
-typed" languages is largely artificial, stemming from the conflation
-of two distinct concepts: that of a *class* and that of a *type* (TODO
-ref Harper's book).
-
-The prototypical example of a type with multiple classes of values is
-that of complex numbers. There is {\em one} type of complex numbers,
-but {\em two} (interchangeable) classes of complex numbers: those in
-rectangular coordinates and those in polar coordinates. Both classes
-represent values of the same type. Harper further points out:
-
-\begin{quotation}
-  Crucially, the distinction between the two classes of complex number
-  is dynamic in that a given computation may result in a number of
-  either class, according to convenience or convention. A program may
-  test whether a complex number is in polar or rectangular form, and
-  we can form data structures such as sets of complex numbers in which
-  individual elements can be of either form.
-\end{quotation}
-
-Hence what R calls "types" are better thought of as "classes" in the
-above sense. They correspond to *variants* (or *constructors*) of
-a single type in the Haskell sense. R is really a unityped language.
-
-We call the type of all the classes that exist in R the *universe*
-(See Section~\ref{sec:hexp}).
-
-Because "class" is already an overloaded term in both R and in
-Haskell, in the following we use the term *form* to refer to what the
-above calls a "class".
 
 \section{Special topics}
 
@@ -402,7 +488,7 @@ the universe of R expressions, merely as a {\em view}. We introduce
 the following {\em view function} to locally convert to a |HExp|,
 given a |SEXP| from R.
 \begin{code}
-hexp :: SEXP s -> HExp
+hexp :: SEXP -> HExp
 \end{code}
 The fact that this conversion is local is crucial for good performance
 of the translated code. It means that conversion happens at each use
@@ -429,13 +515,167 @@ We also define an inverse of the view function:
 unhexp :: HExp -> SEXP
 \end{code}
 
-\subsection{Types for R}
+\subsection{``Types'' for R}
 \label{sec:types}
+
+\subsubsection{Of types, classes or forms}
+
+Haskell is a statically typed language, whereas R is a dynamically
+typed language. However, this apparent mismatch does not cause any
+particular problem in practice. This is because the distinction
+between "statically typed" languages and "dynamically typed" languages
+is largely artificial, stemming from the conflation of two distinct
+concepts: that of a {\em class} and that of a {\em type}
+\cite{harper:pfpl}.
+
+The prototypical example of a type with multiple classes of values is
+that of complex numbers. There is {\em one} type of complex numbers,
+but {\em two} (interchangeable) classes of complex numbers: those in
+rectangular coordinates and those in polar coordinates. Both classes
+represent values of the same type. Harper further points out:
+
+\begin{quotation}
+  Crucially, the distinction between the two classes of complex number
+  is dynamic in that a given computation may result in a number of
+  either class, according to convenience or convention. A program may
+  test whether a complex number is in polar or rectangular form, and
+  we can form data structures such as sets of complex numbers in which
+  individual elements can be of either form.
+\end{quotation}
+
+Hence what R calls "types" are better thought of as "classes" in the
+above sense. They correspond to {\em variants} (or {\em constructors})
+of a single type in the Haskell sense. R is really a unityped
+language.
+
+We call the type of all the classes that exist in R the {\em universe}
+(See Section~\ref{sec:hexp}). Each variant of the union field in the
+@SEXPREC@ structure defined in Section~\ref{sec:foreign-values}
+corresponds to a class in the above sense. The @SEXPREC@ structure
+{\em is} the universe.
+
+Because "class" is already an overloaded term in both R and in
+Haskell, in the following we use the term {\em form} to refer to what
+the above calls a "class".
+
+Some R functions expect a large number of arguments. It is not always
+clear what the usage of those functions is. It is all too easy to pass
+a value of the wrong form as an argument, or provide too many
+arguments, or too little. R itself cannot detect such conditions until
+runtime, nor is it practical to create a static analysis for R to
+detect them earlier, given the permissive semantics of the language.
+However, some information about the expected forms for arguments is
+given in R's documentation for practically every function in the
+standard library. It is often useful to encode that information from
+the documentation in machine checkable form, in such a way that the
+Haskell compiler can bring to bear its own existing static analyses to
+check for mismatches between formal parameters and actual arguments.
+
+\subsubsection{Form indexed values}
+
+To this end, in H we {\em form index} |SEXP|s. The actual definition
+of a |SEXP| in H is:
+\begin{code}
+newtype SEXP s a = SEXP (PTR SEXPREC)
+\end{code}
+The |a| parameter refers to the form of a |SEXP| (See
+Section~\ref{sec:regions} for the meaning of the |s| type parameter).
+In this way, a |SEXP| of form @REALSXP@ (meaning a vector of reals),
+can be ascribed the type |SEXP s R.Real|, distinct from |SEXP
+s R.Closure|, the type of closures. When some given functionis used
+frequently throughout the code, it is sometimes useful to introduce
+a wrapper for it in Haskell, ascribing to it a particular type. For
+example, the function that parses source files can be written as:
+\begin{code}
+import qualified Foreign.R.Type as R
+
+parse  ::  SEXP s R.String       -- Filename of source
+       ->  SEXP s R.Int          -- Number of expressions to parse
+       ->  SEXP s R.String       -- Source text
+       ->  R s (SEXP s R.Expr)
+parse file n txt = "parse(file_hs, n_hs, txt_hs)"
+\end{code}
+Now that we have a Haskell function for parsing R source files, with
+a Haskell type signature, the Haskell compiler can check that all
+calls to @parse()@ are well-formed. We found this feature immensely
+useful to document in the source code itself how to call various
+R functions, without having to constantly look up this information in
+the R documentation.
+
+Of course, while form indexing |SEXP| can in practice be a useful
+enough surrogate for a real type system, it does not replace a real
+type system. A reasonable property for any adequate type system is
+{\em type preservation}, also called {\em subject reduction}. That is,
+we ought to have that:
+\[
+\mbox{If }\Gamma \vdash M : T \mbox{ and } M \Downarrow
+V \mbox{ then } \Gamma \vdash V : T
+\]
+where $M$ is an expression, $T$ is a type and $V$ is the value of $M$.
+The crude form indexing presented here does not enjoy this property.
+In particular, given some arbitrary expression, in general the form of
+the value of this expression is unknown. We have the following type of
+|SEXP|'s of unknown form:
+\begin{code}
+data SomeSEXP s = forall a. SomeSEXP (SEXP s a)
+\end{code}
+Because the form of a value is in general unknown, the type of |eval|
+is:
+\begin{code}
+eval :: SEXP s a -> R s (SomeSEXP s)
+\end{code}
+That is, for any |SEXP| of any form |a|, the result is a |SEXP| of
+some (unknown) form.
+
+\subsubsection{Casts and coercions}
+
+|SEXP|'s of unknown form aren't terribly useful. For example, they
+cannot be passed as-is to the successor function on integers, defined
+as:
+\begin{code}
+succ :: SEXP s Int -> R s SomeSEXP
+succ x = "x_hs + 1"
+\end{code}
+Therefore, H provides {\em casting functions}, which introduce
+a dynamic form check. The user is allowed to {\em coerce} the type in
+Haskell of a |SEXP| given that the dynamic check passes. |cast| is
+defined as:
+\begin{code}
+cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
+cast ty s = unsafeCast (fromSing ty) s
+\end{code}
+where
+%format DYNAMIC_CAST_FAILED = "\texttt{\char34 cast: Dynamic type cast failed.\char34}"
+\begin{code}
+cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
+cast ty s
+    | fromSing ty == R.typeOf s = unsafeCoerce s
+    | otherwise = error DYNAMIC_CAST_FAILED
+\end{code}
+Now, |"1 + 1"| stands for the {\em value} of the R expression ``@1 +
+1@''. That is,
+\begin{code}
+two = "1 + 1" :: SomeSEXP s
+\end{code}
+In order to compute the successor of |two|, we need to cast the result:
+\begin{code}
+three :: R s SomeSEXP
+three = succ (two `cast` R.Int)
+\end{code}
 
 \subsection{R values are (usually) vectors}
 \label{sec:vectors}
 
-TODO
+An idiosyncratic feature of R is that scalars and vectors are treated
+uniformly, and in fact {\em represented} uniformly. This means that
+provided an interface to manipulate vectors alone, we can handle all
+scalars as well as all vectors. H exports a library of vector
+manipulation routines, that mirrors the API of the standard @vector@
+package. The advantage of keeping data represented as R vectors
+throughout a program is that no marshalling or unmarshalling need be
+incurred when passing the data to an R function. Because we provide
+the exact same API as for any other (non-R) vector representations, it
+is just as easy to manipulate R vectors instead, throughout.
 
 \subsection{Memory management}
 \label{sec:regions}

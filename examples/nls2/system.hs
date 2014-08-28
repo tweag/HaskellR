@@ -11,12 +11,12 @@ import Data.Int
 
 generate :: Int32 -> IO Double
 generate ix =
-  withSystemRandom . asGenIO $ \gen -> 
+  withSystemRandom . asGenIO $ \gen ->
     -- Lets make some more interesting distribution:
     let r = (x-10)*(x-20)*(x-40)*(x-70)
           + 28*x*(log x)
     in do v <- standard gen
-          return $ r * (1 + 0.01 * v)
+          return $ r * (1 + 0.15 * v)
   where x = fromIntegral ix
 
 generate_lifted :: [Int32] -> R s [Double]
@@ -37,4 +37,3 @@ generate_list n = -- intercalate "," $ zipWith (\a b -> a++"="++show b) (map (\t
 
 formula :: Int -> String -> String -> String
 formula n y x = "nls( "++y++" ~ "++generate_polynomial n x++", start=list("++generate_list n++"))"
-

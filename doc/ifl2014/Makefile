@@ -1,5 +1,7 @@
 all:
-	lhs2TeX paper.lhs > paper.tex
+	lhs2TeX --poly paper.lhs > paper.tex
+	pdflatex --interaction=nonstopmode paper.tex
+	bibtex paper
 	pdflatex paper.tex
 
 clean:
