@@ -749,6 +749,29 @@ Automatic values can be mixed freely with other values.
 \section{Benchmarks}
 \label{sec:benchmarks}
 
+We implemented benchmarks to compute recursively Fibonacci numbers,
+and the sum of all integers stored in the nodes of binary trees.
+
+An implementation in R of these functions is compared against implementations in
+Haskell using {\em views} to inspect both binary trees and Fibonacci indexes
+produced with R. The source code can be found at \cite{Hrepo?}.
+
+\begin{center}
+\begin{tabular}{ ||l||r||r|| }
+\hline
+& {\bf R} & {\bf views} \\
+\hline
+{\tt binarytrees} & 1130 ms & 687 ms \\
+\hline
+{\tt fib}         &    8 ms & 307 ms \\
+\hline
+\end{tabular}
+\end{center}
+
+When computing the sum over binary trees, we can see that the Haskell program
+using {\em views} is faster than the R program. This is due to Haskell being
+a compiled language, while the R function computing the sum is interepreted.
+
 \section{Related Work}
 \label{sec:related-work}
 
