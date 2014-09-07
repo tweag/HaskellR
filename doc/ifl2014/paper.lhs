@@ -493,36 +493,43 @@ readily be manipulated from an interactive environment such as GHCi
 encapsulation of any effects can be mediated through a custom monad,
 which we call the |R| monad.
 
+\subsection{Runtime reconstruction of expressions}
+
+Quasiquotes are purely syntactic sugar that are expanded at compile
+time. They have no existence at runtime. A quasiquote stands for an
+R expression, which we therefore have to reconstruct at runtime. In
+other words, the expansion of a quasiquote is code that generates an
+R expression. For a ground quasiquote whose content is R expression
+$S$, we construct a Haskell expression $E$, such that
+\[
+\mathtt{R\_Parse(\mathit{S})} = E.
+\]
+This law falls out as a special case of a more general law about
+antiquotation: for any substitution $\sigma$ instantiating each
+antiquoted variable in $S$ with some |SEXP|,
+\[
+\mathtt{R\_Parse(\mathit{S})}\sigma = E\sigma.
+\]
+That is, the abstract syntax tree (AST) constructed at runtime should
+be equivalent to that returned by @R_parse()@ at compile time. The
+easiest way to ensure this property is to simply use the R parser
+itself to identify what AST we need to build. Fortunately, R does
+export its parser as a standalone function, making this possible. Note
+that we only call the parser at compile time --- reconstructing the
+AST at runtime programmatically is much faster than parsing.
+
+The upside of reusing R's parser when expanding quasiquotes is that we
+get support for all of R's syntax, for free, and avoid a potential
+source of bugs. The flipside is that we cannot reliably extend R's
+syntax with meta-syntactic constructs for antiquotation. We must fit
+within R's existing syntax. It is for this reason that antiquotation
+does not have a dedicated syntax, but instead usurps the syntax of
+regular R variables.
+
 \section{Special topics}
 
 \subsection{A native view of foreign values}
 \label{sec:hexp}
-
-\begin{figure}
-\begin{description}
-\item[NILSXP]
-  There is only one object of type @NILSXP@, @R_NilValue@, with no data.
-
-\item[SYMSXP] Pointers to the @PRINTNAME@ (a @CHARSXP@), @SYMVALUE@
-  and @INTERNAL@. (If the symbol’s value is a @.Internal@ function,
-  the last is a pointer to the appropriate @SEXPREC@.) Many symbols
-  have the symbol value set to @R_UnboundValue@.
-
-\item[LISTSXP] Pointers to the @CAR@, @CDR@ (usually a @LISTSXP@ or
-  @NILSXP@) and @TAG@ (a @SYMSXP@ or @NILSXP@).
-
-\item[CHARSXP] @LENGTH@, @TRUELENGTH@ followed by a block of bytes
-  (allowing for the nul terminator).
-
-\item[REALSXP] @LENGTH@, @TRUELENGTH@ followed by a block of
-  C doubles.
-
-\item[\ldots]
-\end{description}
-  \caption{Extract from the R documentation enumerating all the
-    different forms that values can take.}
-\label{fig:r-type-desc}
-\end{figure}
 
 Programming across two languages typically involves a tradeoff: one
 can try shipping off an entire dataset and invoking a foreign function
@@ -569,19 +576,6 @@ Figure~\ref{fig:untyped-hexp}. Notice that for each tag in
 Figure~\ref{fig:r-type-desc}, there is a corresponding constructor in
 Figure~\ref{fig:untyped-hexp}.
 
-\begin{figure}
-\begin{code}
-data HExp
-  = Nil                                           -- NILSXP
-  | Symbol SEXP SEXP SEXP                         -- SYMSXP
-  | List SEXP SEXP SEXP                           -- LISTSXP
-  | Char Int32 (Vector Word8)                     -- CHARSXP
-  | Real Int32 (Vector Double)                    -- REALSXP
-  | ...
-\end{code}
-\caption{Untyped |HExp| view.}
-\label{fig:untyped-hexp}
-\end{figure}
 For the sake of efficiency, we do not use |HExp| as the basic datatype
 that all H generated code expects. That is, we do not use |HExp| as
 the universe of R expressions, merely as a {\em view}. We introduce
@@ -604,6 +598,32 @@ a recursive datatype is crucial for performance. It means that the
 |hexp| view function can be defined non-recursively, and hence is
 a candidate for inlining\footnote{The GHC optimizer never inlines
   recursive functions.}.
+
+\begin{figure}
+\begin{description}
+\item[NILSXP]
+  There is only one object of type @NILSXP@, @R_NilValue@, with no data.
+
+\item[SYMSXP] Pointers to the @PRINTNAME@ (a @CHARSXP@), @SYMVALUE@
+  and @INTERNAL@. (If the symbol’s value is a @.Internal@ function,
+  the last is a pointer to the appropriate @SEXPREC@.) Many symbols
+  have the symbol value set to @R_UnboundValue@.
+
+\item[LISTSXP] Pointers to the @CAR@, @CDR@ (usually a @LISTSXP@ or
+  @NILSXP@) and @TAG@ (a @SYMSXP@ or @NILSXP@).
+
+\item[CHARSXP] @LENGTH@, @TRUELENGTH@ followed by a block of bytes
+  (allowing for the nul terminator).
+
+\item[REALSXP] @LENGTH@, @TRUELENGTH@ followed by a block of
+  C doubles.
+
+\item[\ldots]
+\end{description}
+  \caption{Extract from the R documentation enumerating all the
+    different forms that values can take.}
+\label{fig:r-type-desc}
+\end{figure}
 
 In this manner, we get the convenience of pattern matching that comes
 with a {\em bona fide} algebraic datatype, but without paying the
@@ -679,6 +699,20 @@ standard library. It is often useful to encode that information from
 the documentation in machine checkable form, in such a way that the
 Haskell compiler can bring to bear its own existing static analyses to
 check for mismatches between formal parameters and actual arguments.
+
+\begin{figure}
+\begin{code}
+data HExp
+  = Nil                                           -- NILSXP
+  | Symbol SEXP SEXP SEXP                         -- SYMSXP
+  | List SEXP SEXP SEXP                           -- LISTSXP
+  | Char Int32 (Vector Word8)                     -- CHARSXP
+  | Real Int32 (Vector Double)                    -- REALSXP
+  | ...
+\end{code}
+\caption{Untyped |HExp| view.}
+\label{fig:untyped-hexp}
+\end{figure}
 
 \subsubsection{Form indexed values}
 
