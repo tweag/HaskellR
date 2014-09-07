@@ -558,37 +558,58 @@ pattern matching facilities are not immediately available, since only
 algebraic datatypes can be pattern matched.
 
 |HExp| is R's |SEXP| (or @*SEXPREC@) structure represented as
-a (generalized) algebraic datatype. A simplified definition of |HExp|
-would go along the lines of:
+a (generalized) algebraic datatype. Each @SEXPREC@ comes with
+a ``type'' tag the uniquely identifies the layout (one of
+@primsxp_struct@, @symsxp_struct@, {\em etc.}~as seen in
+Section~\ref{sec:foreign-values}). See Figure~\ref{fig:r-type-desc}
+for an excerpt of the R documentation enumerating all possible type
+tags\footnote{In R 3.1.0, there are 23 possible tags.}. A simplified
+definition of |HExp| would go along the lines of
+Figure~\ref{fig:untyped-hexp}. Notice that for each tag in
+Figure~\ref{fig:r-type-desc}, there is a corresponding constructor in
+Figure~\ref{fig:untyped-hexp}.
+
+\begin{figure}
 \begin{code}
-  data HExp
+data HExp
   = Nil                                           -- NILSXP
-  | Symbol { ... }                                -- SYMSXP
-  | Real { ... }                                  -- REALSXP
+  | Symbol SEXP SEXP SEXP                         -- SYMSXP
+  | List SEXP SEXP SEXP                           -- LISTSXP
+  | Char Int32 (Vector Word8)                     -- CHARSXP
+  | Real Int32 (Vector Double)                    -- REALSXP
   | ...
 \end{code}
-We define one constructor for each value of the |SEXPTYPE| enumeration
-in @<RInternals.h>@.
-
+\caption{Untyped |HExp| view.}
+\label{fig:untyped-hexp}
+\end{figure}
 For the sake of efficiency, we do not use |HExp| as the basic datatype
 that all H generated code expects. That is, we do not use |HExp| as
 the universe of R expressions, merely as a {\em view}. We introduce
 the following {\em view function} to locally convert to a |HExp|,
 given a |SEXP| from R.
 \begin{code}
-hexp :: SEXP -> HExp
+  hexp :: SEXP -> HExp
 \end{code}
 The fact that this conversion is local is crucial for good performance
 of the translated code. It means that conversion happens at each use
 site, and happens against values with a statically known form. Thus we
 expect that the view function can usually be inlined, and the
-short-lived |HExp| values that it creates compiled away by code
-simplification rules applied by GHC. In this manner, we get the
-convenience of pattern matching that comes with a *bona fide*
-algebraic datatype, but without paying the penalty of allocating
-long-lived data structures that need to be converted to and from
-R internals every time we invoke internal R functions or C extension
-functions.
+short-lived |HExp| values that it creates is compiled away by code
+simplification rules applied by GHC. Notice how |HExp| as defined in
+Figure~\ref{fig:untyped-hexp} is a {\em shallow view} --- the fields
+of each constructor are untranslated |SEXP|'s, not |HExp|'s. In other
+words, a |HExp| value corresponds to the one-level unfolding of
+a |SEXP| as an algebraic datatype. The fact that |HExp| is not
+a recursive datatype is crucial for performance. It means that the
+|hexp| view function can be defined non-recursively, and hence is
+a candidate for inlining\footnote{The GHC optimizer never inlines
+  recursive functions.}.
+
+In this manner, we get the convenience of pattern matching that comes
+with a {\em bona fide} algebraic datatype, but without paying the
+penalty of allocating long-lived data structures that need to be
+converted to and from R internals every time we invoke internal
+R functions or C extension functions.
 
 Using an algebraic datatype for viewing R internal functions further
 has the advantage that invariants about these structures can readily
