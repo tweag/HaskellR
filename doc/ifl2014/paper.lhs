@@ -28,6 +28,7 @@
 \exclusivelicense
 
 \title{Project H: Programming R in Haskell}
+\subtitle{PRELIMINARY DRAFT}
 
 \authorinfo{Mathieu Boespflug \and Facundo Domínguez \and Alexander Vershilov}
            {Tweag I/O}
