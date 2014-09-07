@@ -498,6 +498,57 @@ which we call the |R| monad.
 \subsection{A native view of foreign values}
 \label{sec:hexp}
 
+\begin{figure}
+\begin{description}
+\item[NILSXP]
+  There is only one object of type @NILSXP@, @R_NilValue@, with no data.
+
+\item[SYMSXP] Pointers to the @PRINTNAME@ (a @CHARSXP@), @SYMVALUE@
+  and @INTERNAL@. (If the symbol’s value is a @.Internal@ function,
+  the last is a pointer to the appropriate @SEXPREC@.) Many symbols
+  have the symbol value set to @R_UnboundValue@.
+
+\item[LISTSXP] Pointers to the @CAR@, @CDR@ (usually a @LISTSXP@ or
+  @NILSXP@) and @TAG@ (a @SYMSXP@ or @NILSXP@).
+
+\item[CHARSXP] @LENGTH@, @TRUELENGTH@ followed by a block of bytes
+  (allowing for the nul terminator).
+
+\item[REALSXP] @LENGTH@, @TRUELENGTH@ followed by a block of
+  C doubles.
+
+\item[\ldots]
+\end{description}
+  \caption{Extract from the R documentation enumerating all the
+    different forms that values can take.}
+\label{fig:r-type-desc}
+\end{figure}
+
+Programming across two languages typically involves a tradeoff: one
+can try shipping off an entire dataset and invoking a foreign function
+that does all the processing in one go, or keep as much of the logic
+in the host language and only call into foreign functions punctually.
+For example, mapping an R function @frobnicate()@ over a list of
+elements might be done entirely in R, on the whole list at once,
+\begin{code}
+H_PROMPT ys <- "mapply(frobnicate, xs_hs)"
+\end{code}
+or elementwise, driven from Haskell,
+\begin{code}
+H_PROMPT ys <- mapM (\x -> "frobnicate(x_hs)") xs
+\end{code}
+The latter style is often desirable --- the more code can be kept in
+Haskell the safer, because more code can be type checked statically.
+
+The bane of language interoperability is the perceived cost of
+crossing the border between one language to another during execution.
+Any significant overhead incurred in passing arguments to a foreign
+function and transferring control to it discourages tightly integrated
+programs where foreign functions are called frequently, such as in the
+last line above. Much of this cost is due to marshalling values from
+the native representation of data, to the foreign representation, and
+back.
+
 By default, and in order to avoid having to pay marshalling and
 unmarshalling costs for each argument every time one invokes an
 internal R function, we represent R values in exactly the same way
