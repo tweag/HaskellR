@@ -359,8 +359,8 @@ R draws the plot.}
 
 Now say that we are given a set of random points, roughly fitted by
 some non-linear model. For the sake of example, we can use points
-generated at random along some polynomial curve of degree 4 by the
-following Haskell function:
+generated at random along non-linear curve by the following Haskell
+function:
 \begin{code}
 import System.Random.MWC
 import System.Random.MWC.Distributions
@@ -371,13 +371,50 @@ generate ix =
     let r =  (x-10)*(x-20)*(x-40)*(x-70)
              + 28*x*(log x)
     in do v <- standard gen
-          return $ r * (1 + 0.15 * v)
-  where x = fromIntegral ix
+    return $ r * (1 + 0.15 * v)
+    where x = fromIntegral ix
 \end{code}
-Our goal is to ask R to compute estimates of the parameters of the
-model, given the set of points generated in Haskell. The R standard
-library provides the @nls@ function to compute the non-linear
-least-squares estimate of the parameters of the model.
+As before, take a set of coordinates:
+\begin{code}
+H_PROMPT "xs <- c(1:100)"
+H_PROMPT "ys <- mapply(generate_hsfun, xs)"
+\end{code}
+@generate_hsfun@ is a {\em function splice} --- just like any other
+splice, except that the spliced value is higher-order, i.e.
+a function. R's @mapply()@ applies the Haskell function to each
+element of @xs@, yielding the list @ys@.
+
+Our goal is to ask R to compute estimates of the parameters of
+polynomial models of increasing degree model, with models of higher
+degree having a higher chance of fitting our dataset well. The
+R standard library provides the @nls()@ function to compute the
+non-linear least-squares estimate of the parameters of the model. For
+example, we can try to fit a model expressing the relation between
+@ys@ to @xs@ as a polynomial of degree 3:
+\begin{code}
+H_PROMPT "P3 <- ys ~ a3*xs**3 + a2*xs**2 + a1*xs + a0"
+H_PROMPT "initialPoints <- list(a0=1,a1=1,a2=1,a3=1)"
+H_PROMPT "model3 <- nls(P3, start=initialPoints)"
+\end{code}
+As the degree of the model increases, the residual sum-of-squares
+decreases, to the point where in the end we can find a polynomial that
+fits the dataset rather well, as depicted in Figure~\ref{fig:nls},
+produced with the following code:
+\begin{code}
+"plot(xs,ys)"
+"lines(xs,predict(model2), col = 2)"
+"lines(xs,predict(model3), col = 3)"
+"lines(xs,predict(model4), col = 4)"
+\end{code}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=6cm]{r-nls.pdf}
+  \caption{Fitting polynomial models of increasing degree ($n =
+    \{2,3,4\}$) to a set of points in Haskell. R fits the models.}
+
+  \label{fig:nls}
+\end{figure}
 
 \subsection{Scripting from compiled modules}
 
