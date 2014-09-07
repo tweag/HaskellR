@@ -252,7 +252,7 @@ We conclude with a discussion of the overheads of cross language
 communication (Section \ref{sec:benchmarks}) and an overview of
 related work (Section \ref{sec:related-work}).
 
-\section{Overall architecture}
+\section{H walkthrough and overall architecture}
 \label{sec:architecture}
 
 \subsection{Foreign values}
@@ -897,7 +897,7 @@ and the sum of all integers stored in the nodes of binary trees.
 
 An implementation in R of these functions is compared against implementations in
 Haskell using {\em views} to inspect both binary trees and Fibonacci indexes
-produced with R. The source code can be found at \cite{Hrepo?}.
+produced with R. The source code can be found at \cite{tweag:H}.
 
 \begin{center}
 \begin{tabular}{ ||l||r||r|| }
