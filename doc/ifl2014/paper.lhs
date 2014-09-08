@@ -1,4 +1,4 @@
-\documentclass[preprint,authoryear]{sigplanconf}
+\documentclass[preprint]{sigplanconf}
 
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
