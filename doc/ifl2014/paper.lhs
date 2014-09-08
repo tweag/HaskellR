@@ -426,6 +426,7 @@ R_OUTPUT3
 \end{figure}
 
 \subsection{Scripting from compiled modules}
+\label{sec:compiled-modules}
 
 While an interactive prompt is extremely useful for exploratory
 programming, writing a program as a sequence of inputs for a prompt is
@@ -500,7 +501,7 @@ global environment that R provides. This global environment can
 readily be manipulated from an interactive environment such as GHCi
 \cite{ghc}. In compiled modules, access to the environment as well as
 encapsulation of any effects can be mediated through a custom monad,
-which we call the |R| monad.
+the |R| monad presented in Section~\ref{sec:compiled-modules}.
 
 \subsection{Runtime reconstruction of expressions}
 \label{sec:quasiquote-expansion}
@@ -701,7 +702,7 @@ the above calls a "class".
 Some R functions expect a large number of arguments. It is not always
 clear what the usage of those functions is. It is all too easy to pass
 a value of the wrong form as an argument, or provide too many
-arguments, or too little. R itself cannot detect such conditions until
+arguments, or too few. R itself cannot detect such conditions until
 runtime, nor is it practical to create a static analysis for R to
 detect them earlier, given the permissive semantics of the language.
 However, some information about the expected forms for arguments is
@@ -727,8 +728,8 @@ data HExp
 
 \subsubsection{Form indexed values}
 
-To this end, in H we {\em form index} |SEXP|s. The actual definition
-of a |SEXP| in H is:
+To this end, in H we have {\em form indexed} |SEXP|s. The actual
+definition of a |SEXP| in H is:
 \begin{code}
 newtype SEXP s (a :: SEXPTYPE)
     = SEXP (PTR SEXPREC)
@@ -775,10 +776,10 @@ we ought to have that:
 V \mbox{ then } \Gamma \vdash V : T
 \]
 where $M$ is an expression, $T$ is a type and $V$ is the value of $M$.
-The crude form indexing presented here does not enjoy this property.
-In particular, given some arbitrary expression, in general the form of
-the value of this expression is unknown. We have the following type of
-|SEXP|'s of unknown form:
+The crude form of indexing presented here does not enjoy this
+property. In particular, given some arbitrary expression, in general
+the form of the value of this expression is unknown. We have the
+following type of |SEXP|'s of unknown form:
 \begin{code}
 data SomeSEXP s = forall a. SomeSEXP (SEXP s a)
 \end{code}
@@ -836,10 +837,11 @@ provided an interface to manipulate vectors alone, we can handle all
 scalars as well as all vectors. H exports a library of vector
 manipulation routines, that mirrors the API of the standard @vector@
 package. The advantage of keeping data represented as R vectors
-throughout a program is that no marshalling or unmarshalling need be
-incurred when passing the data to an R function. Because we provide
-the exact same API as for any other (non-R) vector representations, it
-is just as easy to manipulate R vectors instead, throughout.
+throughout a program is that no marshalling or unmarshalling costs
+need be incurred when passing the data to an R function. Because we
+provide the exact same API as for any other (non-R) vector
+representations, it is just as easy to manipulate R vectors instead,
+throughout.
 
 \subsection{Memory management}
 \label{sec:regions}
@@ -850,9 +852,9 @@ garbage collectors (GC) of both languages see eye-to-eye. The embedded
 R instance manages objects in its own heap, separate from the heap
 that the GHC runtime manages. However, objects from one heap can
 reference objects in the other heap and the other way around. This can
-make garbage collection unsafe because neither GC's have a global view
-of the object graph, only a partial view corresponding to the objects
-in the heaps of each GC.
+make garbage collection unsafe because neither GC has a global view of
+the object graph, only a partial view corresponding to the objects in
+the heaps of each GC.
 
 \subsubsection{Memory protection}
 
@@ -877,10 +879,11 @@ happen within this new region. All such values will remain protected
 (i.e. pinned in memory) within the region. Once the action returns,
 all allocated R values are marked as deallocatable garbage all at
 once.
-
 \begin{code}
 runRegion :: (forall s . R s a) -> IO a
 \end{code}
+Regions are transactions, in that protection prevails during the
+transaction and ceases after transaction closure.
 
 \subsubsection{Automatic memory management}
 
