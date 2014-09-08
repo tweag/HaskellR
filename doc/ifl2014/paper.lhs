@@ -3,8 +3,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage{url}
 
 \include{definitions}
+
+\pgfplotsset{compat=1.11}
 
 %include lambda.fmt
 %include polycode.fmt
@@ -52,7 +56,7 @@
   However, {\em a priori} bindings of entire system libraries is
   a tedious process that quickly creates an unbearable maintenance
   burden. We demonstrate an alternative to monolithic and imposing
-  binding modules, be it to make use of libraries implemented in
+  binding modules, even to make use of libraries implemented in
   a special-purpose, dynamically typed, interpreted language. As
   a case study, we present \SysH, an R-to-Haskell interoperability
   solution making it possible to program all of R, including all
@@ -170,7 +174,7 @@ pre-processors that can parse C header files and automate the
 construction of binding wrapper functions and argument marshalling.
 However, these tools:
 \begin{enumerate}
-\item do not alleviate the programmer from the need to repeat in the
+\item do not alleviate the need for the programmer to repeat in the
   host language the type of the foreign function;
 \item add yet more complexity to the compilation pipeline;
 \item being textual pre-processors, generate code that is hard to
@@ -232,10 +236,10 @@ approach to programming with foreign libraries, and illustrate this
 approach with the first complete, high-performance tool to access all
 of R from a statically typed, compiled language. We highlight the
 difficulties of mixing and matching two garbage collected languages
-that know nothing about each other, and how to solve them by bringing
-together existing techniques in the literature for safe memory
-management \cite{kiselyov:regions}. Finally, we show how to allow
-optionally ascribing precise types to R functions, as a form of
+that know nothing about each other, and how to surmount them by
+bringing together existing techniques in the literature for safe
+memory management \cite{kiselyov:regions}. Finally, we show how to
+allow optionally ascribing precise types to R functions, as a form of
 compiler-checked documentation and to offer better safety guarantees.
 
 \paragraph{Outline} The paper is organized as follows. We will first
@@ -284,14 +288,16 @@ header (called @SEXPREC_HEADER@). The type of pointers to @SEXPREC@s
 is abbreviated as @SEXP@. In order to invoke functions defined in
 R then, we simply need a way to construct the right @SEXPREC@
 representing that invocation, and then have R interpret that
-invocation. We will cover how to do so in the next sections, but for
-now we do need to define in Haskell what a @SEXP@ is:
+invocation. We will cover how to do so in
+Section~\ref{sec:interoperating}, but for now we do need to define in
+Haskell what a @SEXP@ is:
 \begin{code}
 data SEXPREC
 type SEXP = Ptr SEXPREC
 \end{code}
 
 \subsection{Interoperating scripting languages}
+\label{sec:interoperating}
 
 R source code is organized as a set of {\em scripts}, which are loaded
 one by one into the R interpreter. Each statement in a each script is
@@ -302,8 +308,8 @@ environment altered by the in-order evaluation of statements.
 
 The central and most general mechanism by which H allows
 interoperating with R is quasiquotation. A {\em quasiquote} is
-a partial R script --- that is, a script with holes in it that stand
-in for as of yet undetermined portions. An example quasiquote in
+a partial R script --- that is, a script with ``holes'' in it that
+stand in for as of yet undetermined portions. An example quasiquote in
 Haskell of an R snippet is:
 \begin{code}
 "function(x) x + 1"
@@ -315,10 +321,11 @@ a quasiquote:
 let y = mkSEXP 1
 in "function(x) x + y_hs"
 \end{code}
-By convention, any symbol with a @_hs@ suffix is treated specially. It
-is interpreted as a reference to a Haskell variable defined somewhere
-in the ambient source code. That is, any occurrence of a symbol of the
-form @x_hs@ does denote a variable of the object language --- it is an
+By convention, any symbol with a @_hs@ suffix is treated specially
+(see Section~\ref{sec:quasiquote-expansion}). It is interpreted as
+a reference to a Haskell variable defined somewhere in the ambient
+source code. That is, any occurrence of a symbol of the form @x_hs@
+does not denote a variable of the object language --- it is an
 antiquote referring to variable |x| in the host language. Given any
 quasiquote, it is possible to obtain a full R script, with no holes in
 it, by {\em splicing} the value of the Haskell variables into the
@@ -359,7 +366,7 @@ R draws the plot.}
 
 Now say that we are given a set of random points, roughly fitted by
 some non-linear model. For the sake of example, we can use points
-generated at random along non-linear curve by the following Haskell
+generated at random along a non-linear curve by the following Haskell
 function:
 \begin{code}
 import System.Random.MWC
@@ -385,12 +392,12 @@ a function. R's @mapply()@ applies the Haskell function to each
 element of @xs@, yielding the list @ys@.
 
 Our goal is to ask R to compute estimates of the parameters of
-polynomial models of increasing degree model, with models of higher
-degree having a higher chance of fitting our dataset well. The
-R standard library provides the @nls()@ function to compute the
-non-linear least-squares estimate of the parameters of the model. For
-example, we can try to fit a model expressing the relation between
-@ys@ to @xs@ as a polynomial of degree 3:
+polynomial models of increasing degree, with models of higher degree
+having a higher chance of fitting our dataset well. The R standard
+library provides the @nls()@ function to compute the non-linear
+least-squares estimate of the parameters of the model. For example, we
+can try to fit a model expressing the relation between @ys@ to @xs@ as
+a polynomial of degree 3:
 \begin{code}
 H_PROMPT "P3 <- ys ~ a3*xs**3 + a2*xs**2 + a1*xs + a0"
 H_PROMPT "initialPoints <- list(a0=1,a1=1,a2=1,a3=1)"
@@ -400,8 +407,10 @@ As the degree of the model increases, the residual sum-of-squares
 decreases, to the point where in the end we can find a polynomial that
 fits the dataset rather well, as depicted in Figure~\ref{fig:nls},
 produced with the following code:
+%format R_OUTPUT3 = "\langle \textrm{graphic output (See Figure~\ref{fig:nls})} \rangle"
 \begin{code}
 "plot(xs,ys)"
+R_OUTPUT3
 "lines(xs,predict(model2), col = 2)"
 "lines(xs,predict(model3), col = 3)"
 "lines(xs,predict(model4), col = 4)"
@@ -425,8 +434,8 @@ facilities. Fortuntaly, H is also a library. Importing the library
 brings in scope the necessary definitions in order to embed
 quasiquotes such as the above in modules of a compiled program.
 
-Behind the scenes, the H library nurtures an {\em embedded instance}
-of the R interpreter, available at runtime. As in the interactive
+Behind the scenes, the H library hosts an {\em embedded instance} of
+the R interpreter, available at runtime. As in the interactive
 environment, this embedded instance is stateful. It is possible to
 mutate the global environment maintained by the interpreter, say by
 introducing a new top-level definition. Therefore, interaction with
@@ -454,7 +463,7 @@ run the |R| monad.
 %% functionality upon the bottom-half, using the |Language.R.*|
 %% namespace.
 
-\subsection{Rebinding and dynamic code construction}
+\subsection{Rationale}
 
 R is a very dynamic language, allowing many code modifications during
 runtime, such as rebinding of top-level definitions, super assignment
@@ -494,10 +503,11 @@ encapsulation of any effects can be mediated through a custom monad,
 which we call the |R| monad.
 
 \subsection{Runtime reconstruction of expressions}
+\label{sec:quasiquote-expansion}
 
 Quasiquotes are purely syntactic sugar that are expanded at compile
 time. They have no existence at runtime. A quasiquote stands for an
-R expression, which we therefore have to reconstruct at runtime. In
+R expression, which at runtime we therefore have to reconstruct. In
 other words, the expansion of a quasiquote is code that generates an
 R expression. For a ground quasiquote whose content is R expression
 $S$, we construct a Haskell expression $E$, such that
@@ -506,17 +516,18 @@ $S$, we construct a Haskell expression $E$, such that
 \]
 This law falls out as a special case of a more general law about
 antiquotation: for any substitution $\sigma$ instantiating each
-antiquoted variable in $S$ with some |SEXP|,
+antiquoted variable in $S$ with some |SEXP|, we should have that
 \[
 \mathtt{R\_Parse(\mathit{S})}\sigma = E\sigma.
 \]
-That is, the abstract syntax tree (AST) constructed at runtime should
-be equivalent to that returned by @R_parse()@ at compile time. The
-easiest way to ensure this property is to simply use the R parser
-itself to identify what AST we need to build. Fortunately, R does
-export its parser as a standalone function, making this possible. Note
-that we only call the parser at compile time --- reconstructing the
-AST at runtime programmatically is much faster than parsing.
+That is, the abstract syntax tree (AST) constructed at runtime (right
+hand side) should be equivalent to that returned by @R_parse()@ at
+compile time (left hand side). The easiest way to ensure this property
+is to simply use the R parser itself to identify what AST we need to
+build. Fortunately, R does export its parser as a standalone function,
+making this possible. Note that we only call the parser at compile
+time --- reconstructing the AST at runtime programmatically is much
+faster than parsing.
 
 The upside of reusing R's parser when expanding quasiquotes is that we
 get support for all of R's syntax, for free, and avoid a potential
@@ -719,23 +730,32 @@ data HExp
 To this end, in H we {\em form index} |SEXP|s. The actual definition
 of a |SEXP| in H is:
 \begin{code}
-newtype SEXP s a = SEXP (PTR SEXPREC)
+newtype SEXP s (a :: SEXPTYPE)
+    = SEXP (PTR SEXPREC)
 \end{code}
 The |a| parameter refers to the form of a |SEXP| (See
 Section~\ref{sec:regions} for the meaning of the |s| type parameter).
 In this way, a |SEXP| of form @REALSXP@ (meaning a vector of reals),
 can be ascribed the type |SEXP s R.Real|, distinct from |SEXP
-s R.Closure|, the type of closures. When some given functionis used
-frequently throughout the code, it is sometimes useful to introduce
-a wrapper for it in Haskell, ascribing to it a particular type. For
-example, the function that parses source files can be written as:
+s R.Closure|, the type of closures. These types are all of kind
+|SEXPTYPE|, a datatype promoted to a kind\footnote{Using GHC's
+  @-XDataKind@ language extension.}. Each inhabitant of the |SEXPTYPE|
+kind corresponds to a type tag as seen in Figure~\ref{fig:r-type-desc}.
+
+When some given function is used frequently throughout the code, it is
+sometimes useful to introduce a wrapper for it in Haskell, ascribing
+to it a particular type. For example, the function that parses source
+files can be written as\footnote{The $\char39$ is an artifact of the
+  @-XDataKinds@ extension, useful for disambiguation. It is not
+  strictly necessary, but it is good practice to use it.}:
+%format # = "\;\char39"
 \begin{code}
 import qualified Foreign.R.Type as R
 
-parse  ::  SEXP s R.String       -- Filename of source
-       ->  SEXP s R.Int          -- Number of expressions to parse
-       ->  SEXP s R.String       -- Source text
-       ->  R s (SEXP s R.Expr)
+parse  ::  SEXP s #R.String       -- Filename of source
+       ->  SEXP s #R.Int          -- Number of expressions to parse
+       ->  SEXP s #R.String       -- Source text
+       ->  R s (SEXP s #R.Expr)
 parse file n txt = "parse(file_hs, n_hs, txt_hs)"
 \end{code}
 Now that we have a Haskell function for parsing R source files, with
@@ -776,18 +796,13 @@ some (unknown) form.
 cannot be passed as-is to the successor function on integers, defined
 as:
 \begin{code}
-succ :: SEXP s Int -> R s SomeSEXP
+succ :: SEXP s #R.Int -> R s SomeSEXP
 succ x = "x_hs + 1"
 \end{code}
 Therefore, H provides {\em casting functions}, which introduce
 a dynamic form check. The user is allowed to {\em coerce} the type in
 Haskell of a |SEXP| given that the dynamic check passes. |cast| is
 defined as:
-\begin{code}
-cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
-cast ty s = unsafeCast (fromSing ty) s
-\end{code}
-where
 %format DYNAMIC_CAST_FAILED = "\texttt{\char34 cast: Dynamic type cast failed.\char34}"
 \begin{code}
 cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
@@ -795,6 +810,12 @@ cast ty s
     | fromSing ty == R.typeOf s = unsafeCoerce s
     | otherwise = error DYNAMIC_CAST_FAILED
 \end{code}
+where |SSEXPTYPE| is a singleton type reflecting at the type level the
+value of the first argument of |cast|. The use of a singleton type
+here allows us to to write a precise specification for |cast|: that
+the type of the return value is not just any type, but uniquely
+determined by the value of the first argument |ty|.
+
 Now, |"1 + 1"| stands for the {\em value} of the R expression ``@1 +
 1@''. That is,
 \begin{code}
@@ -892,31 +913,93 @@ Automatic values can be mixed freely with other values.
 \section{Benchmarks}
 \label{sec:benchmarks}
 
-We implemented benchmarks to compute recursively Fibonacci numbers,
-and the sum of all integers stored in the nodes of binary trees.
+\begin{figure}
+  \label{fig:bench-hexp}
+  \quad
+  %0 - fib   1 - tree
+  \pgfplotstableread{
+    index accessors error-accessors views error-views
+    0 1.0 0 1.0 0
+    1 1.0 0.013 0.72 0
+  }\dataset
+  \begin{tikzpicture}
+    \begin{axis}[ybar,
+        ymin=0,
+        ymax=1.45,
+        width=0.80*\columnwidth,
+        ylabel={Runtime (ms)},
+        xtick=data,
+        xticklabels = {
+          \strut fib,
+          \strut tree
+        },
+        major x tick style = {opacity=0},
+        minor x tick num = 1,
+        minor tick length=2ex,
+        enlarge x limits=0.40,
+        every node near coord/.append style={
+          anchor=west,
+          rotate=90,
+          /pgf/number format/precision=2,
+          /pgf/number format/fixed,
+          /pgf/number format/fixed zerofill,
+        },
+       legend entries={accessors,views},
+       legend columns=2,
+       legend style={at={(0,1)},anchor=north west,draw=none,nodes={inner sep=3pt}},
+      ]
+      \addplot[draw=black,fill=blue!20, nodes near coords,point meta=y, error bars/.cd, y dir=both,y explicit] table[x
+        index=0,y index=1,y error=error-accessors]
+      \dataset;
+      \addplot[draw=black,fill=blue!40, nodes near coords] table[x
+        index=0,y index=3y error=error-views]
+      \dataset;
+      %% \addplot[draw=black,fill=blue!60, nodes near coords] table[x
+      %%   index=0,y index=3]
+      %% \dataset;
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Normalized comparison of runtimes between views and
+    accessor functions.}
 
-An implementation in R of these functions is compared against implementations in
-Haskell using {\em views} to inspect both binary trees and Fibonacci indexes
-produced with R. The source code can be found at \cite{tweag:H}.
+\end{figure}
 
-\begin{center}
-\begin{tabular}{ ||l||r||r|| }
-\hline
-& {\bf R} & {\bf views} \\
-\hline
-{\tt binarytrees} & 1130 ms & 687 ms \\
-\hline
-{\tt fib}         &    8 ms & 307 ms \\
-\hline
-\end{tabular}
-\end{center}
+As explained in Section~\ref{sec:hexp}, there are essentially two ways
+to deconstruct a |SEXP| value returned from R: using accessor function
+provided by R's C extension API, or construct a view of the |SEXP| as
+an algebraic datatype and perform case analysis on that. The latter
+approach is more convenient, but potentially slower, because it
+nominally implies allocating a view data structure. However, as argued
+in Section~\ref{sec:hexp}, through careful engineering of the view,
+we expect the compiler to optimize away any extra allocation. In this
+section, we test this hypothesis experimentally.
 
-When computing the sum over binary trees, we can see that the Haskell program
-using {\em views} is faster than the R program. This is due to Haskell being
-a compiled language, while the R function computing the sum is interepreted.
+To compare the performance cost of using a view function, we implement
+two micro benchmarks. The @fib@ benchmark measures the performance of
+a naive implementation in Haskell of the Fibonacci series over
+R integers. Likewise, the @tree@ benchmark concerns a binary tree
+traversal function implemented in Haskell, where the tree is
+represented using generic R vectors. The results\footnote{Benchmarks
+  available at \url{http://github.com/tweag/H}.} are provided in
+Figure~\ref{fig:bench-hexp}. They were obtained using the Criterion
+benchmarking tool \cite{bos:criterion} using the default settings on
+a lightly loaded machine. Where the standard deviations are
+significant ($\nless 1\%$), we indicate them with error bars.
+
+As expected, using a view does not significantly impact performance.
+In fact, as can be seen in the @tree@ benchmark, views can even be
+faster than using accessor functions. The reason is that a view
+function can be completely inlined, yielding code that makes direct
+memory accesses to statically known offsets in memory, given a pointer
+to a |SEXPREC| structure. Accessors, on the other hand, are
+C functions that are opaque to the compiler --- they cannot be
+inlined, meaning that the overhead of calling a C function, using the
+standard calling convention, must be incurred at each field access.
 
 \section{Related Work}
 \label{sec:related-work}
+
+TODO
 
 \section{Conclusion}
 \label{sec:conclusion}
