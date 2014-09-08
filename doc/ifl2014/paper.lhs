@@ -1007,6 +1007,31 @@ TODO
 \section{Conclusion}
 \label{sec:conclusion}
 
+Given modern extensions to the Haskell programming language, the
+language turns out to support surprisingly easy interoperability with
+other languages, with opt-in static guarantees on what arguments get
+passed to a function, but without the hassle of elaborate bindings.
+The enabling ingredient here is the existence of a quasiquotation
+mechanism, which makes it easy to express calls to foreign language
+functions in the foreign language itself, in a way that matches up the
+foreign documentation for that function. Many of the ideas in this
+paper can be transposed to any other functional language provided an
+equivalent quasiquotation mechanism exists (e.g. Camlp4
+\cite{rauglaudre:camlp4} or extension points in OCaml, or SML
+quotation \cite{slind:object}). In a multistage language but without
+quasiquotation, the strategy for avoiding marshalling costs would
+still apply, but constructing foreign calls would likely turn out
+rather less convenient.
+
+Interacting with a latently typed language necessarily induces some
+number of runtime checks. While foreign functions can be selectively
+typed in the host language, this in practice requires a pervasive use
+of casts and coercions. Casts are runtime checks that have a cost, but
+moreover a cast failure is not very informative as to why it happened.
+A future direction could include integrating a notion of {\em blame}
+\cite{findler:contracts} into H, in order to better pinpoint the true
+cause of a dynamic check failure.
+
 %\acks
 
 \bibliographystyle{abbrvnat}
