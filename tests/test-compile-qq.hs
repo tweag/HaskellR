@@ -123,10 +123,10 @@ rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
     -- Should be NULL
     H.print H.nilValue
 
-    let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
+    let int32FromSomeSEXP x = H.fromSomeSEXP x :: Int32
 
     -- Should be [1] 3
-    let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
+    let foo3 = (\n -> fmap int32FromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
     -- | should be 99
@@ -134,7 +134,7 @@ rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
     H.print =<< [r| foo4_hs(33, 66) |]
 
     -- Should be [1] 120 but it doesn't work
-    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap int32FromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
     H.print =<< [r| fact_hs(as.integer(5)) |]
 
     -- Should be [1] 29
