@@ -156,6 +156,7 @@ import Control.Applicative ((<$>))
 import Control.Monad ( liftM )
 import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
 import Data.Word ( Word8 )
+-- import Data.Int  ( Int32 )
 import Foreign ( Ptr, plusPtr, castPtr )
 import Foreign.C
 import Foreign.Storable
@@ -211,7 +212,8 @@ instance (VECTOR s ty a)
   basicUnsafeThaw   (Vector s)   = return (MVector s)
   basicLength       (Vector s)   =
       unsafeInlineIO $
-      fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
+      fromIntegral <$> -- ({# get VECSEXP->vecsxp.length #} (R.unsexp s) :: IO Int32)
+        ((\ ptr -> do { peekByteOff ptr 32 :: IO CInt }) (R.unsexp s))
   -- XXX Basic unsafe slice is O(N) complexity as it allocates a copy of
   -- a vector, due to limitations of R's VECSXP structure, which we reuse
   -- directly.
@@ -1339,7 +1341,7 @@ toList = G.toList
 -- | /O(n)/ Convert a list to a vector
 fromList :: VECTOR s ty a => [a] -> Vector s ty a
 {-# INLINE fromList #-}
-fromList = G.fromList
+fromList xs = G.fromListN (Prelude.length xs) xs
 
 -- | /O(n)/ Convert the first @n@ elements of a list to a vector
 --

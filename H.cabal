@@ -221,6 +221,7 @@ test-suite test-vector
                     , H
                     , tasty
                     , tasty-quickcheck
+                    , tasty-hunit
                     , vector
                     , singletons >= 0.10
                     , quickcheck-assertions >= 0.1.1
