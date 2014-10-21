@@ -922,7 +922,7 @@ Automatic values can be mixed freely with other values.
   %0 - fib   1 - tree
   \pgfplotstableread{
     index accessors error-accessors views error-views
-    0 1.0 0 1.0 0
+    0 1.0 0 0.95 0
     1 1.0 0.013 0.72 0
   }\dataset
   \begin{tikzpicture}
