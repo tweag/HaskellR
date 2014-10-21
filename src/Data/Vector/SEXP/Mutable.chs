@@ -73,14 +73,16 @@ import Control.Monad.Primitive
 import qualified Data.Vector.Generic.Mutable as G
 import qualified Data.Vector.Storable.Mutable as Storable
 import Data.Singletons (fromSing, sing)
+import Data.Int
 
-import Foreign (castPtr, Ptr, withForeignPtr, plusPtr)
+import Foreign (castPtr, Ptr, withForeignPtr)
 import Foreign.Concurrent (newForeignPtr)
 import Foreign.C
 import Foreign.Storable
 import Foreign.Marshal.Array (copyArray, moveArray)
 
 import Prelude hiding (length, null, replicate, read)
+import System.IO.Unsafe (unsafePerformIO)
 
 #include <R.h>
 #define USE_RINTERNALS
@@ -99,13 +101,14 @@ instance (VECTOR s ty a)
          => G.MVector (MVector s ty) a where
   basicLength (MVector s) = unsafeInlineIO $
     fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp s)
+-- N.B. slicing can't be supported properly by vectors prefixed by header,
+-- this means that we can support only a reducing size (required for
+-- vectors algorithms), and slicing that is noop
   basicUnsafeSlice j m v
     | j == 0 && m == G.basicLength v = v
-    | j == 0 = unsafeInlineIO $ do
---      FIXME temporary hack to workaround this change will break evething
-        poke ((castPtr $ R.unsexp $ unMVector v :: Ptr ()) `plusPtr` 24)
-             (fromIntegral m :: CInt)
---        {# set VECSEXP->vecsxp.length #} (unMVector v) (fromIntegral m :: CInt)
+    | j == 0 = unsafePerformIO $ do
+        let s = castPtr $ R.unsexp $ unMVector v
+        {# set VECSEXP->vecsxp.length #} s (fromIntegral m :: CInt)
         return v
     | otherwise =
       failure "Data.Vector.SEXP.Mutable.slice"

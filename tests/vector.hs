@@ -16,21 +16,21 @@ import qualified Data.Vector.SEXP as V
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as S
 
+import H.Prelude hiding (Show)
 import qualified Foreign.R as R
 import qualified Language.R.Instance as R
-    ( initialize
-    , defaultConfig )
+    ( defaultConfig )
 
 import Data.Int
 import Data.AEq
 
 import Test.Tasty
 import Test.Tasty.QuickCheck
+import Test.Tasty.HUnit
 import Test.QuickCheck.Assertions
 
 main :: IO ()
-main = do
-  _ <- R.initialize R.defaultConfig
+main = withEmbeddedR R.defaultConfig $
   defaultMain tests
 
 instance (Arbitrary a, V.VECTOR s ty a) => Arbitrary (V.Vector s ty a) where
@@ -100,4 +100,17 @@ tests :: TestTree
 tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"  [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Int Int32)]
   , testGroup "Data.Vector.Storable.Vector (Double)" [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Real Double)]
+  , testGroup "Regression tests" [fromListLength]
   ]
+
+idVec :: V.Vector s R.Real Double -> V.Vector s R.Real Double
+idVec = id
+
+fromListLength :: TestTree
+fromListLength = testCase "fromList should have correct length" $ runRegion $ do
+   _ <- io $ return $ idVec $ V.fromListN 3 [-1.9,-0.1,-2.9]
+   let v = idVec $ V.fromList [-1.9,-0.1,-2.9]
+   io $ R.protect (V.unVector v)
+   io $ assertEqual "Length should be equal to list length" 3 (V.length v)
+   -- io $ Prelude.print v
+   return ()
