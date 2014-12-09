@@ -46,7 +46,7 @@ build: $(CONFIGURE)
 	cabal build
 
 test: $(CONFIGURE)
-	cabal test --show-details=streaming
+	cabal test --show-details=always
 
 # NOTE: We must make available to H both the dependencies in the sandbox
 # and the H package in the build directory.
