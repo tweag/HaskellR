@@ -110,7 +110,7 @@ fromListLength :: TestTree
 fromListLength = testCase "fromList should have correct length" $ runRegion $ do
    _ <- io $ return $ idVec $ V.fromListN 3 [-1.9,-0.1,-2.9]
    let v = idVec $ V.fromList [-1.9,-0.1,-2.9]
-   io $ R.protect (V.unVector v)
+   _ <- io $ R.protect (V.unVector v)
    io $ assertEqual "Length should be equal to list length" 3 (V.length v)
    -- io $ Prelude.print v
    return ()
