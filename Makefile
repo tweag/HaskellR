@@ -14,7 +14,6 @@ endif
 
 # NOTE: This requires `alex`, `happy`, and `hscolour` to be already installed.
 install:
-	cabal install vendor/c2hs --global --ignore-sandbox --prefix=$(PREFIX)
 	cabal install \
 	  --enable-documentation \
 	  --enable-tests \
@@ -28,8 +27,7 @@ install:
 $(DEP): $(PKG_DESCRIPTION)
 	[ -e $(DEP) ] || ( \
 	  cabal sandbox init && \
-	  cabal install alex happy hscolour && \
-	  cabal install vendor/c2hs )
+	  cabal install alex happy hscolour )
 	cabal install \
 	  --dependencies-only \
 	  --enable-documentation \
