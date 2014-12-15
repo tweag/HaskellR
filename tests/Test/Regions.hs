@@ -61,4 +61,18 @@ tests = testGroup "regions"
           io $ assertEqual "value is protected" R.Int (R.typeOf x)
           _ <- [r| gctorture(FALSE) |]
           return ()
+    , testCase "runRegion-no-leaked-thunks" $
+      preserveDirectory $ 
+        ((8 @=?) =<<) $ do
+          runRegion $ do
+	    _ <- [r| gctorture(TRUE) |]
+	    return ()
+	  z <- runRegion $ do
+	     R.SomeSEXP x <- [r| 5+3 |] 
+	     return $ fromSEXP x
+	  runRegion $ do
+	    _ <- io $ R.allocList 1
+	    _ <- [r| gctorture(FALSE) |]
+	    return ()
+	  return (z::Int32)
     ]
