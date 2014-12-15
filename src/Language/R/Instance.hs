@@ -60,7 +60,7 @@ import Control.Concurrent.MVar
     , MVar
     )
 import Control.Concurrent.Chan ( readChan, newChan, writeChan, Chan )
-import Control.DeepSeq (NFData)
+import Control.DeepSeq ( NFData, deepseq )
 import Control.Exception
     ( SomeException
     , AsyncException(ThreadKilled)
@@ -134,7 +134,9 @@ runRegion :: NFData a => (forall s . R s a) -> IO a
 runRegion r =  unsafeRunInRThread $
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)
-          (runReaderT (unR r))
+          (\d -> do 
+	     x <- runReaderT (unR r) d
+	     x `deepseq` return x)
 
 -- | An unsafe version of runRegion, providing no static guarantees that
 -- resources do not extrude the scope of their region. For internal use only.
