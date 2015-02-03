@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 #if __GLASGOW_HASKELL__ > 706
 {-# LANGUAGE RoleAnnotations #-}
 #endif

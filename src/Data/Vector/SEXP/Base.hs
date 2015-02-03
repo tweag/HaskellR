@@ -3,6 +3,7 @@
 --
 
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.Vector.SEXP.Base where

@@ -6,6 +6,7 @@
 -- "H.HExpr", so we can't use the type refinement facilities provided there.
 
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE DataKinds #-}
 {-# Language ViewPatterns #-}
 {-# Language GADTs #-}
 
