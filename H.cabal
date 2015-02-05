@@ -98,17 +98,6 @@ library
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
   default-language:    Haskell2010
-  default-extensions:  BangPatterns
-                       DataKinds
-                       FlexibleInstances
-                       FlexibleContexts
-                       GeneralizedNewtypeDeriving
-                       KindSignatures
-                       MultiParamTypeClasses
-                       NamedFieldPuns
-                       RecordWildCards
-                       TypeOperators
-                       OverloadedStrings
   other-extensions:    CPP
                        ForeignFunctionInterface
   build-tools:         c2hs
@@ -138,16 +127,6 @@ executable H
                      , process >= 1.2
                      , vector >= 0.10
   default-language:    Haskell2010
-  default-extensions:  DataKinds
-                       FlexibleInstances
-                       FlexibleContexts
-                       GeneralizedNewtypeDeriving
-                       KindSignatures
-                       MultiParamTypeClasses
-                       NamedFieldPuns
-                       RecordWildCards
-                       StandaloneDeriving
-                       TypeOperators
   ghc-options:         -Wall -Werror -threaded
   if os(windows)
     cpp-options:       -DH_ARCH_WINDOWS
@@ -185,9 +164,6 @@ test-suite tests
   ghc-options:         -Wall -threaded -j4
   hs-source-dirs:      tests
   default-language:    Haskell2010
-  default-extensions:  FlexibleContexts
-                       OverloadedStrings
-                       TypeOperators
 
 test-suite test-compile-qq
   main-is:             test-compile-qq.hs

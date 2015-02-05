@@ -1,6 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Language.R.Internal.FunWrappers.TH

@@ -3,6 +3,9 @@
 --
 
 {-# Language ConstraintKinds #-}
+{-# Language DataKinds #-}
+{-# Language FlexibleContexts #-}
+{-# Language FlexibleInstances #-}
 {-# Language FunctionalDependencies #-}
 {-# Language GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}

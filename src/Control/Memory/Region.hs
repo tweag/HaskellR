@@ -9,6 +9,7 @@
 -- guaranteed to remain live within the scope of that region.
 
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Control.Memory.Region where
 

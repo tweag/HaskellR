@@ -2,7 +2,9 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# Language GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# Language ViewPatterns #-}
