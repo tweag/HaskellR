@@ -162,7 +162,7 @@ instance Literal (SomeSEXP s) R.Any where
     fromSEXP = SomeSEXP . R.unsafeRelease
 
 instance Literal String R.String where
-    mkSEXPIO x = fmap R.unsafeRelease $ R.mkString =<< newCString x
+    mkSEXPIO x = R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
 instance Literal a b => Literal (R s a) R.ExtPtr where
