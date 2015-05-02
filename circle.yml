@@ -1,0 +1,6 @@
+machine:
+  ghc:
+    version: 7.8.3
+test:
+  pre:
+    - cabal install

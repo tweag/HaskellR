@@ -10,6 +10,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 -- For the 'Vector' instance of 'Lift'.
 {-# LANGUAGE OverlappingInstances #-}
 
@@ -130,14 +131,16 @@ instance TH.Lift (IO [SEXP s a]) where
 instance TH.Lift BS.ByteString where
     lift bs = let s = BS.unpack bs in [| BS.pack s |]
 
+#if ! MIN_VERSION_th_orphans(0,11,0)
 instance TH.Lift Int32 where
-    lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Int32 |]
+  lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Int32 |]
 
 instance TH.Lift Word8 where
-    lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Word8 |]
+   lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Word8 |]
 
 instance TH.Lift Double where
-    lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
+   lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
+#endif
 
 instance TH.Lift (IO (Vector.Vector s R.Raw Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
