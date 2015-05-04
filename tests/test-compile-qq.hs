@@ -20,35 +20,42 @@ import Data.Int
 
 import Control.Applicative ((<$>))
 import System.Environment
-import System.Exit ( exitFailure )
-import System.Process ( readProcess )
+import System.Exit ( exitFailure, ExitCode(ExitSuccess) )
+import System.Process ( readProcessWithExitCode )
 
 main :: IO ()
 main = do
     args <- getArgs
     if null args
     then do
-      output <- readProcess "dist/build/test-compile-qq/test-compile-qq" ["test"] ""
-      golden <- readFile "tests/ghci/compile-qq.ghci.golden.output"
-      putStr "Testing compile time qq: "
-      if (output /= golden)
+      (exitCode, output, err) <- readProcessWithExitCode
+                  "dist/build/test-compile-qq/test-compile-qq" ["test"] ""
+      if exitCode == ExitSuccess
       then do
-        putStrLn $ unlines $
-          [ "outputs don't match "
-          , ""
-          , "expected: "
-          , golden
-          , ""
-          , Prelude.show golden
-          , ""
-          , "H:"
-          , ""
-          , output
-          , ""
-          , Prelude.show output
-          ]
+        golden <- readFile "tests/ghci/compile-qq.ghci.golden.output"
+        putStr "Testing compile time qq: "
+        if (output /= golden)
+        then do
+          putStrLn $ unlines $
+            [ "outputs don't match "
+            , ""
+            , "expected: "
+            , golden
+            , ""
+            , Prelude.show golden
+            , ""
+            , "H:"
+            , ""
+            , output
+            , ""
+            , Prelude.show output
+            ]
+          exitFailure
+        else putStrLn "OK"
+      else do
+        putStrLn "error while running tests: "
+        putStrLn err
         exitFailure
-      else putStrLn "OK"
     else rTests
 
 hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
