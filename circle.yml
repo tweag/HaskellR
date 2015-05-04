@@ -1,6 +1,24 @@
 machine:
   ghc:
     version: 7.8.3
+
+checkout:
+  post:
+    - git submodule update --init
+# NOTE: R is already included in the base image.
+
+dependencies:
+  override:
+    - cabal update
+    - cabal sandbox init
+  # TODO: To cache or not to cache?
+  # cache_directories:
+  #   - .cabal-sandbox
+
 test:
   pre:
-    - cabal install
+    - make configure
+    - make build
+  override:
+    - make test
+    - make doc
