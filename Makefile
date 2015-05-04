@@ -22,7 +22,6 @@ install:
 	  --haddock-hyperlink-source \
 	  --prefix=$(PREFIX) \
 	  --reorder-goals \
-	  --run-tests
 
 $(DEP): $(PKG_DESCRIPTION)
 	[ -e $(DEP) ] || ( \

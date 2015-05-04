@@ -46,6 +46,7 @@ import Foreign
 import System.IO
 import qualified System.IO.Strict as Strict (readFile)
 import System.Process
+import System.Exit
 import System.FilePath
 
 invokeR :: FilePath -> ValueGetter r Text
@@ -76,12 +77,15 @@ invokeH fp = do
       { std_out = CreatePipe }
     (_, Just outh2, _, _) <- liftIO $ createProcess $ (proc "sh" ["tests/ghciH.sh","-v0","-ghci-script","H.ghci"])
       { std_out = CreatePipe
-      , std_in = UseHandle outh1 }
+      , std_in = UseHandle outh1}
     liftIO $ T.pack <$> hGetContents outh2
 
 invokeGHCi :: FilePath -> ValueGetter r Text
-invokeGHCi fp = liftIO $ fmap T.pack $
-    Strict.readFile fp >>= readProcess "sh" ["tests/ghciH.sh","-v0","-ghci-script","H.ghci"]
+invokeGHCi fp = liftIO $ fmap T.pack $ do
+    (ecode, out, err) <- Strict.readFile fp >>= readProcessWithExitCode "sh" ["tests/ghciH.sh","-v0","-ghci-script","H.ghci"]
+    return $ if ecode == ExitSuccess
+             then out
+             else out ++ err
 
 scriptCase :: TestName
            -> FilePath

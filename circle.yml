@@ -5,20 +5,28 @@ machine:
 checkout:
   post:
     - git submodule update --init
+    - rm -rf .cabal-sandbox
+    - rm -rf dist
 # NOTE: R is already included in the base image.
 
 dependencies:
   override:
     - cabal update
+    - cabal install cabal-install
     - cabal sandbox init
+    - cabal install c2hs
+    - cabal install --only-dependencies --enable-tests
+    - chmod go-w H.ghci
+    - chmod go-w .
+    - cabal configure --enable-tests
+
   # TODO: To cache or not to cache?
   # cache_directories:
   #   - .cabal-sandbox
 
 test:
   pre:
-    - make configure
-    - make build
+    - cabal install
   override:
     - make test
     - make doc
