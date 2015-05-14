@@ -1,7 +1,7 @@
 ---
 name: H
 description: Haskell to R interability solution
-url: h-lang.tweag.io
+url: tweag.github.io
 baseurl: /H/
 exclude:
   - Gemfile
