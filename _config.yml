@@ -1,0 +1,13 @@
+---
+name: H
+description: Haskell to R interability solution
+url: h-lang.tweag.io
+baseurl: /
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+sass:
+  style: compressed
+  sass_dir: _css
+---

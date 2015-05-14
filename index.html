@@ -1,0 +1,114 @@
+---
+layout: default
+title: H - Haskell to R interporability solution
+id: home
+---
+<div class="jumbotron">
+  <div class="container">
+    <div class="page-header">
+      <h1> H <small> &mdash; Haskell to R interporability solution</small> </h2>
+    </div>
+    <p> some nice text here </p>
+    <p> <a class="btn btn-lg btn-primary" role="button" href="#">Download</a> <a class="btn btn-lg btn-primary" role="button" href="documentation.html#HowToStart">Getting started &raquo;</a> </p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <h2>Great amount of libraries</h2>
+      <p> With H you can use a wast amount of both <a>R</a> and <a>Haskell</a> libraries coupled together</p>
+      <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+    </div>
+    <div class="col-md-4">
+      <h2>Safety </h2>
+      <p> Strong Haskell typesystem helps to reason about programs. Regions based approach to memory handling
+          makes improves guarantees safety when you crossing memory boundaries</p>
+      <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+   </div>
+    <div class="col-md-4">
+      <h2>Speed</h2>
+      <p>Haskell is a reasonably fast compiled programming language, with a number of optimization features,
+         so it's possible to defer heavy computations there</p>
+      <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+    </div>
+ </div>
+
+<hr />
+
+<div class="container">
+  <h2> Why H? </h2>
+  <p> The ideas to have interporability solution between R and other languages are not new. Some
+        people finding R semantics hard, some don't like absence of statical analisys, some don't like
+        speed, but still R is de-facto one of the main tools used in statistical analysys, with a huge
+        number of libraries. As a result there are bindings for many languages (including Haskell), that
+        allow user to access R functionality from those language, however with this bindings user have
+        to write much boilerplace without relying on static analisys much. And even there are reimplementation
+        of R in the other languages (...).<p>
+  
+  <div>H tries to solves some of the problems and eventually will solve even more. The main idea is
+        to provide an ability to write R in R within haskell. 
+        <ul>
+          <li><span class="glyphicon glyphycon-ok"></span>R experts don't need to learn new language in order to run analysys</li>
+          <li>Haskell experts can just take programs from R examples without reimplement them using biniding.</li>
+        </ul>
+  </div>
+  
+  <div>There are few Haskell solutions that includes: simple bindings, quasi-quoters,
+  <ul>
+    <li><a href="https://hackage.haskell.org/package/Rlang-QQ">Rlang-QQ</a> &mdash;
+        brief description
+    </li>
+    <li><a href="https://hackage.haskell.org/package/hR">hR</a> &mdash;
+        brief description
+    </li>
+  </ul>
+  </div>
+  
+  <div>We are aware of those libraries and integrated best ideas from those.
+  <ul>
+    <li> Quasi-Quoter that allow to embedd R code into haskell without boilerplace</li>
+    <li> R and Haskell runs in the same address space, so zero-cost structure sharing
+         is possible</li>
+    <li> ... </li>
+  </ul>
+  </div>
+</div>
+
+<hr />
+
+<div class="container">
+  <h2> Code examples </h2>
+  <div class="row">
+    <div class="col-md-4">
+      <div> Description of this code </div>
+    </div>
+  <div class="col-md-7">
+<pre>
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+import H.Prelude as H
+import Language.R.QQ
+
+import System.Random
+
+main = do
+
+  H.initialize defaultConfig
+  H.runRegion $ do
+    _ <- [r| palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00"
+                      , "#FFFF33", "#A65628", "#F781BF", "#999999"))|]
+    std <- io $ newStdGen
+    let (xs::[Double],ys) = splitAt 10 . take 20 $ randoms std
+    d  <- [r| c(c(xs_hs),c(ys_hs)) |]
+    rv <- [r| clusters <- kmeans(d_hs,3) |]
+    [r| par(mar = c(5.1, 4.1, 0, 1));
+        plot(d_hs, col=rv_hs$cluster, pch = 20, cex = 3);
+        points(rv_hs$centers, pch =4, cex = 4, lwd= 4);
+      |]
+    io $ getLine
+    return ()
+</pre>
+    </div>
+  </div>
+</div>
