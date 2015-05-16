@@ -4,26 +4,26 @@ layout: single
 id: downloads
 ---
 
-<h2> Download sources </h2>
+## Download sources
 
 All sources are available either on hackage and can be downloaded and
-build using <code>cabal-install</code>:
+build using `cabal-install`:
 
-<div class="row"><div class="col-md-5"><pre>
+```bash
 cabal update      # update package index
 cabal install H   # installs H
-</pre></div></div>
+```
 
 or using github:
 
-<div class="row"><div class="col-md-5"><pre>
+```bash
 git clone ...
 git co tagname
-</pre></div></div>
+```
 
 Do not forget to install all prerequisities.
 
-<h2> Download binaries </h2>
+## Download binaries
 
 Binary versions and packages for distributives are not ready yet, sorry.
 
