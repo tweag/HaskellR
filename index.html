@@ -1,14 +1,15 @@
 ---
 layout: default
-title: H - Haskell to R interporability solution
+title: Project H - programming R in Haskell
 id: home
 ---
 <div class="jumbotron">
   <div class="container">
     <div class="page-header">
-      <h1> H <small> &mdash; Haskell to R interporability solution</small> </h2>
+      <h1>Project H</h1>
+      Programming R in Haskell
     </div>
-    <p> some nice text here </p>
+    <p></p>
     <p> <a class="btn btn-lg btn-primary" role="button" href="#">Download</a> <a class="btn btn-lg btn-primary" role="button" href="documentation.html#HowToStart">Getting started &raquo;</a> </p>
   </div>
 </div>
@@ -16,20 +17,27 @@ id: home
 <div class="container">
   <div class="row">
     <div class="col-md-4">
-      <h2>Great amount of libraries</h2>
-      <p> With H you can use a wast amount of both <a>R</a> and <a>Haskell</a> libraries coupled together</p>
+      <h2>Comprehensive</h2>
+      <p>The full power of R's extensive standard library at your
+      fingertips, plus virtually all CRAN packages, which work from
+      Haskell just as they would from R.
       <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
     </div>
     <div class="col-md-4">
-      <h2>Safety </h2>
-      <p> Strong Haskell typesystem helps to reason about programs. Regions based approach to memory handling
-          makes improves guarantees safety when you crossing memory boundaries</p>
+      <h2>Safe</h2>
+      <p>Optional type annotations let you leverage the full power of
+          Haskell's type system to program R safely. Region-based
+          memory allocation means precise and predictable memory usage
+          without the dangers: Haskell's type system has your back to
+          statically guarantee the absence of use-after-free bugs.</p>
       <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
    </div>
     <div class="col-md-4">
-      <h2>Speed</h2>
-      <p>Haskell is a reasonably fast compiled programming language, with a number of optimization features,
-         so it's possible to defer heavy computations there</p>
+      <h2>Fast</h2>
+      <p>Zero marshalling language interop, for crossing language
+      boundaries extremely efficiently at runtime. Mapping an
+      R function over a million element container from Haskell is just
+      as fast as from R.</p>
       <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
     </div>
  </div>
