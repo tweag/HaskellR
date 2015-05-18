@@ -74,7 +74,7 @@ instance Show (SEXP s a) where
       map (Text.pack . Vector.toString . vector) .
       Vector.toList .
       vector $
-      (R.unsafeCoerce (R.release slang) :: SEXP V R.String)
+      (R.unsafeCoerce (R.release slang) :: SEXP V 'R.String)
 
   print = io . R.printValue
 

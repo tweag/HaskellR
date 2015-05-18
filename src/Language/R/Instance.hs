@@ -99,6 +99,7 @@ import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
 #endif
 import System.IO.Unsafe (unsafePerformIO)
+import Prelude
 
 -- | The 'R' monad, for sequencing actions interacting with a single instance of
 -- the R interpreter, much as the 'IO' monad sequences actions interacting with
@@ -137,8 +138,8 @@ runRegion r =  unsafeRunInRThread $
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)
           (\d -> do 
-	     x <- runReaderT (unR r) d
-	     x `deepseq` return x)
+             x <- runReaderT (unR r) d
+             x `deepseq` return x)
 
 -- | An unsafe version of runRegion, providing no static guarantees that
 -- resources do not extrude the scope of their region. For internal use only.

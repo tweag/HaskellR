@@ -70,7 +70,7 @@ import Data.Vector.SEXP.Base
 import qualified Foreign.R as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
-import Control.Applicative ((<$>))
+import Control.Applicative
 import Control.Monad.Primitive
   (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
 import qualified Data.Vector.Generic.Mutable as G

@@ -11,8 +11,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
--- For the 'Vector' instance of 'Lift'.
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -104,7 +103,7 @@ parseEval txt = do
 returnIO :: a -> IO a
 returnIO = return
 
-parse :: String -> Q (R.SEXP V R.Expr)
+parse :: String -> Q (R.SEXP V 'R.Expr)
 parse txt = runIO $ do
     H.initialize H.defaultConfig
     unsafeRunInRThread $ parseText txt False
@@ -142,7 +141,7 @@ instance TH.Lift Double where
    lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
 #endif
 
-instance TH.Lift (IO (Vector.Vector s R.Raw Word8)) where
+instance TH.Lift (IO (Vector.Vector s 'R.Raw Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
     lift = runIO >=> \v -> do
@@ -150,7 +149,7 @@ instance TH.Lift (IO (Vector.Vector s R.Raw Word8)) where
           xs = map (toEnum . fromIntegral) $ Vector.toList v
       [| fmap vector $ string xs |]
 
-instance TH.Lift (IO (Vector.Vector s R.Char Word8)) where
+instance TH.Lift (IO (Vector.Vector s 'R.Char Word8)) where
     -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
     -- type. So we have to use some bespoke function.
     lift = runIO >=> \ v -> do
@@ -163,36 +162,36 @@ instance TH.Lift (IO (Vector.Vector s 'R.Logical R.Logical)) where
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SLogical xs |]
 
-instance TH.Lift (IO (Vector.Vector s R.Int Int32)) where
+instance TH.Lift (IO (Vector.Vector s 'R.Int Int32)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SInt xs |]
 
-instance TH.Lift (IO (Vector.Vector s R.Real Double)) where
+instance TH.Lift (IO (Vector.Vector s 'R.Real Double)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SReal xs |]
 
-instance TH.Lift (IO (Vector.Vector s R.Complex (Complex Double))) where
+instance TH.Lift (IO (Vector.Vector s 'R.Complex (Complex Double))) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
       [| fmap vector $ mkSEXPVectorIO SingR.SComplex xs |]
 
-instance TH.Lift (IO (Vector.Vector s R.String (SEXP s R.Char))) where
+instance TH.Lift (IO (Vector.Vector s 'R.String (SEXP s 'R.Char))) where
     lift = runIO >=> \v -> do
       let xsio = returnIO $ Vector.toList v
       [| fmap vector . mkProtectedSEXPVectorIO SingR.SString =<< xsio |]
 
-instance TH.Lift (IO (Vector.Vector s R.Vector (SomeSEXP s))) where
+instance TH.Lift (IO (Vector.Vector s 'R.Vector (SomeSEXP s))) where
     lift = runIO >=> \v -> do
       let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                          $ Vector.toList v :: IO [SEXP s R.Any]
+                          $ Vector.toList v :: IO [SEXP s 'R.Any]
       [| fmap vector $ mkProtectedSEXPVectorIO SingR.SVector =<< xsio |]
 
-instance TH.Lift (IO (Vector.Vector s R.Expr (SomeSEXP s))) where
+instance TH.Lift (IO (Vector.Vector s 'R.Expr (SomeSEXP s))) where
     lift = runIO >=> \v -> do
       let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                          $ Vector.toList v :: IO [SEXP s R.Any]
+                          $ Vector.toList v :: IO [SEXP s 'R.Any]
       [| fmap vector . mkProtectedSEXPVectorIO SingR.SExpr =<< xsio |]
 
 -- | Returns 'True' if the variable name is in fact a Haskell value splice.
@@ -241,7 +240,7 @@ instance TH.Lift (IO (SEXP s a)) where
     -- EXPRSXP.
       (hexp -> Expr n v) ->
         let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                            $ Vector.toList v :: IO [SEXP s R.Any]
+                            $ Vector.toList v :: IO [SEXP s 'R.Any]
          in [| R.withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
                  unhexpIO . Expr n . vector
              |]

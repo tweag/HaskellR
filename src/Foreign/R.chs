@@ -28,6 +28,9 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
+#if __GLASGOW_HASKELL__ >= 710
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+#endif
 module Foreign.R
   ( module Foreign.R.Type
     -- * Internal R structures

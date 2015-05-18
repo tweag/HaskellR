@@ -98,7 +98,7 @@ instance Literal [R.Logical] 'R.Logical where
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
-instance Literal [Int32] R.Int where
+instance Literal [Int32] 'R.Int where
     mkSEXPIO = mkSEXPVectorIO sing
     fromSEXP (hexp -> Int v) = SVector.toList v
     fromSEXP (hexp -> Real v) = map round (SVector.toList v)
@@ -112,7 +112,7 @@ instance Literal [Double] 'R.Real where
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
-instance Literal [Complex Double] R.Complex where
+instance Literal [Complex Double] 'R.Complex where
     mkSEXPIO = mkSEXPVectorIO sing
     fromSEXP (hexp -> Complex v) = SVector.toList v
     fromSEXP _ =
@@ -130,21 +130,21 @@ instance Literal R.Logical 'R.Logical where
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
-instance Literal Int32 R.Int where
+instance Literal Int32 'R.Int where
     mkSEXPIO x = mkSEXPIO [x]
     fromSEXP x@(hexp -> Int{}) = the x
     fromSEXP x@(hexp -> Real{}) = round (the x)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
-instance Literal Double R.Real where
+instance Literal Double 'R.Real where
     mkSEXPIO x = mkSEXPIO [x]
     fromSEXP x@(hexp -> Real{}) = the x
     fromSEXP x@(hexp -> Int{})  = fromIntegral (the x)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
-instance Literal (Complex Double) R.Complex where
+instance Literal (Complex Double) 'R.Complex where
     mkSEXPIO x = mkSEXPIO [x]
     fromSEXP x@(hexp -> Complex{}) = the x
     fromSEXP _ =
@@ -154,27 +154,27 @@ instance SingI a => Literal (SEXP s a) a where
     mkSEXPIO = fmap R.unsafeRelease . return
     fromSEXP = R.cast (sing :: SSEXPTYPE a) . SomeSEXP . R.unsafeRelease
 
-instance Literal (SomeSEXP s) R.Any where
+instance Literal (SomeSEXP s) 'R.Any where
     -- The ANYSXP type in R plays the same role as SomeSEXP in H. It is a dummy
     -- type tag, that is never seen in any object. It serves only as a stand-in
     -- when the real type is not known.
     mkSEXPIO (SomeSEXP s) = return . R.unsafeRelease $ R.unsafeCoerce s
     fromSEXP = SomeSEXP . R.unsafeRelease
 
-instance Literal String R.String where
+instance Literal String 'R.String where
     mkSEXPIO x = R.mkString =<< newCString x
     fromSEXP  = unimplemented "Literal String fromSEXP"
 
-instance Literal a b => Literal (R s a) R.ExtPtr where
+instance Literal a b => Literal (R s a) 'R.ExtPtr where
     mkSEXPIO = funToSEXP wrap0
     fromSEXP = unimplemented "Literal (R s a) fromSEXP"
 
-instance (Literal a a0, Literal b b0) => Literal (a -> R s b) R.ExtPtr where
+instance (Literal a a0, Literal b b0) => Literal (a -> R s b) 'R.ExtPtr where
     mkSEXPIO = funToSEXP wrap1
     fromSEXP = unimplemented "Literal (a -> R s b) fromSEXP"
 
 instance (Literal a a0, Literal b b0, Literal c c0)
-         => Literal (a -> b -> R s c) R.ExtPtr where
+         => Literal (a -> b -> R s c) 'R.ExtPtr where
     mkSEXPIO   = funToSEXP wrap2
     fromSEXP = unimplemented "Literal (a -> b -> IO c) fromSEXP"
 
@@ -190,9 +190,9 @@ instance (Literal a la, HFunWrap b wb)
     hFunWrap f a = hFunWrap $ f $! fromSEXP (R.sexp a :: SEXP s la)
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
-    :: FunPtr a -> IO (SEXP s R.ExtPtr)
+    :: FunPtr a -> IO (SEXP s 'R.ExtPtr)
 
-funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> IO (SEXP s R.ExtPtr)
+funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> IO (SEXP s 'R.ExtPtr)
 funToSEXP w x = funPtrToSEXP =<< w (hFunWrap x)
 
 $(thWrapperLiterals 3 25)

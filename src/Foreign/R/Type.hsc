@@ -5,6 +5,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 710
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+#endif
+
 
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
