@@ -96,11 +96,9 @@ id: home
 
 <div class="container">
   <h2> Code examples </h2>
+  <h3> Clustering example </h3>
   <div class="row">
-    <div class="col-md-4">
-      <div> Description of this code </div>
-    </div>
-  <div class="col-md-7">
+  <div class="col-md-5">
 <pre>
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -110,22 +108,25 @@ import Language.R.QQ
 import System.Random
 
 main = do
-
   H.initialize defaultConfig
   H.runRegion $ do
-    _ <- [r| palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00"
-                      , "#FFFF33", "#A65628", "#F781BF", "#999999"))|]
+    -- Put any complex model here
     std <- io $ newStdGen
-    let (xs::[Double],ys) = splitAt 10 . take 20 $ randoms std
-    d  <- [r| c(c(xs_hs),c(ys_hs)) |]
-    rv <- [r| clusters <- kmeans(d_hs,3) |]
+    let (xs::[Double]) = take 100 $ randoms std
+    d  <- [r| matrix(xs_hs,ncol=2) |]
+    rv <- [r| clusters <- kmeans(d_hs, 2) |]
     [r| par(mar = c(5.1, 4.1, 0, 1));
-        plot(d_hs, col=rv_hs$cluster, pch = 20, cex = 3);
+        plot(d_hs, col=rv_hs$cluster, pch = 20
+            , cex = 3, xlab="x", ylab="y");
         points(rv_hs$centers, pch =4, cex = 4, lwd= 4);
       |]
-    io $ getLine
     return ()
 </pre>
+    </div>
+    <div class="col-md-4">
+      <a href="img/cluster-1.png" class="thumbnail" target="_blank">
+        <img src="img/cluster-1-thumb.png"/>
+      </a>
     </div>
   </div>
 </div>
