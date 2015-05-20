@@ -259,7 +259,7 @@ instance HEq (HExp s) where
 -- XXX Orphan instance. Could find a better place to put it.
 -- this #ifdef is not correct as it should be MIN_VERSION_base,
 -- so this one will not work in non GHC compilers.
-#ifdef __GLASGOW_HASKELL__ >= 710
+#if __GLASGOW_HASKELL < 710
 instance (Fractional a, Real a, Storable a) => Storable (Complex a) where
   sizeOf _ = {#sizeof Rcomplex #}
   alignment _ = {#alignof Rcomplex #}
