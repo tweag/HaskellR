@@ -102,6 +102,7 @@ library
   other-extensions:    CPP
                        ForeignFunctionInterface
   build-tools:         c2hs
+                     , hsc2hs
   if os(windows)
     extra-libraries:   R
     cpp-options:       -DH_ARCH_WINDOWS

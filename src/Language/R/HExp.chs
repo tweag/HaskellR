@@ -34,8 +34,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE RoleAnnotations #-}
+#endif
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 710
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+#endif
 module Language.R.HExp
   ( HExp(..)
   , hexp
@@ -63,6 +70,8 @@ import Foreign.Storable
 import Foreign.C
 import Foreign ( castPtr, nullPtr )
 import Unsafe.Coerce (unsafeCoerce)
+-- Fixes redundant import warning >= 7.10 without CPP
+import Prelude
 
 #define USE_RINTERNALS
 #include "Hcompat.h"
@@ -82,6 +91,9 @@ import Unsafe.Coerce (unsafeCoerce)
 --
 -- Note further that Haddock does not currently support constructor comments
 -- when using the GADT syntax.
+#if __GLASGOW_HASKELL__ >= 708
+type role HExp phantom nominal
+#endif
 data HExp :: * -> SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
   Nil       :: HExp s R.Nil
@@ -245,6 +257,9 @@ instance HEq (HExp s) where
   _ === _ = False
 
 -- XXX Orphan instance. Could find a better place to put it.
+-- this #ifdef is not correct as it should be MIN_VERSION_base,
+-- so this one will not work in non GHC compilers.
+#ifdef __GLASGOW_HASKELL__ >= 710
 instance (Fractional a, Real a, Storable a) => Storable (Complex a) where
   sizeOf _ = {#sizeof Rcomplex #}
   alignment _ = {#alignof Rcomplex #}
@@ -254,6 +269,7 @@ instance (Fractional a, Real a, Storable a) => Storable (Complex a) where
   peek cptr =
       (:+) <$> (realToFrac <$> {#get Rcomplex->r #} cptr)
            <*> (realToFrac <$> {#get Rcomplex->i #} cptr)
+#endif
 
 instance Storable (HExp s a) where
   sizeOf _ = {#sizeof SEXPREC #}

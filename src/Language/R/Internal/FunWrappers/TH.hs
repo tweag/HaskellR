@@ -3,6 +3,7 @@
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP #-}
 
 module Language.R.Internal.FunWrappers.TH
   ( thWrappers
@@ -79,14 +80,18 @@ thWrapperLiteral n = do
         mkTy (x:xs) = [t| $x -> $(mkTy xs) |]
         ctx = cxt (zipWith f (map varT names1) (map varT names2))
           where
+#if MIN_VERSION_template_haskell(2,10,0)
+            f tv1 tv2 = foldl AppT (ConT (mkName "Literal")) <$> sequence [tv1, tv2]
+#else
             f tv1 tv2 = classP (mkName "Literal") [tv1, tv2]
+#endif
         -- XXX: Ideally would import these names from their defining module, but
         -- see GHC bug #1012. Using 'mkName' is a workaround.
         nR = conT $ mkName "R"
         nwrapn = varE $ mkName $ "wrap" ++ show n
         nfunToSEXP = varE $ mkName "Language.R.Literal.funToSEXP"
         nLiteral = conT $ mkName "Literal"
-    instanceD ctx [t| $nLiteral $(mkTy $ map varT names1) R.ExtPtr |]
+    instanceD ctx [t| $nLiteral $(mkTy $ map varT names1) 'R.ExtPtr |]
       [ funD (mkName "mkSEXPIO")
           [ clause [] (normalB [| $nfunToSEXP $nwrapn |]) [] ]
       , funD (mkName "fromSEXP")

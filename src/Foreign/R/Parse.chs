@@ -7,6 +7,9 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+#if __GLASGOW_HASKELL__ >= 710
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+#endif
 
 #include "Hcompat.h"
 

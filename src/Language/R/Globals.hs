@@ -21,17 +21,17 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Special value to which all symbols unbound in the current environment
 -- resolve to.
-unboundValue :: SEXP G Symbol
+unboundValue :: SEXP G 'Symbol
 unboundValue = unsafePerformIO $ peek R.unboundValue
 
 -- | R's @NULL@ value.
-nilValue :: SEXP G Nil
+nilValue :: SEXP G 'Nil
 nilValue = unsafePerformIO $ peek R.nilValue
 
 -- | Value substituted for all missing actual arguments of a function call.
-missingArg :: SEXP G Symbol
+missingArg :: SEXP G 'Symbol
 missingArg = unsafePerformIO $ peek R.missingArg
 
 -- | The global environment.
-globalEnv :: SEXP G Env
+globalEnv :: SEXP G 'Env
 globalEnv = unsafePerformIO $ peek R.globalEnv

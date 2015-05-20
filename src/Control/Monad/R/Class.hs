@@ -12,9 +12,10 @@ module Control.Monad.R.Class
 import Control.Memory.Region
 import Foreign.R
 
-import Control.Applicative (Applicative, (<$>))
+import Control.Applicative
 import Control.Monad.Catch (MonadCatch, MonadMask)
 import Control.Monad.Trans (MonadIO(..))
+import Prelude
 
 -- | The class of R interaction monads. For safety, in compiled code we normally
 -- use the 'R' monad. For convenience, in a GHCi session, we normally use the
