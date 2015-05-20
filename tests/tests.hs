@@ -177,14 +177,14 @@ unitTests = testGroup "Unit tests"
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
-            R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
+            R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s IO Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
                       R.r2 (Data.ByteString.Char8.pack ".Call") sf d
                       >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE R.Real)
                                                      <$> R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ runRegion $ do
-      key  <- mkSEXP (return 4 :: R s Int32)
-      val  <- mkSEXP (return 5 :: R s Int32)
+      key  <- mkSEXP (return 4 :: R s IO Int32)
+      val  <- mkSEXP (return 5 :: R s IO Int32)
       True <- return $ R.typeOf val == R.ExtPtr
       n    <- H.unhexp H.Nil
       rf   <- io $ R.mkWeakRef key val n True

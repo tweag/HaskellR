@@ -62,17 +62,32 @@ tests = testGroup "regions"
           _ <- [r| gctorture(FALSE) |]
           return ()
     , testCase "runRegion-no-leaked-thunks" $
-      preserveDirectory $ 
+      preserveDirectory $
         ((8 @=?) =<<) $ do
           runRegion $ do
-	    _ <- [r| gctorture(TRUE) |]
-	    return ()
-	  z <- runRegion $ do
-	     R.SomeSEXP x <- [r| 5+3 |] 
-	     return $ fromSEXP x
-	  runRegion $ do
-	    _ <- io $ R.allocList 1
-	    _ <- [r| gctorture(FALSE) |]
-	    return ()
-	  return (z::Int32)
+            _ <- [r| gctorture(TRUE) |]
+            return ()
+          z <- runRegion $ do
+             R.SomeSEXP x <- [r| 5+3 |]
+             return $ fromSEXP x
+          runRegion $ do
+            _ <- io $ R.allocList 1
+            _ <- [r| gctorture(FALSE) |]
+            return ()
+          return (z::Int32)
+    , testCase "nested regions" $
+      preserveDirectory $
+        ((6 @=?) =<<) $ do
+          z <- runRegion $ do
+            _ <- [r| gctorture(TRUE) |]
+            x <- mkSEXP (1::Int32)
+            R.SomeSEXP y <- region $ do
+                    let x1 = R.release x
+                    y <- [r| x1_hs + 5 |]
+                    return (R.releaseSome y)
+            _ <- io $ R.protect y
+            _ <- io $ R.allocList 1
+            _ <- [r| gctorture(False) |]
+            return (fromSEXP y)
+          return (z::Double)
     ]

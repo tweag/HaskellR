@@ -23,6 +23,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Language.R.Instance
   ( -- * The R monad
@@ -31,6 +32,7 @@ module Language.R.Instance
   , runRegion
   , unsafeRunInRThread
   , unsafeRToIO
+  , region
   , Config(..)
   , defaultConfig
   -- * R instance creation
@@ -39,6 +41,7 @@ module Language.R.Instance
   ) where
 
 import           Control.Monad.R.Class
+import           Control.Memory.Region
 import           Control.Concurrent.OSThread
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
@@ -73,6 +76,7 @@ import Control.Exception
     , try
     )
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
+import qualified Control.Monad.Catch as Lifted
 import Control.Monad.Reader
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 
@@ -101,20 +105,6 @@ import System.Posix.Resource
 import System.IO.Unsafe (unsafePerformIO)
 import Prelude
 
--- | The 'R' monad, for sequencing actions interacting with a single instance of
--- the R interpreter, much as the 'IO' monad sequences actions interacting with
--- the real world. The 'R' monad embeds the 'IO' monad, so all 'IO' actions can
--- be lifted to 'R' actions.
-newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
-  deriving (Applicative, Functor, Monad, MonadIO, MonadCatch, MonadMask, MonadThrow)
-
-instance MonadR (R s) where
-  type Region (R s) = s
-  io m = R $ ReaderT $ \_ -> m
-  acquire s = R $ ReaderT $ \cnt -> do
-    x <- R.release <$> R.protect s
-    modifyIORef' cnt succ
-    return x
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance. This is typically called at the
@@ -133,17 +123,25 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- `withEmbeddedR`.
 --
 -- @runRegion m@ is strict in the result of action @m@.
-runRegion :: NFData a => (forall s . R s a) -> IO a
+runRegion :: NFData a => (forall s . R s IO a) -> IO a
 runRegion r =  unsafeRunInRThread $
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)
-          (\d -> do 
+          (\d -> do
              x <- runReaderT (unR r) d
              x `deepseq` return x)
 
+region :: (NFData a, Monad m, MonadMask m, MonadR m) => (forall s . R s m a) -> m a
+region r =
+  Lifted.bracket (io $ newIORef 0)
+                 (io . (R.unprotect <=< readIORef))
+                 (\d -> do
+                    x <- runReaderT (unR r) d
+                    x `deepseq` return x)
+
 -- | An unsafe version of runRegion, providing no static guarantees that
 -- resources do not extrude the scope of their region. For internal use only.
-unsafeRToIO :: R s a -> IO a
+unsafeRToIO :: R s IO a -> IO a
 unsafeRToIO r = unsafeRunInRThread $
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)

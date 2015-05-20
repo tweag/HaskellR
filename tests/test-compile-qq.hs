@@ -58,7 +58,7 @@ main = do
         exitFailure
     else rTests
 
-hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
+hFib :: SEXP s R.Int -> R s IO (SEXP s R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
 hFib n =
@@ -108,8 +108,8 @@ rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
 
     -- Should be [1] 1 2 3 4 5 6 7 8 9 10
     H.print =<< [r| y <- c(1:10) |]
-    let foo1 = (\x -> (return $ x+1 :: R s Double))
-    let foo2 = (\x -> (return $ map (+1) x :: R s [Int32]))
+    let foo1 = (\x -> (return $ x+1 :: R s IO Double))
+    let foo2 = (\x -> (return $ map (+1) x :: R s IO [Int32]))
 
     -- Should be [1] 2
     H.print =<< [r| (function(x).Call(foo1_hs,x))(2) |]
@@ -133,20 +133,20 @@ rTests = H.withEmbeddedR H.defaultConfig $ runRegion $ do
     let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
 
     -- Should be [1] 3
-    let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
+    let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s IO Int32
     H.print =<< [r| foo3_hs(as.integer(3)) |]
 
     -- | should be 99
-    let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
+    let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s IO Double
     H.print =<< [r| foo4_hs(33, 66) |]
 
     -- Should be [1] 120 but it doesn't work
-    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+    let fact n = if n == (0 :: Int32) then (return 1 :: R s IO Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
     H.print =<< [r| fact_hs(as.integer(5)) |]
 
     -- Should be [1] 29
-    let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
-    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s (R.SomeSEXP s)
+    let foo5  = \(n :: Int32) -> return (n+1) :: R s IO Int32
+    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s IO (R.SomeSEXP s)
     H.print =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
 
     sym <- H.install "blah"
