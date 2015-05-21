@@ -35,8 +35,8 @@ The `r` quasiquoter hides much of the heavy lifting of building
 expressions ourselves, allowing us to conveniently use R syntax to
 denote R expressions. The next sections document some advanced uses of
 quasiquotes. But for now, note that `r` is not the only quasiquoter
-and one is free to implement [new quasiquoters][quasitquotes] if
-needed. One such alternative quasiquoter is `rexp`, also defined in H,
+and one is free to implement [new quasiquoters](http://dl.acm.org/citation.cfm?id=1291211)
+if needed. One such alternative quasiquoter is `rexp`, also defined in H,
 which acts in much the same way as `r`, except that it returns
 R expressions unevaluated:
 

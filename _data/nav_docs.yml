@@ -1,4 +1,4 @@
-- title: Quick Start H
+- title: Quick Start
   items:
   - id: build-and-install
     title: Building and Installing H
@@ -12,25 +12,39 @@
     title: Evaluating R expressions in GHCi
   - id: splicing-haskell-values-in-r
     title: Splicing Haskell values in R
-  - id: defining-spliceable-types
-    title: Defining spliceable types
   - id: r-monad
     title: The R monad
   - id: how-to-analyze-r-values
     title: How to analyze R values in Haskell
-  - id: physical-and-structural-equality
-    title: Physical and structural equality on R values
   - id: vectors
     title: Vectors
   - id: casts-and-coercions
     title: Casts and coercions
-  - id: Managing memory
+  - id: managing-memory
     title: Managing memory
-  - id: Catching-runtime-errors
+  - id: catching-runtime-errors
     title: Catching runtime errors
-  - id: differences-in-repl
+  - id: differences-in-h-and-repl
     title: Differences when using H in GHCi and in compiled Haskell modules
 - title: H Internals
   items:
-    - id: tbd
-      title: To be done
+  - id: internals-introduction
+    title: Introduction
+  - id: architectural-overview
+    title: Architectural overview
+    items:
+    - id: rationale
+      title: rationale
+  - id: internal-structures
+    title: Internal Structures
+    items:
+    - id: a-native-view-of-expressions
+      title: A native view of expressions
+    - id: a-form-indexed-native-view-of-expressions
+      title: A form indexed native view of expresions
+  - id: implementation-of-quasiquoters
+    title: Implementation of quasiquoters
+  - id: how-r-interpreter-is-embedded
+    title: How the R interpreter is embedded
+  - id: memory-allocation
+    title: Memory allocation

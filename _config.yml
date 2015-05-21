@@ -4,6 +4,8 @@ description: Haskell to R interability solution
 url: tweag.github.io
 baseurl: /H/
 relative_permalinks: true
+highlighter: pygments
+markdown: redcarpet
 exclude:
   - Gemfile
   - Gemfile.lock

@@ -3,7 +3,7 @@
   {% for section in site.data.nav_docs %}
     <div class="nav-docs-section">
       <h3>{{ section.title }}</h3>
-      <ul>
+      <ul class="list-unstyled">
         {% for item in section.items %}
           <li>
             <a href="/H/docs/{{ item.id }}.html">{{ item.title }}</a>
@@ -16,20 +16,6 @@
                 {% endfor %}
               </ul>
             {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-  {% endfor %}
-
-  <!-- Tips Nav -->
-  {% for section in site.data.nav_tips %}
-    <div class="nav-docs-section">
-      <h3>{{ section.title }}</h3>
-      <ul>
-        {% for item in section.items %}
-          <li>
-            <a href="/react/tips/{{ item.id }}.html"{% if page.id == item.id %} class="active"{% endif %}>{{ item.title }}</a>
           </li>
         {% endfor %}
       </ul>
