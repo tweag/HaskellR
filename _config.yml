@@ -3,10 +3,17 @@ name: H
 description: Haskell to R interability solution
 url: tweag.github.io
 baseurl: /H/
+relative_permalinks: true
 exclude:
   - Gemfile
   - Gemfile.lock
   - README.md
+defaults:
+  - scope:
+      path: docs
+      type: pages
+    values:
+      layout: twocol
 sass:
   style: compressed
   sass_dir: _css

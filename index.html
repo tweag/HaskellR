@@ -6,11 +6,11 @@ id: home
 <div class="jumbotron">
   <div class="container">
     <div class="page-header">
-      <h1>Project H</h1>
-      Programming R in Haskell
+      <h1>Project H <br /> <small>Programming R in Haskell</small></h1>
     </div>
-    <p></p>
-    <p> <a class="btn btn-lg btn-primary" role="button" href="#">Download</a> <a class="btn btn-lg btn-primary" role="button" href="documentation.html#HowToStart">Getting started &raquo;</a> </p>
+    <p> <a class="btn btn-lg btn-primary" role="button" href="/H/downloads.html">Download</a>
+        <a class="btn btn-lg btn-primary" role="button" href="/H/docs/build-and-install.html">Getting started &raquo;</a>
+    </p>
   </div>
 </div>
 
@@ -21,7 +21,7 @@ id: home
       <p>The full power of R's extensive standard library at your
       fingertips, plus virtually all CRAN packages, which work from
       Haskell just as they would from R.
-      <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+      <!-- <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p> -->
     </div>
     <div class="col-md-4">
       <h2>Safe</h2>
@@ -30,7 +30,7 @@ id: home
           memory allocation means precise and predictable memory usage
           without the dangers: Haskell's type system has your back to
           statically guarantee the absence of use-after-free bugs.</p>
-      <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+      <!-- <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p> -->
    </div>
     <div class="col-md-4">
       <h2>Fast</h2>
@@ -38,7 +38,7 @@ id: home
       boundaries extremely efficiently at runtime. Mapping an
       R function over a million element container from Haskell is just
       as fast as from R.</p>
-      <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+      <!-- <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p> -->
     </div>
  </div>
 
@@ -48,7 +48,7 @@ id: home
   <div class="row">
   <div class="col-md-7">
   <div style="text-align: justify; line-height: 1.6">
-       <h2> Why H? </h2>
+       <h1> Why H? </h1>
        <p> The ideas to have interporability solution between R and other languages are not new. Some
              people finding R semantics hard, some don't like absence of statical analisys, some don't like
              speed, but still R is de-facto one of the main tools used in statistical analysys, with a huge
@@ -95,7 +95,7 @@ id: home
 <hr />
 
 <div class="container">
-  <h2> Code examples </h2>
+  <h1> Code examples </h1>
   <h3> Clustering example </h3>
   <div class="row">
   <div class="col-md-5">
@@ -107,8 +107,7 @@ import Language.R.QQ
 
 import System.Random
 
-main = do
-  H.initialize defaultConfig
+main = H.withEmbeddedR defaultConfig $ do
   H.runRegion $ do
     -- Put any complex model here
     std <- io $ newStdGen
@@ -127,6 +126,8 @@ main = do
       <a href="img/cluster-1.png" class="thumbnail" target="_blank">
         <img src="img/cluster-1-thumb.png"/>
       </a>
+
+      <a class="btn btn-lg btn-primary" role="button" href="/H/examples/">Get more &raquo;</a>
     </div>
   </div>
 </div>

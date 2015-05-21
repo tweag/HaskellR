@@ -1,7 +1,5 @@
 ---
 layout: single 
-title: Support
-id: support
 ---
 
 ## Need help?
