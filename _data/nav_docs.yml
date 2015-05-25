@@ -48,3 +48,7 @@
     title: How the R interpreter is embedded
   - id: memory-allocation
     title: Memory allocation
+- title: Other documents
+  items:
+  - id: H-with-IHaskell
+    title: Using H with IHaskell
