@@ -349,11 +349,11 @@ foreign import ccall "missing_r.h &interpreterChan" interpreterChanPtr :: Ptr (S
 -- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
 
 type RVariables =
-    ( Ptr (R.SEXP G R.Env)
-    , Ptr (R.SEXP G R.Env)
-    , Ptr (R.SEXP G R.Nil)
-    , Ptr (R.SEXP G R.Symbol)
-    , Ptr (R.SEXP G R.Symbol)
+    ( Ptr (R.SEXP G 'R.Env)
+    , Ptr (R.SEXP G 'R.Env)
+    , Ptr (R.SEXP G 'R.Nil)
+    , Ptr (R.SEXP G 'R.Symbol)
+    , Ptr (R.SEXP G 'R.Symbol)
     , Ptr CInt
     , Ptr (Ptr ())
     )
