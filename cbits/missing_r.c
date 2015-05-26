@@ -56,6 +56,7 @@ void processGUIEventsUnix(InputHandler** inputHandlers) {
 // a linking error in Windows x64. But initializing to 2 poses no problem!
 int isRInitialized = 2;
 
+HsStablePtr rVariables;
 // Here we have the same problem with initialization as in isRInitialized above.
 HsStablePtr interpreterChan = (HsStablePtr)2;
 

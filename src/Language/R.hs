@@ -44,6 +44,7 @@ import qualified Foreign.R.Error as R
 import           Language.R.GC
 import           Language.R.HExp
 import           Language.R.Instance
+import           Language.R.Globals
 
 import Control.Applicative
 import Control.Exception ( throwIO )
@@ -64,8 +65,7 @@ parseEval :: ByteString -> IO (SomeSEXP V)
 parseEval txt = useAsCString txt $ \ctxt ->
   R.withProtected (R.mkString ctxt) $ \rtxt ->
     alloca $ \status -> do
-      nil <- peek R.nilValue
-      R.withProtected (R.parseVector rtxt 1 status (R.release nil)) $ \exprs -> do
+      R.withProtected (R.parseVector rtxt 1 status (R.release nilValue)) $ \exprs -> do
         rc <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum rc) $
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
@@ -152,7 +152,7 @@ evalEnvIO x rho =
 
 -- | Evaluate an expression in the global environment.
 evalIO :: SEXP s a -> IO (SomeSEXP V)
-evalIO x = peek R.globalEnv >>= evalEnvIO x . R.release
+evalIO x = evalEnvIO x (R.release globalEnv)
 
 evalEnv :: MonadR m => SEXP s a -> SEXP s 'R.Env -> m (SomeSEXP (Region m))
 evalEnv x e = acquireSome =<< io (evalEnvIO x e)

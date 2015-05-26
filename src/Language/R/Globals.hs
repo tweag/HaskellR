@@ -16,22 +16,22 @@ module Language.R.Globals
 import Control.Memory.Region
 import Foreign ( peek )
 import Foreign.R  (SEXP, SEXPTYPE(..))
-import qualified Foreign.R as R
+import qualified Language.R.Instance as R
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Special value to which all symbols unbound in the current environment
 -- resolve to.
 unboundValue :: SEXP G 'Symbol
-unboundValue = unsafePerformIO $ peek R.unboundValue
+unboundValue = unsafePerformIO $ peek R.unboundValuePtr
 
 -- | R's @NULL@ value.
 nilValue :: SEXP G 'Nil
-nilValue = unsafePerformIO $ peek R.nilValue
+nilValue = unsafePerformIO $ peek R.nilValuePtr
 
 -- | Value substituted for all missing actual arguments of a function call.
 missingArg :: SEXP G 'Symbol
-missingArg = unsafePerformIO $ peek R.missingArg
+missingArg = unsafePerformIO $ peek R.missingArgPtr
 
 -- | The global environment.
 globalEnv :: SEXP G 'Env
-globalEnv = unsafePerformIO $ peek R.globalEnv
+globalEnv = unsafePerformIO $ peek R.globalEnvPtr
