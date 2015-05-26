@@ -1,2 +1,2 @@
-# ihaskell-H
+# IHaskell-H
 H integration into IHaskell.
