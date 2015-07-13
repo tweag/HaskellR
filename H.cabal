@@ -35,7 +35,6 @@ extra-source-files:   cbits/Hcompat.h
                       tests/R/fib.R
                       tests/R/fib-benchmark.R
                       tests/ghciH.sh
-                      tests/ghcH.sh
                       tests/sandbox-utils.sh
                       doc/H-ints.md
                       doc/H-user.md
@@ -180,17 +179,18 @@ test-suite test-compile-qq
 test-suite test-shootout-programs
   main-is:             test-shootout-programs.hs
   type:                exitcode-stdio-1.0
+  other-modules:       Test.Scripts
   build-depends:       H
                      , base >= 4.6 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
-  ghc-options:         -Wall -threaded
+                     , silently >= 1.2
+                     , tasty >= 0.3
+                     , tasty-hunit >= 0.4.1
+                     , template-haskell >= 2.8
+  ghc-options:         -Wall -threaded -O0
   hs-source-dirs:      tests
   default-language:    Haskell2010
-  if os(windows)
-    cpp-options:       -DH_ARCH_WINDOWS
-  else
-    cpp-options:       -DH_ARCH_UNIX
 
 test-suite test-vector
   main-is:            vector.hs
