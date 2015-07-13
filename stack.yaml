@@ -1,0 +1,7 @@
+flags:
+  H:
+    documentation: false
+packages:
+- '.'
+extra-deps: []
+resolver: lts-2.14
