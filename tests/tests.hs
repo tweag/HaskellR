@@ -49,7 +49,7 @@ import System.Process
 import System.Exit
 import System.FilePath
 
-invokeR :: FilePath -> ValueGetter r Text
+invokeR :: FilePath -> IO Text
 invokeR fp = do
     inh <- liftIO $ openFile fp ReadMode
     (_, Just outh, _, _) <- liftIO $ createProcess $ (proc "R" ["--vanilla","--silent","--slave"])
@@ -59,7 +59,7 @@ invokeR fp = do
     liftIO $ T.pack <$> hGetContents outh
 
 
-invokeH :: FilePath -> ValueGetter r Text
+invokeH :: FilePath -> IO Text
 invokeH fp = do
     -- Logic:
     --
@@ -80,7 +80,7 @@ invokeH fp = do
       , std_in = UseHandle outh1}
     liftIO $ T.pack <$> hGetContents outh2
 
-invokeGHCi :: FilePath -> ValueGetter r Text
+invokeGHCi :: FilePath -> IO Text
 invokeGHCi fp = liftIO $ fmap T.pack $ do
     (ecode, out, err) <- Strict.readFile fp >>= readProcessWithExitCode "sh" ["tests/ghciH.sh","-v0","-ghci-script","H.ghci"]
     return $ if ecode == ExitSuccess
