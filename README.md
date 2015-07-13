@@ -1,14 +1,12 @@
-The H environment - an R-to-Haskell interoperablity solution
-============================================================
+# The HaskellR environment - an R-to-Haskell interoperablity solution
 
-The H environment provides facilities for efficiently processing data
-using Haskell or R code, interchangeably. H allows Haskell functions
+The HaskellR environment provides facilities for efficiently processing data
+using Haskell or R code, interchangeably. HaskellR allows Haskell functions
 to seamlessly call R functions and *vice versa*. It provides the
 Haskell programmer with the full breadth of existing R libraries and
 extensions for numerical computation and statistical analysis.
 
-Installing
-----------
+## Installing
 
 The installation procedure differs on Windows and on UNIX-like
 systems. Please refer to the following documents for a walkthrough:
@@ -16,19 +14,18 @@ systems. Please refer to the following documents for a walkthrough:
 * [INSTALL-unix.md]() UNIX-like installation guide (Linux, Mac OS X, etc)
 * [INSTALL-win.md]() Windows installation guide.
 
-Setting up H in GHCi
---------------------
+## Setting up HaskellR in GHCi
 
 In Windows, make sure the file `R.dll` appears in some folder listed
 in the `PATH` environment variable. In Unix-like systems, `libR.so`
 should be located within reach of the dynamic linker
 (`LD_LIBRARY_PATH`, `/etc/ld.so.conf`, etc).
 
-After installing H, type the following at a command prompt:
+After installing HaskellR, type the following at a command prompt:
 
     $ H
 
-This will start GHCi, loading the H environment and bringing the
+This will start GHCi, loading the HaskellR environment and bringing the
 relevant definitions into scope. In addition, an instance of the
 R interpreter will be started.
 
@@ -44,10 +41,9 @@ In Windows, both H and GHCi work best from the `cmd.exe` terminal, as
 opposed to MinGW (both ought work, but MinGW currently triggers bug
 [#7056](https://ghc.haskell.org/trac/ghc/ticket/7056) in GHC).
 
-An H primer
------------
+## An HaskellR primer
 
-In an H interactive session, one has full access to both Haskell,
+In an HaskellR interactive session, one has full access to both Haskell,
 
     H> 1 + 1
     2
@@ -91,7 +87,7 @@ another:
 Quasiquotes can refer to any values bound in the GHCi environment that
 are in scope, through *splicing*. In order to distinguish between
 variables bound in the R environment and those bound in the GHCi
-environment, H uses the following convention:
+environment, HaskellR uses the following convention:
 
 > Haskell values are referred to within an R quasiquote by appending
 > `_hs` to its name.
@@ -104,7 +100,7 @@ For example:
     [1] 6
 
 Only variables of certain types can be *spliced* in quasiquotes in
-this way. H currently supports atomic numeric types such as doubles,
+this way. HaskellR currently supports atomic numeric types such as doubles,
 lists over these numeric types, but also functions over these types:
 
     H> let f x = return (x + 1) :: R s Double
@@ -117,10 +113,9 @@ the first one is always `s` and refers to the state of the monad,
 while the second one is the type of the result of the function when
 executed.
 
-Running examples
-----------------
+## Running examples
 
-Some interactive examples of using H are located in the folders:
+Some interactive examples of using HaskellR are located in the folders:
 
     examples/nls
     examples/nls2
@@ -130,15 +125,14 @@ The following commands can be used to run these examples:
     $ cd examples/<example-name>
     $ H -- -ghci-script <example-name>.H
 
-Further reading
----------------
+## Further reading
 
 To find out more, please refer to the following resources, available
 under the `doc/` subdirectory in the source distribution:
 
-* "The H user guide", a manual for all users of H.
-* "H internals", documenting how H works and how to extend it.
-* Haddock generated API documentation for the H library.
+* "The HaskellR user guide", a manual for all users of HaskellR.
+* "HaskellR internals", documenting how HaskellR works and how to extend it.
+* Haddock generated API documentation for the HaskellR library.
 
 ### Building the documentation
 

@@ -1,15 +1,14 @@
-name:                H
+name:                inline-r
 version:             0.6.0.1
 license:             AllRightsReserved
-copyright:           Copyright (c) 2013 Amgen, Inc.
+copyright:           Copyright (c) 2013-2015 Amgen, Inc.
+                     Copyright (c) 2015 Tweag I/O Limited.
 cabal-version:       >=1.10
 build-type:          Custom
 Category:            Compiler
-Synopsis:            R-to-Haskell translator and interoperability solution.
+Synopsis:            Seamlessly call R from Haskell and vice versa. No FFI required.
 -- description:
 cabal-version:       >=1.10
-
-data-files: H.ghci
 
 extra-source-files:   cbits/Hcompat.h
                       cbits/missing_r.h
@@ -17,7 +16,6 @@ extra-source-files:   cbits/Hcompat.h
                       tests/ghci/qq-stderr.ghci
                       tests/ghci/qq.ghci.golden.output
                       tests/ghci/qq-stderr.ghci.golden.output
-                      tests/ghci/compile-qq.ghci.golden.output
                       tests/ghci/qq-benchmarks.ghci
                       tests/shootout/binarytrees.R
                       tests/shootout/fasta.R
@@ -36,14 +34,11 @@ extra-source-files:   cbits/Hcompat.h
                       tests/R/fib-benchmark.R
                       tests/ghciH.sh
                       tests/sandbox-utils.sh
-                      doc/H-ints.md
-                      doc/H-user.md
-                      doc/pandoc.css
-                      Makefile
 
 source-repository head
   type:     git
-  location: git://github.com/ps-labs/H.git
+  location: git://github.com/tweag/HaskellR.git
+  subdir: inline-r
 
 Flag documentation
   description:         Generate H manuals (requires pandoc).
@@ -118,29 +113,10 @@ library
   -- export function -wrappers of high arities.
   ghc-options:         -Wall -Werror -fcontext-stack=32
 
-executable H
-  main-is:             src/Main.hs
-  build-depends:       H
-                     , base >= 4.6 && < 5
-                     , bytestring >= 0.10
-                     , cmdargs >= 0.10.5
-                     , pretty >= 1.1
-                     , process >= 1.2
-                     , vector >= 0.10
-  default-language:    Haskell2010
-  ghc-options:         -Wall -Werror -threaded
-  if os(windows)
-    cpp-options:       -DH_ARCH_WINDOWS
-    cc-options:        -DH_ARCH_WINDOWS
-  else
-    build-depends:     unix >= 2.6
-    cpp-options:       -DH_ARCH_UNIX
-    cc-options:        -DH_ARCH_UNIX
-
 test-suite tests
   main-is:             tests.hs
   type:                exitcode-stdio-1.0
-  build-depends:       H
+  build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , bytestring >= 0.10
                      , directory >= 1.2
@@ -169,7 +145,7 @@ test-suite tests
 test-suite test-compile-qq
   main-is:             test-compile-qq.hs
   type:                exitcode-stdio-1.0
-  build-depends:       H
+  build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , mtl >= 2.0
                      , process >= 1.2
@@ -183,7 +159,7 @@ test-suite test-shootout-programs
   main-is:             test-shootout-programs.hs
   type:                exitcode-stdio-1.0
   other-modules:       Test.Scripts
-  build-depends:       H
+  build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
@@ -199,7 +175,7 @@ test-suite test-vector
   main-is:            vector.hs
   type:               exitcode-stdio-1.0
   build-depends:      base
-                    , H
+                    , inline-r
                     , tasty
                     , tasty-quickcheck
                     , tasty-hunit
@@ -215,7 +191,7 @@ test-suite test-vector
 benchmark compile-qq-benchmarks
   main-is:             compile-qq-benchmarks.hs
   type:                exitcode-stdio-1.0
-  build-depends:       H
+  build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , criterion >= 0.8
                      , filepath >= 1.3
@@ -228,7 +204,7 @@ benchmark compile-qq-benchmarks
 benchmark runtime-qq-benchmarks
   main-is:             runtime-qq-benchmarks.hs
   type:                exitcode-stdio-1.0
-  build-depends:       H
+  build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , filepath >= 1.3
                      , process >= 1.2
@@ -239,7 +215,7 @@ benchmark runtime-qq-benchmarks
 benchmark hexp-benchmark
   main-is:             hexp-bench.hs
   type:                exitcode-stdio-1.0
-  build-depends:       H
+  build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , criterion >= 0.8
                      , primitive >= 0.5
