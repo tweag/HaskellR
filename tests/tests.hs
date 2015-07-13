@@ -40,7 +40,7 @@ import           Data.Singletons (sing)
 
 import Control.Monad (guard)
 import Control.Monad.Trans
-import Control.Applicative ((<$>))
+import Control.Applicative
 
 import Foreign
 import System.IO
@@ -48,6 +48,7 @@ import qualified System.IO.Strict as Strict (readFile)
 import System.Process
 import System.Exit
 import System.FilePath
+import Prelude -- silence AMP warning
 
 invokeR :: FilePath -> IO Text
 invokeR fp = do
@@ -180,7 +181,7 @@ unitTests = testGroup "Unit tests"
             R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
                       R.r2 (Data.ByteString.Char8.pack ".Call") sf d
-                      >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE R.Real)
+                      >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE 'R.Real)
                                                      <$> R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ unsafeRunInRThread $ runRegion $ do
       key  <- mkSEXP (return 4 :: R s Int32)
@@ -197,7 +198,7 @@ unitTests = testGroup "Unit tests"
       return ()
   , testCase "Hexp works" $ unsafeRunInRThread $
       (((42::Double) @=?) =<<) $ runRegion $ do
-         y <- R.cast (sing :: R.SSEXPTYPE R.Real) . R.SomeSEXP
+         y <- R.cast (sing :: R.SSEXPTYPE 'R.Real) . R.SomeSEXP
                      <$> mkSEXP (42::Double)
          case H.hexp y of
            H.Bytecode -> return 15

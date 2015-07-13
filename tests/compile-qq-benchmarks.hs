@@ -20,13 +20,14 @@ import Data.Int
 import Language.Haskell.TH.Quote
 
 import System.FilePath
+import Prelude -- Silence AMP warning
 
 fib :: Int -> Int
 fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
 
-hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
+hFib :: SEXP s 'R.Int -> R s (SEXP s 'R.Int)
 hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
 hFib n                            =

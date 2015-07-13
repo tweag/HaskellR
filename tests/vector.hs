@@ -103,7 +103,7 @@ tests = testGroup "Tests."
   , testGroup "Regression tests" [fromListLength]
   ]
 
-idVec :: V.Vector s R.Real Double -> V.Vector s R.Real Double
+idVec :: V.Vector s 'R.Real Double -> V.Vector s 'R.Real Double
 idVec = id
 
 fromListLength :: TestTree

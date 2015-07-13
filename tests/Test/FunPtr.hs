@@ -31,15 +31,16 @@ import Data.ByteString.Char8
 import Foreign (FunPtr, castFunPtr)
 import System.Mem.Weak
 import System.Mem
+import Prelude -- silence AMP warning
 
 data HaveWeak a b = HaveWeak
        (R.SEXP0 -> IO R.SEXP0)
        (MVar (Weak (FunPtr (R.SEXP0 -> IO R.SEXP0))))
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
-    :: FunPtr () -> IO (R.SEXP s R.Any)
+    :: FunPtr () -> IO (R.SEXP s 'R.Any)
 
-instance Literal (HaveWeak a b) R.ExtPtr where
+instance Literal (HaveWeak a b) 'R.ExtPtr where
   mkSEXPIO (HaveWeak a box) = do
       z <- R.wrap1 a
       putMVar box =<< mkWeakPtr z Nothing
@@ -54,7 +55,7 @@ tests = testGroup "funptr"
          _ <- R.withProtected (mkSEXPIO hwr) $
            \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \z ->
                      return $ R.r2 (Data.ByteString.Char8.pack ".Call") sf z
-         replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V R.Real))
+         replicateM_ 10 (R.allocVector SingR.SReal 1024 :: IO (R.SEXP V 'R.Real))
          replicateM_ 10 R.gc
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
