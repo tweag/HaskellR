@@ -112,12 +112,12 @@ main = H.withEmbeddedR defaultConfig $ do
     -- Put any complex model here
     std <- io $ newStdGen
     let (xs::[Double]) = take 100 $ randoms std
-    d  <- [r| matrix(xs_hs,ncol=2) |]
+    d  <- [r| matrix(xs_hs,ncol = 2) |]
     rv <- [r| clusters <- kmeans(d_hs, 2) |]
     [r| par(mar = c(5.1, 4.1, 0, 1));
-        plot(d_hs, col=rv_hs$cluster, pch = 20
-            , cex = 3, xlab="x", ylab="y");
-        points(rv_hs$centers, pch =4, cex = 4, lwd= 4);
+        plot(d_hs, col = rv_hs$cluster, pch = 20
+            , cex = 3, xlab = "x", ylab = "y");
+        points(rv_hs$centers, pch = 4, cex = 4, lwd = 4);
       |]
     return ()
 </pre>
