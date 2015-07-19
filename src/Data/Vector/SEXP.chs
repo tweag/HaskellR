@@ -243,7 +243,7 @@ toMVecPtr mv = castPtr (R.unsafeSEXPToVectorPtr $ unMVector mv)
 
 -- | /O(n)/ Create an immutable vector from a 'SEXP'. Because 'SEXP's are
 -- mutable, this function yields an immutable copy of the 'SEXP'.
-fromSEXP :: (VECTOR s ty a, Storable a, PrimMonad m)
+fromSEXP :: (VECTOR s ty a, PrimMonad m)
          => SEXP s ty
          -> m (Vector s ty a)
 fromSEXP s = return (Vector s)       -- G.freeze =<< Mutable.fromSEXP s
@@ -251,20 +251,20 @@ fromSEXP s = return (Vector s)       -- G.freeze =<< Mutable.fromSEXP s
 -- | /O(1)/ Unsafe convert a mutable 'SEXP' to an immutable vector with
 -- copying. The mutable vector must not be used after this operation, lest one
 -- runs the risk of breaking referential transparency.
-unsafeFromSEXP :: (VECTOR s ty a, Storable a, PrimMonad m)
+unsafeFromSEXP :: (VECTOR s ty a, PrimMonad m)
                => SEXP s ty
                -> m (Vector s ty a)
 unsafeFromSEXP s = return (Vector s) -- G.unsafeFreeze =<< Mutable.fromSEXP s
 
 -- | /O(n)/ Yield a (mutable) copy of the vector as a 'SEXP'.
-toSEXP :: (VECTOR s ty a, Storable a, PrimMonad m)
+toSEXP :: (VECTOR s ty a, PrimMonad m)
        => Vector s ty a
        -> m (SEXP s ty)
 toSEXP = liftM Mutable.toSEXP . G.thaw
 
 -- | /O(1)/ Unsafely convert an immutable vector to a (mutable) 'SEXP' without
 -- copying. The immutable vector must not be used after this operation.
-unsafeToSEXP :: (VECTOR s ty a, Storable a, PrimMonad m)
+unsafeToSEXP :: (VECTOR s ty a, PrimMonad m)
              => Vector s ty a
              -> m (SEXP s ty)
 unsafeToSEXP = liftM Mutable.toSEXP . G.unsafeThaw
