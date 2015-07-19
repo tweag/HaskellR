@@ -4,26 +4,17 @@ layout: single
 id: downloads
 ---
 
-## Download sources
+## Build from source
 
-All sources are available either on hackage and can be downloaded and
-build using `cabal-install`:
+All sources are available on [Hackage](https://hackage.haskell.org).
+See the "Getting started" section of the Documentation for how to
+build a release.
 
-```bash
-cabal update      # update package index
-cabal install H   # installs H
-```
+## Development
 
-or using github:
+See the README file on the
+[Github repository page](https://github.com/tweag/HaskellR).
 
-```bash
-git clone ...
-git co tagname
-```
+## Binary packages
 
-Do not forget to install all prerequisities.
-
-## Download binaries
-
-Binary versions and packages for distributives are not ready yet, sorry.
-
+Not available yet. Stay tuned.
