@@ -1,8 +1,8 @@
 ---
-name: H
-description: Haskell to R interability solution
+name: HaskellR
+description: The full power of R in Haskell.
 url: tweag.github.io
-baseurl: /H/
+baseurl: /HaskellR/
 relative_permalinks: true
 highlighter: pygments
 markdown: redcarpet
