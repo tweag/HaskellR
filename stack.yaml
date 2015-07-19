@@ -1,7 +1,4 @@
-flags:
-  H:
-    documentation: false
 packages:
-- '.'
-extra-deps: []
+- inline-r
+- H
 resolver: lts-2.14
