@@ -1,32 +1,22 @@
 machine:
   ghc:
     version: 7.8.3
-
-checkout:
-  post:
-    - git submodule update --init
-    - rm -rf .cabal-sandbox
-    - rm -rf dist
-# NOTE: R is already included in the base image.
+  environment:
+    PATH: ~/.local/bin:$PATH
 
 dependencies:
   override:
-    - cabal update
-    - cabal install cabal-install
-    - cabal sandbox init
-    - cabal install c2hs
-    - cabal install --only-dependencies --enable-tests
-    - chmod go-w H.ghci
-    - chmod go-w .
-    - cabal configure --enable-tests
+  - mkdir -p ~/.local/bin
+  - curl -L https://github.com/commercialhaskell/stack/releases/download/v0.1.2.0/stack-0.1.2.0-x86_64-linux.gz | gunzip > ~/.local/bin/stack
+  - chmod a+x ~/.local/bin/stack
+  - stack setup --no-terminal
+  - stack test --only-snapshot --prefetch --no-terminal
+  - stack haddock --only-snapshot --no-terminal
 
-  # TODO: To cache or not to cache?
-  # cache_directories:
-  #   - .cabal-sandbox
+  cache_directories:
+  - $HOME/.stack/
 
 test:
-  pre:
-    - cabal install
   override:
-    - make test
-    - make doc
+  - stack build --haddock
+  - stack test --no-terminal
