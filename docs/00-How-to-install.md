@@ -1,5 +1,5 @@
 ---
-title: Building and Installing H
+title: Building and installing the H environment
 id: build-and-install
 permalink: build-and-install.html
 ---
