@@ -7,16 +7,11 @@ cabal-version:       >=1.10
 build-type:          Custom
 Category:            Compiler
 Synopsis:            Seamlessly call R from Haskell and vice versa. No FFI required.
--- description:
 cabal-version:       >=1.10
 
 extra-source-files:   cbits/Hcompat.h
                       cbits/missing_r.h
-                      tests/ghci/qq.ghci
-                      tests/ghci/qq-stderr.ghci
-                      tests/ghci/qq.ghci.golden.output
-                      tests/ghci/qq-stderr.ghci.golden.output
-                      tests/ghci/qq-benchmarks.ghci
+                      tests/qq-benchmarks.ghci
                       tests/shootout/binarytrees.R
                       tests/shootout/fasta.R
                       tests/shootout/knucleotide.R

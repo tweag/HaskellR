@@ -9,8 +9,11 @@ Category:            Compiler
 Synopsis:            The Haskell/R mixed programming environment.
 description:         This package is part of the HaskellR project.
 cabal-version:       >=1.10
-
-data-files: H.ghci
+data-files:          H.ghci
+extra-source-files:  tests/qq.ghci
+                     tests/qq.ghci.golden.out
+                     tests/qq-errors.ghci
+                     tests/qq-errors.ghci.golden.err
 
 source-repository head
   type:     git
@@ -43,16 +46,13 @@ executable H
 test-suite tests
   main-is:             tests.hs
   type:                exitcode-stdio-1.0
-  build-depends:       H
-                     , base >= 4.6 && < 5
+  build-depends:       base >= 4.6 && < 5
                      , bytestring >= 0.10
                      , directory >= 1.2
-                     , filepath >= 1.3
-                     , mtl >= 2.0
+                     , inline-r >= 0.6
                      , process >= 1.2
-                     , strict >= 0.3.2
                      , tasty >= 0.3
-                     , tasty-golden >= 2.1
+                     , tasty-golden >= 2.3
                      , tasty-hunit >= 0.4.1
                      , text >= 0.11
                      , vector

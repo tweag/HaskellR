@@ -1,21 +1,21 @@
-Error in xy.coords(x, y, xlabel, ylabel, log) : 
+*** Exception: R Runtime Error: Error in xy.coords(x, y, xlabel, ylabel, log) : 
   argument "x" is missing, with no default
 
 
-<interactive>:9:2:
+<interactive>:9:1:
     Exception when trying to run compile-time code:
       R Runtime Error: Error in parse(text = " plot( ", keep.source = FALSE) : 
   <text>:2:0: unexpected end of input
 1:  plot( 
    ^
 
-      Code: Language.Haskell.TH.Quote.quoteExp r " plot( "
+    Code: Language.Haskell.TH.Quote.quoteExp r " plot( "
 
-<interactive>:11:2:
+<interactive>:11:1:
     Exception when trying to run compile-time code:
       R Runtime Error: Error in parse(text = " 1+()-2 ", keep.source = FALSE) : 
   <text>:1:5: unexpected ')'
 1:  1+()
         ^
 
-      Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2 "
+    Code: Language.Haskell.TH.Quote.quoteExp r " 1+()-2 "
