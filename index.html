@@ -46,49 +46,30 @@ id: home
 
 <div class="container">
   <div class="row">
-  <div class="col-md-7">
-  <div style="text-align: justify; line-height: 1.6">
-       <h1> Why H? </h1>
-       <p> The ideas to have interporability solution between R and other languages are not new. Some
-             people finding R semantics hard, some don't like absence of statical analisys, some don't like
-             speed, but still R is de-facto one of the main tools used in statistical analysys, with a huge
-             number of libraries. As a result there are bindings for many languages (including Haskell), that
-             allow user to access R functionality from those language, however with this bindings user have
-             to write much boilerplace without relying on static analisys much. And even there are reimplementation
-             of R in the other languages (...).<p>
-       
-       <div>H tries to solves some of the problems and eventually will solve even more. The main idea is
-             to provide an ability to write R in R within haskell. 
-             <ul>
-               <li><span class="glyphicon glyphycon-ok"></span>R experts don't need to learn new language in order to run analysys</li>
-               <li>Haskell experts can just take programs from R examples without reimplement them using biniding.</li>
-             </ul>
-       </div>
-       
-       <div>There are few Haskell solutions that includes: simple bindings, quasi-quoters,
-       <ul>
-         <li><a href="https://hackage.haskell.org/package/Rlang-QQ">Rlang-QQ</a> &mdash;
-             brief description
-         </li>
-         <li><a href="https://hackage.haskell.org/package/hR">hR</a> &mdash;
-             brief description
-         </li>
-       </ul>
-       </div>
-       
-       <div>We are aware of those libraries and integrated best ideas from those.
-       <ul>
-         <li> Quasi-Quoter that allow to embedd R code into haskell without boilerplace</li>
-         <li> R and Haskell runs in the same address space, so zero-cost structure sharing
-              is possible</li>
-         <li> ... </li>
-       </ul>
-       </div>
+    <div class="col-md-7">
+      <div style="text-align: justify; line-height: 1.6">
+	<h1> The power of R with the safety of Haskell </h1>
+	<p>Haskell is a statically typed, purely functional programming
+	  language with a state-of-the-art native code compiler. R is
+	  a legacy programming language sporting one of the most
+	  comprehensive sets of libraries for statistical analysis.
+
+	  HaskellR is an umbrella project bringing together a number of
+	  packages for statistical analysis and machine learning in Haskell
+	  using R's comprehensive library support. Including:
+
+	  <ul>
+	    <li><a href="https://hackage.haskell.org/package/inline-r">inline-r</a>:
+	      mix Haskell and R code in the same source file using quasiquotation.</li>
+	    <li><a href="https://hackage.haskell.org/package/H">H</a>:
+	      an interactive prompt for exploring and graphing data sets.
+	      This is a thin wrapper around GHCi.</li>
+	  </ul>
+      </div>
     </div>
-  </div>
-  <div class="col-md-3">
-    Some graphics or text in order to fit the space
-  </div>
+    <div class="col-md-3">
+      TOOD example graphics
+    </div>
   </div>
 </div>
 
