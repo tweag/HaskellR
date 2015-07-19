@@ -1,4 +1,5 @@
-raskell
-=======
+HaskellR website
+================
 
-An R-to-Haskell translator and interoperability solution.
+This branch contains the source for the HaskellR website, deployed at
+https://tweag.github.io/HaskellR.
