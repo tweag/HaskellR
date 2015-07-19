@@ -1,4 +1,4 @@
-# The HaskellR environment
+# The HaskellR project
 
 [![Circle CI](https://circleci.com/gh/tweag/HaskellR.svg?style=svg&circle-token=203e28077ff516f587169b261f089d1e9d50693d)](https://circleci.com/gh/tweag/HaskellR)
 
