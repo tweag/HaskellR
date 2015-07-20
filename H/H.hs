@@ -8,9 +8,10 @@
 
 module Main where
 
-import           Data.Version ( showVersion )
-import           System.Console.CmdArgs
-import           System.Process
+import Data.Version ( showVersion )
+import System.Console.CmdArgs
+import System.Exit (exitWith)
+import System.Process
 
 import qualified Paths_H
 #ifdef H_ARCH_UNIX
@@ -51,5 +52,4 @@ main = do
             , std_out = Inherit
             , delegate_ctlc = False
             }
-        _ <- waitForProcess ph
-        putStrLn "Bye!"
+        exitWith =<< waitForProcess ph
