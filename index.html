@@ -50,20 +50,31 @@ id: home
       <div style="text-align: justify; line-height: 1.6">
 	<h1> The power of R with <br/>... the safety of Haskell </h1>
 	<p>Haskell is a statically typed, purely functional programming
-	  language with a state-of-the-art native code compiler. R is
-	  a legacy programming language sporting one of the most
-	  comprehensive sets of libraries for statistical analysis.
+	  language with a state-of-the-art native code compiler.
 
-	  HaskellR is an umbrella project bringing together a number of
-	  packages for statistical analysis and machine learning in Haskell
-	  using R's comprehensive library support. Including:
+	<p>R is a legacy programming language sporting one of the
+	  most comprehensive sets of libraries for statistical
+	  analysis.
+
+	<p>HaskellR is an umbrella project bringing together a number
+	  of packages for statistical analysis and machine learning in
+	  Haskell using R's comprehensive library support. Including:
 
 	  <ul>
 	    <li><a href="https://hackage.haskell.org/package/inline-r">inline-r</a>:
-	      mix Haskell and R code in the same source file using quasiquotation.</li>
+	      efficiently mix Haskell and R code in the same source
+	      file using quasiquotation. R code is designed to be
+	      evaluated using an instance of the R interpreter
+	      embedded in the binary, with no marshalling costs and
+	      hence little to no overhead when communicating values
+	      back to Haskell.</li>
 	    <li><a href="https://hackage.haskell.org/package/H">H</a>:
-	      an interactive prompt for exploring and graphing data sets.
-	      This is a thin wrapper around GHCi.</li>
+	      an interactive prompt for exploring and graphing data
+	      sets. This is a thin wrapper around GHCi, with the full
+	      power of an R prompt, and the full power of Haskell
+	      prompt: you can enter expressions of either language,
+	      providing you with plotting and distributed computing
+	      facilities out-of-the-box.</li>
 	  </ul>
       </div>
     </div>
