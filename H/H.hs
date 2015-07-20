@@ -8,8 +8,6 @@
 
 module Main where
 
-import           Control.Exception
-import           Control.Monad ( void )
 import           Data.Version ( showVersion )
 import           System.Console.CmdArgs
 import           System.Process
@@ -53,6 +51,5 @@ main = do
             , std_out = Inherit
             , delegate_ctlc = False
             }
-        let loop = (void $ waitForProcess ph) `onException` (putStrLn "exception" >> loop)
-        loop
+        _ <- waitForProcess ph
         putStrLn "Bye!"
