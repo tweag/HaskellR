@@ -42,7 +42,6 @@ main = do
       H {configFiles, configInteractive} -> do
         cfg  <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
-#if MIN_VERSION_process(1,2,0)
 #ifdef H_ARCH_UNIX
         _ <- installHandler sigINT Ignore Nothing
         _ <- installHandler sigTERM Ignore Nothing
@@ -54,18 +53,6 @@ main = do
             , std_out = Inherit
             , delegate_ctlc = False
             }
-#else
-#ifdef H_ARCH_UNIX
-        _ <- installHandler sigINT Ignore Nothing
-        _ <- installHandler sigTERM Ignore Nothing
-        _ <- installHandler sigQUIT Ignore Nothing
-#endif
-        (_,_,_,ph) <-
-            createProcess (proc configInteractive argv)
-            { std_in = Inherit
-            , std_out = Inherit
-            }
-#endif
         let loop = (void $ waitForProcess ph) `onException` (putStrLn "exception" >> loop)
         loop
         putStrLn "Bye!"
