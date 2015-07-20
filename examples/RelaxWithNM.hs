@@ -1,5 +1,16 @@
 -- | Contributed by Dominic Steinitz
 
+-- Requirements:
+--   haskell packages: integration
+--   R packages:       optimx
+--                     numDeriv
+--   In oder to install integration package
+--   use stack install or cabal install.
+--
+--   In order to install R packges use
+--   install.packages("package-name") in R
+--   interpreter.
+
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE LambdaCase #-}

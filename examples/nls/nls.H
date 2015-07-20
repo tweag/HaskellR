@@ -1,7 +1,7 @@
 -- Initializing R runtime and all constants
 -- Copyright: (C) 2013 Amgen, Inc.
 :m +Control.Monad
-:l system.hs
+:load system.hs
 let next = putStrLn "<Press enter to continue>" >> void (getLine)
 :{
 putStrLn $
@@ -16,6 +16,7 @@ putStrLn $
             , ""
             , "How to run this example:"
             , "   H -- -ghci-script nls.H"
+            , "You will need mwc-random package to be installed"
             ]
 :}
 next
