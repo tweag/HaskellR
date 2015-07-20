@@ -31,7 +31,8 @@ cmdSpec = H
   &= program "H" &=
   help "H wrapper over ghci. " &=
   summary ("H version " ++ showVersion Paths_H.version ++
-           "\nCopyright (C) 2013-2014 Amgen, Inc.")
+           "\nCopyright (C) 2013-2014 Amgen, Inc." ++
+           "\nCopyright (C) 2015 Tweag I/O Limited.")
   -- TODO: add details clause
 
 main :: IO ()
