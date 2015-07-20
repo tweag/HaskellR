@@ -14,9 +14,6 @@ import System.Exit (exitWith)
 import System.Process
 
 import qualified Paths_H
-#ifdef H_ARCH_UNIX
-import           System.Posix.Signals
-#endif
 
 data H = H
     { configFiles :: [FilePath]
@@ -42,15 +39,10 @@ main = do
       H {configFiles, configInteractive} -> do
         cfg  <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
-#ifdef H_ARCH_UNIX
-        _ <- installHandler sigINT Ignore Nothing
-        _ <- installHandler sigTERM Ignore Nothing
-        _ <- installHandler sigQUIT Ignore Nothing
-#endif
         (_,_,_,ph) <-
             createProcess (proc configInteractive argv)
             { std_in = Inherit
             , std_out = Inherit
-            , delegate_ctlc = False
+            , delegate_ctlc = True
             }
         exitWith =<< waitForProcess ph
