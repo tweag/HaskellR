@@ -11,12 +11,14 @@ dependencies:
   - chmod a+x ~/.local/bin/stack
   - stack setup --no-terminal
   - stack test --only-snapshot --prefetch --no-terminal
-  - stack haddock --only-snapshot --no-terminal
+  - stack bench --only-snapshot --prefetch --no-terminal
+  - stack haddock --only-snapshot --prefetch --no-terminal
 
   cache_directories:
   - "~/.stack/"
 
 test:
   override:
-  - stack build --haddock
+  - stack build --haddock --no-terminal
   - stack test --no-terminal
+  - stack bench --no-terminal
