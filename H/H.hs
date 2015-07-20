@@ -16,9 +16,9 @@ import System.Process
 import qualified Paths_H
 
 data H = H
-    { configFiles :: [FilePath]
-    , configInteractive  :: FilePath
-    } deriving (Eq, Data, Typeable, Show)
+  { configFiles :: [FilePath]
+  , configInteractive  :: FilePath
+  } deriving (Eq, Data, Typeable, Show)
 
 cmdSpec :: H
 cmdSpec = H
@@ -40,7 +40,7 @@ main = do
         cfg  <- Paths_H.getDataFileName "H.ghci"
         let argv = configFiles ++ ["-v0", "-ghci-script", cfg]
         (_,_,_,ph) <-
-            createProcess (proc configInteractive argv)
+          createProcess (proc configInteractive argv)
             { std_in = Inherit
             , std_out = Inherit
             , delegate_ctlc = True
