@@ -15,6 +15,7 @@ import Language.R as R
 import H.Prelude as H
 import Language.R.QQ
 
+import Control.Applicative
 import Criterion.Main
 import Data.Int
 import Language.Haskell.TH.Quote
