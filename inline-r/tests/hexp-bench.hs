@@ -38,7 +38,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 
 main :: IO ()
-main = withEmbeddedR defaultConfig $ do
+main = withEmbeddedR H.Prelude.defaultConfig $ do
     x <- mkSEXPIO (1 :: Int32)
     defaultMain
       [ bgroup "vector access"
@@ -56,7 +56,7 @@ main = withEmbeddedR defaultConfig $ do
           ]
       ]
 
-benchInteger :: SEXP s R.Int -> IO Int32
+benchInteger :: SEXP s 'R.Int -> IO Int32
 benchInteger x = do
     case R.typeOf x of
       R.Int -> integer x >>= (peek :: Ptr Int32 -> IO Int32)
@@ -68,12 +68,12 @@ benchHExp x =
       Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0
       _ -> error "unexpected SEXP"
 
-benchUncheckedInteger :: SEXP s R.Int -> IO Int32
+benchUncheckedInteger :: SEXP s 'R.Int -> IO Int32
 benchUncheckedInteger x = integer x >>= (peek :: Ptr Int32 -> IO Int32)
 
 benchCast :: SomeSEXP s -> Int32
 benchCast x@(SomeSEXP z) =
- let y = R.cast (sing :: R.SSEXPTYPE R.Int) x
+ let y = R.cast (sing :: R.SSEXPTYPE 'R.Int) x
  in case hexp y of
       Bytecode -> error $ "hello! ^_^" ++ show (R.typeOf z, R.typeOf y)
       Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0

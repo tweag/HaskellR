@@ -43,8 +43,8 @@ main = do
                    [ bench "pure Haskell" $
                        nf fib 18
                    , bench "compile-time-qq" $
-                       unsafeRToIO [r| fib(18) |]
+                       nfIO $ unsafeRToIO [r| fib(18) |]
                    , bench "compile-time-qq-hybrid" $
-                       unsafeRToIO $ hFib =<< mkSEXP (18 :: Int32)
+                       nfIO $ unsafeRToIO $ hFib =<< mkSEXP (18 :: Int32)
                    ]
                ]
