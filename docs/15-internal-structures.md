@@ -97,7 +97,7 @@ side of the branch. For example, in the body of a branch with pattern
 `SEXP s R.Real`. In H, `HExp` is defined as follows:
 
 ```Haskell
-data HExp (a :: SEXPTYPE) where
+data HExp s (a :: SEXPTYPE) where
   Nil       :: HExp R.Nil
   -- Fields: pname, value, internal.
   Symbol    :: SEXP s R.Char
