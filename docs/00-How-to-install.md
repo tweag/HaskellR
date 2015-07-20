@@ -11,25 +11,38 @@ Haskell programmer with the full breadth of existing R libraries and
 extensions for numerical computation and statistical analysis.
 
 The installation procedure differs on Windows and on UNIX-like
-systems. Please refer to the following documents for a walkthrough:
+systems. Please refer to the following sections accordingly:
 
-* [#INSTALL-unix](#INSTALL-unix) UNIX-like installation guide (Linux, Mac OS X, etc)
-* [#INSTALL-win](#INSTALL-win) Windows installation guide.
-
+* [UNIX](#INSTALL-unix) UNIX-like installation guide (Linux, Mac OS X, etc)
+* [Windows](#INSTALL-win) Windows installation guide.
 
 ## <a name="INSTALL-unix"></a> Installing on unix
 
 ### Prerequisites
 
-  * A UNIX-like programming environment (Linux, OS X, BSD, etc)
-  * `git`
-  * `pkg-config`
-  * `R` version 3.0.2 or later (3.1 or later required for test suite).
-  * `cabal-install` version 1.16.0.2 or later.
-  * Haskell Platform version 2013.2.0.0 or later.
-  * `c2hs` version 0.17.3 or later.
+* A UNIX-like programming environment (Linux, OS X, BSD, etc)
+* `git`
+* `pkg-config`
+* `R` version 3.0.2 or later (3.1 or later required for test suite).
+* Either `stack` version 0.1.2 or later,
+* Or, `cabal-install` version 1.18.3 or later together with Haskell
+  Platform version 2013.2.0.0 or later.
 
-### Installing `cabal-install`
+### Installing via `stack`
+
+This is the recommended installation method. To install H to
+`~/.local/bin`,
+
+    $ stack install H
+
+See the
+[project page](https://github.com/tweag/HaskellR/tree/license#developing-haskellr)
+on Github for instructions to install development versions of H.
+
+### Installing via `cabal-install`
+
+The recommended installation method is via `stack`. The legacy method
+for installing packages is documented here for completeness.
 
 A version of `cabal-install` ships with the Haskell Platform. However,
 to upgrade to the latest version,
@@ -40,8 +53,6 @@ to upgrade to the latest version,
 The last line ensures that the version just installed is accessible
 from your `PATH`.
 
-### Installing `c2hs`
-
 `c2hs` can be installed from your distribution's package repositories
 or from Hackage through `cabal-install`. If installed through
 `cabal-install`, you must ensure that `c2hs` is in your `PATH` at all
@@ -49,8 +60,6 @@ times, otherwise building H will fail.
 
     $ cabal install c2hs
     $ export PATH=~/.cabal/bin:$PATH
-
-### Installing H
 
 To install H, change the current working directory to the folder
 containing the `H.cabal` file. Then,
