@@ -37,7 +37,12 @@ $ stack build
 ```
 
 or indeed run all the tests with `stack test` and build the API
-documentation using `stack haddock`.
+documentation using `stack haddock`. You can spawn an H interactive
+prompt using
+
+```
+$ stack exec H
+```
 
 ## License
 
