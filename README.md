@@ -38,3 +38,22 @@ $ stack build
 
 or indeed run all the tests with `stack test` and build the API
 documentation using `stack haddock`.
+
+## License
+
+```
+Copyright (c) 2013-2015 Amgen, Inc.
+Copyright (c) 2015 Tweag I/O Limited.
+```
+
+HaskellR is free software, and may be redistributed under the terms
+specified in the [LICENSE](LICENSE) file.
+
+## About
+
+![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
+
+HaskellR is maintained by [Tweag I/O](http://tweag.io/).
+
+Have questions? Need help? Tweet at
+[@tweagio](http://twitter.com/tweagio).
