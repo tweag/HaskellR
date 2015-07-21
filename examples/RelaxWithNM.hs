@@ -1,31 +1,24 @@
--- | Contributed by Dominic Steinitz
-
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PackageImports #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE QuasiQuotes #-}
+
+-- |
+-- Module    : Main
+--
+-- Module originally contributed by Dominic Steinitz. Modifications
+-- made by Tweag I/O (2015).
 
 module Main where
 
-import H.Prelude as H
-import Language.R.QQ
-
-import qualified Foreign.R as R
-import qualified Foreign.R.Type as R
-
-import Data.Int
-
-
-import Control.DeepSeq
-import Control.Applicative
-import Control.Monad
+import             Control.Applicative
+import             Control.DeepSeq
+import             Control.Monad
+import             Data.Int
+import qualified   Foreign.R as R
+import qualified   Foreign.R.Type as R
+import             H.Prelude as H
+import             Language.R.QQ
+import             Numeric.Integration.TanhSinh
 import "temporary" System.IO.Temp (withSystemTempDirectory)
-
-import Numeric.Integration.TanhSinh
 
 safeHead :: String -> [a] -> a
 safeHead msg [] = error $ "You have erred: " ++ msg
@@ -63,10 +56,10 @@ within6digitss :: (Ord b, Fractional b) =>
                   [b] -> [b] -> Bool
 within6digitss xs ys = and (zipWith within6digits xs ys)
 
-lerp :: forall a. Num a => a -> a -> a -> a
+lerp :: Num a => a -> a -> a -> a
 lerp y1 y2 x = y1 * (1 - x) + y2 * x
 
-linearly :: forall s. Fractional s => (s, s) -> (s, s) -> s -> s
+linearly :: Fractional s => (s, s) -> (s, s) -> s -> s
 linearly (x1,y1) (x2,y2) = \x -> lerp y1 y2 $ (x - x1) / (x2 - x1)
 
 linearlyL :: Fractional c =>
@@ -74,13 +67,12 @@ linearlyL :: Fractional c =>
 linearlyL (t1, x1s) (t2, x2s) t =
   zipWith (\x1 x2 -> linearly (t1, x1) (t2, x2) t) x1s x2s
 
-relax :: forall t t1 t2 t3 t4.
-               (t2 -> t3 -> t4 -> t -> t -> t4)
-               -> (t4 -> t1)
-               -> ((t, t1) -> (t, t1) -> t3)
-               -> t2
-               -> (Int, t4 -> t4 -> Bool, [t], t4)
-               -> [(t, t4)]
+relax :: (t2 -> t3 -> t4 -> t -> t -> t4)
+      -> (t4 -> t1)
+      -> ((t, t1) -> (t, t1) -> t3)
+      -> t2
+      -> (Int, t4 -> t4 -> Bool, [t], t4)
+      -> [(t, t4)]
 relax _    _    _           _         (_            ,_          ,[]   ,_ ) = []
 relax _    _    _           _         (maxRelaxIters',_          ,_    ,_ )
   | maxRelaxIters' <= 0                                                     = []
