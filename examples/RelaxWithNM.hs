@@ -1,18 +1,11 @@
 -- | Contributed by Dominic Steinitz
 
--- Requirements:
---   R packages:       optimx
---                     numDeriv
---
---   In order to install R packges use
---   install.packages("package-name") in R
---   interpreter.
-
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PackageImports #-}
 
 {-# OPTIONS_GHC -Wall                      #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing   #-}
@@ -35,6 +28,7 @@ import Data.Int
 import Control.DeepSeq
 import Control.Applicative
 import Control.Monad
+import "temporary" System.IO.Temp (withSystemTempDirectory)
 
 import Numeric.Integration.TanhSinh
 
@@ -182,10 +176,12 @@ nmMin n = runRegion $ do
 
 
 main :: IO ()
-main = withEmbeddedR defaultConfig $ do
+main = withEmbeddedR defaultConfig $
+       withSystemTempDirectory "RelaxWithNM_R" $ \dest -> do
   runRegion $ do
-    [r| library('numDeriv') |]
-    [r| library('optimx') |]
+    [r| install.packages(c("numDeriv", "optimx"), lib = dest_hs, repos = "http://cran.us.r-project.org") |]
+    [r| library('numDeriv', lib.loc = dest_hs) |]
+    [r| library('optimx', lib.loc = dest_hs) |]
     return ()
   results <- mapM nmMin [100..102]
   putStrLn $ Prelude.show results
