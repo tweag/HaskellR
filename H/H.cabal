@@ -30,10 +30,10 @@ executable H
                      , base >= 4.6 && < 5
                      , bytestring >= 0.10
                      , cmdargs >= 0.10.5
-                     , file-embed
+                     , file-embed >= 0.0.7
                      , pretty >= 1.1
                      , process >= 1.2
-                     , temporary
+                     , temporary >= 1.2.0.3
                      , vector >= 0.10
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror -threaded
