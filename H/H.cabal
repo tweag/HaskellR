@@ -33,7 +33,7 @@ executable H
                      , file-embed >= 0.0.7
                      , pretty >= 1.1
                      , process >= 1.2
-                     , temporary >= 1.2.0.3
+                     , temporary-rc >= 1.2.0.3
                      , vector >= 0.10
   default-language:    Haskell2010
   ghc-options:         -Wall -Werror -threaded

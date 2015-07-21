@@ -1,4 +1,3 @@
-{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 -- |
@@ -9,16 +8,16 @@
 
 module Main where
 
-import             Control.Applicative
-import             Control.DeepSeq
-import             Control.Monad
-import             Data.Int
-import qualified   Foreign.R as R
-import qualified   Foreign.R.Type as R
-import             H.Prelude as H
-import             Language.R.QQ
-import             Numeric.Integration.TanhSinh
-import "temporary" System.IO.Temp (withSystemTempDirectory)
+import           Control.Applicative
+import           Control.DeepSeq
+import           Control.Monad
+import           Data.Int
+import qualified Foreign.R as R
+import qualified Foreign.R.Type as R
+import           H.Prelude as H
+import           Language.R.QQ
+import           Numeric.Integration.TanhSinh
+import           System.IO.Temp (withSystemTempDirectory)
 
 safeHead :: String -> [a] -> a
 safeHead msg [] = error $ "You have erred: " ++ msg
