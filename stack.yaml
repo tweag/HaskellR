@@ -1,4 +1,5 @@
 packages:
 - inline-r
 - H
+- location: examples
 resolver: lts-2.14

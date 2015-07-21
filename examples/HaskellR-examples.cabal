@@ -1,0 +1,25 @@
+name:                HaskellR-examples
+version:             0.1.0.0
+license:             AllRightsReserved
+copyright:           Copyright (c) 2013-2015 Amgen, Inc.
+                     Copyright (c) 2015 Tweag I/O Limited.
+cabal-version:       >=1.10
+build-type:          Simple
+Category:            Compiler
+Synopsis:            Examples bundled with the HaskellR project
+description:         This package is part of the HaskellR project.
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: git://github.com/tweag/HaskellR.git
+  subdir: examples
+
+executable RelaxWithNM
+  main-is:           RelaxWithNM.hs
+  build-depends:       inline-r
+                     , base >= 4.6 && < 5
+                     , deepseq
+                     , integration
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Werror -threaded
