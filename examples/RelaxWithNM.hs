@@ -6,13 +6,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE PackageImports #-}
-
-{-# OPTIONS_GHC -Wall                      #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing   #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults    #-}
-{-# OPTIONS_GHC -fno-warn-unused-do-bind   #-}
-{-# OPTIONS_GHC -fno-warn-missing-methods  #-}
-{-# OPTIONS_GHC -fno-warn-orphans          #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Main where
 
@@ -31,9 +26,6 @@ import Control.Monad
 import "temporary" System.IO.Temp (withSystemTempDirectory)
 
 import Numeric.Integration.TanhSinh
-
-instance Num a => Num (b -> a) where
-  (+) = liftM2 (+)
 
 safeHead :: String -> [a] -> a
 safeHead msg [] = error $ "You have erred: " ++ msg
@@ -90,9 +82,9 @@ relax :: forall t t1 t2 t3 t4.
                -> (Int, t4 -> t4 -> Bool, [t], t4)
                -> [(t, t4)]
 relax _    _    _           _         (_            ,_          ,[]   ,_ ) = []
-relax _    _    _           _         (maxRelaxIters,_          ,_    ,_ )
-  | maxRelaxIters <= 0                                                     = []
-relax scrF scrG interpolate forcingFn (maxRelaxIters,closeEnough,t0:ts,a0) = as
+relax _    _    _           _         (maxRelaxIters',_          ,_    ,_ )
+  | maxRelaxIters' <= 0                                                     = []
+relax scrF scrG interpolate forcingFn (_maxRelaxIters,closeEnough,t0:ts,a0) = as
 
   where
 
@@ -126,7 +118,7 @@ solve initsGains =
     scrF forcingFn bubbleFns (a:bs) t0 t1 = aResult : results
       where
         bFLast t = last (bubbleFns t)
-        aResult  = flow (forcingFn + bFLast) (safeHead "Use 2" gains) a t0 t1
+        aResult  = flow (liftM2 (+) forcingFn bFLast) (safeHead "Use 2" gains) a t0 t1
         l = length gains - 1
         tailGains =  tail gains
         ns        =  [0..l - 1]
@@ -153,7 +145,7 @@ forFitting alpha beta gamma = map (!!1) $ map snd $ solve ips
 cost :: Int -> Double -> Double -> Double -> Double
 cost n alpha beta gamma =
   sum $
-  map (^2) $
+  map (^ (2 :: Integer)) $
   take n $
   zipWith (-) dataPoints (forFitting alpha beta gamma)
 
@@ -179,9 +171,9 @@ main :: IO ()
 main = withEmbeddedR defaultConfig $
        withSystemTempDirectory "RelaxWithNM_R" $ \dest -> do
   runRegion $ do
-    [r| install.packages(c("numDeriv", "optimx"), lib = dest_hs, repos = "http://cran.us.r-project.org") |]
-    [r| library('numDeriv', lib.loc = dest_hs) |]
-    [r| library('optimx', lib.loc = dest_hs) |]
+    _ <- [r| install.packages(c("numDeriv", "optimx"), lib = dest_hs, repos = "http://cran.us.r-project.org") |]
+    _ <- [r| library('numDeriv', lib.loc = dest_hs) |]
+    _ <- [r| library('optimx', lib.loc = dest_hs) |]
     return ()
   results <- mapM nmMin [100..102]
   putStrLn $ Prelude.show results
