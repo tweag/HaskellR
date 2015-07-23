@@ -1,12 +1,12 @@
 -- |
--- Module: IHaskell.Display.H
+-- Module: IHaskell.Display.R
 -- Copyright: 2015 (C) Tweag I/O
 --
 --
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
-module IHaskell.Display.H
+module IHaskell.Display.R
   ( initializeEmbeddedR
   , Config(..)
   , defaultConfig
