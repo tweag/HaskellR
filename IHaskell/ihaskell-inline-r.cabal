@@ -1,23 +1,19 @@
-name:                ihaskell-H
+name:                ihaskell-inline-r
 version:             0.1.0.0
-synopsis:            IHaskell and H interaction module
--- description:         
-homepage:            http://tweag.github.io/H/
+synopsis:            Embed R quasiquotes and plots in IHaskell notebooks.
+homepage:            https://tweag.github.io/HaskellR/
 license:             AllRightsReserved
 maintainer:          Alexander Vershilov <alexander.vershilov@tweag.io>
-copyright:           2015 (C), Tweag I/O
-category:            IHaskell
+copyright:           Copyright (c) 2015, Tweag I/O Limited.
+category:            Development
 build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     IHaskell.Display.H
-  -- other-modules:       
-  other-extensions:    QuasiQuotes
-                       TemplateHaskell
+  exposed-modules:     IHaskell.Display.R
   build-depends:       base >=4.7 && <5
-                      ,H >= 0.6.0.1 && <1
+                      ,inline-r >= 0.6.0.1
                       ,directory < 2
                       ,ihaskell
                       ,ihaskell-blaze
