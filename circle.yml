@@ -19,6 +19,6 @@ dependencies:
 
 test:
   override:
-  - stack build --haddock --no-terminal
-  - stack test --no-terminal
-  - stack bench --no-terminal
+  - stack build --haddock --pedantic --no-terminal
+  - stack test --pedantic --no-terminal
+  - stack bench --pedantic --no-terminal

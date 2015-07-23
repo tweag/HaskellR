@@ -105,7 +105,7 @@ library
       cc-options:      -DH_ARCH_UNIX_DARWIN
   -- XXX -fcontext-stack=32 required on GHC >= 7.8 to allow foreign
   -- export function -wrappers of high arities.
-  ghc-options:         -Wall -Werror -fcontext-stack=32
+  ghc-options:         -Wall -fcontext-stack=32
 
 test-suite tests
   main-is:             tests.hs
