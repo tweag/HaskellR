@@ -93,6 +93,13 @@ expression. An alternative to `hDisp` quasi-quoter is using
     [1] 2
 ```
 
+Please note that if you're using the `console` version of
+**ihaskell**, there is a small chance that the result will get printed
+twice. Rest assured that the evaluation only happens once. The bug is
+not present if you use the in-browser version of
+**ihaskell**/**ipython** (`notebook`).
+
+
 Having plots in R is not as straightforward as one would like. In
 order to output a plot to a file one first needs to set up a
 [plot device](https://stat.ethz.ch/R-manual/R-devel/library/grDevices/html/png.html)
