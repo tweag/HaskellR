@@ -11,7 +11,7 @@ extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     IHaskell.Display.R
+  exposed-modules:     IHaskell.Display.InlineR
   build-depends:       base >=4.7 && <5
                       ,inline-r >= 0.6.0.1
                       ,directory < 2

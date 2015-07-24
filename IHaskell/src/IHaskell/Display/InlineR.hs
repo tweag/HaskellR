@@ -1,12 +1,12 @@
 -- |
--- Module: IHaskell.Display.R
+-- Module: IHaskell.Display.InlineR
 -- Copyright: 2015 (C) Tweag I/O
 --
 --
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
-module IHaskell.Display.R
+module IHaskell.Display.InlineR
   ( initializeEmbeddedR
   , Config(..)
   , defaultConfig
