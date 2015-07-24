@@ -72,7 +72,7 @@ library
                      , process >= 1.2
                      , setenv >= 0.1.1
                      , text >= 0.11
-                     , vector >= 0.10
+                     , vector >= 0.10 && < 0.11
                      , template-haskell >= 2.8
                      , exceptions >= 0.6 && < 1.1
                      , mtl >= 2.1
