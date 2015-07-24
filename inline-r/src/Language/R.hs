@@ -32,6 +32,7 @@ module Language.R
   -- * Helpers
   -- $helpers
   , module Language.R.GC
+  , withGloballyDefined
   ) where
 
 import           Control.Memory.Region
@@ -178,3 +179,17 @@ getErrMsg :: R.SEXP s 'R.Env -> IO String
 getErrMsg e = do
   f <- withCString "geterrmessage" (R.install >=> R.lang1)
   peekCString =<< R.char =<< peek =<< R.string . R.cast (sing :: R.SSEXPTYPE 'R.String) =<< R.eval f (R.release e)
+
+-- | Redefine global var and run action with that var
+-- defined. Restore variable name after run.
+withGloballyDefined :: String   -- ^ Variable name.
+                    -> SEXP s a -- ^ Variable value.
+                    -> IO b     -- ^ Continuation.
+                    -> IO b
+withGloballyDefined name new action = do
+  n <- installIO name
+  R.withProtected (R.findVar n (R.release globalEnv)) $ \old -> do
+    R.defineVar n (R.release new) (R.release globalEnv)
+    x <- action
+    R.defineVar n old (R.release globalEnv)
+    return x
