@@ -55,8 +55,10 @@ import qualified H.Prelude as H
 ```
 
 Finally, we just initialise `H` with `initializeEmbeddedR`. Note that
-this command is reentrant so you can run this notebook as many times
-as you like.
+this command is idempotent so you can run it as many times
+as you like. If you're only using quasi-quoters then this
+initialisation is not strictly necessary but if you plan on using R
+functions more directly from the `inline-r` library, you need it.
 
 ```haskell
 initializeEmbeddedR defaultConfig
