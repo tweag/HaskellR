@@ -50,5 +50,5 @@
     title: Memory allocation
 - title: Other documents
   items:
-  - id: H-with-IHaskell
-    title: Using H with IHaskell
+  - id: inline-r-with-IHaskell
+    title: Using inline-r with IHaskell
