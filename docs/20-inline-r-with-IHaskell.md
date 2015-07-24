@@ -1,10 +1,10 @@
 ---
-id: H-with-IHaskell
-permalink: H-with-IHaskell.html
-title: Using H with IHaskell
+id: inline-r-with-IHaskell
+permalink: inline-r-with-IHaskell.html
+title: Using inline-r with IHaskell
 ---
 
-It's possible to use H with IHaskell notebook in order to get
+It's possible to use `inline-r` with IHaskell notebook in order to get
 benefits of R without introducing much costs for interporability
 between languages.
 
@@ -17,58 +17,55 @@ The main difference is that H uses embedded R. This means that you'll get
     passing via pipes. You still may need to pay for converting some haskell values to R values,
     but this will be binary convertion in the same address space.
 
-  * Ability to pass haskell callbacks.
+  * Ability to pass Haskell callbacks.
 
-There are few drawbacks currently:
+There are currently a few drawbacks:
 
-  * rlangqq is enabled by default so names will be in conflict, so H should
-    be imported qualified;
+  * `rlangqq` is enabled by default so names will be in conflict, so
+    inline-r should be imported qualified;
 
   * There is no automatic graphics support, so you need to ask R to output
     plots to files explicitly.
 
-Both of the issues could be easily fixed one H will be more adobted by
-community.
+Both of the issues can fixed once `inline-r` gains wider community adoption.
 
 ## Installation and use
 
 In order to install H with IHaskell you need to install IHaskell on the host,
-and ihaskell-H wrapper.
+and `ihaskell-inline-r` wrapper.
 
 
-You'll need to enable required extensions:
+We demonstrate how to use `inline-r` through a simple notebook.
 
-```haskell
-:ext QuasiQuotes
-:ext TemplateHaskell
-```
-
-Then load interactive version of `H.Prelude` in order add required region
-instances to `IO`, see [documentation](/H/docs/differences-in-h-and-repl.html):
-
-This will load required definition. Instantiate `H`, do not worry,
-this command is reentrant, so you may return notebook as many times as you
-want, on the contrary to the pure `initEmbeddedR` command:
-
-```haskell
-initializeEmbeddedR defaultConfig
-```
-
-Here is simple notebook:
-t first will try to load template haskell. Then we will need our R.
+Start by loading the required extensions
 
 ```haskell
 :ext TemplateHaskell QuasiQuotes
 ```
 
+
+All the instances needed for the interactive run of `inline-r` are
+preloaded for you (see
+[details](/HaskellR/docs/differences-in-h-and-repl.html)) but you may
+want to import `H.Prelude` anyway to get access at functions such as
+`H.printQuote`.
+
+```haskell
+import qualified H.Prelude as H
+```
+
+Finally, we just initialise `H` with `initializeEmbeddedR`. Note that
+this command is reentrant so you can run this notebook as many times
+as you like.
+
 ```haskell
 initializeEmbeddedR defaultConfig
 ```
 
-In order to use **H** in your notebook you need to use **H** quasiquote.
-As you may have noticed **H** itself uses `r` quasiquote, but `r` is
-is already widely used in **ihaskell** by **rlangqq**. And because there
-is no sane way to hide packages, we decided to use `h`:
+In order to use `inline-r` in your notebook you need to use `h`
+quasiquote. As you may have noticed `H` itself uses `r` quasiquote,
+but `r` is is already widely used in **ihaskell** by **rlangqq**. As
+there is no sane way to hide packages, we decided to use `h`:
 
 ```haskell
  [h| 1 + 1|]
@@ -76,52 +73,79 @@ is no sane way to hide packages, we decided to use `h`:
 ```
 
 
-Huh.. what does it mean? As was written in [H manual](http://tweag.github.io/H/docs/evaluating-r-expressions.html), this an
-address of the result. But what to do if you want to see value, not
-somethis strange? For this reason we have introduced the simplest
-quasi-quoter hDisp that just shows an output in readable form. It's not
-composable as it always have type IO (), so you can't use it as a part
-of other expression (or you can use `H.print` for that).
+As per
+[HaskellR manual](/HaskellR/docs/evaluating-r-expressions.html), this
+an address of the result. What if we want to see the value of the
+result instead of its address? You can use the `hDisp` quasi-quoter
+which outputs the result in a human-readable form. The downside is
+that it's not as composable as the `h` quasi-quoter as it always has
+the type `IO ()` so it can't be used as part of a different
+expression. An alternative to `hDisp` quasi-quoter is using
+`H.printQuote`.
 
 ```haskell
  [hDisp| 1+1|]
     [1] 2
+
+ H.printQuote [h| 1 + 1|]
+    [1] 2
 ```
 
-
-Having plots in R is not so straightforward as it seems. In order to
-output plot to the file one need to first set up plot device (one of
-`pdf`, `bmp``, `png`, etc functions), then once you've added all data
-use `dev.off()` in order to flush data. This is required because you
-may want to add additional plots and data to the same one, more over you
-can do it in a different cells. This mean that you need to write smth
-like:
+Having plots in R is not as straightforward as one would like. In
+order to output a plot to a file one first needs to set up a
+[plot device](https://stat.ethz.ch/R-manual/R-devel/library/grDevices/html/png.html)
+(one of `pdf`, `bmp`, `png`, etc functions), plot all the data you
+want and finally use `dev.off()` once you're done plotting to flush
+the data into file. All this means is that you might end up having to
+write something like
 
 ```haskell
-_ <- [h| png("Rplots/5-%03d.png");plot(c(1:10),mapply(sin,c(1:10))); dev.off()|]
+_ <- [h| png("Rplots/5-%03d.png"); plot(c(1:10),mapply(sin,c(1:10))); dev.off()|]
 ```
 
-Do not hope that **R** is smart enough to not rewrite your file, and add
-some sort of suffix, even if we have "%03d" in filename, this is for
-pages only. As a result everything looks quite scary to use and requite
-a lots of boilerplate. In order to automate this we have introduced
-`hplot` quasiquter that hide all details in a background. `hplot` do
-the following:
-
-  1. initializes *png* device;
-  2. outputs plots to file "Rplots/auto-%i.png" where `i` is the highest index to be found there;
-  3. flushes data with `dev.off()`;
-  4. shows plot in the `notebook`.
+Note that **R** will happily overwrite your existing files: the "%03d"
+suffix is only used for page number of the plot. To make the common
+case easier, and to cut down on boilerplate that the user has to
+write, we provide the `hPlot` quasi-quoter:
 
 ```haskell
 [hPlot| plot(c(1:10), mapply(cos,c(1:10)))|]
 ```
+
+Roughly, it follows the following steps:
+
+  1. initializes `png` device;
+  2. outputs plots to file "Rplots/auto-%i.png" where `i` is the highest index to be found there;
+  3. flushes data with `dev.off()`;
+  4. shows plot in the `notebook`.
+
 Result:
+<div>
+<img
+src="data:image/png;base64,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">
+</div>
+
+This is more or less everything you need to know to get started though
+a few words about resource handling instance for `IO` are in order.
+The instance protects the top-level values indefinitely meaning that R
+can't free the allocated objects. While this makes sense for top-level
+values, values inside quasi-quotes behave in the same way, something
+we probably don't want. If you run `[h| sum(allocate10GbVector) |]`,
+the 10Gb vector will not be freed as the user might expect. The
+solution to this is to use regions which you can read about in the
+[HaskellR manual](/HaskellR/docs/managing-memory.html):
+
+```haskell
+import H.Prelude.Interactive
+import qualified Foreign.R as R
+import qualified Foreign.R.Type as R
+runRegion $ fmap (fromSEXP . R.cast R.SReal) [h| 1 + 1|] :: IO Double
+
+    2.0
+```
 
 <div>
-<style>/*
-Custom IHaskell CSS.
-*/
+<style>/* Custom IHaskell CSS. */
 
 /* Styles used for the Hoogle display in the pager */
 .hoogle-doc {
@@ -204,37 +228,16 @@ Custom IHaskell CSS.
 }
 
 /* Hlint styles */
-.suggestion-warning { 
+.suggestion-warning {
     font-weight: bold;
     color: rgb(200, 130, 0);
 }
-.suggestion-error { 
+.suggestion-error {
     font-weight: bold;
     color: red;
 }
 .suggestion-name {
     font-weight: bold;
 }
-</style><img src="data:image/png;base64,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">
+</style>
 </div>
-
-
-Do you think, this is all? More or less so.. however you need to know
-that Resource handing instance for `IO`, is a bit cheaty, it justs
-protects all toplevel values forever, so not expect from R to return
-objects anytime soon. For toplevel objects this is expected behaviour,
-but here we have the same behavior for all values appear in quasiquotes,
-so `[h| sum(allocate10GbVector) |]` will not free 10Gb Vector anytime.
-And this is not what you are expecting for research tool. However there
-is a solution, all you need is to use Regions, read more on the topic in
-[H manual](http://tweag.github.io/H/docs/managing-memory.html).
-
-```haskell
-import H.Prelude.Interactive
-import qualified Foreign.R.Type as R
-runRegion $ fmap (fromSEXP . cast R.SReal) [h| 1 + 1|] :: IO Double
-
-    2.0
-```
-
-
