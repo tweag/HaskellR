@@ -117,13 +117,11 @@ module Foreign.R
   , releaseObject
   , gc
     -- * Globals
-  , globalEnv
-  , baseEnv
   , nilValue
   , unboundValue
   , missingArg
-  , rInteractive
-  , rInputHandlers
+  , baseEnv
+  , globalEnv
     -- * Communication with runtime
   , printValue
   , processEvents
@@ -556,34 +554,20 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
 
--- | Interacive console switch, to set it one should use.
--- @
--- poke rInteractive 1
--- @
-foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
-
--- | Global nil value.
+-- | Global nil value. Constant throughout the lifetime of the R instance.
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G R.Nil)
+
+-- | Unbound marker. Constant throughout the lifetime of the R instance.
+foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G R.Symbol)
+
+-- | Missing argument marker. Constant throughout the lifetime of the R instance.
+foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
+
+-- | The base environment.
+foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
 
 -- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
-
--- | Unbound marker.
-foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G R.Symbol)
-
--- | The base environment; formerly nilValue.
-foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
-
--- | Missing argument marker.
-foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
-
--- | Input handlers used in event loops.
-#ifdef H_ARCH_UNIX
-foreign import ccall "&R_InputHandlers" rInputHandlers :: Ptr (Ptr ())
-#else
-rInputHandlers :: Ptr (Ptr ())
-rInputHandlers = nullPtr
-#endif
 
 ----------------------------------------------------------------------------------
 -- Structure header                                                             --
