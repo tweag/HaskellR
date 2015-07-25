@@ -29,6 +29,7 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 #if __GLASGOW_HASKELL__ >= 710
+-- We don't use ticks in this module, because they confuse c2hs.
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 #endif
 module Foreign.R
