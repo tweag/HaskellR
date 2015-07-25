@@ -78,7 +78,6 @@ rsafe = QuasiQuoter
 
 mkQQ :: String -> Q TH.Exp
 mkQQ input = parse input >>= \expr ->
-    -- XXX: possibly we need to introduce our own parser and do not reuse R one.
     let vars = Set.toList . Set.fromList $ getNames expr
     in if null vars
           then [| do x <- io $ do expression <- H.parseText input False
@@ -102,8 +101,7 @@ mkQQ input = parse input >>= \expr ->
           nmext = name ++ "_ext"
           splice = "function(...) .Call(" ++ nmext ++ ", ...)"
       hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
-      [| -- let expression = H.unsafeParseText splice False
-         R.withProtected (H.mkSEXPIO $hvar) $ \val ->  do
+      [| R.withProtected (H.mkSEXPIO $hvar) $ \val ->  do
            case R.typeOf val of
              R.ExtPtr ->
                H.withGloballyDefined nmext val $
