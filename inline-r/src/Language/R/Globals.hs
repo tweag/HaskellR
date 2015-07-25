@@ -11,6 +11,7 @@
 
 module Language.R.Globals
   ( baseEnv
+  , emptyEnv
   , globalEnv
   , nilValue
   , missingArg
@@ -60,6 +61,7 @@ foreign import ccall "&R_InputHandlers" inputHandlers :: Ptr (Ptr ())
 type RVariables =
     ( Ptr (SEXP G 'R.Env)
     , Ptr (SEXP G 'R.Env)
+    , Ptr (SEXP G 'R.Env)
     , Ptr (SEXP G 'R.Nil)
     , Ptr (SEXP G 'R.Symbol)
     , Ptr (SEXP G 'R.Symbol)
@@ -67,15 +69,16 @@ type RVariables =
     , Ptr (Ptr ())
     )
 
-foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
-
 -- | Stores R variables in a static location. This makes the variables'
 -- addresses accesible after reloading in GHCi.
+foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
+
 pokeRVariables :: RVariables -> IO ()
 pokeRVariables = poke rVariables <=< newStablePtr
 
-(  globalEnvPtr
- , baseEnvPtr
+(  baseEnvPtr
+ , emptyEnvPtr
+ , globalEnvPtr
  , nilValuePtr
  , unboundValuePtr
  , missingArgPtr
@@ -99,6 +102,10 @@ missingArg = unsafePerformIO $ peek missingArgPtr
 -- | The base environment.
 baseEnv :: SEXP G 'R.Env
 baseEnv = unsafePerformIO $ peek baseEnvPtr
+
+-- | The empty environment.
+emptyEnv :: SEXP G 'R.Env
+emptyEnv = unsafePerformIO $ peek emptyEnvPtr
 
 -- | The global environment.
 globalEnv :: SEXP G 'R.Env

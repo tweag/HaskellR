@@ -121,6 +121,7 @@ module Foreign.R
   , unboundValue
   , missingArg
   , baseEnv
+  , emptyEnv
   , globalEnv
     -- * Communication with runtime
   , printValue
@@ -565,6 +566,9 @@ foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
 
 -- | The base environment.
 foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
+
+-- | The empty environment.
+foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G R.Env)
 
 -- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)

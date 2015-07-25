@@ -211,8 +211,14 @@ initialize Config{..} = do
       unless initialized2 $ mdo
         -- Grab addresses of R global variables
         pokeRVariables
-          ( R.globalEnv, R.baseEnv, R.nilValue, R.unboundValue, R.missingArg
-          , isRInteractive, inputHandlers
+          ( R.baseEnv
+          , R.emptyEnv
+          , R.globalEnv
+          , R.nilValue
+          , R.unboundValue
+          , R.missingArg
+          , isRInteractive
+          , inputHandlers
           )
         startRThread eventLoopThread
         eventLoopThread <- forkIO $ forever $ do
