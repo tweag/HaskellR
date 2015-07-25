@@ -15,7 +15,7 @@ import H.Prelude hiding (withEmbeddedR)
 import qualified H.Prelude as H
 
 instance MonadR IO where
-  io = unsafeRunInRThread
+  io = id
 
 -- | A form of the 'print' function that that is more convenient in an
 -- interactive session.

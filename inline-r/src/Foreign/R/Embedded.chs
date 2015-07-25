@@ -9,7 +9,8 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R.Embedded
-  ( initUnlimitedEmbeddedR
+  ( initEmbeddedR
+  , initUnlimitedEmbeddedR
   , endEmbeddedR
   ) where
 
@@ -21,7 +22,10 @@ import Foreign.C
 #include "missing_r.h"
 
 -- | Initialize R.
+{# fun Rf_initEmbeddedR as initEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
+
+-- | Initialize R.
 {# fun H_initUnlimitedEmbeddedR as initUnlimitedEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
 
 -- | Finalize R.
-{# fun Rf_endEmbeddedR as  endEmbeddedR { `Int' } -> `()' #}
+{# fun Rf_endEmbeddedR as endEmbeddedR { `Int' } -> `()' #}

@@ -125,10 +125,6 @@ module Foreign.R
   , globalEnv
     -- * Communication with runtime
   , printValue
-  , processEvents
-#ifdef H_ARCH_UNIX
-  , processGUIEventsUnix
-#endif
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
@@ -478,13 +474,6 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 
 -- | Print a string representation of a 'SEXP' on the console.
 {#fun Rf_PrintValue as printValue { unsexp `SEXP s a'} -> `()' #}
-
--- | Function for processing GUI and other events in the internal event loop.
-{#fun R_ProcessEvents as processEvents {} -> `()' #}
-
-#ifdef H_ARCH_UNIX
-{#fun processGUIEventsUnix { id `Ptr (Ptr ())' } -> `()' #}
-#endif
 
 --------------------------------------------------------------------------------
 -- Garbage collection                                                         --

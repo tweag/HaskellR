@@ -42,23 +42,11 @@ SEXP funPtrToSEXP(DL_FUNC pf) {
     return value;
 };
 
-#ifdef H_ARCH_UNIX
-#include <R_ext/eventloop.h>
-
-void processGUIEventsUnix(InputHandler** inputHandlers) {
-  if (*inputHandlers == NULL)
-      initStdinHandler();
-  R_runHandlers(*inputHandlers, R_checkActivityEx(1000, 0, NULL));
-}
-#endif
-
 // Initializing isRInitialized to 0 here causes GHCi to fail with
 // a linking error in Windows x64. But initializing to 2 poses no problem!
 int isRInitialized = 2;
 
 HsStablePtr rVariables;
-// Here we have the same problem with initialization as in isRInitialized above.
-HsStablePtr interpreterChan = (HsStablePtr)2;
 
 #undef USE_RINTERNALS
 

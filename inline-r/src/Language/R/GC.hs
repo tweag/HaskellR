@@ -39,8 +39,7 @@ import System.Mem.Weak (addFinalizer)
 automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
 automatic s = io $ do
     R.preserveObject s'
-    post <- getPostToCurrentRThread
-    s' `addFinalizer` (post $ R.releaseObject (R.unsafeRelease s'))
+    s' `addFinalizer` (R.releaseObject (R.unsafeRelease s'))
     return s'
   where
     s' = R.unsafeRelease s
@@ -49,8 +48,7 @@ automatic s = io $ do
 automaticSome :: MonadR m => R.SomeSEXP s -> m (R.SomeSEXP G)
 automaticSome (SomeSEXP s) = io  $ do
     R.preserveObject s'
-    post <- getPostToCurrentRThread
-    s' `addFinalizer` (post $ R.releaseObject s')
+    s' `addFinalizer` (R.releaseObject s')
     return $ SomeSEXP s'
   where
     s' = R.unsafeRelease s

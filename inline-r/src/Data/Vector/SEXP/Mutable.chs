@@ -313,8 +313,7 @@ unsafeToStorable :: (PrimMonad m, VECTOR s ty a)
 {-# INLINE unsafeToStorable #-}
 unsafeToStorable v@(MVector p) = unsafePrimToPrim $ do
   R.preserveObject p
-  post <- getPostToCurrentRThread
-  ptr <- newForeignPtr (toVecPtr v) (post $ R.releaseObject (R.sexp $ castPtr $ toVecPtr v))
+  ptr <- newForeignPtr (toVecPtr v) (R.releaseObject (R.sexp $ castPtr $ toVecPtr v))
   return $ Storable.unsafeFromForeignPtr0 ptr (length v)
 
 -- | O(N) Convertion from storable vector to SEXP vector.
