@@ -17,8 +17,4 @@ extern int isRInitialized;
 // R global variables for GHCi.
 extern HsStablePtr rVariables;
 
-
-// Initializes R with stack limit checking disabled.
-int H_initUnlimitedEmbeddedR(int argc, char **argv);
-
 #endif

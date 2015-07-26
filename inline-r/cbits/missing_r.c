@@ -49,32 +49,3 @@ int isRInitialized = 2;
 HsStablePtr rVariables;
 
 #undef USE_RINTERNALS
-
-
-// The following macros and definitions are used to initialize R with
-// stack limit checking disabled.
-
-// NOTE: On Windows, R does not ship with Rinterface.h or Defn.h, so we
-// declare them ourselves.
-#ifdef H_ARCH_WINDOWS
-extern uintptr_t R_CStackLimit;	/* C stack limit */
-extern uintptr_t R_CStackStart;	/* Initial stack address */
-#else
-#define CSTACK_DEFNS
-#include <Rinterface.h>
-#endif
-
-#include <Rembedded.h>
-
-// NOTE: It is crucial to set the two R stack globals after calling
-// Rf_initialize_R() and before calling setup_Rmainloop().
-// H_initUnlimitedEmbeddedR() is based on Rf_initEmbeddedR(), found in
-// R 3.1.0 source code at src/gnuwin32/embeddedR.c:127.
-int H_initUnlimitedEmbeddedR(int argc, char **argv)
-{
-    Rf_initialize_R(argc, argv);
-    R_CStackLimit = -1;
-    R_CStackStart = -1;
-    setup_Rmainloop();
-    return(1);
-}
