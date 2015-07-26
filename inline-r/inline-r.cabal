@@ -47,6 +47,7 @@ library
                        H.Prelude.Interactive
                        Language.R
                        Language.R.Debug
+                       Language.R.Event
                        Language.R.GC
                        Language.R.Globals
                        Language.R.HExp
