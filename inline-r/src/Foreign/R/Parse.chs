@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Bindings for @<R/R_exts/Parse.h>@.
+-- Bindings for @<R/R_ext/Parse.h>@.
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
