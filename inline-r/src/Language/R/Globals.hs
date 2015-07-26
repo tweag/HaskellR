@@ -37,16 +37,8 @@ import Foreign
 import Foreign.C.Types (CInt)
 import Foreign.R (SEXP)
 import qualified Foreign.R as R
+import qualified Foreign.R.EventLoop as R
 import System.IO.Unsafe (unsafePerformIO)
-
--- | Interacive console switch, to set it one should use.
--- @
--- poke rInteractive 1
--- @
-foreign import ccall "&R_Interactive" isRInteractive :: Ptr CInt
-
--- | Input handlers used in event loops.
-foreign import ccall "&R_InputHandlers" inputHandlers :: Ptr (Ptr ())
 
 -- $ghci-bug
 -- The main reason to have all R constants referenced with a StablePtr
@@ -66,7 +58,7 @@ type RVariables =
     , Ptr (SEXP G 'R.Symbol)
     , Ptr (SEXP G 'R.Symbol)
     , Ptr CInt
-    , Ptr (Ptr ())
+    , Ptr (Ptr R.InputHandler)
     )
 
 -- | Stores R variables in a static location. This makes the variables'
@@ -82,7 +74,7 @@ pokeRVariables = poke rVariables <=< newStablePtr
  , nilValuePtr
  , unboundValuePtr
  , missingArgPtr
- , isRInteractivePtr
+ , isRInteractive
  , inputHandlersPtr
  ) = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
@@ -110,3 +102,6 @@ emptyEnv = unsafePerformIO $ peek emptyEnvPtr
 -- | The global environment.
 globalEnv :: SEXP G 'R.Env
 globalEnv = unsafePerformIO $ peek globalEnvPtr
+
+inputHandlers :: Ptr R.InputHandler
+inputHandlers = unsafePerformIO $ peek inputHandlersPtr

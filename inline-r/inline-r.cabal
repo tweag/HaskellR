@@ -38,6 +38,7 @@ library
                        Data.Vector.SEXP.Mutable
                        Foreign.R
                        Foreign.R.Embedded
+                       Foreign.R.EventLoop
                        Foreign.R.Error
                        Foreign.R.Parse
                        Foreign.R.Type

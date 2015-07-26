@@ -117,6 +117,7 @@ module Foreign.R
   , releaseObject
   , gc
     -- * Globals
+  , isRInteractive
   , nilValue
   , unboundValue
   , missingArg
@@ -543,6 +544,8 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
+
+foreign import ccall "&R_Interactive" isRInteractive :: Ptr CInt
 
 -- | Global nil value. Constant throughout the lifetime of the R instance.
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G R.Nil)

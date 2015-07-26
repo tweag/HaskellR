@@ -40,6 +40,7 @@ module Language.R.Instance
 import           Control.Monad.R.Class
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
+import qualified Foreign.R.EventLoop as R
 import           Foreign.C.String
 import           Language.R.Globals
 
@@ -57,7 +58,6 @@ import Control.Exception
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
 import Control.Monad.Reader
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
-
 import Foreign
     ( Ptr
     , allocaArray
@@ -211,8 +211,8 @@ initialize Config{..} = do
           , R.nilValue
           , R.unboundValue
           , R.missingArg
-          , isRInteractive
-          , inputHandlers
+          , R.isRInteractive
+          , R.inputHandlers
           )
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
