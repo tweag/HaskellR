@@ -1,0 +1,42 @@
+version: "{build}"
+cache: C:\Users\appveyor\AppData\Roaming\stack
+
+build:
+  verbosity: normal
+
+deploy: off
+
+install:
+  ps: |
+    bash -c 'curl -Lso stack.zip -L --insecure http://www.stackage.org/stack/windows-i386'
+    7z x stack.zip stack.exe
+    mkdir C:\stack
+    mv stack.exe C:\stack
+
+    Write-Host "Downloading R.vhd"
+    bash -c 'curl -Ls https://rportable.blob.core.windows.net/r-portable/master/R.vhd.gz | gunzip -c > ../R.vhd'
+
+    Write-Host "Getting full path for R.vhd"
+    $ImageFullPath = Get-ChildItem "..\R.vhd" | % { $_.FullName }
+    $ImageSize = (Get-Item $ImageFullPath).length
+    echo "$ImageFullPath [$ImageSize bytes]"
+
+    Write-Host "Mounting R.vhd"
+    $RDrive = [string](Mount-DiskImage -ImagePath $ImageFullPath -Passthru | Get-DiskImage | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":"
+    # Assert that R was mounted properly
+    if ( -not (Test-Path "${RDrive}\R\bin" -PathType Container) ) {
+      Throw "Failed to mount R. Could not find directory: ${RDrive}\R\bin"
+    }
+    echo "R is now available on drive $RDrive"
+
+    Write-Host "Setting PATH"
+    $env:PATH = $RDrive + '\Rtools\bin;' + $RDrive + '\Rtools\MinGW\bin;' + $RDrive + '\Rtools\gcc-4.6.3\bin;' + $RDrive + '\R\bin\i386;' + 'C:\stack;' + $env:PATH
+    $env:PATH.Split(";")
+
+    Write-Host "Setting R_LIBS_USER"
+    $env:R_LIBS_USER = 'c:\RLibrary'
+    mkdir $env:R_LIBS_USER
+
+build_script:
+  - stack --no-terminal setup > nul
+  - stack --no-terminal build --extra-lib-dirs=D:\R\bin\i386 --extra-include-dirs=D:\R\include inline-r H
