@@ -136,6 +136,7 @@ module Foreign.R
   , pokeInfo
   , mark
   , named
+  , defineVar
   -- * Internal types and functions
   --
   -- | Should not be used in user code. These exports are only needed for
@@ -551,6 +552,9 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 
 {#fun R_MakeWeakRef as mkWeakRef { unsexp `SEXP s a', unsexp `SEXP s b', unsexp `SEXP s c', cIntFromEnum `Bool' }
       -> `SEXP V R.WeakRef' sexp #}
+
+{#fun Rf_defineVar as defineVar { unsexp `SEXP s a', unsexp `SEXP s b', unsexp `SEXP s c' }
+      -> `()' #}
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --

@@ -82,6 +82,7 @@ library
                      , transformers >= 0.3
                      , deepseq >= 1.3
                      , th-orphans >= 0.8
+                     , containers
   hs-source-dirs:      src
   includes:            cbits/Hcompat.h cbits/missing_r.h
   c-sources:           cbits/missing_r.c
