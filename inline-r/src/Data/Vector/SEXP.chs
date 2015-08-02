@@ -16,7 +16,7 @@
 -- a "Data.Vector.Storable" vector first, using 'unsafeToStorable'.
 --
 -- Note that since 'unstream' relies on slicing operations, it will still be an
--- O(N) operation but it will copy vector data twice.
+-- O(N) operation but it will copy vector data twice (instead of once).
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
@@ -38,26 +38,62 @@ module Data.Vector.SEXP
 
   -- * Accessors
   -- ** Length information
-  , length, null
+  , length
+  , null
   -- ** Indexing
-  , (!), (!?), head, last, unsafeIndex, unsafeHead, unsafeLast
+  , (!)
+  , (!?)
+  , head
+  , last
+  , unsafeIndex
+  , unsafeHead
+  , unsafeLast
   -- ** Monadic indexing
-  , indexM, headM, lastM, unsafeIndexM, unsafeHeadM, unsafeLastM
+  , indexM
+  , headM
+  , lastM
+  , unsafeIndexM
+  , unsafeHeadM
+  , unsafeLastM
   -- ** Extracting subvectors (slicing)
-  , slice, init, take, drop, tail, splitAt, unsafeTail, unsafeSlice, unsafeDrop, unsafeTake, unsafeInit
+  , slice
+  , init
+  , take
+  , drop
+  , tail
+  , splitAt
+  , unsafeTail
+  , unsafeSlice
+  , unsafeDrop
+  , unsafeTake
+  , unsafeInit
 
   -- * Construction
   -- ** Initialisation
-  , empty, singleton, replicate, generate, iterateN
+  , empty
+  , singleton
+  , replicate
+  , generate
+  , iterateN
   -- ** Monadic initialisation
-  , replicateM, generateM, create
+  , replicateM
+  , generateM
+  , create
   -- ** Unfolding
-  , unfoldr, unfoldrN
-  , constructN, constructrN
+  , unfoldr
+  , unfoldrN
+  , constructN
+  , constructrN
   -- ** Enumeration
-  , enumFromN, enumFromStepN, enumFromTo, enumFromThenTo
+  , enumFromN
+  , enumFromStepN
+  , enumFromTo
+  , enumFromThenTo
   -- ** Concatenation
-  , cons, snoc, (++), concat
+  , cons
+  , snoc
+  , (++)
+  , concat
 
   -- ** Restricting memory usage
   , force
@@ -81,14 +117,27 @@ module Data.Vector.SEXP
   -- * Elementwise operations
 
   -- ** Mapping
-  , map, imap, concatMap
+  , map
+  , imap
+  , concatMap
 
   -- ** Monadic mapping
-  , mapM, mapM_, forM, forM_
+  , mapM
+  , mapM_
+  , forM
+  , forM_
 
   -- ** Zipping
-  , zipWith, zipWith3, zipWith4, zipWith5, zipWith6
-  , izipWith, izipWith3, izipWith4, izipWith5, izipWith6
+  , zipWith
+  , zipWith3
+  , zipWith4
+  , zipWith5
+  , zipWith6
+  , izipWith
+  , izipWith3
+  , izipWith4
+  , izipWith5
+  , izipWith6
 
   -- ** Monadic zipping
   {-, zipWithM-}, zipWithM_
@@ -96,48 +145,101 @@ module Data.Vector.SEXP
   -- * Working with predicates
 
   -- ** Filtering
-  , filter, ifilter, filterM
-  , takeWhile, dropWhile
+  , filter
+  , ifilter
+  , filterM
+  , takeWhile
+  , dropWhile
 
   -- ** Partitioning
-  , partition, unstablePartition, span, break
+  , partition
+  , unstablePartition
+  , span
+  , break
 
   -- ** Searching
-  , elem, notElem, find, findIndex, {-findIndices,-} elemIndex {-, elemIndices -}
+  , elem
+  , notElem
+  , find
+  , findIndex
+  , {-findIndices,-} elemIndex {-, elemIndices -}
 
   -- * Folding
-  , foldl, foldl1, foldl', foldl1', foldr, foldr1, foldr', foldr1'
-  , ifoldl, ifoldl', ifoldr, ifoldr'
+  , foldl
+  , foldl1
+  , foldl'
+  , foldl1'
+  , foldr
+  , foldr1
+  , foldr'
+  , foldr1'
+  , ifoldl
+  , ifoldl'
+  , ifoldr
+  , ifoldr'
 
   -- ** Specialised folds
-  , all, any, and, or
-  , sum, product
-  , maximum, maximumBy, minimum, minimumBy
-  , minIndex, minIndexBy, maxIndex, maxIndexBy
+  , all
+  , any
+  , and
+  , or
+  , sum
+  , product
+  , maximum
+  , maximumBy
+  , minimum
+  , minimumBy
+  , minIndex
+  , minIndexBy
+  , maxIndex
+  , maxIndexBy
 
   -- ** Monadic folds
-  , foldM, foldM', fold1M, fold1M'
-  , foldM_, foldM'_, fold1M_, fold1M'_
+  , foldM
+  , foldM'
+  , fold1M
+  , fold1M'
+  , foldM_
+  , foldM'_
+  , fold1M_
+  , fold1M'_
 
   -- * Prefix sums (scans)
-  , prescanl, prescanl'
-  , postscanl, postscanl'
-  , scanl, scanl', scanl1, scanl1'
-  , prescanr, prescanr'
-  , postscanr, postscanr'
-  , scanr, scanr', scanr1, scanr1'
+  , prescanl
+  , prescanl'
+  , postscanl
+  , postscanl'
+  , scanl
+  , scanl'
+  , scanl1
+  , scanl1'
+  , prescanr
+  , prescanr'
+  , postscanr
+  , postscanr'
+  , scanr
+  , scanr'
+  , scanr1
+  , scanr1'
 
   -- * Conversions
   -- ** Lists
-  , toList, fromList, fromListN
-  -- ** T
-  , unsafeFreeze, unsafeThaw, thaw, freeze, copy, unsafeCopy
+  , toList
+  , fromList
+  , fromListN
+  -- ** Mutable vectors
+  , freeze
+  , thaw
+  , copy
+  , unsafeFreeze
+  , unsafeThaw
+  , unsafeCopy
 
   -- ** SEXP specific
   , toString
   , toByteString
-  , unsafeToStorable
   , fromStorable
+  , unsafeToStorable
   ) where
 
 import Data.Vector.SEXP.Base

@@ -1,8 +1,6 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- = Memory regions
---
 -- Phantom type indices for segregating values into "regions" of memory, which
 -- are markers that serve as static conservative approximations of the liveness
 -- of an object. That is, regions have scopes, and objects within a region are

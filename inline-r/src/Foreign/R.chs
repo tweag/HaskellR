@@ -1,7 +1,7 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Low-level bindings to R core datatypes and functions. Nearly all structures
+-- Low-level bindings to core R datatypes and functions. Nearly all structures
 -- allocated internally in R are instances of a 'SEXPREC'. A pointer to
 -- a 'SEXPREC' is called a 'SEXP'.
 --
@@ -453,10 +453,10 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN
 -- | Create Character value with specified encoding
 {#fun Rf_mkCharCE as mkCharCE { id `CString', cIntFromEnum `CEType' } -> `SEXP V R.Char' sexp #}
 
--- | Probe the symbol table
+-- | Intern a string @name@ into the symbol table.
 --
--- If "name" is not found, it is installed in the symbol table.
--- The symbol corresponding to the string "name" is returned.
+-- If @name@ is not found, it is added to the symbol table. The symbol
+-- corresponding to the string @name@ is returned.
 {#fun Rf_install as install { id `CString' } -> `SEXP V R.Symbol' sexp #}
 
 -- | Allocate a 'SEXP'.
