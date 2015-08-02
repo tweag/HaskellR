@@ -5,7 +5,7 @@ copyright:           Copyright (c) 2013-2015 Amgen, Inc.
                      Copyright (c) 2015 Tweag I/O Limited.
 cabal-version:       >=1.10
 build-type:          Simple
-Category:            Compiler
+Category:            FFI
 Synopsis:            Seamlessly call R from Haskell and vice versa. No FFI required.
 cabal-version:       >=1.10
 

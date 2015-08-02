@@ -5,7 +5,7 @@ copyright:           Copyright (c) 2013-2015 Amgen, Inc.
                      Copyright (c) 2015 Tweag I/O Limited.
 cabal-version:       >=1.10
 build-type:          Simple
-Category:            Compiler
+Category:            FFI
 Synopsis:            The Haskell/R mixed programming environment.
 description:         This package is part of the HaskellR project.
 cabal-version:       >=1.10
