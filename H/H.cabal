@@ -20,10 +20,6 @@ source-repository head
   location: git://github.com/tweag/HaskellR.git
   subdir: H
 
-Flag documentation
-  description:         Generate H manuals (requires pandoc).
-  default:             False
-
 executable H
   main-is:             H.hs
   build-depends:       inline-r

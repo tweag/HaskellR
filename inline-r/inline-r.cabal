@@ -34,10 +34,6 @@ source-repository head
   location: git://github.com/tweag/HaskellR.git
   subdir: inline-r
 
-Flag documentation
-  description:         Generate H manuals (requires pandoc).
-  default:             False
-
 library
   exposed-modules:     Data.Vector.SEXP
                        Data.Vector.SEXP.Base
