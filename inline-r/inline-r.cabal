@@ -148,8 +148,8 @@ test-suite test-qq
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
-test-suite test-shootout-programs
-  main-is:             test-shootout-programs.hs
+test-suite test-shootout
+  main-is:             test-shootout.hs
   type:                exitcode-stdio-1.0
   other-modules:       Test.Scripts
   build-depends:       inline-r

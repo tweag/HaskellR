@@ -1,7 +1,8 @@
+-- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- This program executes shootout tests using R, runtime and compile-time qqs
--- and compares the outputs.
+-- Execute entries from the Great Language Shootout using R, quasiquotes and
+-- compare the output.
 --
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
