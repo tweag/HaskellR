@@ -26,8 +26,6 @@ extra-source-files:   cbits/Hcompat.h
                       tests/shootout/fannkuchredux.R
                       tests/R/fib.R
                       tests/R/fib-benchmark.R
-                      tests/ghciH.sh
-                      tests/sandbox-utils.sh
 
 source-repository head
   type:     git
