@@ -1,6 +1,7 @@
 /dist/
 .cabal-sandbox
 cabal.sandbox.config
+.stack-work
 *.wixobj
 *.msi
 *.wixpdb
