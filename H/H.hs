@@ -2,7 +2,6 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}

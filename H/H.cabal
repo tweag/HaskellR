@@ -9,8 +9,8 @@ Category:            Compiler
 Synopsis:            The Haskell/R mixed programming environment.
 description:         This package is part of the HaskellR project.
 cabal-version:       >=1.10
-data-files:          H.ghci
-extra-source-files:  tests/qq.ghci
+extra-source-files:  H.ghci
+                     tests/qq.ghci
                      tests/qq.ghci.golden.out
                      tests/qq-errors.ghci
                      tests/qq-errors.ghci.golden.err
@@ -33,13 +33,6 @@ executable H
                      , vector >= 0.10
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
-  if os(windows)
-    cpp-options:       -DH_ARCH_WINDOWS
-    cc-options:        -DH_ARCH_WINDOWS
-  else
-    build-depends:     unix >= 2.6
-    cpp-options:       -DH_ARCH_UNIX
-    cc-options:        -DH_ARCH_UNIX
 
 test-suite tests
   main-is:             tests.hs
