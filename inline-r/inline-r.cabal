@@ -177,8 +177,8 @@ benchmark bench-qq
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
-benchmark hexp-benchmark
-  main-is:             hexp-bench.hs
+benchmark bench-hexp
+  main-is:             bench-hexp.hs
   type:                exitcode-stdio-1.0
   build-depends:       inline-r
                      , base >= 4.6 && < 5
