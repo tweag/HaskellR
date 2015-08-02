@@ -1,8 +1,8 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Tests. Run H on a number of R programs of increasing size and complexity,
--- comparing the output of H with the output of R.
+-- Run H on a number of R programs of increasing size and complexity, comparing
+-- the output of H with the output of R.
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE QuasiQuotes #-}

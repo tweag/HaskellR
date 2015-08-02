@@ -136,8 +136,8 @@ test-suite tests
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
-test-suite test-compile-qq
-  main-is:             test-compile-qq.hs
+test-suite test-qq
+  main-is:             test-qq.hs
   type:                exitcode-stdio-1.0
   build-depends:       inline-r
                      , base >= 4.6 && < 5
@@ -182,8 +182,8 @@ test-suite test-vector
   default-language:   Haskell2010
 
 
-benchmark compile-qq-benchmarks
-  main-is:             compile-qq-benchmarks.hs
+benchmark bench-qq
+  main-is:             bench-qq.hs
   type:                exitcode-stdio-1.0
   build-depends:       inline-r
                      , base >= 4.6 && < 5
