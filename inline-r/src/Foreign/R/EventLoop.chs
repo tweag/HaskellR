@@ -15,11 +15,14 @@ module Foreign.R.EventLoop
   , graphicsPollingPeriod
   , checkActivity
   , runHandlers
+  , addInputHandler
+  , removeInputHandler
   ) where
 
 import Control.Applicative
 import Foreign (FunPtr, Ptr, Storable(..), castPtr)
 import Foreign.C
+import Foreign.Marshal.Utils (with)
 import System.Posix.Types (Fd(..))
 import Prelude -- Silence AMP warning.
 
@@ -80,6 +83,48 @@ foreign import ccall "&R_InputHandlers" inputHandlers :: Ptr (Ptr InputHandler)
 
 data FdSet
 
-foreign import ccall unsafe "R_checkActivity" checkActivity :: CInt -> CInt -> IO (Ptr FdSet)
+foreign import ccall unsafe "R_checkActivity" checkActivity
+  :: CInt
+  -> CInt
+  -> IO (Ptr FdSet)
 
-foreign import ccall unsafe "R_runHandlers" runHandlers :: Ptr InputHandler -> Ptr FdSet -> IO ()
+foreign import ccall "R_runHandlers" runHandlers
+  :: Ptr InputHandler
+  -> Ptr FdSet
+  -> IO ()
+
+foreign import ccall "addInputHandler" addInputHandler_
+  :: Ptr InputHandler
+  -> Fd
+  -> FunPtr (Ptr () -> IO ())
+  -> CInt
+  -> IO (Ptr InputHandler)
+
+-- | Create and register a new 'InputHandler'. The given file descriptor should
+-- be open in non-blocking read mode. Make sure to dispose of the callback using
+-- 'freeHaskellFunPtr' after calling 'removeInputHandler' where appropriate.
+addInputHandler
+  :: Ptr InputHandler
+  -> Fd
+  -> FunPtr (Ptr () -> IO ())
+  -> Int
+  -> IO InputHandler
+addInputHandler ihptr fd f activity = do
+    peek =<< addInputHandler_ ihptr fd f (fromIntegral activity)
+
+foreign import ccall "removeInputHandler" removeInputHandler_
+  :: Ptr (Ptr InputHandler)
+  -> Ptr InputHandler
+  -> IO CInt
+
+-- | Remove an input handler from an input handler chain. Returns 'True' if the
+-- handler was successfully removed, 'False' otherwise.
+removeInputHandler :: Ptr InputHandler -> InputHandler -> IO Bool
+removeInputHandler handlers ih =
+    with handlers $ \handlersptr ->
+      with ih $ \ihptr -> do
+        rc <- removeInputHandler_ handlersptr ihptr
+        case rc of
+          0 -> return $ False
+          1 -> return $ True
+          _ -> error "removeInputHandler: unexpected result."
