@@ -108,9 +108,9 @@ addInputHandler
   -> Fd
   -> FunPtr (Ptr () -> IO ())
   -> Int
-  -> IO InputHandler
+  -> IO (Ptr InputHandler)
 addInputHandler ihptr fd f activity = do
-    peek =<< addInputHandler_ ihptr fd f (fromIntegral activity)
+    addInputHandler_ ihptr fd f (fromIntegral activity)
 
 foreign import ccall "removeInputHandler" removeInputHandler_
   :: Ptr (Ptr InputHandler)
@@ -119,12 +119,11 @@ foreign import ccall "removeInputHandler" removeInputHandler_
 
 -- | Remove an input handler from an input handler chain. Returns 'True' if the
 -- handler was successfully removed, 'False' otherwise.
-removeInputHandler :: Ptr InputHandler -> InputHandler -> IO Bool
+removeInputHandler :: Ptr InputHandler -> Ptr InputHandler -> IO Bool
 removeInputHandler handlers ih =
-    with handlers $ \handlersptr ->
-      with ih $ \ihptr -> do
-        rc <- removeInputHandler_ handlersptr ihptr
-        case rc of
-          0 -> return $ False
-          1 -> return $ True
-          _ -> error "removeInputHandler: unexpected result."
+    with handlers $ \handlersptr -> do
+      rc <- removeInputHandler_ handlersptr ih
+      case rc of
+        0 -> return $ False
+        1 -> return $ True
+        _ -> error "removeInputHandler: unexpected result."
