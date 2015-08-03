@@ -121,12 +121,14 @@ test-suite tests
                      , tasty-golden >= 2.3
                      , tasty-hunit >= 0.4.1
                      , tasty-quickcheck >= 0.4.1
+                     , temporary >= 1.2
                      , text >= 0.11
+                     , unix >= 2.5
                      , vector
-                     , singletons
   other-modules:       Test.GC
                        Test.FunPtr
                        Test.Constraints
+                       Test.Event
                        Test.HExp
                        Test.Regions
                        Test.Vector

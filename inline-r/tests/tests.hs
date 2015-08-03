@@ -11,6 +11,7 @@
 module Main where
 
 import qualified Test.Constraints
+import qualified Test.Event
 import qualified Test.FunPtr
 import qualified Test.HExp
 import qualified Test.GC
@@ -95,6 +96,7 @@ tests = testGroup "Unit tests"
   , Test.GC.tests
   , Test.Regions.tests
   , Test.Vector.tests
+  , Test.Event.tests
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.
