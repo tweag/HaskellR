@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 
 -- |
@@ -6,32 +7,101 @@
 -- Global variables used by the R interpreter. All are constant, but the values
 -- of some of them may change over time (e.g. the global environment).
 
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module Language.R.Globals
-  ( unboundValue
+  ( baseEnv
+  , emptyEnv
   , globalEnv
   , nilValue
   , missingArg
+  , unboundValue
+  -- * R Internal constants
+  , isRInteractive
+  , inputHandlers
+  -- * R global constants
+  -- $ghci-bug
+  , pokeRVariables
   ) where
 
 import Control.Memory.Region
-import Foreign ( peek )
-import Foreign.R  (SEXP, SEXPTYPE(..))
-import qualified Language.R.Instance as R
-import System.IO.Unsafe ( unsafePerformIO )
+import Control.Monad ((<=<))
+import Foreign
+    ( Ptr
+    , StablePtr
+    , deRefStablePtr
+    , newStablePtr
+    , peek
+    , poke
+    )
+import Foreign.C.Types (CInt)
+import Foreign.R (SEXP)
+import qualified Foreign.R as R
+import qualified Foreign.R.EventLoop as R
+import System.IO.Unsafe (unsafePerformIO)
+
+-- $ghci-bug
+-- The main reason to have all R constants referenced with a StablePtr
+-- is that variables in shared libraries are linked incorrectly by GHCi with
+-- loaded code.
+--
+-- The workaround is to grab all variables in the ghci session for the loaded
+-- code to use them, that is currently done by the H.ghci script.
+--
+-- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
+
+type RVariables =
+    ( Ptr (SEXP G 'R.Env)
+    , Ptr (SEXP G 'R.Env)
+    , Ptr (SEXP G 'R.Env)
+    , Ptr (SEXP G 'R.Nil)
+    , Ptr (SEXP G 'R.Symbol)
+    , Ptr (SEXP G 'R.Symbol)
+    , Ptr CInt
+    , Ptr (Ptr R.InputHandler)
+    )
+
+-- | Stores R variables in a static location. This makes the variables'
+-- addresses accesible after reloading in GHCi.
+foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
+
+pokeRVariables :: RVariables -> IO ()
+pokeRVariables = poke rVariables <=< newStablePtr
+
+(  baseEnvPtr
+ , emptyEnvPtr
+ , globalEnvPtr
+ , nilValuePtr
+ , unboundValuePtr
+ , missingArgPtr
+ , isRInteractive
+ , inputHandlersPtr
+ ) = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
 -- | Special value to which all symbols unbound in the current environment
 -- resolve to.
-unboundValue :: SEXP G 'Symbol
-unboundValue = unsafePerformIO $ peek R.unboundValuePtr
+unboundValue :: SEXP G 'R.Symbol
+unboundValue = unsafePerformIO $ peek unboundValuePtr
 
 -- | R's @NULL@ value.
-nilValue :: SEXP G 'Nil
-nilValue = unsafePerformIO $ peek R.nilValuePtr
+nilValue :: SEXP G 'R.Nil
+nilValue = unsafePerformIO $ peek nilValuePtr
 
 -- | Value substituted for all missing actual arguments of a function call.
-missingArg :: SEXP G 'Symbol
-missingArg = unsafePerformIO $ peek R.missingArgPtr
+missingArg :: SEXP G 'R.Symbol
+missingArg = unsafePerformIO $ peek missingArgPtr
+
+-- | The base environment.
+baseEnv :: SEXP G 'R.Env
+baseEnv = unsafePerformIO $ peek baseEnvPtr
+
+-- | The empty environment.
+emptyEnv :: SEXP G 'R.Env
+emptyEnv = unsafePerformIO $ peek emptyEnvPtr
 
 -- | The global environment.
-globalEnv :: SEXP G 'Env
-globalEnv = unsafePerformIO $ peek R.globalEnvPtr
+globalEnv :: SEXP G 'R.Env
+globalEnv = unsafePerformIO $ peek globalEnvPtr
+
+inputHandlers :: Ptr R.InputHandler
+inputHandlers = unsafePerformIO $ peek inputHandlersPtr

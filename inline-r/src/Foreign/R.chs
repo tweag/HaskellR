@@ -117,19 +117,15 @@ module Foreign.R
   , releaseObject
   , gc
     -- * Globals
-  , globalEnv
-  , baseEnv
+  , isRInteractive
   , nilValue
   , unboundValue
   , missingArg
-  , rInteractive
-  , rInputHandlers
+  , baseEnv
+  , emptyEnv
+  , globalEnv
     -- * Communication with runtime
   , printValue
-  , processEvents
-#ifdef H_ARCH_UNIX
-  , processGUIEventsUnix
-#endif
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
@@ -480,13 +476,6 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 -- | Print a string representation of a 'SEXP' on the console.
 {#fun Rf_PrintValue as printValue { unsexp `SEXP s a'} -> `()' #}
 
--- | Function for processing GUI and other events in the internal event loop.
-{#fun R_ProcessEvents as processEvents {} -> `()' #}
-
-#ifdef H_ARCH_UNIX
-{#fun processGUIEventsUnix { id `Ptr (Ptr ())' } -> `()' #}
-#endif
-
 --------------------------------------------------------------------------------
 -- Garbage collection                                                         --
 --------------------------------------------------------------------------------
@@ -556,34 +545,25 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
 
--- | Interacive console switch, to set it one should use.
--- @
--- poke rInteractive 1
--- @
-foreign import ccall "&R_Interactive" rInteractive :: Ptr CInt
+foreign import ccall "&R_Interactive" isRInteractive :: Ptr CInt
 
--- | Global nil value.
+-- | Global nil value. Constant throughout the lifetime of the R instance.
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G R.Nil)
+
+-- | Unbound marker. Constant throughout the lifetime of the R instance.
+foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G R.Symbol)
+
+-- | Missing argument marker. Constant throughout the lifetime of the R instance.
+foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
+
+-- | The base environment.
+foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
+
+-- | The empty environment.
+foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G R.Env)
 
 -- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
-
--- | Unbound marker.
-foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G R.Symbol)
-
--- | The base environment; formerly nilValue.
-foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
-
--- | Missing argument marker.
-foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
-
--- | Input handlers used in event loops.
-#ifdef H_ARCH_UNIX
-foreign import ccall "&R_InputHandlers" rInputHandlers :: Ptr (Ptr ())
-#else
-rInputHandlers :: Ptr (Ptr ())
-rInputHandlers = nullPtr
-#endif
 
 ----------------------------------------------------------------------------------
 -- Structure header                                                             --

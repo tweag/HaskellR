@@ -23,14 +23,14 @@ tests = testGroup "HVal"
     [ testCase "Automatic value is not collected by R GC" $
       bracket getCurrentDirectory setCurrentDirectory $ const $ do
         ((assertBool "Automatic value was collected" . isInt) =<<) $ do
-            unsafeRunInRThread $ unsafeRToIO $ do
+            unsafeRToIO $ do
               x <- automatic =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP V 'R.Int))
               io $ R.gc
               return $ R.typeOf x
     , testCase "Automatic value works after release" $
       bracket getCurrentDirectory setCurrentDirectory $ const $ do
         ((assertBool "Automatic value was collected" . isInt) =<<) $ do
-           unsafeRunInRThread $ runRegion $ do
+           runRegion $ do
               _ <- [r| gctorture(TRUE) |]
               x <- automatic =<< io (R.allocVector SingR.SInt 1024 :: IO (R.SEXP V 'R.Int))
               y <- return $ R.release x

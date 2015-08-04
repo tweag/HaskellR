@@ -15,7 +15,7 @@ module H.Prelude
   , module Foreign.R.Error
   -- * Language.R functions
   , module Language.R
-  -- * Literals
+  , module Language.R.Event
   , module Language.R.Literal
   -- * Globals
   , module Language.R.Globals
@@ -33,6 +33,7 @@ import Language.R.HExp
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
+import           Language.R.Event (refresh)
 import           Language.R.Globals
 import           Language.R.Literal
 import Language.R.Instance

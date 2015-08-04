@@ -11,6 +11,7 @@
 module Main where
 
 import qualified Test.Constraints
+import qualified Test.Event
 import qualified Test.FunPtr
 import qualified Test.HExp
 import qualified Test.GC
@@ -38,10 +39,10 @@ import Foreign
 
 tests :: TestTree
 tests = testGroup "Unit tests"
-  [ testCase "fromSEXP . mkSEXP" $ unsafeRunInRThread $ do
+  [ testCase "fromSEXP . mkSEXP" $ do
       z <- fromSEXP <$> mkSEXPIO (2 :: Double)
       (2 :: Double) @=? z
-  , testCase "HEq HExp" $ unsafeRunInRThread $ do
+  , testCase "HEq HExp" $ do
       -- XXX ideally randomly generate input.
       let x = 2 :: Double
       R.withProtected (mkSEXPIO x) $ \z ->
@@ -58,7 +59,7 @@ tests = testGroup "Unit tests"
               s2 = H.hexp z
               s3 = H.hexp z
           in s1 === s2 && s2 === s3 && s1 === s3
-  , testCase "Haskell function from R" $ unsafeRunInRThread $ do
+  , testCase "Haskell function from R" $ do
 --      (("[1] 3.0" @=?) =<<) $
 --        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
@@ -69,7 +70,7 @@ tests = testGroup "Unit tests"
                       R.r2 (Data.ByteString.Char8.pack ".Call") sf d
                       >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE R.Real)
                                                      <$> R.tryEval s (R.release e) p
-  , testCase "Weak Ptr test" $ unsafeRunInRThread $ runRegion $ do
+  , testCase "Weak Ptr test" $ runRegion $ do
       key  <- mkSEXP (return 4 :: R s Int32)
       val  <- mkSEXP (return 5 :: R s Int32)
       True <- return $ R.typeOf val == R.ExtPtr
@@ -82,7 +83,7 @@ tests = testGroup "Unit tests"
                   return $ (R.unsexp c) == (R.unsexp n)
                 _ -> error "unexpected type"
       return ()
-  , testCase "Hexp works" $ unsafeRunInRThread $
+  , testCase "Hexp works" $
       (((42::Double) @=?) =<<) $ runRegion $ do
          y <- R.cast (sing :: R.SSEXPTYPE R.Real) . R.SomeSEXP
                      <$> mkSEXP (42::Double)
@@ -95,11 +96,12 @@ tests = testGroup "Unit tests"
   , Test.GC.tests
   , Test.Regions.tests
   , Test.Vector.tests
+  , Test.Event.tests
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.
-  , testCase "qq/concurrent-initialization" $ unsafeRunInRThread $ unsafeRToIO $ [r| 1 |] >> return ()
-  , testCase "sanity check " $ unsafeRunInRThread $ return ()
+  , testCase "qq/concurrent-initialization" $ unsafeRToIO $ [r| 1 |] >> return ()
+  , testCase "sanity check " $ return ()
   ]
 
 main :: IO ()

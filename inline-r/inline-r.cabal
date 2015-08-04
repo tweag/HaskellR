@@ -38,6 +38,7 @@ library
                        Data.Vector.SEXP.Mutable
                        Foreign.R
                        Foreign.R.Embedded
+                       Foreign.R.EventLoop
                        Foreign.R.Error
                        Foreign.R.Parse
                        Foreign.R.Type
@@ -46,6 +47,7 @@ library
                        H.Prelude.Interactive
                        Language.R
                        Language.R.Debug
+                       Language.R.Event
                        Language.R.GC
                        Language.R.Globals
                        Language.R.HExp
@@ -55,8 +57,7 @@ library
                        Language.R.Literal
                        Language.R.QQ
                        Control.Memory.Region
-  other-modules:       Control.Concurrent.OSThread
-                       Control.Monad.R.Class
+  other-modules:       Control.Monad.R.Class
                        H.Internal.Error
                        H.Internal.Prelude
   build-depends:       base >= 4.6 && < 5
@@ -119,12 +120,14 @@ test-suite tests
                      , tasty-golden >= 2.3
                      , tasty-hunit >= 0.4.1
                      , tasty-quickcheck >= 0.4.1
+                     , temporary >= 1.2
                      , text >= 0.11
+                     , unix >= 2.5
                      , vector
-                     , singletons
   other-modules:       Test.GC
                        Test.FunPtr
                        Test.Constraints
+                       Test.Event
                        Test.HExp
                        Test.Regions
                        Test.Vector

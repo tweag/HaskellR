@@ -39,6 +39,7 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
+import Control.Concurrent (MVar, newMVar, withMVar)
 import Control.Monad ((>=>), (<=<))
 import Data.List (isSuffixOf)
 import Data.Complex (Complex)
@@ -103,10 +104,16 @@ parseEval txt = do
 returnIO :: a -> IO a
 returnIO = return
 
+-- | Serialize quasiquotes using a global lock, because the compiler is allowed
+-- in theory to run them in parallel, yet the R runtime is not reentrant.
+qqLock :: MVar ()
+qqLock = unsafePerformIO $ newMVar ()
+{-# NOINLINE qqLock #-}
+
 parse :: String -> Q (R.SEXP V 'R.Expr)
 parse txt = runIO $ do
     H.initialize H.defaultConfig
-    unsafeRunInRThread $ parseText txt False
+    withMVar qqLock $ \_ -> parseText txt False
 
 parseExp :: String -> Q TH.Exp
 parseExp txt = TH.lift . returnIO =<< parse txt
