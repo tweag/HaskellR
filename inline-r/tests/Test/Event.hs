@@ -4,9 +4,12 @@
 module Test.Event where
 
 #ifndef mingw32_HOST_OS
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
+import Control.Monad (void)
 import Data.IORef (modifyIORef', newIORef, readIORef, writeIORef)
 import Foreign (FunPtr, Ptr, freeHaskellFunPtr)
 import qualified Foreign.R.EventLoop as R
+import GHC.Event (getSystemEventManager)
 import H.Prelude
 import Language.R.Event
 import System.IO (hClose, hPutStrLn)
@@ -19,6 +22,7 @@ import System.Posix.IO
   , openFd
   )
 import System.Posix.Types (Fd)
+import System.Timeout (timeout)
 #endif
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -62,6 +66,18 @@ tests = testGroup "events"
           runRegion $ refresh
           (@?= True) =<< readIORef ref
           freeHaskellFunPtr f
+-- XXX GHC bug: https://ghc.haskell.org/trac/ghc/ticket/10736
+{-
+    , testCase "file events (poll)" $ do
+        withReadFd $ \fd -> do
+          mv <- newEmptyMVar
+          f <- wrap $ \_ -> putMVar mv ()
+          _ <- R.addInputHandler inputHandlers fd f 0
+          Just evtmgr <- getSystemEventManager
+          runRegion $ void $ registerREvents evtmgr
+          Just () <- timeout 1000000 $ takeMVar mv
+          freeHaskellFunPtr f
+-}
     ]
   where
     withReadFd :: (Fd -> IO ()) -> IO ()
