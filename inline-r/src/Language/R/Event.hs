@@ -83,8 +83,10 @@ registerREvents emgr = io $ do
       let action _ _ = invokeCallback inputHandlerCallback inputHandlerUserData
       case 0 < inputHandlerActive of
         True ->
-#if MIN_VERSION_base(4,8,0)
+#if MIN_VERSION_base(4,8,1)
           Just <$> Event.registerFd emgr action inputHandlerFD Event.evtRead Event.MultiShot
+#elif MIN_VERSION_base(4,8,0)
+          fail "registerREvents not implementable in GHC 7.10.1. Use 7.10.2."
 #else
           Just <$> Event.registerFd emgr action inputHandlerFD Event.evtRead
 #endif
