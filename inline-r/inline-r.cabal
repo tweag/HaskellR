@@ -57,8 +57,7 @@ library
                        Language.R.Literal
                        Language.R.QQ
                        Control.Memory.Region
-  other-modules:       Control.Concurrent.OSThread
-                       Control.Monad.R.Class
+  other-modules:       Control.Monad.R.Class
                        H.Internal.Error
                        H.Internal.Prelude
   build-depends:       base >= 4.6 && < 5
