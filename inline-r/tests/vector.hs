@@ -13,6 +13,7 @@ module Main
 
 import qualified Data.Vector.SEXP
 import qualified Data.Vector.SEXP as V
+import qualified Data.Vector.Storable as Storable
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as S
 
@@ -100,7 +101,7 @@ tests :: TestTree
 tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"  [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Int Int32)]
   , testGroup "Data.Vector.Storable.Vector (Double)" [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Real Double)]
-  , testGroup "Regression tests" [fromListLength]
+  , testGroup "Regression tests" [fromListLength, testFromStorable]
   ]
 
 idVec :: V.Vector s 'R.Real Double -> V.Vector s 'R.Real Double
@@ -114,3 +115,29 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
    io $ assertEqual "Length should be equal to list length" 3 (V.length v)
    -- io $ Prelude.print v
    return ()
+
+-- | Helper in order to help ghc infer ty and as types that are
+-- ambigious, as ElemRep is non injective, as s is not fixed
+-- by methods.
+fromStorable' :: (SEXP.VECTOR s ty a)
+             => G s ty a
+             -> Storable.Vector a
+             -> R s (SEXP.Vector s ty a)
+fromStorable' _ = return . SEXP.fromStorable
+
+data G s ty a where
+  P :: (SEXP.ElemRep s ty ~ a) => G s ty a
+
+mkG :: (SEXP.ElemRep s ty ~ a) => proxy1 ty -> proxy2 a -> R s (G s ty a)
+mkG _ _ = return P
+
+
+testFromStorable :: TestTree
+testFromStorable = testCase "fromStorable should work" $ runRegion $ do
+   let s = Storable.fromList [1,2,3::Int32]
+   p <- mkG (Proxy :: 'R.Int32) s
+   ss <- fromStorable' p s
+   1 @=? ss V.! 0
+   2 @=? ss V.! 1
+   3 @=? ss V.! 2
+
