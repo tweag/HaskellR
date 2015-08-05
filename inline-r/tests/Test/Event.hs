@@ -4,12 +4,9 @@
 module Test.Event where
 
 #ifndef mingw32_HOST_OS
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
-import Control.Monad (void)
 import Data.IORef (modifyIORef', newIORef, readIORef, writeIORef)
 import Foreign (FunPtr, Ptr, freeHaskellFunPtr)
 import qualified Foreign.R.EventLoop as R
-import GHC.Event (getSystemEventManager)
 import H.Prelude
 import Language.R.Event
 import System.IO (hClose, hPutStrLn)
@@ -22,7 +19,6 @@ import System.Posix.IO
   , openFd
   )
 import System.Posix.Types (Fd)
-import System.Timeout (timeout)
 #endif
 import Test.Tasty
 import Test.Tasty.HUnit
