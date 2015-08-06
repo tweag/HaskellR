@@ -167,22 +167,22 @@ instance TH.Lift (IO (Vector.Vector s 'R.Char Word8)) where
 instance TH.Lift (IO (Vector.Vector s 'R.Logical R.Logical)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SLogical xs |]
+      [| fmap vector $ mkSEXPVectorIO SingR.SLogical $ map return xs |]
 
 instance TH.Lift (IO (Vector.Vector s 'R.Int Int32)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SInt xs |]
+      [| fmap vector $ mkSEXPVectorIO SingR.SInt $ map return xs |]
 
 instance TH.Lift (IO (Vector.Vector s 'R.Real Double)) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SReal xs |]
+      [| fmap vector $ mkSEXPVectorIO SingR.SReal $ map return xs |]
 
 instance TH.Lift (IO (Vector.Vector s 'R.Complex (Complex Double))) where
     lift = runIO >=> \v -> do
       let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SComplex xs |]
+      [| fmap vector $ mkSEXPVectorIO SingR.SComplex $ map return xs |]
 
 instance TH.Lift (IO (Vector.Vector s 'R.String (SEXP s 'R.Char))) where
     lift = runIO >=> \v -> do
