@@ -16,10 +16,13 @@ import qualified Foreign.R as R
 import Foreign.R (SEXP)
 import H.Prelude as H
 import Language.R.QQ
-import Data.Int
+import qualified Data.Vector.SEXP as SVector
+import qualified Data.Vector.SEXP.Mutable as SMVector
+import Control.Memory.Region
 
 import Control.Applicative ((<$>))
 import Control.Monad.Trans (liftIO)
+import Data.Int
 import qualified Data.Text.Lazy as Text
 import Test.Tasty.HUnit hiding ((@=?))
 
@@ -111,4 +114,15 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
 
     -- restore usual meaning of `+`
     _ <- [r| `+` <- base::`+` |]
+
+    -- test Vector literal instance
+    v1 <- io $ do
+      x <- SMVector.new 3 :: IO (SMVector.IOVector V 'R.Int Int32)
+      SMVector.unsafeWrite x 0 1
+      SMVector.unsafeWrite x 1 2
+      SMVector.unsafeWrite x 2 3
+      return x
+    ("c(7, 2, 3)" @=?) =<< [r| v = v1_hs; v[1] <- 7; v |]
+    io $ assertEqual "" "fromList [1,2,3]" . Prelude.show =<< SVector.unsafeFreeze v1
+
     return ()
