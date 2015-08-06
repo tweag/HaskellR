@@ -324,19 +324,19 @@ peekHExp s = do
         Special   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} sptr)
       R.Builtin   -> coerce $
         Builtin   <$> (fromIntegral <$> {#get SEXP->u.primsxp.offset #} sptr)
-      R.Char      -> coerce $ Char    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Logical   -> coerce $ Logical <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Int       -> coerce $ Int     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Real      -> coerce $ Real    <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.Complex   -> coerce $ Complex <$> Vector.unsafeFromSEXP (unsafeCoerce s)
-      R.String    -> coerce $ String  <$> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Char      -> unsafeCoerce $ Char    (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.Logical   -> unsafeCoerce $ Logical (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.Int       -> unsafeCoerce $ Int     (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.Real      -> unsafeCoerce $ Real    (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.Complex   -> unsafeCoerce $ Complex (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.String    -> unsafeCoerce $ String  (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Vector    -> coerce $
         Vector    <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} sptr)
-                  <*> Vector.unsafeFromSEXP (unsafeCoerce s)
+                  <*> pure (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.Expr      -> coerce $
         Expr      <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} sptr)
-                  <*> Vector.unsafeFromSEXP (unsafeCoerce s)
+                  <*> pure (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.Bytecode  -> return $ Bytecode
       R.ExtPtr    -> coerce $
         ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} sptr)
@@ -351,7 +351,7 @@ peekHExp s = do
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
                   <*> (coerceAny <$> R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
-      R.Raw       -> coerce $ Raw     <$> Vector.unsafeFromSEXP (unsafeCoerce s)
+      R.Raw       -> unsafeCoerce $ Raw (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.S4        -> coerce $
         S4        <$> (R.sexp <$> {# get SEXP->u.listsxp.tagval #} sptr)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
