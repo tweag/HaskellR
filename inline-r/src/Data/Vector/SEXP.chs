@@ -344,19 +344,19 @@ toMVecPtr :: MVector s ty r a -> Ptr a
 toMVecPtr mv = castPtr (R.unsafeSEXPToVectorPtr $ unMVector mv)
 
 -- | /O(n)/ Create an immutable vector from a 'SEXP'. Because 'SEXP's are
--- mutable, this function yields an immutable copy of the 'SEXP'.
+-- mutable, this function yields an immutable /copy/ of the 'SEXP'.
 fromSEXP :: (VECTOR s ty a, PrimMonad m)
          => SEXP s ty
          -> m (Vector s ty a)
-fromSEXP s = return (Vector s)       -- G.freeze =<< Mutable.fromSEXP s
+fromSEXP s = G.freeze (Mutable.fromSEXP s)
 
--- | /O(1)/ Unsafe convert a mutable 'SEXP' to an immutable vector with
+-- | /O(1)/ Unsafe convert a mutable 'SEXP' to an immutable vector without
 -- copying. The mutable vector must not be used after this operation, lest one
 -- runs the risk of breaking referential transparency.
-unsafeFromSEXP :: (VECTOR s ty a, PrimMonad m)
+unsafeFromSEXP :: VECTOR s ty a
                => SEXP s ty
-               -> m (Vector s ty a)
-unsafeFromSEXP s = return (Vector s) -- G.unsafeFreeze =<< Mutable.fromSEXP s
+               -> Vector s ty a
+unsafeFromSEXP s = Vector s
 
 -- | /O(n)/ Yield a (mutable) copy of the vector as a 'SEXP'.
 toSEXP :: (VECTOR s ty a, PrimMonad m)

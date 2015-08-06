@@ -71,6 +71,7 @@ import qualified Foreign.R as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)
 
 import Control.Applicative
+import Control.Monad (liftM)
 import Control.Monad.Primitive
   (PrimMonad, PrimState, RealWorld, unsafePrimToPrim, unsafeInlineIO)
 import qualified Data.Vector.Generic.Mutable as G
@@ -123,7 +124,8 @@ instance (VECTOR s ty a)
       failure "Data.Vector.SEXP.Mutable.new"
               "R character vectors are immutable and globally cached. Use 'mkChar' instead."
     | otherwise =
-      fromSEXP =<< unsafePrimToPrim (R.allocVectorProtected (sing :: SSEXPTYPE ty) n)
+      -- No functor instance available here in GHC < 7.10 (pre AMP).
+      liftM fromSEXP $ unsafePrimToPrim (R.allocVectorProtected (sing :: SSEXPTYPE ty) n)
   basicUnsafeRead mv i     = unsafePrimToPrim
                            $ peekElemOff (toVecPtr mv) i
   basicUnsafeWrite mv i x  = unsafePrimToPrim
@@ -142,10 +144,10 @@ toVecPtr :: MVector s ty r a -> Ptr a
 toVecPtr mv = castPtr (R.unsafeSEXPToVectorPtr $ unMVector mv)
 
 -- | /O(1)/ Create a vector from a 'SEXP'.
-fromSEXP :: (E s ty a, Storable a, IsVector ty, PrimMonad m)
+fromSEXP :: (E s ty a, Storable a, IsVector ty)
          => R.SEXP s ty
-         -> m (MVector s ty (PrimState m) a)
-fromSEXP s = return (MVector s)
+         -> MVector s ty r a
+fromSEXP s = MVector s
 
 -- | /O(1)/ Convert a mutable vector to a 'SEXP'. This can be done efficiently,
 -- without copy, because vectors in this module always include a 'SEXP' header
