@@ -447,7 +447,10 @@ unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN
 {#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP V R.Char' sexp #}
 
 -- | Create Character value with specified encoding
-{#fun Rf_mkCharCE as mkCharCE { id `CString', cIntFromEnum `CEType' } -> `SEXP V R.Char' sexp #}
+{#fun Rf_mkCharCE as mkCharCE_ { id `CString', cIntFromEnum `CEType' } -> `SEXP V R.Char' sexp #}
+
+mkCharCE :: CEType -> CString -> IO (SEXP V R.Char)
+mkCharCE = flip mkCharCE_
 
 -- | Intern a string @name@ into the symbol table.
 --
