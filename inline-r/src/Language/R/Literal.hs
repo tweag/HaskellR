@@ -42,7 +42,7 @@ import Data.Char (chr)
 import Data.Int (Int32)
 import Data.Complex (Complex)
 import Foreign          ( FunPtr, castPtr )
-import Foreign.C.String ( newCString, withCString )
+import Foreign.C.String ( withCString )
 import Foreign.Storable ( Storable, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
@@ -127,6 +127,12 @@ instance Literal [String] 'R.String where
     fromSEXP _ =
         failure "fromSEXP" "String expected where some other expression appeared."
 
+instance Literal String 'R.Char where
+    mkSEXPIO x = withCString x (R.mkCharCE R.CE_UTF8)
+    fromSEXP (hexp -> Char xs) = map (chr . fromIntegral) $ SVector.toList xs
+    fromSEXP _ =
+        failure "fromSEXP" "String expected where some other expression appeared."
+
 instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
     mkSEXPIO = SVector.toSEXP
     fromSEXP = unsafePerformIO . SVector.freeze . fromSEXP
@@ -181,10 +187,6 @@ instance Literal (SomeSEXP s) 'R.Any where
     -- when the real type is not known.
     mkSEXPIO (SomeSEXP s) = return . R.unsafeRelease $ R.unsafeCoerce s
     fromSEXP = SomeSEXP . R.unsafeRelease
-
-instance Literal String 'R.String where
-    mkSEXPIO x = R.mkString =<< newCString x
-    fromSEXP  = unimplemented "Literal String fromSEXP"
 
 instance Literal a b => Literal (R s a) 'R.ExtPtr where
     mkSEXPIO = funToSEXP wrap0
