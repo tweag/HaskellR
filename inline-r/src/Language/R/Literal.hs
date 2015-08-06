@@ -38,10 +38,11 @@ import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import Data.Singletons ( SingI, sing )
 
 import Control.Monad ( void, zipWithM_ )
+import Data.Char (chr)
 import Data.Int (Int32)
 import Data.Complex (Complex)
 import Foreign          ( FunPtr, castPtr )
-import Foreign.C.String ( newCString )
+import Foreign.C.String ( newCString, withCString )
 import Foreign.Storable ( Storable, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
@@ -118,6 +119,13 @@ instance Literal [Complex Double] 'R.Complex where
     fromSEXP (hexp -> Complex v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
+
+instance Literal [String] 'R.String where
+    mkSEXPIO xs = mkSEXPVectorIO sing =<< mapM (`withCString` R.mkCharCE R.CE_UTF8) xs
+    fromSEXP (hexp -> String v) =
+        map (\(hexp -> Char xs) -> map (chr . fromIntegral) $ SVector.toList xs) (SVector.toList v)
+    fromSEXP _ =
+        failure "fromSEXP" "String expected where some other expression appeared."
 
 instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
     mkSEXPIO = SVector.toSEXP
