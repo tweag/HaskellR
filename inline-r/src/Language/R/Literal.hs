@@ -31,6 +31,7 @@ import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 import qualified Data.Vector.SEXP as SVector
+import qualified Data.Vector.SEXP.Mutable as SMVector
 import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 
@@ -117,6 +118,18 @@ instance Literal [Complex Double] 'R.Complex where
     fromSEXP (hexp -> Complex v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
+
+instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
+    mkSEXPIO = SVector.toSEXP
+    fromSEXP = unsafePerformIO . SVector.freeze . fromSEXP
+
+instance SVector.VECTOR V ty a => Literal (SMVector.IOVector V ty a) ty where
+    mkSEXPIO = return . SMVector.toSEXP
+    fromSEXP =
+        SMVector.fromSEXP .
+        R.cast (sing :: SSEXPTYPE ty) .
+        SomeSEXP .
+        R.release
 
 -- | Named after eponymous "GHC.Exts" function.
 the :: IsVector a => Literal [SVector.ElemRep s a] a => SEXP s a -> SVector.ElemRep s a
