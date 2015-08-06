@@ -13,6 +13,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -20,12 +22,15 @@ module Test.Vector where
 
 import Data.AEq
 import Data.Int
+import Data.Singletons
 import qualified Data.Vector.SEXP
 import qualified Data.Vector.SEXP as V
+import qualified Data.Vector.SEXP.Mutable as VM
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as S
 import qualified Foreign.R as R
 import H.Prelude hiding (Show)
+import Language.R.QQ
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.Tasty.HUnit
@@ -104,11 +109,24 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
     idVec :: V.Vector s 'R.Real Double -> V.Vector s 'R.Real Double
     idVec = id
 
+vectorIsImmutable :: TestTree
+vectorIsImmutable = testCase "fromList should have correct length" $ do
+    i <- runRegion $ do
+           s <- fmap (R.cast (sing :: R.SSEXPTYPE R.Real)) [r| c(1.0,2.0,3.0) |]
+           io $ do
+              let mutV = VM.fromSEXP s
+              immV <- V.fromSEXP s
+              VM.unsafeWrite mutV 0 7
+              return $ immV V.! 0
+    i @?= 1
+
 tests :: TestTree
 tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"
       [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Int Int32)]
   , testGroup "Data.Vector.Storable.Vector (Double)"
       [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Real Double)]
-  , testGroup "Regression tests" [fromListLength]
+  , testGroup "Regression tests" [fromListLength
+                                 ,vectorIsImmutable
+                                 ]
   ]
