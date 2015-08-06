@@ -60,18 +60,18 @@ mkSEXP x = acquire =<< io (mkSEXPIO x)
 {-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep s a), IsVector a)
              => SSEXPTYPE a
-             -> [SVector.ElemRep s a]
+             -> [IO (SVector.ElemRep s a)]
              -> SEXP s a
-mkSEXPVector ty xs = unsafePerformIO $ mkSEXPVectorIO ty xs
+mkSEXPVector ty allocators = unsafePerformIO $ mkSEXPVectorIO ty allocators
 
 mkSEXPVectorIO :: (Storable (SVector.ElemRep s a), IsVector a)
                => SSEXPTYPE a
-               -> [SVector.ElemRep s a]
+               -> [IO (SVector.ElemRep s a)]
                -> IO (SEXP s a)
-mkSEXPVectorIO ty xs =
-    R.withProtected (R.allocVector ty $ length xs) $ \vec -> do
+mkSEXPVectorIO ty allocators =
+    R.withProtected (R.allocVector ty $ length allocators) $ \vec -> do
       let ptr = castPtr $ R.unsafeSEXPToVectorPtr vec
-      zipWithM_ (pokeElemOff ptr) [0..] xs
+      zipWithM_ (\i -> (>>= pokeElemOff ptr i)) [0..] allocators
       return vec
 
 {-# NOINLINE mkProtectedSEXPVector #-}
@@ -95,33 +95,34 @@ mkProtectedSEXPVectorIO ty xs = do
     return z
 
 instance Literal [R.Logical] 'R.Logical where
-    mkSEXPIO = mkSEXPVectorIO sing
+    mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Logical v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Logical expected where some other expression appeared."
 
 instance Literal [Int32] 'R.Int where
-    mkSEXPIO = mkSEXPVectorIO sing
+    mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Int v) = SVector.toList v
     fromSEXP (hexp -> Real v) = map round (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal [Double] 'R.Real where
-    mkSEXPIO = mkSEXPVectorIO sing
+    mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Real v) = SVector.toList v
     fromSEXP (hexp -> Int v) = map fromIntegral (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 
 instance Literal [Complex Double] 'R.Complex where
-    mkSEXPIO = mkSEXPVectorIO sing
+    mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Complex v) = SVector.toList v
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
 
 instance Literal [String] 'R.String where
-    mkSEXPIO xs = mkSEXPVectorIO sing =<< mapM (`withCString` R.mkCharCE R.CE_UTF8) xs
+    mkSEXPIO =
+        mkSEXPVectorIO sing . map (`withCString` R.mkCharCE R.CE_UTF8)
     fromSEXP (hexp -> String v) =
         map (\(hexp -> Char xs) -> map (chr . fromIntegral) $ SVector.toList xs) (SVector.toList v)
     fromSEXP _ =
