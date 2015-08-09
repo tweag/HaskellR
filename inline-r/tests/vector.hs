@@ -131,7 +131,6 @@ data G s ty a where
 mkG :: (SEXP.ElemRep s ty ~ a) => proxy1 ty -> proxy2 a -> R s (G s ty a)
 mkG _ _ = return P
 
-
 testFromStorable :: TestTree
 testFromStorable = testCase "fromStorable should work" $ runRegion $ do
    let s = Storable.fromList [1,2,3::Int32]
