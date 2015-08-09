@@ -1,8 +1,6 @@
 -- |
--- Module: IHaskell.Display.InlineR
--- Copyright: 2015 (C) Tweag I/O
---
---
+-- Copyright: 2015 (C) Tweag I/O Limited
+
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
