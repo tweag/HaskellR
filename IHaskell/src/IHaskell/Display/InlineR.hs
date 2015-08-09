@@ -5,10 +5,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 module IHaskell.Display.InlineR
-  ( initializeEmbeddedR
-  , Config(..)
-  , defaultConfig
-  , r
+  ( r
   , rprint
   , rgraph
   , Language.R.Instance.runRegion
@@ -49,8 +46,3 @@ rgraph = QuasiQuoter { quoteExp = \s ->
               BH.src (BH.unsafeByteStringValue
                         (Char.pack "data:image/png;base64," <> encoded))
      |] }
-
--- | Initialize Embedded R process and configure R
-initializeEmbeddedR :: Config -> IO ()
-initializeEmbeddedR config = do
-  H.initialize config
