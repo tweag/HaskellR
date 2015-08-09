@@ -327,5 +327,5 @@ fromStorable v = do
   let (fptr, l) = Storable.unsafeToForeignPtr0 v
   mv <- new l
   unsafePrimToPrim $ withForeignPtr fptr $ \p -> do
-    copyArray p (toVecPtr mv) (Storable.length v)
+    copyArray (toVecPtr mv) p (Storable.length v)
   return mv
