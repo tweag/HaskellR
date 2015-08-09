@@ -14,22 +14,20 @@ module IHaskell.Display.InlineR
   , Language.R.Instance.runRegion
   ) where
 
-import           H.Prelude.Interactive as H -- we use provide instances to IO Monad
-import           Language.R.QQ
-import           Language.R.Instance
-
-import           IHaskell.Display
-import           IHaskell.Display.Blaze () -- to confirm it's installed
-import qualified Text.Blaze.Html5 as BH
-import qualified Text.Blaze.Html5.Attributes as BH
-
 import           Control.Applicative
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as Char
 import qualified Data.ByteString.Base64 as Base64
+import qualified Data.ByteString.Char8 as Char
 import           Data.Monoid
+import           H.Prelude.Interactive as H -- we use provide instances to IO Monad
+import           IHaskell.Display
+import           IHaskell.Display.Blaze () -- to confirm it's installed
 import           Language.Haskell.TH.Quote
+import           Language.R.Instance
+import           Language.R.QQ
 import           System.Directory
+import qualified Text.Blaze.Html5 as BH
+import qualified Text.Blaze.Html5.Attributes as BH
 
 rprint :: QuasiQuoter
 rprint = QuasiQuoter { quoteExp = \s -> [| do H.p $(quoteExp r s) |] }
