@@ -8,9 +8,9 @@ module IHaskell.Display.InlineR
   ( initializeEmbeddedR
   , Config(..)
   , defaultConfig
-  , h
-  , hDisp
-  , hPlot
+  , r
+  , rprint
+  , rgraph
   , Language.R.Instance.runRegion
   ) where
 
@@ -31,15 +31,12 @@ import           Data.Monoid
 import           Language.Haskell.TH.Quote
 import           System.Directory
 
-hDisp :: QuasiQuoter
-hDisp = QuasiQuoter { quoteExp = \s -> [| do result <- $(quoteExp r s)
-                                             H.print result |] }
+rprint :: QuasiQuoter
+rprint = QuasiQuoter { quoteExp = \s -> [| do result <- $(quoteExp r s)
+                                              H.print result |] }
 
-h :: QuasiQuoter
-h = r
-
-hPlot :: QuasiQuoter
-hPlot = QuasiQuoter { quoteExp = \s ->
+rgraph :: QuasiQuoter
+rgraph = QuasiQuoter { quoteExp = \s ->
     [| do idx <- findMaxIndex 0
           let fname = mkName idx
           _ <- [r| png(filename=fname_hs, width=480, height=480, bg="white"); |]
