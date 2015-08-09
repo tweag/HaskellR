@@ -32,15 +32,14 @@ import           Language.Haskell.TH.Quote
 import           System.Directory
 
 rprint :: QuasiQuoter
-rprint = QuasiQuoter { quoteExp = \s -> [| do result <- $(quoteExp r s)
-                                              H.print result |] }
+rprint = QuasiQuoter { quoteExp = \s -> [| do H.p $(quoteExp r s) |] }
 
 rgraph :: QuasiQuoter
 rgraph = QuasiQuoter { quoteExp = \s ->
     [| do idx <- findMaxIndex 0
           let fname = mkName idx
           _ <- [r| png(filename=fname_hs, width=480, height=480, bg="white"); |]
-          _ <- $(quoteExp r s)
+          H.p $(quoteExp r s)
           _ <- [r| dev.off() |]
           encoded <- Base64.encode <$> B.readFile fname
           display $ BH.img BH.! BH.src
