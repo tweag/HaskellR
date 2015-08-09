@@ -14,7 +14,6 @@ library
   exposed-modules:     IHaskell.Display.InlineR
   build-depends:       base >=4.7 && <5
                       ,inline-r >= 0.6.0.1
-                      ,directory < 2
                       ,ihaskell
                       ,ihaskell-blaze
                       ,filepath
@@ -22,6 +21,7 @@ library
                       ,bytestring
                       ,base64-bytestring
                       ,template-haskell
+                      ,temporary >= 1.2
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
