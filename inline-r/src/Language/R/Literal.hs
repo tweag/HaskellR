@@ -147,10 +147,9 @@ instance SVector.VECTOR V ty a => Literal (SMVector.IOVector V ty a) ty where
         R.release
 
 -- | Named after eponymous "GHC.Exts" function.
-the :: IsVector a => Literal [SVector.ElemRep s a] a => SEXP s a -> SVector.ElemRep s a
-the (fromSEXP -> xs)
-  | length xs == 1 = head xs
-  | otherwise = failure "the" "Not a singleton vector."
+the :: (IsVector a, Literal [SVector.ElemRep s a] a) => SEXP s a -> SVector.ElemRep s a
+the (fromSEXP -> [x]) = x
+the _ = failure "the" "Not a singleton vector."
 
 instance Literal R.Logical 'R.Logical where
     mkSEXPIO x = mkSEXPIO [x]
