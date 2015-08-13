@@ -23,6 +23,7 @@ import Control.Memory.Region
 import Control.Applicative ((<$>))
 import Control.Monad.Trans (liftIO)
 import Data.Int
+import Data.Singletons (sing)
 import qualified Data.Text.Lazy as Text
 import Test.Tasty.HUnit hiding ((@=?))
 
@@ -124,5 +125,8 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
       return x
     ("c(7, 2, 3)" @=?) =<< [r| v = v1_hs; v[1] <- 7; v |]
     io $ assertEqual "" "fromList [1,2,3]" . Prelude.show =<< SVector.unsafeFreeze v1
+
+    let utf8string = "abcd çéõßø"
+    io . assertEqual "" utf8string =<< fromSEXP <$> R.cast (sing :: R.SSEXPTYPE 'R.String) <$> [r| utf8string_hs |]
 
     return ()

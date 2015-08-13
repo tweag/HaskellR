@@ -38,7 +38,6 @@ import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import Data.Singletons ( SingI, sing )
 
 import Control.Monad ( void, zipWithM_ )
-import Data.Char (chr)
 import Data.Int (Int32)
 import Data.Complex (Complex)
 import Foreign          ( FunPtr, castPtr )
@@ -124,13 +123,7 @@ instance Literal [String] 'R.String where
     mkSEXPIO =
         mkSEXPVectorIO sing . map (`withCString` R.mkCharCE R.CE_UTF8)
     fromSEXP (hexp -> String v) =
-        map (\(hexp -> Char xs) -> map (chr . fromIntegral) $ SVector.toList xs) (SVector.toList v)
-    fromSEXP _ =
-        failure "fromSEXP" "String expected where some other expression appeared."
-
-instance Literal String 'R.Char where
-    mkSEXPIO x = withCString x (R.mkCharCE R.CE_UTF8)
-    fromSEXP (hexp -> Char xs) = map (chr . fromIntegral) $ SVector.toList xs
+        map (\(hexp -> Char xs) -> SVector.toString xs) (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "String expected where some other expression appeared."
 
@@ -176,6 +169,14 @@ instance Literal (Complex Double) 'R.Complex where
     fromSEXP x@(hexp -> Complex{}) = the x
     fromSEXP _ =
         failure "fromSEXP" "Complex expected where some other expression appeared."
+
+instance Literal String 'R.String where
+    mkSEXPIO x = mkSEXPIO [x]
+    fromSEXP x@(hexp -> String {})
+      | [h] <- fromSEXP x = h
+      | otherwise = failure "fromSEXP" "Not a singleton vector."
+    fromSEXP _ =
+        failure "fromSEXP" "String expected where some other expression appeared."
 
 instance SingI a => Literal (SEXP s a) a where
     mkSEXPIO = fmap R.unsafeRelease . return
