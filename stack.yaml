@@ -10,3 +10,7 @@ extra-deps:
 - ghc-parser-0.1.7.0
 - ipython-kernel-0.6.1.0
 - system-argv0-0.1.1
+
+docker:
+  enable: true
+  repo: tweag/haskellr
