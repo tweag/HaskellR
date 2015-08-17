@@ -22,4 +22,7 @@ dependencies:
 
 test:
   override:
-  - stack --no-terminal --docker build --haddock --test --bench
+  # XXX Have to build twice due to
+  # https://github.com/commercialhaskell/stack/issues/805.
+  - stack --no-terminal --docker build
+  - stack --no-terminal --docker build --pedantic --haddock --test --bench
