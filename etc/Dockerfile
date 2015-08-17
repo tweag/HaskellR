@@ -2,7 +2,8 @@ FROM fpco/stack-build:lts-2.14
 MAINTAINER Mathieu Boespflug <m@tweag.io>
 
 # Install system dependencies.
-RUN apt-get update \
+RUN apt-add-repository ppa:marutter/rrutter \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
          libzmq3-dev \
 	 python-dev \
@@ -12,4 +13,4 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin version for repeatability.
-RUN pip install 'ipython[all]==3.2.*'
+RUN pip install 'ipython[all]==3.2.1'
