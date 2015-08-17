@@ -12,5 +12,6 @@ extra-deps:
 - system-argv0-0.1.1
 
 docker:
-  enable: true
-  repo: tweag/haskellr
+  # Disabled by default. Use --docker on command line to enable.
+  enable: false
+  repo: tweag/haskellr:latest
