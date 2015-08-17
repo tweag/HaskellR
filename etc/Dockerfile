@@ -10,3 +10,6 @@ RUN apt-get update \
          r-base \
          r-base-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Pin version for repeatability.
+RUN pip install 'ipython[all]==3.2.*'
