@@ -15,7 +15,7 @@ dependencies:
   - (cd /; stack --no-terminal setup; stack --no-terminal upgrade --git)
   # should run inside docker
   - stack --no-terminal docker pull
-  - stack --no-terminal --docker build --only-snapshot --prefetch --test --bench --haddock
+  - stack --no-terminal --docker build --only-snapshot --prefetch --test --bench
 
   cache_directories:
   - "~/.stack/"
