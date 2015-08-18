@@ -1,5 +1,17 @@
 packages:
-- inline-r
-- H
 - examples
+- H
+- IHaskell
+- inline-r
 resolver: lts-2.14
+extra-deps:
+- ihaskell-0.6.4.0
+- ihaskell-blaze-0.3.0.0
+- ghc-parser-0.1.7.0
+- ipython-kernel-0.6.1.0
+- system-argv0-0.1.1
+
+docker:
+  # Disabled by default. Use --docker on command line to enable.
+  enable: false
+  repo: tweag/haskellr:latest

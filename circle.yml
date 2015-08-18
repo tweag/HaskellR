@@ -1,24 +1,28 @@
 machine:
+  services:
+  - docker
   ghc:
-    version: 7.8.3
+    version: 7.8.4
   environment:
     PATH: ~/.local/bin:$PATH
 
 dependencies:
   override:
+  # Even though we have stack in docker image, we still need it on CI
   - mkdir -p ~/.local/bin
-  - curl -L https://github.com/commercialhaskell/stack/releases/download/v0.1.2.0/stack-0.1.2.0-x86_64-linux.gz | gunzip > ~/.local/bin/stack
+  - curl -L https://github.com/commercialhaskell/stack/releases/download/v0.1.3.0/stack-0.1.3.0-x86_64-linux.gz | gunzip > ~/.local/bin/stack
   - chmod a+x ~/.local/bin/stack
-  - stack setup --no-terminal
-  - stack test --only-snapshot --prefetch --no-terminal
-  - stack bench --only-snapshot --prefetch --no-terminal
-  - stack haddock --only-snapshot --prefetch --no-terminal
+  - (cd /; stack --no-terminal setup; stack --no-terminal upgrade --git)
+  # should run inside docker
+  - stack --no-terminal docker pull
+  - stack --no-terminal --docker build --only-snapshot --prefetch --test --bench --haddock
 
   cache_directories:
   - "~/.stack/"
 
 test:
   override:
-  - stack build --haddock --pedantic --no-terminal
-  - stack test --pedantic --no-terminal
-  - stack bench --pedantic --no-terminal
+  # XXX Have to build twice due to
+  # https://github.com/commercialhaskell/stack/issues/805.
+  - stack --no-terminal --docker build
+  - stack --no-terminal --docker build --pedantic --haddock --test --bench

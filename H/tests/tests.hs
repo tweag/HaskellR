@@ -72,6 +72,6 @@ tests = testGroup "Integration tests"
 main :: IO ()
 main = do
     -- Normalize internalization settings.
-    setEnv "LANG" "C"
+    setEnv "LC_ALL" "C"
     _ <- R.initialize R.defaultConfig
     defaultMain tests
