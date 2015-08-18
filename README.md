@@ -36,12 +36,13 @@ $ stack setup
 $ stack build
 ```
 
-or indeed run all the tests with `stack test` and build the API
-documentation using `stack haddock`. You can spawn an H interactive
-prompt using
+See the
+[stack documentation](https://github.com/commercialhaskell/stack/wiki)
+for further information on how to run tests, benchmarks, or build the
+API documentation. You can do all of that at once with
 
 ```
-$ stack exec H
+$ stack build --test --haddock --bench
 ```
 
 ## License
