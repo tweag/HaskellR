@@ -2,7 +2,7 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 -- Debugging facilities, in particular to analyze the internal structure of
--- a 'SEXP'.
+-- a 'SEXP' as structured JSON.
 --
 -- This module is intended to be imported qualified.
 

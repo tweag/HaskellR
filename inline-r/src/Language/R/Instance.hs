@@ -99,7 +99,8 @@ instance MonadR (R s) where
 -- > main = withEmbeddedR $ do {...}
 --
 -- Note that R does not currently support reinitialization after finalization,
--- so this cation can be executed only once during the lifetime of the program.
+-- so this function should be called only once during the lifetime of the
+-- program (see @src/unix/system.c:Rf_initialize()@ in the R source code).
 withEmbeddedR :: Config -> IO a -> IO a
 withEmbeddedR config = bracket_ (initialize config) finalize
 
@@ -108,7 +109,10 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- has not yet been finalized. Make sure to call it within the scope of
 -- `withEmbeddedR`.
 --
--- @runRegion m@ is strict in the result of action @m@.
+-- @runRegion m@ fully evaluates the result of action @m@, to ensure that no
+-- thunks hold onto resources in a way that would extrude the scope of the
+-- region. This means that the result must be first-order data (i.e. not
+-- a function).
 runRegion :: NFData a => (forall s . R s a) -> IO a
 runRegion r =
   bracket (newIORef 0)
@@ -117,7 +121,7 @@ runRegion r =
              x <- runReaderT (unR r) d
              x `deepseq` return x)
 
--- | An unsafe version of runRegion, providing no static guarantees that
+-- | An unsafe version of 'runRegion', providing no static guarantees that
 -- resources do not extrude the scope of their region. For internal use only.
 unsafeRToIO :: R s a -> IO a
 unsafeRToIO r =
