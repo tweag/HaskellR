@@ -38,6 +38,8 @@ module Language.R.Instance
   ) where
 
 import           Control.Monad.R.Class
+import           Data.Monoid
+import           Data.Default.Class (Default(..))
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
 import qualified Foreign.R.EventLoop as R
@@ -123,13 +125,27 @@ unsafeRToIO r =
           (R.unprotect <=< readIORef)
           (runReaderT (unR r))
 
--- | Configuration options for R runtime.
+-- | Configuration options for the R runtime. Configurations form monoids, so
+-- arguments can be accumulated left-to-right through monoidal composition.
 data Config = Config
-    { configProgName :: Maybe String    -- ^ Program name. If 'Nothing' then
-                                        -- value of 'getProgName' will be used.
-    , configArgs     :: [String]        -- ^ Command-line arguments.
-    }
+  { -- | Program name. If 'Nothing' then the value of 'getProgName' will be
+    -- used.
+    configProgName :: Maybe String
+    -- | Command-line arguments.
+  , configArgs :: [String]
+  }
 
+instance Default Config where
+  def = defaultConfig
+
+instance Monoid Config where
+  mempty = defaultConfig
+  mappend cfg1 cfg2 = Config
+      { configProgName = configProgName cfg1 <> configProgName cfg2
+      , configArgs = configArgs cfg1 <> configArgs cfg2
+      }
+
+-- | Default argument to pass to 'initialize'.
 defaultConfig :: Config
 defaultConfig = Config Nothing ["--vanilla", "--silent"]
 
