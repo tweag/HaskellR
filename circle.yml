@@ -25,4 +25,5 @@ test:
   # XXX Have to build twice due to
   # https://github.com/commercialhaskell/stack/issues/805.
   - stack --no-terminal --docker build
-  - stack --no-terminal --docker build --pedantic --haddock --test --bench
+  - stack --no-terminal --docker build --pedantic --test --bench
+  - stack --no-terminal --docker haddock --no-haddock-deps
