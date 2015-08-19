@@ -266,6 +266,9 @@ import Foreign ( Ptr, plusPtr, castPtr )
 import Foreign.C
 import Foreign.Storable
 import Foreign.Marshal.Array ( copyArray )
+#if __GLASGOW_HASKELL__ >= 708
+import qualified GHC.Exts as Exts
+#endif
 
 import Prelude
   ( Eq(..)
@@ -336,6 +339,14 @@ instance (VECTOR s ty a)
               (G.basicLength v)
 
   elemseq _                      = seq
+
+#if __GLASGOW_HASKELL__ >= 708
+instance VECTOR s ty a => Exts.IsList (Vector s ty a) where
+  type Item (Vector s ty a) = a
+  fromList = fromList
+  fromListN = fromListN
+  toList = toList
+#endif
 
 toVecPtr :: Vector s ty a -> Ptr a
 toVecPtr mv = castPtr (R.unsafeSEXPToVectorPtr $ unVector mv)
