@@ -219,4 +219,4 @@ foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
 funToSEXP :: HFunWrap a b => (b -> IO (FunPtr b)) -> a -> IO (SEXP s 'R.ExtPtr)
 funToSEXP w x = funPtrToSEXP =<< w (hFunWrap x)
 
-$(thWrapperLiterals 3 25)
+$(thWrapperLiterals 3 12)
