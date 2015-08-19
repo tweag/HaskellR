@@ -118,9 +118,11 @@ H.print =<< [r| typeof(x) |]
 H.print =<< [r| typeof(x_hs) |]
 
 :{
-let testpm (SomeSEXP z) = case hexp z of
-                  S4 p | H.Prelude.toBool [rsafe| z_hs @ a > 0 |] -> H.print z
-                  _    -> print "unexpected value"
+let testpm :: SomeSEXP s -> IO ()
+    testpm (SomeSEXP z@(hexp -> S4 p))
+      | SomeSEXP ll <- [rsafe| z_hs @ a > 0 |]
+      , R.True <- H.fromSEXP ll = H.print z
+      | otherwise = print "unexpected value"
 :}
 
 testpm x

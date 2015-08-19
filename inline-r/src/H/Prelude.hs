@@ -21,8 +21,6 @@ module H.Prelude
   , module Language.R.Globals
   , Show(..)
   , show
-  -- * Type convertion helpers.
-  , toBool
   ) where
 
 import           Control.Memory.Region
@@ -82,9 +80,3 @@ instance Show (SEXP s a) where
 instance Show (R.SomeSEXP s) where
   showIO s = R.unSomeSEXP s showIO
   print s = R.unSomeSEXP s print
-
--- | Convert Logical value into boolean.
-toBool :: SomeSEXP s -> Bool
-toBool (SomeSEXP z) = case hexp z of
-  Logical vt -> vt `unsafeIndex` 0 == R.True
-  _          -> False
