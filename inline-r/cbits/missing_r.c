@@ -1,12 +1,9 @@
 // Copyright: (C) 2013 Amgen, Inc.
+
 #define USE_RINTERNALS
+
 #include "missing_r.h"
 #include <R.h>
-
-SEXP * INNER_VECTOR(SEXP x) {
-    return VECTOR_PTR(x);
-}
-
 #include <R_ext/Rdynload.h>
 
 // Not declared in public headers but exposed in the R library.

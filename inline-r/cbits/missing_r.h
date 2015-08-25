@@ -1,12 +1,10 @@
 // Copyright: (C) 2013 Amgen, Inc.
+
 #ifndef MISSING_R__H
 #define MISSING_R__H
 
 #include "HsFFI.h"
 #include <Rinternals.h>
-
-SEXP * INNER_VECTOR(SEXP);
-
 #include <R_ext/Rdynload.h>
 
 SEXP funPtrToSEXP(DL_FUNC pf);
