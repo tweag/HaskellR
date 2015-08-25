@@ -26,22 +26,24 @@
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE RoleAnnotations #-}
 #endif
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 #if __GLASGOW_HASKELL__ >= 710
+-- XXX necessary for c2hs.
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+#else
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 #endif
 module Language.R.HExp
   ( HExp(..)
