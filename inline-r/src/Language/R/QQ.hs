@@ -22,7 +22,7 @@ module Language.R.QQ
   ) where
 
 import           Control.Memory.Region
-import H.Internal.Prelude
+import Internal.Prelude
 import qualified H.Prelude as H
 import           Language.R.HExp
 import           Language.R.Literal

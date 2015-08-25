@@ -25,7 +25,7 @@ module H.Prelude
 
 import           Control.Memory.Region
 import           Control.Monad.R.Class
-import           H.Internal.Prelude
+import           Internal.Prelude
 import qualified Foreign.R as R
 import Language.R.HExp
 import qualified Data.Vector.SEXP as Vector

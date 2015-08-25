@@ -65,7 +65,7 @@ module Data.Vector.SEXP.Mutable
   , fromStorable
   ) where
 
-import H.Internal.Prelude
+import Internal.Prelude
 import Data.Vector.SEXP.Base
 import qualified Foreign.R as R
 import Foreign.R.Type (SSEXPTYPE, IsVector)

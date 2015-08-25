@@ -23,7 +23,7 @@ module Language.R.GC
   ) where
 
 import Control.Memory.Region
-import H.Internal.Prelude
+import Internal.Prelude
 import qualified Foreign.R as R
 import System.Mem.Weak (addFinalizer)
 

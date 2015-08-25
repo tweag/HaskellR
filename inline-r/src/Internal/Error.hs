@@ -5,8 +5,10 @@
 -- internal to H, or whether they are due to a mistake by the user.
 --
 -- This module should only be imported by H modules and not reexported.
+
 {-# LANGUAGE DeriveDataTypeable #-}
-module H.Internal.Error
+
+module Internal.Error
   ( failure
   , violation
   , impossible

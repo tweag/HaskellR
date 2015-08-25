@@ -12,7 +12,7 @@ module Language.R.Internal.FunWrappers.TH
   , thWrapperLiterals
   ) where
 
-import H.Internal.Error
+import Internal.Error
 import qualified Foreign.R.Type as R
 
 import Control.Monad (replicateM)

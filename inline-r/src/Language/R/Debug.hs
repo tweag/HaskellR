@@ -19,7 +19,7 @@ module Language.R.Debug
   ( inspect )
   where
 
-import H.Internal.Prelude
+import Internal.Prelude
 import Language.R.HExp
 import Language.R.Globals as H
 import Foreign.Storable

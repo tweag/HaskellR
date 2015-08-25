@@ -26,7 +26,7 @@ module Language.R.Literal
   ) where
 
 import           Control.Memory.Region
-import           H.Internal.Prelude
+import           Internal.Prelude
 import           Language.R.HExp
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
