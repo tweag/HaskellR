@@ -1,14 +1,16 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Predicates seen in type signatures in H.
+-- R-specific predicates for encoding form constraints in type signatures. There
+-- are no actual bindings in this module.
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-module H.Constraints where
+
+module Foreign.R.Constraints where
 
 import GHC.Exts (Constraint)
 import {-# SOURCE #-} Foreign.R.Type (SEXPTYPE(..))

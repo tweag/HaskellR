@@ -34,7 +34,7 @@ module Foreign.R.Type where
 
 #include <Rinternals.h>
 
-import H.Constraints
+import Foreign.R.Constraints
 import Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs

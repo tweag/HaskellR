@@ -19,7 +19,7 @@ import qualified Test.Regions
 import qualified Test.Vector
 
 import H.Prelude
-import H.Constraints
+import Foreign.R.Constraints
 import qualified Language.R.HExp as H
 import qualified Foreign.R as R
 import qualified Language.R.Instance as R

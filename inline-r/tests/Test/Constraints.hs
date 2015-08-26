@@ -5,7 +5,7 @@ module Test.Constraints
   ( tests )
   where
 
-import H.Constraints
+import Foreign.R.Constraints
 import qualified Foreign.R.Type as R
 
 import Test.Tasty

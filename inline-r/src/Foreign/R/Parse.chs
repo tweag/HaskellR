@@ -20,7 +20,7 @@ module Foreign.R.Parse
   , ParseStatus(..)
   ) where
 
-import H.Constraints
+import Foreign.R.Constraints
 import qualified Foreign.R as R
 -- XXX Duplicate import to make c2hs happy. The problem is that c2hs doesn't
 -- like the "as R" of the above import.

@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Test.HExp ( tests ) where
 
-import H.Constraints
+import Foreign.R.Constraints
 import qualified Language.R.HExp as H
 import           Foreign.R as R
 
