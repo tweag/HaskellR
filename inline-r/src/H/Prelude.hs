@@ -42,7 +42,6 @@ import qualified Data.Text.Lazy.IO as Text
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Text.Lazy
 import Data.Text.Lazy (Text)
-import Data.Vector.Generic (unsafeIndex)
 
 import Control.Monad ((>=>))
 import Foreign.C (withCString)
@@ -62,7 +61,6 @@ class Show a where
 -- | Pure version of 'showIO'.
 show :: Show a => a -> Text
 show = unsafePerformIO . showIO
-
 
 instance Show (SEXP s a) where
   showIO s =
