@@ -23,7 +23,8 @@ module Language.R.GC
   ) where
 
 import Control.Memory.Region
-import Internal.Prelude
+import Control.Monad.R.Class
+import Foreign.R (SomeSEXP(..))
 import qualified Foreign.R as R
 import System.Mem.Weak (addFinalizer)
 

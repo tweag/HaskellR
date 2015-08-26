@@ -65,10 +65,11 @@ module Data.Vector.SEXP.Mutable
   , fromStorable
   ) where
 
-import Internal.Prelude
 import Data.Vector.SEXP.Base
 import qualified Foreign.R as R
+import Foreign.R (SEXP, SEXPTYPE)
 import Foreign.R.Type (SSEXPTYPE, IsVector)
+import Internal.Error
 
 import Control.Applicative
 import Control.Monad (liftM)

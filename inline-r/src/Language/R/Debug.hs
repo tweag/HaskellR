@@ -19,17 +19,18 @@ module Language.R.Debug
   ( inspect )
   where
 
-import Internal.Prelude
-import Language.R.HExp
-import Language.R.Globals as H
-import Foreign.Storable
-import qualified Foreign.R as R
-import Foreign.R.Type (IsVector)
 import qualified Data.Vector.SEXP as Vector
+import qualified Foreign.R as R
+import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
+import Foreign.R.Type (IsVector)
+import Foreign.Storable
+import Language.R.Globals as H
+import Language.R.HExp
+
+import Data.Complex
 import System.IO.Unsafe ( unsafePerformIO )
 
 import Data.Aeson as A
-import Data.Complex
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Data.ByteString.Lazy.Char8 as LBS

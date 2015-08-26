@@ -26,14 +26,17 @@ module Language.R.Literal
   ) where
 
 import           Control.Memory.Region
-import           Internal.Prelude
-import           Language.R.HExp
-import           Language.R.Internal.FunWrappers
-import           Language.R.Internal.FunWrappers.TH
+import           Control.Monad.R.Class
 import qualified Data.Vector.SEXP as SVector
 import qualified Data.Vector.SEXP.Mutable as SMVector
 import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
+import           Foreign.R ( SEXP, SomeSEXP(..) )
+import           Internal.Error
+import           Language.R.HExp
+import           Language.R.Instance
+import           Language.R.Internal.FunWrappers
+import           Language.R.Internal.FunWrappers.TH
 
 import Data.Singletons ( SingI, sing )
 

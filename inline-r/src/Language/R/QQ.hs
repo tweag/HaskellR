@@ -22,13 +22,17 @@ module Language.R.QQ
   ) where
 
 import           Control.Memory.Region
-import Internal.Prelude
-import qualified H.Prelude as H
-import           Language.R.HExp
-import           Language.R.Literal
+import           Control.Monad.R.Class
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Type as SingR
+import           Foreign.R (SEXP, SomeSEXP(..), SEXPInfo)
+import           Foreign.R.Constraints
+import qualified H.Prelude as H
+import           Internal.Error
+import           Language.R.HExp
+import           Language.R.Instance
+import           Language.R.Literal
 import           Language.R (parseText, installIO, string, evalIO)
 
 import qualified Data.ByteString.Char8 as BS

@@ -59,7 +59,6 @@ library
                        Control.Memory.Region
   other-modules:       Control.Monad.R.Class
                        Internal.Error
-                       Internal.Prelude
   build-depends:       base >= 4.6 && < 5
                      , aeson >= 0.6
                      , bytestring >= 0.10

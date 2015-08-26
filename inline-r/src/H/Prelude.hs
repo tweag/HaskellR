@@ -25,27 +25,27 @@ module H.Prelude
 
 import           Control.Memory.Region
 import           Control.Monad.R.Class
-import           Internal.Prelude
 import qualified Foreign.R as R
-import Language.R.HExp
+import           Foreign.R (SEXP, SomeSEXP(..))
+import           Language.R.HExp
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
 import           Language.R.Event (refresh)
 import           Language.R.Globals
 import           Language.R.Literal
-import Language.R.Instance
+import           Language.R.Instance
 import           Language.R
-import Foreign.R.Error
+import           Foreign.R.Error
 
 import qualified Data.Text.Lazy.IO as Text
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as Text.Lazy
-import Data.Text.Lazy (Text)
+import           Data.Text.Lazy (Text)
 
-import Control.Monad ((>=>))
-import Foreign.C (withCString)
-import System.IO.Unsafe (unsafePerformIO)
+import           Control.Monad ((>=>))
+import           Foreign.C (withCString)
+import           System.IO.Unsafe (unsafePerformIO)
 
 import Prelude hiding (Show(..), print)
 
