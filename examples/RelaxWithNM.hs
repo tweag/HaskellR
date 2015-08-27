@@ -1,10 +1,7 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 -- |
--- Module    : Main
---
--- Module originally contributed by Dominic Steinitz. Modifications
--- made by Tweag I/O (2015).
+-- Code originally contributed by Dominic Steinitz.
+
+{-# LANGUAGE QuasiQuotes #-}
 
 module Main where
 
@@ -33,13 +30,13 @@ forcingFunction = (\t -> bigA * sin (omega * t))
     bigA  = 1.0
 
 (.*.) :: (Double -> Double)
-         -> (Double -> Double) -> Double -> Double
+      -> (Double -> Double)
+      -> (Double -> Double)
 f .*. g = h
   where
     h t = result $ absolute 1e-6 $ parTrap (\x -> (f x) * (g (t - x))) 0 t
 
-flow :: (Double -> Double)
-        -> Double -> Double -> Double -> Double -> Double
+flow :: (Double -> Double) -> Double -> Double -> Double -> Double -> Double
 flow fn a initVal initT = \t -> term1 (t - initT) + term2 (t - initT)
   where
     term1 = \t -> initVal * exp (a * t)
@@ -51,8 +48,8 @@ timeStep = 0.1
 within6digits :: (Ord a, Fractional a) => a -> a -> Bool
 within6digits x y = abs (x - y) < 1e-06
 
-within6digitss :: (Ord b, Fractional b) =>
-                  [b] -> [b] -> Bool
+within6digitss :: (Ord b, Fractional b)
+               => [b] -> [b] -> Bool
 within6digitss xs ys = and (zipWith within6digits xs ys)
 
 lerp :: Num a => a -> a -> a -> a
@@ -61,8 +58,8 @@ lerp y1 y2 x = y1 * (1 - x) + y2 * x
 linearly :: Fractional s => (s, s) -> (s, s) -> s -> s
 linearly (x1,y1) (x2,y2) = \x -> lerp y1 y2 $ (x - x1) / (x2 - x1)
 
-linearlyL :: Fractional c =>
-             (c, [c]) -> (c, [c]) -> c -> [c]
+linearlyL :: Fractional c
+          => (c, [c]) -> (c, [c]) -> c -> [c]
 linearlyL (t1, x1s) (t2, x2s) t =
   zipWith (\x1 x2 -> linearly (t1, x1) (t2, x2) t) x1s x2s
 
@@ -72,7 +69,7 @@ relax :: (t2 -> t3 -> t4 -> t -> t -> t4)
       -> t2
       -> (Int, t4 -> t4 -> Bool, [t], t4)
       -> [(t, t4)]
-relax _    _    _           _         (_            ,_          ,[]   ,_ ) = []
+relax _    _    _           _         (_             ,_          ,[]   ,_ ) = []
 relax _    _    _           _         (maxRelaxIters',_          ,_    ,_ )
   | maxRelaxIters' <= 0                                                     = []
 relax scrF scrG interpolate forcingFn (_maxRelaxIters,closeEnough,t0:ts,a0) = as
@@ -140,7 +137,6 @@ cost n alpha beta gamma =
   take n $
   zipWith (-) dataPoints (forFitting alpha beta gamma)
 
-
 nmMin :: Int -> IO (Double, Double, Double, Double, Double, Int32, Int32)
 nmMin n = runRegion $ do
     initParms <- [r| c(-1.9,-0.1,-2.9) |]
@@ -152,19 +148,19 @@ nmMin n = runRegion $ do
     vMin     <- H.fromSEXP . R.cast R.SReal <$> [r| relaxMin_hs$value |]
     fEvals   <- H.fromSEXP . R.cast R.SInt  <$> [r| as.integer(relaxMin_hs$fevals) |]
     convCode <- H.fromSEXP . R.cast R.SInt  <$> [r| as.integer(relaxMin_hs$convcode) |]
-    return $!! (initVal,aMin,bMin,cMin,vMin,fEvals,convCode)
+    return $!! (initVal, aMin, bMin, cMin, vMin, fEvals, convCode)
   where
     costH :: Double -> Double -> Double -> R s Double
     costH a b c = return $ cost n a b c
 
-
 main :: IO ()
-main = withEmbeddedR defaultConfig $
-       withSystemTempDirectory "RelaxWithNM_R" $ \dest -> do
-  runRegion $ do
-    _ <- [r| install.packages(c("numDeriv", "optimx"), lib = dest_hs, repos = "http://cran.us.r-project.org") |]
-    _ <- [r| library('numDeriv', lib.loc = dest_hs) |]
-    _ <- [r| library('optimx', lib.loc = dest_hs) |]
-    return ()
-  results <- mapM nmMin [100..102]
-  putStrLn $ Prelude.show results
+main =
+  withEmbeddedR defaultConfig $ withSystemTempDirectory "RelaxWithNM_R" $ \dest -> do
+    -- Ensure that the following third-party packages are installed.
+    runRegion $ do
+      _ <- [r| install.packages(c("numDeriv", "optimx"), lib = dest_hs, repos = "http://cran.us.r-project.org") |]
+      _ <- [r| library('numDeriv', lib.loc = dest_hs) |]
+      _ <- [r| library('optimx', lib.loc = dest_hs) |]
+      return ()
+    results <- mapM nmMin [100..102]
+    putStrLn $ Prelude.show results
