@@ -3,6 +3,7 @@
 --
 
 {-# Language ConstraintKinds #-}
+{-# Language DefaultSignatures #-}
 {-# Language DataKinds #-}
 {-# Language FlexibleContexts #-}
 {-# Language FlexibleInstances #-}
@@ -54,6 +55,13 @@ class Literal a b | a -> b where
     -- probably want to be using 'mkSEXP' instead.
     mkSEXPIO :: a -> IO (SEXP V b)
     fromSEXP :: SEXP s c -> a
+
+    default mkSEXPIO :: (IsVector b, Literal [a] b) => a -> IO (SEXP V b)
+    mkSEXPIO x = mkSEXPIO [x]
+
+    default fromSEXP :: (IsVector b, Literal [a] b) => SEXP s c -> a
+    fromSEXP (fromSEXP -> [x]) = x
+    fromSEXP _ = failure "fromSEXP" "Not a singleton vector."
 
 -- |  Create a SEXP value and protect it in current region
 mkSEXP :: (Literal a b, MonadR m) => a -> m (SEXP (Region m) b)
@@ -130,6 +138,20 @@ instance Literal [String] 'R.String where
     fromSEXP _ =
         failure "fromSEXP" "String expected where some other expression appeared."
 
+-- Use the default definitions included in the class declaration.
+instance Literal R.Logical 'R.Logical
+instance Literal Int32 'R.Int
+instance Literal Double 'R.Real
+instance Literal (Complex Double) 'R.Complex
+
+instance Literal String 'R.String where
+    mkSEXPIO x = mkSEXPIO [x]
+    fromSEXP x@(hexp -> String {})
+      | [h] <- fromSEXP x = h
+      | otherwise = failure "fromSEXP" "Not a singleton vector."
+    fromSEXP _ =
+        failure "fromSEXP" "String expected where some other expression appeared."
+
 instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
     mkSEXPIO = SVector.toSEXP
     fromSEXP = unsafePerformIO . SVector.freeze . fromSEXP
@@ -141,45 +163,6 @@ instance SVector.VECTOR V ty a => Literal (SMVector.IOVector V ty a) ty where
         R.cast (sing :: SSEXPTYPE ty) .
         SomeSEXP .
         R.release
-
--- | Named after eponymous "GHC.Exts" function.
-the :: (IsVector a, Literal [SVector.ElemRep s a] a) => SEXP s a -> SVector.ElemRep s a
-the (fromSEXP -> [x]) = x
-the _ = failure "the" "Not a singleton vector."
-
-instance Literal R.Logical 'R.Logical where
-    mkSEXPIO x = mkSEXPIO [x]
-    fromSEXP x@(hexp -> Logical{}) = the x
-    fromSEXP _ =
-        failure "fromSEXP" "Logical expected where some other expression appeared."
-
-instance Literal Int32 'R.Int where
-    mkSEXPIO x = mkSEXPIO [x]
-    fromSEXP x@(hexp -> Int{}) = the x
-    fromSEXP x@(hexp -> Real{}) = round (the x)
-    fromSEXP _ =
-        failure "fromSEXP" "Int expected where some other expression appeared."
-
-instance Literal Double 'R.Real where
-    mkSEXPIO x = mkSEXPIO [x]
-    fromSEXP x@(hexp -> Real{}) = the x
-    fromSEXP x@(hexp -> Int{})  = fromIntegral (the x)
-    fromSEXP _ =
-        failure "fromSEXP" "Numeric expected where some other expression appeared."
-
-instance Literal (Complex Double) 'R.Complex where
-    mkSEXPIO x = mkSEXPIO [x]
-    fromSEXP x@(hexp -> Complex{}) = the x
-    fromSEXP _ =
-        failure "fromSEXP" "Complex expected where some other expression appeared."
-
-instance Literal String 'R.String where
-    mkSEXPIO x = mkSEXPIO [x]
-    fromSEXP x@(hexp -> String {})
-      | [h] <- fromSEXP x = h
-      | otherwise = failure "fromSEXP" "Not a singleton vector."
-    fromSEXP _ =
-        failure "fromSEXP" "String expected where some other expression appeared."
 
 instance SingI a => Literal (SEXP s a) a where
     mkSEXPIO = fmap R.unsafeRelease . return
