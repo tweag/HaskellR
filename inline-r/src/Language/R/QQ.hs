@@ -27,7 +27,6 @@ import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Type as SingR
 import           Foreign.R (SEXP, SomeSEXP(..), SEXPInfo)
-import           Foreign.R.Constraints
 import qualified H.Prelude as H
 import           Internal.Error
 import           Language.R.HExp
@@ -95,7 +94,6 @@ parseEval txt = do
       Expr _ v ->
         let vs = Vector.toList v
         in [| acquireSome <=< io $ $(go vs) |]
-      _ -> error "Impossible happen."
   where
     go :: [SomeSEXP s] -> Q TH.Exp
     go []     = error "Impossible happen."

@@ -26,7 +26,3 @@ type family (a :: SEXPTYPE) :∈ (as :: [SEXPTYPE]) :: Constraint where
 -- | Class alias used for c2hs @fun@ hooks, since it currently does not like
 -- Unicode operators.
 type In a b = a :∈ b
-
--- | Heterogeneous equality.
-class HEq (t :: k -> *) where
-  (===) :: t a -> t b -> Bool

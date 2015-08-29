@@ -19,8 +19,7 @@ import qualified Test.Regions
 import qualified Test.Vector
 
 import H.Prelude
-import Foreign.R.Constraints
-import qualified Language.R.HExp as H
+import Language.R.HExp
 import qualified Foreign.R as R
 import qualified Language.R.Instance as R
     ( initialize
@@ -47,17 +46,17 @@ tests = testGroup "Unit tests"
       let x = 2 :: Double
       R.withProtected (mkSEXPIO x) $ \z ->
         assertBool "reflexive" $
-          let s = H.hexp z in s === s
+          let s = hexp z in s === s
       R.withProtected (mkSEXPIO x) $ \z ->
         assertBool "symmetric" $
-          let s1 = H.hexp z
-              s2 = H.hexp z
+          let s1 = hexp z
+              s2 = hexp z
           in s1 === s2 && s2 === s1
       R.withProtected (mkSEXPIO x) $ \z ->
         assertBool "transitive" $
-          let s1 = H.hexp z
-              s2 = H.hexp z
-              s3 = H.hexp z
+          let s1 = hexp z
+              s2 = hexp z
+              s3 = hexp z
           in s1 === s2 && s2 === s3 && s1 === s3
   , testCase "Haskell function from R" $ do
 --      (("[1] 3.0" @=?) =<<) $
@@ -74,14 +73,13 @@ tests = testGroup "Unit tests"
       key  <- mkSEXP (return 4 :: R s Int32)
       val  <- mkSEXP (return 5 :: R s Int32)
       True <- return $ R.typeOf val == R.ExtPtr
-      n    <- H.unhexp H.Nil
+      n    <- unhexp Nil
       rf   <- io $ R.mkWeakRef key val n True
-      True <- case H.hexp rf of
-                H.WeakRef a b c _ -> do
+      True <- case hexp rf of
+                WeakRef a b c _ -> do
                   True <- return $ (R.unsexp a) == (R.unsexp key)
                   True <- return $ (R.unsexp b) == (R.unsexp val)
                   return $ (R.unsexp c) == (R.unsexp n)
-                _ -> error "unexpected type"
       return ()
   , testCase "Hexp works" $
       (((42::Double) @=?) =<<) $ runRegion $ do

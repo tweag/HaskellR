@@ -32,6 +32,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PolyKinds #-}
 #if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE RoleAnnotations #-}
 #endif
@@ -47,6 +48,7 @@
 #endif
 module Language.R.HExp
   ( HExp(..)
+  , (===)
   , hexp
   , unhexp
   , vector
@@ -65,11 +67,13 @@ import Language.R.Instance
 
 import qualified Data.Vector.SEXP as Vector
 
-import Control.Monad ( (<=<) )
+import Control.Monad ((<=<), guard, void)
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Int (Int32)
 import Data.Word (Word8)
 import Data.Complex
+import Data.Maybe (isJust)
+import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
 import Foreign.C
@@ -190,76 +194,102 @@ data HExp :: * -> SEXPTYPE -> * where
   S4        :: SEXP s a
             -> HExp s R.S4
 
+-- | Heterogeneous equality.
+(===) :: TestEquality f => f a -> f b -> Bool
+x === y = isJust $ testEquality x y
+
 -- | Wrapper for partially applying a type synonym.
 newtype E s a = E (SEXP s a)
 
-instance HEq (E s) where
-  E x@(hexp -> t1) === E y@(hexp -> t2) = R.unsexp x == R.unsexp y || t1 === t2
+instance TestEquality (E s) where
+  testEquality (E x@(hexp -> t1)) (E y@(hexp -> t2)) =
+      (guard (R.unsexp x == R.unsexp y) >> return (unsafeCoerce Refl)) <|>
+      testEquality t1 t2
 
-instance HEq (HExp s) where
-  Nil === Nil = True
-  Symbol pname1 value1 internal1 === Symbol pname2 value2 internal2 =
-      E pname1 === E pname2 &&
-      E value1 === E value2 &&
-      E internal1 === E internal2
-  List carval1 cdrval1 tagval1 === List carval2 cdrval2 tagval2 =
-      E carval1 === E carval2 &&
-      E cdrval1 === E cdrval2 &&
-      E tagval1 === E tagval2
-  Env frame1 enclos1 hashtab1 === Env frame2 enclos2 hashtab2 =
-      E frame1 === E frame2 &&
-      E enclos1 === E enclos2 &&
-      E hashtab1 === E hashtab2
-  Closure formals1 body1 env1 === Closure formals2 body2 env2 =
-      E formals1 === E formals2 &&
-      E body1 === E body2 &&
-      E env1 === E env2
-  Promise value1 expr1 env1 === Promise value2 expr2 env2 =
-      E value1 === E value2 &&
-      E expr1 === E expr2 &&
-      E env1 === E env2
-  Lang carval1 cdrval1 === Lang carval2 cdrval2 =
-      E carval1 === E carval2 &&
-      E cdrval1 === E cdrval2
-  Special offset1 === Special offset2 =
-      offset1 ==  offset2
-  Builtin offset1 === Builtin offset2 =
-      offset1 == offset2
-  Char vec1 === Char vec2 =
-      vec1 == vec2
-  Int vec1 === Int vec2 =
-      vec1 == vec2
-  Real vec1 === Real vec2 =
-      vec1 == vec2
-  String vec1 === String vec2 =
-      vec1 == vec2
-  Complex vec1 === Complex vec2 =
-      vec1 == vec2
-  DotDotDot pairlist1 === DotDotDot pairlist2 =
-      E pairlist1 === E pairlist2
-  Vector truelength1 vec1 === Vector truelength2 vec2 =
-      let eq (SomeSEXP s1) (SomeSEXP s2) = E s1 === E s2
-      in truelength1 == truelength2 &&
-         and (zipWith eq  (Vector.toList vec1) (Vector.toList vec2))
-  Expr truelength1 vec1 === Expr truelength2 vec2 =
-      let eq (SomeSEXP s1) (SomeSEXP s2) = E s1 === E s2
-      in truelength1 == truelength2 &&
-         and (zipWith eq (Vector.toList vec1) (Vector.toList vec2))
-  Bytecode === Bytecode = True
-  ExtPtr pointer1 protectionValue1 tagval1 === ExtPtr pointer2 protectionValue2 tagval2 =
-      castPtr pointer1 == castPtr pointer2 &&
-      E protectionValue1 === E protectionValue2 &&
-      E tagval1 === E tagval2
-  WeakRef key1 value1 finalizer1 next1 === WeakRef key2 value2 finalizer2 next2 =
-      E key1 === E key2 &&
-      E value1 === E value2 &&
-      E finalizer1 === E finalizer2 &&
-      E next1 === E next2
-  Raw vec1 === Raw vec2 =
-      vec1 == vec2
-  S4 tagval1 === S4 tagval2 =
-      E tagval1 === E tagval2
-  _ === _ = False
+instance TestEquality (HExp s) where
+  testEquality Nil Nil = return Refl
+  testEquality (Symbol pname1 value1 internal1) (Symbol pname2 value2 internal2) = do
+      void $ testEquality (E pname1) (E pname2)
+      void $ testEquality (E value1) (E value2)
+      void $ testEquality (E internal1) (E internal2)
+      return Refl
+  testEquality (List carval1 cdrval1 tagval1) (List carval2 cdrval2 tagval2) = do
+      void $ testEquality (E carval1) (E carval2)
+      void $ testEquality (E cdrval1) (E cdrval2)
+      void $ testEquality (E tagval1) (E tagval2)
+      return Refl
+  testEquality (Env frame1 enclos1 hashtab1) (Env frame2 enclos2 hashtab2) = do
+      void $ testEquality (E frame1) (E frame2)
+      void $ testEquality (E enclos1) (E enclos2)
+      void $ testEquality (E hashtab1) (E hashtab2)
+      return Refl
+  testEquality (Closure formals1 body1 env1) (Closure formals2 body2 env2) = do
+      void $ testEquality (E formals1) (E formals2)
+      void $ testEquality (E body1) (E body2)
+      void $ testEquality (E env1) (E env2)
+      return Refl
+  testEquality (Promise value1 expr1 env1) (Promise value2 expr2 env2) = do
+      void $ testEquality (E value1) (E value2)
+      void $ testEquality (E expr1) (E expr2)
+      void $ testEquality (E env1) (E env2)
+      return Refl
+  testEquality (Lang carval1 cdrval1) (Lang carval2 cdrval2) = do
+      void $ testEquality (E carval1) (E carval2)
+      void $ testEquality (E cdrval1) (E cdrval2)
+      return Refl
+  testEquality (Special offset1) (Special offset2) = do
+      guard $ offset1 == offset2
+      return Refl
+  testEquality (Builtin offset1) (Builtin offset2) = do
+      guard $ offset1 == offset2
+      return Refl
+  testEquality (Char vec1) (Char vec2) = do
+      guard $ vec1 == vec2
+      return Refl
+  testEquality (Int vec1) (Int vec2) = do
+      guard $ vec1 == vec2
+      return Refl
+  testEquality (Real vec1) (Real vec2) = do
+      guard $ vec1 == vec2
+      return Refl
+  testEquality (String vec1) (String vec2) = do
+      guard $ vec1 == vec2
+      return Refl
+  testEquality (Complex vec1) (Complex vec2) = do
+      guard $ vec1 == vec2
+      return Refl
+  testEquality (DotDotDot pairlist1) (DotDotDot pairlist2) = do
+      void $ testEquality (E pairlist1) (E pairlist2)
+      return Refl
+  testEquality (Vector truelength1 vec1) (Vector truelength2 vec2) = do
+      let eq (SomeSEXP s1) (SomeSEXP s2) = isJust $ testEquality (E s1) (E s2)
+      guard $ truelength1 == truelength2
+      guard $ and $ zipWith eq (Vector.toList vec1) (Vector.toList vec2)
+      return Refl
+  testEquality (Expr truelength1 vec1) (Expr truelength2 vec2) = do
+      let eq (SomeSEXP s1) (SomeSEXP s2) = isJust $ testEquality (E s1) (E s2)
+      guard $ truelength1 == truelength2
+      guard $ and $ zipWith eq (Vector.toList vec1) (Vector.toList vec2)
+      return Refl
+  testEquality Bytecode Bytecode = return Refl
+  testEquality (ExtPtr pointer1 protectionValue1 tagval1) (ExtPtr pointer2 protectionValue2 tagval2) = do
+      guard $ castPtr pointer1 == castPtr pointer2
+      void $ testEquality (E protectionValue1) (E protectionValue2)
+      void $ testEquality (E tagval1) (E tagval2)
+      return Refl
+  testEquality (WeakRef key1 value1 finalizer1 next1) (WeakRef key2 value2 finalizer2 next2) = do
+      void $ testEquality (E key1) (E key2)
+      void $ testEquality (E value1) (E value2)
+      void $ testEquality (E finalizer1) (E finalizer2)
+      void $ testEquality (E next1) (E next2)
+      return Refl
+  testEquality (Raw vec1) (Raw vec2) = do
+      guard $ vec1 == vec2
+      return Refl
+  testEquality (S4 tagval1) (S4 tagval2) = do
+      void $ testEquality (E tagval1) (E tagval2)
+      return Refl
+  testEquality _ _ = Nothing
 
 -- XXX Orphan instance. Could find a better place to put it.
 -- this #ifdef is not correct as it should be MIN_VERSION_base,

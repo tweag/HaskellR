@@ -1,8 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Test.HExp ( tests ) where
 
-import Foreign.R.Constraints
-import qualified Language.R.HExp as H
+import           Language.R.HExp
 import           Foreign.R as R
 
 import Foreign.C
@@ -15,7 +14,7 @@ tests = testGroup "hexp"
     [ testGroup "Cyclyc structures"
         [ testCase "naked-cyclic-structure" $
             R.withProtected (withCString "test" R.mkChar) $ \chr -> do
-              R.withProtected (H.selfSymbol chr) $ \slf -> do
-                assertBool "selfSymbol==selfSymbol" (H.hexp slf === H.hexp slf)
+              R.withProtected (selfSymbol chr) $ \slf -> do
+                assertBool "selfSymbol==selfSymbol" (hexp slf === hexp slf)
         ]
   ]
