@@ -63,5 +63,5 @@ tests = testGroup "funptr"
        (((2::Double) @=?) =<<) $ unsafeRToIO $ do
          let foo = (\x -> return $ x + 1) :: Double -> R s Double
          s <- [r| foo_hs(1) |]
-         return $ fromSomeSEXP s
+         return $ dynSEXP s
   ]

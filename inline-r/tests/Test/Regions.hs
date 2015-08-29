@@ -68,7 +68,7 @@ tests = testGroup "regions"
             _ <- [r| gctorture(TRUE) |]
             return ()
           z <- runRegion $ do
-             fmap fromSomeSEXP [r| 5+3 |]
+             fmap dynSEXP [r| 5+3 |]
           runRegion $ do
             _ <- io $ R.allocList 1
             _ <- [r| gctorture(FALSE) |]

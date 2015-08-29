@@ -9,6 +9,7 @@
 {-# Language FlexibleInstances #-}
 {-# Language FunctionalDependencies #-}
 {-# Language GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# Language TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -18,6 +19,7 @@ module Language.R.Literal
   ( Literal(..)
   , fromSomeSEXP
   , mkSEXP
+  , dynSEXP
   , mkSEXPVector
   , mkSEXPVectorIO
   , HFunWrap(..)
@@ -35,12 +37,13 @@ import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Foreign.R ( SEXP, SomeSEXP(..) )
 import           Internal.Error
+import           Language.R (r1)
 import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 
-import Data.Singletons ( Sing, SingI, sing )
+import Data.Singletons ( Sing, SingI, fromSing, sing )
 
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
@@ -64,13 +67,28 @@ class Literal a ty | a -> ty where
     fromSEXP (fromSEXP -> [x]) = x
     fromSEXP _ = failure "fromSEXP" "Not a singleton vector."
 
--- | 'R.cast' from 'R.SomeSEXP' to a suitable Haskell type.
-fromSomeSEXP :: forall s a form. (Literal a form,SingI form) => R.SomeSEXP s -> a
-fromSomeSEXP = fromSEXP . R.cast (sing :: Sing form)
-
 -- |  Create a SEXP value and protect it in current region
 mkSEXP :: (Literal a b, MonadR m) => a -> m (SEXP (Region m) b)
 mkSEXP x = acquire =<< io (mkSEXPIO x)
+
+-- | Like 'fromSEXP', but with no static type satefy. Performs a dynamic
+-- (i.e. at runtime) check instead.
+fromSomeSEXP :: forall s a form. (Literal a form,SingI form) => R.SomeSEXP s -> a
+fromSomeSEXP = fromSEXP . R.cast (sing :: Sing form)
+
+-- | Like 'fromSomeSEXP', but behaves like the @as.*@ family of functions
+-- in R, by performing a best effort conversion to the target form (e.g. rounds
+-- reals to integers, etc) for atomic types.
+dynSEXP :: forall a s ty. (Literal a ty, SingI ty) => SomeSEXP s -> a
+dynSEXP (SomeSEXP sx) =
+    fromSomeSEXP $ unsafePerformIO $ case fromSing (sing :: SSEXPTYPE ty) of
+      R.Char -> r1 "as.character" sx
+      R.Int -> r1 "as.integer" sx
+      R.Real -> r1 "as.double" sx
+      R.Complex -> r1 "as.complex" sx
+      R.Logical -> r1 "as.logical" sx
+      R.Raw -> r1 "as.raw" sx
+      _ -> return $ SomeSEXP $ R.release sx
 
 {-# NOINLINE mkSEXPVector #-}
 mkSEXPVector :: (Storable (SVector.ElemRep s a), IsVector a)
