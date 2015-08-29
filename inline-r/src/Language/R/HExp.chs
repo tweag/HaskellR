@@ -169,7 +169,7 @@ data HExp :: * -> SEXPTYPE -> * where
   Expr      :: {-# UNPACK #-} !Int32
             -> {-# UNPACK #-} !(Vector.Vector s R.Expr (SomeSEXP s))
             -> HExp s R.Expr
-  Bytecode  :: HExp s a -- XXX
+  Bytecode  :: HExp s R.Bytecode -- XXX
   -- Fields: pointer, protectionValue, tagval
   ExtPtr    :: Ptr ()
             -> SEXP s b
@@ -342,7 +342,7 @@ peekHExp s = do
       R.Expr      -> coerce $
         Expr      <$> (fromIntegral <$> {#get VECSEXP->vecsxp.truelength #} sptr)
                   <*> pure (Vector.unsafeFromSEXP (unsafeCoerce s))
-      R.Bytecode  -> return $ Bytecode
+      R.Bytecode  -> coerce $ return Bytecode
       R.ExtPtr    -> coerce $
         ExtPtr    <$> (castPtr <$> {#get SEXP->u.listsxp.carval #} sptr)
                   <*> (R.sexp <$> {#get SEXP->u.listsxp.cdrval #} sptr)

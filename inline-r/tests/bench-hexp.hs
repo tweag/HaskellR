@@ -72,8 +72,7 @@ benchUncheckedInteger :: SEXP s 'R.Int -> IO Int32
 benchUncheckedInteger x = integer x >>= (peek :: Ptr Int32 -> IO Int32)
 
 benchCast :: SomeSEXP s -> Int32
-benchCast x@(SomeSEXP z) =
+benchCast x =
  let y = R.cast (sing :: R.SSEXPTYPE 'R.Int) x
  in case hexp y of
-      Bytecode -> error $ "hello! ^_^" ++ show (R.typeOf z, R.typeOf y)
       Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0
