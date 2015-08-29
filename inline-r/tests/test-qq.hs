@@ -90,8 +90,6 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
 
     ("NULL" @=?) H.nilValue
 
-    let fromSomeSEXP s = R.unSomeSEXP s H.fromSEXP
-
     let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
     ("3L" @=?) =<< [r| foo3_hs(as.integer(3)) |]
 

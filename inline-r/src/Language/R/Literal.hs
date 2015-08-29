@@ -16,6 +16,7 @@
 
 module Language.R.Literal
   ( Literal(..)
+  , fromSomeSEXP
   , mkSEXP
   , mkSEXPVector
   , mkSEXPVectorIO
@@ -39,7 +40,7 @@ import           Language.R.Instance
 import           Language.R.Internal.FunWrappers
 import           Language.R.Internal.FunWrappers.TH
 
-import Data.Singletons ( SingI, sing )
+import Data.Singletons ( Sing, SingI, sing )
 
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
@@ -62,6 +63,10 @@ class Literal a b | a -> b where
     default fromSEXP :: (IsVector b, Literal [a] b) => SEXP s c -> a
     fromSEXP (fromSEXP -> [x]) = x
     fromSEXP _ = failure "fromSEXP" "Not a singleton vector."
+
+-- | 'R.cast' from 'R.SomeSEXP' to a suitable Haskell type.
+fromSomeSEXP :: forall s a form. (Literal a form,SingI form) => R.SomeSEXP s -> a
+fromSomeSEXP = fromSEXP . R.cast (sing :: Sing form)
 
 -- |  Create a SEXP value and protect it in current region
 mkSEXP :: (Literal a b, MonadR m) => a -> m (SEXP (Region m) b)
