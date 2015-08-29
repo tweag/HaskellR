@@ -51,16 +51,16 @@ import Foreign.Storable ( Storable, pokeElemOff )
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
-class Literal a b | a -> b where
+class Literal a ty | a -> ty where
     -- | Internal function for converting a literal to a 'SEXP' value. You
     -- probably want to be using 'mkSEXP' instead.
-    mkSEXPIO :: a -> IO (SEXP V b)
-    fromSEXP :: SEXP s c -> a
+    mkSEXPIO :: a -> IO (SEXP V ty)
+    fromSEXP :: SEXP s ty -> a
 
-    default mkSEXPIO :: (IsVector b, Literal [a] b) => a -> IO (SEXP V b)
+    default mkSEXPIO :: (IsVector ty, Literal [a] ty) => a -> IO (SEXP V ty)
     mkSEXPIO x = mkSEXPIO [x]
 
-    default fromSEXP :: (IsVector b, Literal [a] b) => SEXP s c -> a
+    default fromSEXP :: (IsVector ty, Literal [a] ty) => SEXP s ty -> a
     fromSEXP (fromSEXP -> [x]) = x
     fromSEXP _ = failure "fromSEXP" "Not a singleton vector."
 
@@ -118,14 +118,12 @@ instance Literal [R.Logical] 'R.Logical where
 instance Literal [Int32] 'R.Int where
     mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Int v) = SVector.toList v
-    fromSEXP (hexp -> Real v) = map round (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal [Double] 'R.Real where
     mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Real v) = SVector.toList v
-    fromSEXP (hexp -> Int v) = map fromIntegral (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "Numeric expected where some other expression appeared."
 

@@ -96,7 +96,7 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
     ("99" @=?) =<< [r| foo4_hs(33, 66) |]
 
-    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap fromeSomeSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
     ("120L" @=?) =<< [r| fact_hs(as.integer(5)) |]
 
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
