@@ -24,7 +24,7 @@ import qualified Foreign.R as R
 import qualified Language.R.Instance as R
     ( initialize
     , defaultConfig )
-import qualified Language.R as R ( r2 )
+import qualified Language.R.Internal as R ( r2 )
 import           Language.R.QQ
 
 import Test.Tasty

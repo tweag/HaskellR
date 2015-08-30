@@ -37,7 +37,7 @@ import qualified Foreign.R as R
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Foreign.R ( SEXP, SomeSEXP(..) )
 import           Internal.Error
-import           Language.R (r1)
+import           Language.R.Internal (r1)
 import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Internal.FunWrappers

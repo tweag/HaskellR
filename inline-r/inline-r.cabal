@@ -52,6 +52,7 @@ library
                        Language.R.Globals
                        Language.R.HExp
                        Language.R.Instance
+                       Language.R.Internal
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
                        Language.R.Literal

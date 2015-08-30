@@ -28,14 +28,15 @@ import           Control.Monad.R.Class
 import qualified Foreign.R as R
 import           Foreign.R (SEXP, SomeSEXP(..))
 import           Language.R.HExp
+import           Language.R.Internal (r1)
 import qualified Data.Vector.SEXP as Vector
 
 -- Reexported modules.
+import           Language.R
 import           Language.R.Event (refresh)
 import           Language.R.Globals
 import           Language.R.Literal
 import           Language.R.Instance
-import           Language.R
 import           Foreign.R.Error
 
 import qualified Data.Text.Lazy.IO as Text

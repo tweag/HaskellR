@@ -29,10 +29,11 @@ import qualified Foreign.R.Type as SingR
 import           Foreign.R (SEXP, SomeSEXP(..), SEXPInfo)
 import qualified H.Prelude as H
 import           Internal.Error
+import           Language.R (parseText, string, eval)
 import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Literal
-import           Language.R (parseText, installIO, string, evalIO)
+import           Language.R.Internal (installIO)
 
 import qualified Data.ByteString.Char8 as BS
 
@@ -81,7 +82,7 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ evalIO =<< $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO . eval =<< $(parseExp txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -97,9 +98,9 @@ parseEval txt = do
   where
     go :: [SomeSEXP s] -> Q TH.Exp
     go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| R.withProtected a evalIO |]
+    go [SomeSEXP (returnIO -> a)]    = [| R.withProtected a (unsafeRToIO . eval) |]
     go (SomeSEXP (returnIO -> a) : as) =
-        [| R.withProtected a $ evalIO >=> \(SomeSEXP s) ->
+        [| R.withProtected a $ unsafeRToIO . eval >=> \(SomeSEXP s) ->
              R.withProtected (return s) (const $(go as))
          |]
 
