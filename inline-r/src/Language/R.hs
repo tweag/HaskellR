@@ -29,8 +29,7 @@ module Language.R
   -- * Exceptions
   , throwR
   , throwRMessage
-  -- * Helpers
-  -- $helpers
+  -- * Memory management
   , module Language.R.GC
   ) where
 
@@ -71,11 +70,6 @@ parseEval txt = useAsCString txt $ \ctxt ->
           throwRMessage $ "Parse error in: " ++ C8.unpack txt
         SomeSEXP expr <- peek $ castPtr $ R.unsafeSEXPToVectorPtr exprs
         evalIO expr
-
--- $helpers
--- This section contains a bunch of functions that are used internally on
--- a low level and wraps are simple that are too cheap to run under high
--- level interface.
 
 -- | Call a pure unary R function of the given name in the global environment.
 --
