@@ -86,7 +86,7 @@ tests = testGroup "Unit tests"
          y <- R.cast (sing :: R.SSEXPTYPE R.Real) . R.SomeSEXP
                      <$> mkSEXP (42::Double)
          case hexp y of
-           Real s -> io $ basicUnsafeIndexM s 0
+           Real s -> basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.HExp.tests

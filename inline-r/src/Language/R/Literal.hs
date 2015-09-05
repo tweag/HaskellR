@@ -177,7 +177,7 @@ instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
     mkSEXPIO = SVector.toSEXP
     fromSEXP = unsafePerformIO . SVector.freeze . fromSEXP
 
-instance SVector.VECTOR V ty a => Literal (SMVector.IOVector V ty a) ty where
+instance SVector.VECTOR V ty a => Literal (SMVector.MVector V ty s a) ty where
     mkSEXPIO = return . SMVector.toSEXP
     fromSEXP =
         SMVector.fromSEXP .

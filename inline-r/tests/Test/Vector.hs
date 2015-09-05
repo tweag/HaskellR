@@ -100,7 +100,7 @@ testNumericSEXPVector dummy = testGroup "Test Numeric Vector"
 
 fromListLength :: TestTree
 fromListLength = testCase "fromList should have correct length" $ runRegion $ do
-    _ <- io $ return $ idVec $ V.fromListN 3 [-1.9, -0.1, -2.9]
+    _ <- return $ idVec $ V.fromListN 3 [-1.9, -0.1, -2.9]
     let v = idVec $ V.fromList [-1.9, -0.1, -2.9]
     _ <- io $ R.protect (V.unVector v)
     io $ assertEqual "Length should be equal to list length" 3 (V.length v)
@@ -113,11 +113,10 @@ vectorIsImmutable :: TestTree
 vectorIsImmutable = testCase "fromList should have correct length" $ do
     i <- runRegion $ do
            s <- fmap (R.cast (sing :: R.SSEXPTYPE R.Real)) [r| c(1.0,2.0,3.0) |]
-           io $ do
-              let mutV = VM.fromSEXP s
-              immV <- V.fromSEXP s
-              VM.unsafeWrite mutV 0 7
-              return $ immV V.! 0
+           let mutV = VM.fromSEXP s
+           immV <- V.fromSEXP s
+           VM.unsafeWrite mutV 0 7
+           return $ immV V.! 0
     i @?= 1
 
 tests :: TestTree

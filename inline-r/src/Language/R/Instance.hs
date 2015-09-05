@@ -37,7 +37,9 @@ module Language.R.Instance
   , finalize
   ) where
 
+import           Control.Monad.Primitive (PrimMonad(..))
 import           Control.Monad.R.Class
+import           Control.Monad.ST.Unsafe (unsafeSTToIO)
 import           Data.Monoid
 import           Data.Default.Class (Default(..))
 import qualified Foreign.R as R
@@ -91,6 +93,10 @@ instance MonadR (R s) where
     x <- R.release <$> R.protect s
     modifyIORef' cnt succ
     return x
+
+instance PrimMonad (R s) where
+  type PrimState (R s) = s
+  primitive f = R $ lift $ unsafeSTToIO $ primitive f
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance. This is typically called at the
