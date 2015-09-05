@@ -115,14 +115,14 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     _ <- [r| `+` <- base::`+` |]
 
     -- test Vector literal instance
-    v1 <- io $ do
-      x <- SMVector.new 3 :: IO (SMVector.IOVector V 'R.Int Int32)
+    v1 <- do
+      x <- SMVector.new 3 :: R s (SMVector.MVector V 'R.Int s Int32)
       SMVector.unsafeWrite x 0 1
       SMVector.unsafeWrite x 1 2
       SMVector.unsafeWrite x 2 3
       return x
     ("c(7, 2, 3)" @=?) =<< [r| v = v1_hs; v[1] <- 7; v |]
-    io $ assertEqual "" "fromList [1,2,3]" . Prelude.show =<< SVector.unsafeFreeze v1
+    io . assertEqual "" "fromList [1,2,3]" . Prelude.show =<< SVector.unsafeFreeze v1
 
     let utf8string = "abcd çéõßø"
     io . assertEqual "" utf8string =<< fromSEXP <$> R.cast (sing :: R.SSEXPTYPE 'R.String) <$> [r| utf8string_hs |]

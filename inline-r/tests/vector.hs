@@ -113,7 +113,6 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
    let v = idVec $ V.fromList [-1.9,-0.1,-2.9]
    _ <- io $ R.protect (V.unVector v)
    io $ assertEqual "Length should be equal to list length" 3 (V.length v)
-   -- io $ Prelude.print v
    return ()
 
 -- | Helper in order to help ghc infer ty and as types that are
@@ -139,4 +138,3 @@ testFromStorable = testCase "fromStorable should work" $ runRegion $ do
    1 @=? ss V.! 0
    2 @=? ss V.! 1
    3 @=? ss V.! 2
-
