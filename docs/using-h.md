@@ -3,13 +3,14 @@ title: Using H
 id: using-h
 ---
 
-H is a library, as well as a command. The library can be used from
-Haskell source files as well as from GHCi. The command is a wrapper
-script that fires up a GHCi session set up just the right way for
-interacting with R.
+H is an interactive environment, built on top of a library called
+`inline-r`. The library can be used from Haskell source files, while
+H is implemented as a thin wrapper around GHCi. The H command is
+a wrapper script that fires up a GHCi session set up just the right
+way for interacting with R.
 
-Setting up H in GHCi
---------------------
+Setting up H
+------------
 
 In Windows, make sure the file `R.dll` appears in some folder listed
 in the `PATH` environment variable. In Unix-like systems, `libR.so`

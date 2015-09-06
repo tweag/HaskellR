@@ -22,8 +22,8 @@
     title: Managing memory
   - id: catching-runtime-errors
     title: Catching runtime errors
-  - id: differences-in-h-and-repl
-    title: Differences when using H in GHCi and in compiled Haskell modules
+  - id: differences-repl-source
+    title: Differences between H and source files
 - title: H Internals
   items:
   - id: internals-introduction

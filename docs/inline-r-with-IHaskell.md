@@ -9,8 +9,10 @@ between languages.
 
 ## Preface
 
-Everything could work more or less like [ihaskell-rlangqq](https://hackage.haskell.org/package/ihaskell-rlangqq).
-The main difference is that H uses embedded R. This means that you'll get
+Everything should work more or less like
+[ihaskell-rlangqq](https://hackage.haskell.org/package/ihaskell-rlangqq).
+The main difference is that H uses embedded R. This means that you'll
+get
 
   * no costs associated with values serialization and deserialization and
     passing via pipes. You still may need to pay for converting some haskell values to R values,
@@ -30,9 +32,8 @@ Both of the issues can fixed once `inline-r` gains wider community adoption.
 
 ## Installation and use
 
-In order to install H with IHaskell you need to install IHaskell on the host,
-and `ihaskell-inline-r` wrapper.
-
+In order to install `inline-r` with IHaskell you need to install
+IHaskell on the host, and `ihaskell-inline-r` wrapper.
 
 We demonstrate how to use `inline-r` through a simple notebook.
 
@@ -41,7 +42,6 @@ Start by loading the required extensions
 ```haskell
 :ext TemplateHaskell QuasiQuotes
 ```
-
 
 All the instances needed for the interactive run of `inline-r` are
 preloaded for you (see

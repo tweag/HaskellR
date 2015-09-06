@@ -7,13 +7,14 @@ id: how-to-analyze-r-values
 ## Pattern matching on views
 
 In order to avoid unnecessary copying or other overhead every time
-code crosses the boundary to/from R and Haskell, H opts for the
-strategy of representing R values exactly as R itself does. However,
-R values cannot be pattern matched upon directly, since they do not
-share the same representation as values of algebraic datatypes in
-Haskell. Regardless, R values can still be deconstructed and pattern
-matched, provided a *view function* constructing a *view* of any given
-R value as an algebraic datatype. H provides one such view function:
+code crosses the boundary to/from R and Haskell, `inline-r` opts for
+the strategy of representing R values exactly as R itself does.
+However, R values cannot be pattern matched upon directly, since they
+do not share the same representation as values of algebraic datatypes
+in Haskell. Regardless, R values can still be deconstructed and
+pattern matched, provided a *view function* constructing a *view* of
+any given R value as an algebraic datatype. `inline-r` provides one such view
+function:
 
 ```Haskell
 hexp :: SEXP s a -> HExp a
@@ -23,7 +24,7 @@ The `HExp` datatype is a *view type* for `SEXP`. Matching on a value
 of type `HExp a` is an alternative to using accessor functions to gain
 access to each field. The `HExp` datatype offers a view that exposes
 exactly what accessor functions would: it is a one-level unfolding of
-`SEXP`. See the "H internals" document for further justifications for
+`SEXP`. See the "inline-r internals" document for further justifications for
 using one-level unfoldings and their relevance for performance.
 
 We have for example that:
@@ -73,14 +74,14 @@ global memory at the time when it occurs. This is because a pointer
 identifies a memory location, called a *cell*, whose content can be
 mutated.
 
-Why then, does `hexp` claim to be pure? The reason is that H assumes
-and encourages a restricted mode of use of R that rules out mutation
-of the content of any cell. In the absence of mutation, dereferencing
-a pointer will always yield the same value, so no longer needs to be
-classified as an effect. The restricted mode of use in question bans
-any use of side-effects that break referential transparency. So-called
-*benign* side-effects, extremely common in R, do not compromise
-referential transparency and so are allowed.
+Why then, does `hexp` claim to be pure? The reason is that `inline-r`
+assumes and encourages a restricted mode of use of R that rules out
+mutation of the content of any cell. In the absence of mutation,
+dereferencing a pointer will always yield the same value, so no longer
+needs to be classified as an effect. The restricted mode of use in
+question bans any use of side-effects that break referential
+transparency. So-called *benign* side-effects, extremely common in R,
+do not compromise referential transparency and so are allowed.
 
 Is such an assumption reasonable? After all, many R functions use
 mutation and other side effects internally. However, it is also the
@@ -129,10 +130,10 @@ f x = let h = hexp x
 The value of the expression `snd (f x)` depends on whether it is evaluated
 before or after evaluating the monadic computation `fst (f x)`.
 
-*Note:* H merely encourages, but has of course no way of *enforcing*
-a principled use of R that keeps to benign side-effects, because owing
-to the dynamic typing of R code, there is no precise static analysis
-that can detect bad side-effects.
+*Note:* `inline-r` merely encourages, but has of course no way of
+*enforcing* a principled use of R that keeps to benign side-effects,
+because owing to the dynamic typing of R code, there is no precise
+static analysis that can detect bad side-effects.
 
 ### Physical and structural equality on R values
 

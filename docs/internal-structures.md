@@ -32,9 +32,9 @@ We define one constructor for each value of the `SEXPTYPE` enumeration
 in `<RInternals.h>`.
 
 For the sake of efficiency, we do *not* use `HExp` as the basic
-datatype that all H generated code expects. That is, we do not use
-`HExp` as the universe of R expressions, merely as a *view*. We
-introduce the following *view function* to *locally* convert to
+datatype that all `inline-r` generated code expects. That is, we do
+not use `HExp` as the universe of R expressions, merely as a *view*.
+We introduce the following *view function* to *locally* convert to
 a `HExp`, given a `SEXP` from R.
 
 ```Haskell
@@ -70,30 +70,31 @@ unhexp :: HExp -> SEXP
 A form indexed native view of expresions
 ----------------------------------------
 
-In reality, H defines `HExp` in a slightly more elaborate way. Most
-R functions expect their inputs to have certain predetermined forms.
-For example, the `+` function expects that its arguments be of some
-numeric type. A runtime error will occur when this is not the case.
-Likewise, `append` expects its first argument to be a vector, and its
-last argument to be a subscript. These form restrictions are
-documented in a systematic way in each function's manual page. While
-R itself, nor its implementation, make any attempt to enforce these
-restrictions statically, Haskell's type system is rich enough to allow
-us to do so.
+In reality, `inline-r` defines `HExp` in a slightly more elaborate
+way. Most R functions expect their inputs to have certain
+predetermined forms. For example, the `+` function expects that its
+arguments be of some numeric type. A runtime error will occur when
+this is not the case. Likewise, `append` expects its first argument to
+be a vector, and its last argument to be a subscript. These form
+restrictions are documented in a systematic way in each function's
+manual page. While R itself, nor its implementation, make any attempt
+to enforce these restrictions statically, Haskell's type system is
+rich enough to allow us to do so.
 
-For this reason, H allows the `SEXP` and `HExp` types to be indexed by
-the form of the expression. For example, a value which is known to be
-a real number can be given the type `SEXP s R.Real`. In general, one
-does not always know *a priori* the form of an R expression, but
-pattern matching on an algebraic view of the expression allows us to
-"discover" the form at runtime. In H, we define the `HExp` algebraic
-view type as a [generalized algebraic
-datatype](http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt)
+For this reason, `inline-r` allows the `SEXP` and `HExp` types to be
+indexed by the form of the expression. For example, a value which is
+known to be a real number can be given the type `SEXP s R.Real`. In
+general, one does not always know *a priori* the form of an
+R expression, but pattern matching on an algebraic view of the
+expression allows us to "discover" the form at runtime. In `inline-r`,
+we define the `HExp` algebraic view type as
+a
+[generalized algebraic datatype](http://www.haskell.org/ghc/docs/latest/html/users_guide/data-type-extensions.html#gadt)
 (GADT). In this way, the body of each branch can be typed under the
 assumption that the scrutinee matches the pattern in the left hand
 side of the branch. For example, in the body of a branch with pattern
 `Real x`, the type checker can refine the type of the scrutinee to
-`SEXP s R.Real`. In H, `HExp` is defined as follows:
+`SEXP s R.Real`. In `inline-r`, `HExp` is defined as follows:
 
 ```Haskell
 data HExp s (a :: SEXPTYPE) where

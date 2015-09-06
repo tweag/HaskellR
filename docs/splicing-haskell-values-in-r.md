@@ -55,11 +55,11 @@ special care is needed to prevent garbage collection on either Haskell
 or R sides to invalidate values pointed by the other side. See
 [Managing memory].
 
-Note that as a general rule, in H we avoid any conversion to and from
-R values. The reason is that such conversions have runtime costs, thus
-incurring a performance overhead when interoperating with R. The
-`Literal` type class is only a convenience for expressing R values
-using Haskell literals. Contrary to arbitrary values, literals are
-typically small, and some of the conversion work can be inlined and
-executed at compile time, ahead of runtime.
+Note that as a general rule, in `inline-r` we avoid any conversion to
+and from R values. The reason is that such conversions have runtime
+costs, thus incurring a performance overhead when interoperating with
+R. The `Literal` type class is only a convenience for expressing
+R values using Haskell literals. Contrary to arbitrary values,
+literals are typically small, and some of the conversion work can be
+inlined and executed at compile time, ahead of runtime.
 

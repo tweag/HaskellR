@@ -25,21 +25,22 @@ at least one object in the Haskell heap.
 
 One particular difficulty with protection is that one must not forget
 to unprotect objects that have been protected, in order to avoid
-memory leaks. H uses "regions" for pinning an object in memory and
-guaranteeing unprotection when the control flow exits a region.
+memory leaks. `inline-r` uses "regions" for pinning an object in
+memory and guaranteeing unprotection when the control flow exits
+a region.
 
 Memory regions
 --------------
 
 There is currently one global region for R values, but in the future
-H will have support for multiple (nested) regions. A region is opened
-with the `runRegion` action, which creates a new region and executes
-the given action in the scope of that region. All allocation of
-R values during the course of the execution of the given action will
-happen within this new region. All such values will remain protected
-(i.e. pinned in memory) within the region. Once the action returns,
-all allocated R values are marked as deallocatable garbage all at
-once.
+`inline-r` will have support for multiple (nested) regions. A region
+is opened with the `runRegion` action, which creates a new region and
+executes the given action in the scope of that region. All allocation
+of R values during the course of the execution of the given action
+will happen within this new region. All such values will remain
+protected (i.e. pinned in memory) within the region. Once the action
+returns, all allocated R values are marked as deallocatable garbage
+all at once.
 
 ```Haskell
 runRegion :: (forall s . R s a) -> IO a
@@ -52,8 +53,8 @@ Nested regions work well as a memory management discipline for simple
 scenarios when the lifetime of an object can easily be made to fit
 within nested scopes. For more complex scenarios, it is often much
 easier to let memory be managed completely automatically, though at
-the cost of some memory overhead and performance penalty. H provides
-a mechanism to attach finalizers to R values. This mechanism
+the cost of some memory overhead and performance penalty. `inline-r`
+provides a mechanism to attach finalizers to R values. This mechanism
 piggybacks Haskell's GC to notify R's GC when it is safe to deallocate
 a value.
 

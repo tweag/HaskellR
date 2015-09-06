@@ -5,18 +5,23 @@ id: architectural-overview
 Architectural overview
 ======================
 
+The core of HaskellR is a library called `inline-r`. Interactive
+environments such as H and IHaskell are built on top of this core
+library, which can also be used by user applications directly.
+
 R source code is organized as a set of *scripts*, which are loaded one
 by one into the R interpreter. Each statement in a each script is
 evaluated in-order and affect the global environment mapping symbols
 to values maintained by the R interpreter. In its simplest form, H is
 an interactive environment much like R, with a global environment
-altered by the in-order evaluation of statements.
+altered by the in-order evaluation of statements. Most of the
+functionality of this environment is provided by `inline-r`.
 
-H offers a number of facilities for interoperating with R. The central
-and most general mechanism by which this is done is /quasiquotation/.
-A quasi-quotation is a partial R script --- that is, a script with
-holes in it that stand in for as of yet undetermined portions. An
-example quasiquote in Haskell of an R snippet is:
+`inline-r` offers a number of facilities for interoperating with R.
+The central and most general mechanism by which this is done is
+/quasiquotation/. A quasi-quotation is a partial R script --- that is,
+a script with holes in it that stand in for as of yet undetermined
+portions. An example quasiquote in Haskell of an R snippet is:
 
 ```Haskell
 [r| function(x) x + 1 ]
@@ -37,15 +42,14 @@ possible to obtain a full R script, with no holes in it, by *splicing*
 the value of the Haskell variables into the quasiquote, in place of
 the antiquotes.
 
-At a high-level, H is a desugarer for quasiquotes. It defines how to
-translate a quasiquotation into a Haskell expression. Hence the
+At a high-level, `inline-r` is a desugarer for quasiquotes. It defines
+how to translate a quasiquotation into a Haskell expression. Hence the
 H interactive environment is an interpreter for sequences of
-quasiquotes, containing R code snippets, and other Haskell
-snippets.
+quasiquotes, containing R code snippets, and other Haskell snippets.
 
-H is structured as a library. The H interactive environment is
-a simple launcher for GHCi that loads the H library into the session
-and sets a number of parameters.
+The H interactive environment is a simple launcher for GHCi that loads
+the `inline-r` library into the session and sets a number of
+parameters.
 
 The library itself is structured as two layers: a bottom-half binding
 to low-level internal functions of the R interpreter, using the

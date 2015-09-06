@@ -1,12 +1,12 @@
 ---
-title: Evaluating R expressions in GHCi
+title: Evaluating R expressions in H
 id: evaluating-r-expressions
 ---
 
-Using H, the most convenient way to interact with R is through
-quasiquotation. `r` is a quasiquoter that constructs an R expression,
-ships it off to R and has the expression evaluated by R, yielding
-a value.
+At the H interactive prompt, the most convenient way to interact with
+R is through quasiquotation. `r` is a quasiquoter that constructs an
+R expression, ships it off to R and has the expression evaluated by R,
+yielding a value.
 
     H> [r| 1 |]
     0x00007f355520ab38
@@ -47,8 +47,3 @@ expansion time, H itself need not implement its own R parser. This
 means that the entirety of R’s syntax is supported, and that it is
 possible to take advantage of any future additions to the R syntax for
 free in H, without any extra effort.
-
-> **Note:** quasiquotes are also available in compiled modules, not just
-> GHCi. However, unfortunately, quasiquotes are not available in the
-> H library itself. That is, one cannot use quasiquotes provided by
-> H to implement part of H.
