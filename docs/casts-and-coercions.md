@@ -1,6 +1,5 @@
 ---
 id: casts-and-coercions
-permalink: casts-and-coercions.html
 ---
 ## Casts and coercions
 

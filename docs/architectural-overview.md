@@ -1,6 +1,5 @@
 ---
 id: architectural-overview
-permalink: architectural-overview.html
 ---
 
 Architectural overview

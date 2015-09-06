@@ -1,6 +1,5 @@
 ---
 id: r-values-and-side-effects
-permalink: R values and side effects
 ---
 
 ### R values and side effects

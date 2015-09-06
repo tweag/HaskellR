@@ -1,6 +1,5 @@
 ---
 id: internals-introduction
-permalink: internals-introduction.html
 ---
 
 Introduction

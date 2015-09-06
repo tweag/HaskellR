@@ -1,6 +1,5 @@
 ---
 id: inline-r-with-IHaskell
-permalink: inline-r-with-IHaskell.html
 title: Using inline-r with IHaskell
 ---
 

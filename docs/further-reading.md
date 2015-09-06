@@ -1,7 +1,6 @@
 ---
 id: further-reading
 title: Further reading
-permalink: further-reading.html
 ---
 
 To find out more, please refer to the following resources, available

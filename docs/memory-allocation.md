@@ -1,6 +1,5 @@
 ---
 id: memory-allocation
-permalink: memory-allocation.html
 ---
 
 Memory allocation

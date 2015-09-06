@@ -1,6 +1,5 @@
 ---
 id: managing-memory
-permalink: managing-memory.html
 ---
 
 Managing memory

@@ -1,7 +1,6 @@
 ---
 title: Building and installing the H environment
 id: build-and-install
-permalink: build-and-install.html
 ---
 
 The H environment provides facilities for efficiently processing data

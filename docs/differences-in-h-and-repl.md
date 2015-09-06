@@ -1,6 +1,5 @@
 ---
 id: differences-in-h-and-repl
-permalink: differences-in-h-and-repl.html
 ---
 
 Differences when using H in GHCi and in compiled Haskell modules

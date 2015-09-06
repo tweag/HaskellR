@@ -1,6 +1,5 @@
 ---
 id: vectors
-permalink: vectors.html
 ---
 
 ## Vectors

@@ -1,6 +1,5 @@
 ---
 id: splicing-haskell-values-in-r
-permalink: splicing-haskell-values-in-r.html
 ---
 ## Splicing Haskell values in R
 

@@ -1,6 +1,5 @@
 ---
 id: catching-runtime-errors
-permalink: catching-runtime-errors.html
 ---
 
 Catching runtime errors

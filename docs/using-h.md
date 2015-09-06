@@ -1,7 +1,6 @@
 ---
 title: Using H
 id: using-h
-permalink: using-h.html
 ---
 
 H is a library, as well as a command. The library can be used from

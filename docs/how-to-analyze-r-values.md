@@ -1,6 +1,5 @@
 ---
 id: how-to-analyze-r-values
-permalink: how-to-analyze-r-values.html
 ---
 
 # How to analyze R values in Haskell

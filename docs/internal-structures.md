@@ -1,6 +1,5 @@
 ---
 id: internal-structures
-permalink: internal-structures.html
 ---
 
 Internal Structures

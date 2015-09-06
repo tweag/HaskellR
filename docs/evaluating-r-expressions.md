@@ -1,7 +1,6 @@
 ---
 title: Evaluating R expressions in GHCi
 id: evaluating-r-expressions
-permalink: evaluating-r-expressions.html
 ---
 
 Using H, the most convenient way to interact with R is through

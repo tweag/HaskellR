@@ -1,6 +1,5 @@
 ---
 id: how-r-interpreter-is-embedded
-permalink: how-r-interpreter-is-embedded.html
 ---
 
 How the R interpreter is embedded

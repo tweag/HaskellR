@@ -1,6 +1,5 @@
 ---
 id: implementation-of-quasiquoters
-permalink: implementation-of-quasiquoters.html
 ---
 Implementation of quasiquoters
 ==============================

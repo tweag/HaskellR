@@ -1,6 +1,5 @@
 ---
 id: r-monad
-permalink: r-monad.html
 ---
 The R monad
 ===========
