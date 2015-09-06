@@ -1,7 +1,7 @@
 ---
 name: HaskellR
 description: The full power of R in Haskell.
-url: tweag.github.io
+url: https://tweag.github.io
 baseurl: /HaskellR
 highlighter: pygments
 markdown: redcarpet
