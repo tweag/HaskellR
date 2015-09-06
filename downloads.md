@@ -7,8 +7,8 @@ id: downloads
 ## Build from source
 
 All sources are available on [Hackage](https://hackage.haskell.org).
-See the "Getting started" section of the Documentation for how to
-build a release.
+See the ["Getting started"](docs/build-and-install.html) section of
+the Documentation for how to build a release.
 
 ## Development
 

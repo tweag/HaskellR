@@ -2,4 +2,4 @@
 layout: twocol
 ---
 
-Some toplevel documentation here
+Start [here](build-and-install.html).
