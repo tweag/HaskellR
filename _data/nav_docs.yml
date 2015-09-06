@@ -1,7 +1,7 @@
 - title: Quick Start
   items:
   - id: build-and-install
-    title: Building and Installing H
+    title: Building and Installing HaskellR
   - id: using-h
     title: Using H
 - title: Tutorial
@@ -23,8 +23,8 @@
   - id: catching-runtime-errors
     title: Catching runtime errors
   - id: differences-repl-source
-    title: Differences between H and source files
-- title: H Internals
+    title: Interactive vs. source files
+- title: inline-r Internals
   items:
   - id: internals-introduction
     title: Introduction
