@@ -4,8 +4,6 @@
     title: Building and Installing H
   - id: using-h
     title: Using H
-  - id: further-reading
-    title: Further reading
 - title: Tutorial
   items:
   - id: evaluating-r-expressions
