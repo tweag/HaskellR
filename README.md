@@ -51,10 +51,9 @@ Copyright (c) 2013-2015 Amgen, Inc.
 Copyright (c) 2015 Tweag I/O Limited.
 
 All rights reserved.
-<!--
+
 HaskellR is free software, and may be redistributed under the terms
 specified in the [LICENSE](LICENSE) file.
--->
 
 ## About
 

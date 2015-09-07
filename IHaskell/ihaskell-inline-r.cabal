@@ -2,7 +2,7 @@ name:                ihaskell-inline-r
 version:             0.1.0.0
 synopsis:            Embed R quasiquotes and plots in IHaskell notebooks.
 homepage:            https://tweag.github.io/HaskellR/
-license:             AllRightsReserved
+license:             BSD3
 maintainer:          Alexander Vershilov <alexander.vershilov@tweag.io>
 copyright:           Copyright (c) 2015, Tweag I/O Limited.
 category:            Development
