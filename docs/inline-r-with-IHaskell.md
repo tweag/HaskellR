@@ -3,10 +3,12 @@ id: inline-r-with-IHaskell
 title: Using inline-r with IHaskell
 ---
 
-It's possible to use `inline-r` with IHaskell notebook in order to get
-benefits of R without introducing much costs for interporability
-between languages.
+HaskellR features integration with [Jupyter](https://jupyter.org/) and
+the [IHaskell][ihaskell] kernel for interactively authoring notebooks
+replete with plots, formulas, R code and Haskell code.
 
-See the
+See "Building and installing" to get started and the
 [tutorial notebook](https://github.com/tweag/HaskellR/blob/master/IHaskell/examples/tutorial-ihaskell-inline-r.ipynb)
 in the repository for a walkthrough.
+
+[ihaskell]: https://github.com/gibiansky/IHaskell
