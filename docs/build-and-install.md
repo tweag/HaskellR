@@ -51,12 +51,14 @@ $ export PATH=~/.cabal/bin:$PATH
 ### Installing Jupyter/IHaskell support for inline-r
 
 H is a very basic interactive environment. It is easy to install. If
-you would like a more featureful environment, HaskellR includes plugin
+you would like a more featureful environment, HaskellR includes a plugin
 for Jupyter's [IHaskell][ihaskell] kernel. Since the latter depends on
 a number of system libraries that may or may not be installed using
 exactly the right configuration by your distribution, on Linux it is
 recommended to use stack's Docker support to get reliable installs,
 explained in the "From Github" section below.
+
+[ihaskell]: https://github.com/gibiansky/IHaskell
 
 ## From Github
 
