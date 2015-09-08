@@ -30,6 +30,23 @@ The H interactive environment can be copied to `~/.local/bin` using
 $ stack build --copy-bins H
 ```
 
+If stack complains about not being able to find `inline-r`, add it to
+your global stack config, for example like so:
+
+```
+flags: {}
+packages: []
+extra-deps:
+  - inline-r-0.7.0.0
+resolver: lts-3.4
+```
+
+You can then run `H` with
+
+```
+stack exec H
+```
+
 Alternatively, you can use [cabal-install][cabal-install], which will
 copy the binary to `~/.cabal/bin` by default:
 
@@ -37,11 +54,10 @@ copy the binary to `~/.cabal/bin` by default:
 $ cabal install H
 ```
 
-Either way, make sure to include the target directories in your
-`PATH`. On UNIX systems:
+Make sure to include the target directories in your `PATH`. On UNIX
+systems:
 
 ```
-$ export PATH=~/.local/bin:$PATH
 $ export PATH=~/.cabal/bin:$PATH
 ```
 
