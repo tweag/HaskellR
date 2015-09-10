@@ -102,7 +102,9 @@ or pop into an H REPL with
 $ stack --docker exec H
 ```
 
-Read the [tutorial][tutorial] to learn more about using inline-r and
-IHaskell together.
+After launching the Jupyter notebook server you can visit
+http://localhost:8888/notebooks/IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+in your browser for an interactive tutorial, which is available in
+static form [here][tutorial].
 
 [tutorial]: https://github.com/tweag/HaskellR/blob/master/IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
