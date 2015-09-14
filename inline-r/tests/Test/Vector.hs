@@ -9,12 +9,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -31,6 +33,7 @@ import qualified Data.Vector.Fusion.Stream as S
 import qualified Foreign.R as R
 import H.Prelude hiding (Show)
 import Language.R.QQ
+import Language.R.HExp (HExp(..), hexp)
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.Tasty.HUnit
@@ -119,6 +122,13 @@ vectorIsImmutable = testCase "fromList should have correct length" $ do
            return $ immV V.! 0
     i @?= 1
 
+vectorCopy :: TestTree
+vectorCopy = testCase "Copying vector of doubles works" $ runRegion $ do
+  vs1 :: R.SEXP s 'R.Real <- V.toSEXP (V.fromList [1..3::Double])
+  vs2 :: R.SEXP s 'R.Real <- V.unsafeToSEXP (V.fromList [1..3::Double])
+  R.SomeSEXP (hexp -> Logical [R.True]) <- [r| identical(vs1_hs, vs2_hs) |]
+  return ()
+
 tests :: TestTree
 tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"
@@ -127,5 +137,6 @@ tests = testGroup "Tests."
       [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector s 'R.Real Double)]
   , testGroup "Regression tests" [fromListLength
                                  ,vectorIsImmutable
+                                 ,vectorCopy
                                  ]
   ]

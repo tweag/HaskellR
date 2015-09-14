@@ -327,15 +327,15 @@ instance (VECTOR s ty a)
   -- directly.
   basicUnsafeSlice i l v         = unsafeInlineIO $ do
     mv <- Mutable.new l
-    copyArray (toVecPtr v `plusPtr` i)
-              (toMVecPtr mv)
+    copyArray (toMVecPtr mv)
+              (toVecPtr v `plusPtr` i)
               l
     G.basicUnsafeFreeze mv
   basicUnsafeIndexM v i          = return . unsafeInlineIO
                                  $ peekElemOff (toVecPtr v) i
   basicUnsafeCopy   mv v         = unsafePrimToPrim $
-    copyArray (toVecPtr v)
-              (toMVecPtr mv)
+    copyArray (toMVecPtr mv)
+              (toVecPtr v)
               (G.basicLength v)
 
   elemseq _                      = seq
