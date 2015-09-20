@@ -96,5 +96,5 @@ it much more likely to detect inadequately protected objects. It is
 recommended to use a version of R that has been compiled with
 `--enable-strict-barrier`.
 
-See The Haddock generated documentation for the `Language.R.GC` module
-for further details, and the gctorture for `gctorture`.
+See the Haddock generated documentation for the `Language.R.GC` module
+for further details, and the R documentation for `gctorture()`.
