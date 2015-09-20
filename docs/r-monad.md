@@ -31,8 +31,11 @@ There are two instances of `MonadR`: `IO` and `R`. Which instance one
 uses depends on the context: the `IO` monad in an interactive session,
 the `R` monad in compiled code.
 
-The `R` monad is intended for compiled code. Functions are provided to
-initialize R and to run `R` computations in the `IO` monad.
+Interactive frontends such as H and IHaskell bring the `IO` instance
+into scope. In source files, you should not use this instance and
+instead use the `R` monad, for better static guarantees. Functions are
+provided in the `Language.R.Instance` module to initialize R and to
+run `R` computations in the `IO` monad:
 
 ```Haskell
 withEmbeddedR :: Config -> IO a -> IO a
@@ -41,10 +44,10 @@ io            :: IO a -> R s a
 unsafeRToIO   :: R s a -> IO a
 ```
 
-The `IO` monad is used instead in GHCi, as a mere convenience. It
-allows evaluating expressions without the need to wrap every command
-at the prompt with a function to run the R monad. The `IO` monad is in
-theory not as safe as the `R` monad, because it does not statically
-guarantee that R has been properly initialized, but in the context of
-an interactive session this is superfluous as the `H --interactive`
-command takes care of initialization at startup.
+The `IO` monad is used in interactive sessions as a mere convenience.
+It allows evaluating expressions without the need to wrap every
+command at the prompt with a function to run the `R` monad. The `IO`
+monad is in theory not as safe as the `R` monad, because it does not
+statically guarantee that R has been properly initialized, but in the
+context of an interactive session this is superfluous as the
+`H --interactive` command takes care of initialization at startup.
