@@ -173,7 +173,7 @@ data HExp :: * -> SEXPTYPE -> * where
   Expr      :: {-# UNPACK #-} !Int32
             -> {-# UNPACK #-} !(Vector.Vector s R.Expr (SomeSEXP s))
             -> HExp s R.Expr
-  Bytecode  :: HExp s R.Bytecode -- XXX
+  Bytecode  :: HExp s R.Bytecode -- TODO
   -- Fields: pointer, protectionValue, tagval
   ExtPtr    :: Ptr ()
             -> SEXP s b
