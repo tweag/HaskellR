@@ -194,6 +194,9 @@ data HExp :: * -> SEXPTYPE -> * where
   S4        :: SEXP s a
             -> HExp s R.S4
 
+instance Eq (HExp s a) where
+  (==) = (===)
+
 -- | Heterogeneous equality.
 (===) :: TestEquality f => f a -> f b -> Bool
 x === y = isJust $ testEquality x y
