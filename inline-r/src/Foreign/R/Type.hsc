@@ -89,7 +89,7 @@ data SEXPTYPE
     | New
     | Free
     | Fun
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -163,7 +163,7 @@ data Logical = FALSE
              | NA
 -- XXX no Enum instance because NA = INT_MIN, not representable as an Int on
 -- 32-bit systems.
-               deriving (Eq, Show)
+               deriving (Eq, Ord, Show)
 
 instance Storable Logical where
   sizeOf _       = sizeOf (undefined :: CInt)
