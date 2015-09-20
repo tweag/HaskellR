@@ -118,7 +118,7 @@ H.print =<< [r| typeof(x_hs) |]
 :{
 let testpm :: SomeSEXP s -> IO ()
     testpm (SomeSEXP z@(hexp -> S4 p))
-      | R.True <- H.dynSEXP [rsafe| z_hs @ a > 0 |] = H.print z
+      | R.TRUE <- H.dynSEXP [rsafe| z_hs @ a > 0 |] = H.print z
       | otherwise = print "unexpected value"
 :}
 

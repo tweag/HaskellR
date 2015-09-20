@@ -126,7 +126,7 @@ vectorCopy :: TestTree
 vectorCopy = testCase "Copying vector of doubles works" $ runRegion $ do
   vs1 :: R.SEXP s 'R.Real <- V.toSEXP (V.fromList [1..3::Double])
   vs2 :: R.SEXP s 'R.Real <- V.unsafeToSEXP (V.fromList [1..3::Double])
-  R.SomeSEXP (hexp -> Logical [R.True]) <- [r| identical(vs1_hs, vs2_hs) |]
+  R.SomeSEXP (hexp -> Logical [R.TRUE]) <- [r| identical(vs1_hs, vs2_hs) |]
   return ()
 
 tests :: TestTree

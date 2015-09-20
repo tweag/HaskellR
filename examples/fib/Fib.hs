@@ -21,8 +21,8 @@ import           Control.Applicative
 neg :: SEXP s 'R.Logical
     -> SEXP s 'R.Int
     -> R s (R.SomeSEXP s)
-neg (fromSEXP -> R.True)  (fromSEXP -> n :: Int32) = [r| n_hs |]
-neg (fromSEXP -> R.False) (fromSEXP -> n :: Int32) = [r| -n_hs |]
+neg (fromSEXP -> R.TRUE)  (fromSEXP -> n :: Int32) = [r| n_hs |]
+neg (fromSEXP -> R.FALSE) (fromSEXP -> n :: Int32) = [r| -n_hs |]
 neg (fromSEXP -> R.NA)    (fromSEXP -> _ :: Int32) = [r| NA |]
 neg _ _ = error "Impossible."
 

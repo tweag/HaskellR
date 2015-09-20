@@ -46,7 +46,6 @@ import Control.DeepSeq (NFData(..))
 import Foreign (castPtr)
 import Foreign.C (CInt)
 import Foreign.Storable(Storable(..))
-import Prelude hiding (Bool(..))
 
 -- | R \"type\". Note that what R calls a \"type\" is not what is usually meant
 -- by the term: there is really only a single type, called 'SEXP', and an
@@ -159,8 +158,8 @@ instance Hs.Lift SEXPTYPE where
   lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
 
 -- | R uses three-valued logic.
-data Logical = False
-             | True
+data Logical = FALSE
+             | TRUE
              | NA
 -- XXX no Enum instance because NA = INT_MIN, not representable as an Int on
 -- 32-bit systems.
@@ -169,15 +168,15 @@ data Logical = False
 instance Storable Logical where
   sizeOf _       = sizeOf (undefined :: CInt)
   alignment _    = alignment (undefined :: CInt)
-  poke ptr False = poke (castPtr ptr) (0 :: CInt)
-  poke ptr True  = poke (castPtr ptr) (1 :: CInt)
+  poke ptr FALSE = poke (castPtr ptr) (0 :: CInt)
+  poke ptr TRUE  = poke (castPtr ptr) (1 :: CInt)
   -- Currently NA_LOGICAL = INT_MIN.
   poke ptr NA    = poke (castPtr ptr) (#{const INT_MIN} :: CInt)
   peek ptr = do
       x <- peek (castPtr ptr)
       case x :: CInt of
-          0 -> return False
-          1 -> return True
+          0 -> return FALSE
+          1 -> return TRUE
           #{const INT_MIN} -> return NA
           _ -> failure "Storable Logical peek" "Not a Logical."
 
