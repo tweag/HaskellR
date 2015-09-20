@@ -18,6 +18,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
+#if __GLASGOW_HASKELL__ < 710
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -151,13 +154,16 @@ import qualified Foreign.R.Type as R
 import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
 
 import Control.Applicative
-import Control.Monad.Primitive ( unsafeInlineIO )
+import Control.DeepSeq (NFData(..))
 import Control.Exception (bracket)
+import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
 import Data.Singletons (fromSing)
-import Control.DeepSeq (NFData(..))
+#if __GLASGOW_HASKELL__ < 710
+import Data.Typeable (Typeable)
+#endif
 import Foreign (Ptr, castPtr, plusPtr, Storable(..))
 #ifdef H_ARCH_WINDOWS
 import Foreign (nullPtr)
@@ -187,7 +193,12 @@ data SEXPREC
 -- | The basic type of all R expressions, classified by the form of the
 -- expression, and the memory region in which it has been allocated.
 newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
-  deriving (Eq, Storable)
+  deriving ( Eq
+           , Storable
+#if __GLASGOW_HASKELL__ < 710
+           , Typeable
+#endif
+           )
 
 instance Show (SEXP s a) where
   show (SEXP ptr) = show ptr
