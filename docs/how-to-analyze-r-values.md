@@ -13,8 +13,8 @@ However, R values cannot be pattern matched upon directly, since they
 do not share the same representation as values of algebraic datatypes
 in Haskell. Regardless, R values can still be deconstructed and
 pattern matched, provided a *view function* constructing a *view* of
-any given R value as an algebraic datatype. `inline-r` provides one such view
-function:
+any given R value as an algebraic datatype. `inline-r` provides one
+such view function (in the `Language.R.HExp` module):
 
 ```Haskell
 hexp :: SEXP s a -> HExp a
@@ -22,28 +22,29 @@ hexp :: SEXP s a -> HExp a
 
 The `HExp` datatype is a *view type* for `SEXP`. Matching on a value
 of type `HExp a` is an alternative to using accessor functions to gain
-access to each field. The `HExp` datatype offers a view that exposes
-exactly what accessor functions would: it is a one-level unfolding of
-`SEXP`. See the "inline-r internals" document for further justifications for
-using one-level unfoldings and their relevance for performance.
+access to each field of the in-memory `SEXP` structure. The `HExp`
+datatype offers a view that exposes exactly what accessor functions
+would: it is a one-level unfolding of `SEXP`. See the
+[inline-r internals](internal-structures.html) document for further
+justifications for using one-level unfoldings and their relevance for
+performance.
 
 We have for example that:
 
 ```Haskell
 hexp H.nilValue == Nil
-hexp (mkSEXP ([ 2, 3 ] :: [Double])) == Real (fromList ([ 2.0, 3.0 ] :: [Double]))
+hexp (mkSEXP ([2, 3] :: [Double])) == Real (fromList ([2, 3] :: [Double]))
 ```
 
 Where `H.nilValue` is the result of evaluating `[r| NULL |]`
 
-Using a language extension known as `ViewPatterns` one could use
-`hexp` to examine an expression to any depth in a rather compact form.
-For instance:
+Using a language extension known as `ViewPatterns`, we can use `hexp`
+to examine an expression to any depth rather compactly. For instance:
 
 ```Haskell
 f (hexp -> Real xs) = …
 f (hexp -> Lang rator (hexp -> List rand1 (hexp -> List rand2 _ _) _) = …
-f (hexp -> Closure args body@(hexp -> Lang _ _) env) = ...
+f (hexp -> Closure args body@(hexp -> Lang _ _) env) = …
 ```
 
 ### R values and side effects
@@ -60,23 +61,24 @@ allocated on the R heap, managed by the R runtime. Therefore, the
 lifetime of a SEXP value cannot extrude the lifetime of the R runtime
 itself, just as any Haskell value becomes garbage once the GHC runtime
 is terminated. That is, never invoke `hexp` on a value outside of the
-dynamic scope of `runR`. This isn't a problem in practice, because
-`runR` should be invoked only once, in the `main` function of the
-program`, just as the GHC runtime is initialized and terminated only
-once, at the entry point of the binary (i.e., C's main() function).
+dynamic scope of `withEmbeddedR`. This isn't a problem in practice,
+because `withEmbeddedR` should be invoked only once, in the `main`
+function of the program, just as the GHC runtime is initialized and
+terminated only once, at the entry point of the binary (i.e., C's
+`main()` function).
 
 The second observation is that the `hexp` view function does pointer
-dereferencing, which is a side-effect, yet it claims to be a pure
-function. The pointer that is being dereferenced is the argument to
-the function, of type `SEXP s a`. The reason dereferencing a pointer is
-considered an effect is because its value depends on the state of the
-global memory at the time when it occurs. This is because a pointer
-identifies a memory location, called a *cell*, whose content can be
-mutated.
+dereferencing, which is a side-effect, *yet it claims to be a pure
+function*. The pointer that is being dereferenced is the argument to
+the function, of type `SEXP s a`. The reason dereferencing a pointer
+is considered an effect is because its value depends on the state of
+the global memory at the time when it occurs. This is because
+a pointer identifies a memory location, called a *cell*, whose content
+can be mutated.
 
 Why then, does `hexp` claim to be pure? The reason is that `inline-r`
-assumes and encourages a restricted mode of use of R that rules out
-mutation of the content of any cell. In the absence of mutation,
+*assumes and encourages a restricted mode of use of R that rules out
+mutation of the content of any cell*. In the absence of mutation,
 dereferencing a pointer will always yield the same value, so no longer
 needs to be classified as an effect. The restricted mode of use in
 question bans any use of side-effects that break referential
@@ -138,9 +140,10 @@ static analysis that can detect bad side-effects.
 ### Physical and structural equality on R values
 
 The standard library defines an `Eq` instance for `Ptr`, which simply
-compares the addresses of the pointers. Because `SEXP s a` is a `Ptr` in
-disguise, `s1 == s2` where `s1`, `s2` are `SEXP`s tests for *physical
-equality*, namely whether `s1` and `s2` are one and the same object.
+compares the addresses of the pointers. Because `SEXP s a` is a `Ptr`
+in disguise, `s1 == s2` where `s1`, `s2` are `SEXP`s tests for
+*physical equality*, namely whether `s1` and `s2` are one and the same
+object.
 
 Often this is not what we want. In fact most `Eq` instances in Haskell
 test for *structural equality*, a broader notion of equality. Under
@@ -148,7 +151,7 @@ physical equality, `Char x /= Char y` even if `x == y`, whereas under
 structural equality, `x == y` implies `Char x == Char y`.
 
 However, we need a notion broader still. Equality on two values of
-uniform type is too restrictive for `HExp` which is a GADT. Consider
+uniform type is too restrictive for `HExp`, which is a GADT. Consider
 symbols, which can be viewed using the `Symbol` constructor:
 
 ```Haskell
@@ -169,10 +172,13 @@ For this, we need a slightly generalized notion of equality, called
 *heterogeneous equality*:
 
 ```Haskell
-class HEq t where
-  (===) :: t a -> t b -> Bool
+-- | Heterogeneous equality.
+(===) :: TestEquality f => f a -> f b -> Bool
+x === y = isJust $ testEquality x y
 ```
 
+The `TestEquality` class
+[comes from `base`](https://downloads.haskell.org/~ghc/latest/docs/html/libraries/base-4.8.1.0/Data-Type-Equality.html).
 `(===)` is a generalization of `(==)` where the types of the arguments
 can be indexed by arbitrary types.
 
