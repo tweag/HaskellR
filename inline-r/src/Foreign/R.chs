@@ -194,6 +194,7 @@ data SEXPREC
 -- expression, and the memory region in which it has been allocated.
 newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
   deriving ( Eq
+           , Ord
            , Storable
 #if __GLASGOW_HASKELL__ < 710
            , Typeable
