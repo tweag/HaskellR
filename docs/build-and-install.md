@@ -78,6 +78,15 @@ explained in the "From Github" section below.
 
 ## From Github
 
+NOTE: currently, stack's Docker support only works on Linux 64-bit
+(virtual or metal). See the [stack Docker documentation][stack-docker]
+for more information. Omit the `--docker` flag in all the commands
+below if you want to build on unsupported platforms, or if you don't
+want to use Docker. Build results will just be less reliably
+reproducible.
+
+[stack-docker]: https://github.com/commercialhaskell/stack/wiki/Docker
+
 An alternative to using the release versions on Hackage is to check
 out the source code from the Github repository directly. You will need
 to use this method if you want to take advantage of stack's Docker
