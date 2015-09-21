@@ -45,6 +45,9 @@ API documentation. You can do all of that at once with
 $ stack build --test --haddock --bench
 ```
 
+Optionally, pass in the `--docker` flag to all commands if you wish to
+develop inside a Docker container for more reproducible builds.
+
 ## License
 
 Copyright (c) 2013-2015 Amgen, Inc.  
