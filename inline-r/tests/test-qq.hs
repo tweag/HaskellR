@@ -37,8 +37,7 @@ hFib n =
 -- | Version of '(@=?)' that works in the R monad.
 (@=?) :: H.Show a => String -> a -> R s ()
 expected @=? actual = liftIO $ do
-    txt <- H.showIO actual
-    assertEqual "" expected (Text.unpack txt)
+    assertEqual "" expected (Text.unpack (H.show actual))
 
 main :: IO ()
 main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do

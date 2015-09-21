@@ -52,30 +52,27 @@ import Prelude hiding (Show(..), print)
 
 class Show a where
   -- | Equivalent of R's @deparse()@.
-  showIO :: a -> IO Text
+  show :: a -> Text
 
   -- | Make this a class method to allow matching R's @print()@ behaviour, whose
   -- output is subtly different from @deparse()@.
   print :: MonadR m => a -> m ()
-  print = io . (showIO >=> Text.putStrLn)
-
--- | Pure version of 'showIO'.
-show :: Show a => a -> Text
-show = unsafePerformIO . showIO
+  print = io . Text.putStrLn . show
 
 instance Show (SEXP s a) where
-  showIO s =
+  show s =
+      unsafePerformIO $
       withCString "quote" $ R.install >=> \quote ->
-      R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
-      return .
-      Text.Lazy.fromChunks .
-      map (Text.pack . Vector.toString . vector) .
-      Vector.toList .
-      vector $
-      (R.unsafeCoerce (R.release slang) :: SEXP V 'R.String)
+        R.lang2 quote (R.release s) >>= r1 "deparse" >>= \(SomeSEXP slang) ->
+          return .
+          Text.Lazy.fromChunks .
+          map (Text.pack . Vector.toString . vector) .
+          Vector.toList .
+          vector $
+          (R.unsafeCoerce (R.release slang) :: SEXP V 'R.String)
 
   print = io . R.printValue
 
 instance Show (R.SomeSEXP s) where
-  showIO s = R.unSomeSEXP s showIO
+  show s = R.unSomeSEXP s show
   print s = R.unSomeSEXP s print
