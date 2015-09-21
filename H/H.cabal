@@ -24,6 +24,7 @@ source-repository head
 
 executable H
   main-is:             H.hs
+  other-modules:       Paths_H
   build-depends:       inline-r
                      , base >= 4.6 && < 5
                      , bytestring >= 0.10
