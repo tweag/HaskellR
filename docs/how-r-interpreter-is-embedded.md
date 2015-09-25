@@ -2,36 +2,42 @@
 id: how-r-interpreter-is-embedded
 ---
 
-How the R interpreter is embedded
-=================================
+## How the R interpreter is embedded
 
-The following threads materialize when H is used:
+We embed an instance of the R interpreter using R's C API, documented
+in the [Writing R extensions][R-exts] document. R only allows at most
+one instance of the interpreter in any given process. Furthermore, R's
+C API is not reentrant: only one thread should be accessing the
+R interpreter at any one time.
 
- The R thread
-  : The only thread that can execute calls of the R API.
+[R-exts]: http://cran.r-project.org/doc/manuals/r-release/R-exts.html
 
- The GUI timer thread
-  : A thread that periodically produces requests to handle GUI events
-    in the R thread. The GUI timer thread is killed as soon as the R
-    thread dies.
+### The threading model
 
-In the public interface of H, operations which require interaction with
-the embedded R interpreter communicate with the R thread in a synchronous
-fashion. Exceptions produced in the R thread are rethrown to the caller.
-Operations in the R monad work like this, and similar operations are
-available on the IO monad when using GHCi.
+In `inline-r`, single-threaded access is all but statically
+guaranteed, thanks to the `R` monad. Arbitrary `IO` actions can be
+lifted into the `R` monad, including `forkIO` actions. But since
+`forkIO` can only fork `IO` actions, so long as `withEmbeddedR` is
+called only once at the beginning of the `main` function, there is no
+way to fork actions that interact with the R interpreter in separate
+threads. At any rate, no such action can be defined using only
+`Language.R.*` modules.
 
-Internal operations may require to be evaluated in the R thread. The
-following function is provided in the module `Language.R.Instance`
-for this sake:
+You can fork as many threads as you like. It's that just all threads
+except the main thread will be `IO` threads, not `R` threads.
 
-```Haskell
-unsafeRunInRThread :: IO a -> IO a
-```
+R insists that the interpreter should be run from the main thread.
+Therefore, do not call `withEmbeddedR` from any other thread than the
+main thread of the program. On some platforms, including OS X,
+violating this assumption breaks all graphical event processing. On
+all platforms, violating this assumption leads to strange call stack
+and signaling issues.
 
-The /unsafe/ prefix means that no verification is made that the R
-thread is running.
-
-The GUI timer thread is necessary whenever any of the graphic
-capabilities of R is used. Otherwise, when displaying windows, the
-user interface would not respond to mouse clicks or keystrokes.
+The above constraint is a problem for H: GHCi insists on running the
+read-eval-print loop on the main thread, while R insists on running
+its own event processing loop in the main thread as well. Since there
+is no way to mesh GHCi's loop with R's event loop, we have no other
+option but to force the user to trigger event processing iterations
+explicitly. This is done by calling the `Language.R.Event.refresh`
+action. Other interactive interfaces may or may not have this
+limitation.

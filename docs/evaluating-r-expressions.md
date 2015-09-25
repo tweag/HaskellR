@@ -47,3 +47,18 @@ expansion time, H itself need not implement its own R parser. This
 means that the entirety of R’s syntax is supported, and that it is
 possible to take advantage of any future additions to the R syntax for
 free in H, without any extra effort.
+
+[quasiquotation]: http://dl.acm.org/citation.cfm?id=1291211
+
+In H, graphical facilities are readily available. For example:
+
+    H> [r| plot(cars) |]
+
+NOTE: if you resize the graphics window, you'll notice that this
+window might not be repainted. In fact, the window might not even
+close properly. The reason for this is because since H is a thin
+wrapper around GHCi, and
+[there is currently no way](differences-repl-source.html) to mesh
+GHCi's read-eval-print loop with R's event loop, events must be
+processed manually, by calling `H.refresh` at the prompt. IHaskell
+does not have this limitation.
