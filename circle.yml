@@ -9,21 +9,20 @@ machine:
 dependencies:
   override:
   # Even though we have stack in docker image, we still need it on CI
+  - curl -LO https://github.com/commercialhaskell/stack/releases/download/v0.1.5.0/stack-0.1.5.0-x86_64-linux.tar.gz
+  - tar xf stack-0.1.5.0-x86_64-linux.tar.gz
   - mkdir -p ~/.local/bin
-  - curl -L https://github.com/commercialhaskell/stack/releases/download/v0.1.3.0/stack-0.1.3.0-x86_64-linux.gz | gunzip > ~/.local/bin/stack
-  - chmod a+x ~/.local/bin/stack
-  - (cd /; stack --no-terminal setup; stack --no-terminal upgrade --git)
-  # should run inside docker
+  - cp stack-0.1.5.0-x86_64-linux/stack ~/.local/bin
+  # should run inside docker container
   - stack --no-terminal docker pull
   - stack --no-terminal --docker build --only-snapshot --prefetch --test --bench
 
   cache_directories:
   - "~/.stack/"
 
+build:
+  override:
+
 test:
   override:
-  # XXX Have to build twice due to
-  # https://github.com/commercialhaskell/stack/issues/805.
-  - stack --no-terminal --docker build
-  - stack --no-terminal --docker build --pedantic --test --bench
-  - stack --no-terminal --docker haddock --no-haddock-deps
+  - stack --no-terminal --docker build --pedantic --test --bench --haddock --no-haddock-deps
