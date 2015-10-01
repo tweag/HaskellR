@@ -12,7 +12,7 @@ Synopsis:            Seamlessly call R from Haskell and vice versa. No FFI requi
 description:
 
   For up to date Haddock documentation, please see
-  http://www.stackage.org/package/inline-r.
+  <http://www.stackage.org/package/inline-r>.
 
 cabal-version:       >=1.10
 
