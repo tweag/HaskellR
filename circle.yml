@@ -20,9 +20,6 @@ dependencies:
   cache_directories:
   - "~/.stack/"
 
-build:
-  override:
-
 test:
   override:
   - stack --no-terminal --docker build --pedantic --test --bench --haddock --no-haddock-deps
