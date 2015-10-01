@@ -9,6 +9,11 @@ cabal-version:       >=1.10
 build-type:          Simple
 Category:            FFI
 Synopsis:            Seamlessly call R from Haskell and vice versa. No FFI required.
+description:
+
+  For up to date Haddock documentation, please see
+  http://www.stackage.org/package/inline-r.
+
 cabal-version:       >=1.10
 
 extra-source-files:   cbits/Hcompat.h
