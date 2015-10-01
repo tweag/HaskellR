@@ -52,5 +52,5 @@ main :: IO ()
 main = do
     putStrLn "Name?"
     name <- getLine
-    R.withEmbeddedR R.defaultConfig (hello name)
+    R.withEmbeddedR R.defaultConfig $ R.runRegion $ hello name
 ```
