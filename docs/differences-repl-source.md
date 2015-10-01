@@ -34,6 +34,7 @@ programs, while `H --interactive` takes care of this for us. Here is
 a template small program using the `inline-r` library:
 
 ```Haskell
+{-# LANGUAGE QuasiQuotes #-}
 module Main where
 
 import qualified Foreign.R as R
