@@ -20,7 +20,6 @@ module H.Prelude
   -- * Globals
   , module Language.R.Globals
   , Show(..)
-  , show
   ) where
 
 import           Control.Memory.Region
