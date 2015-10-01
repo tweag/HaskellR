@@ -50,3 +50,5 @@
   items:
   - id: inline-r-with-IHaskell
     title: Using inline-r with IHaskell
+  - id: faq
+    title: The HaskellR FAQ

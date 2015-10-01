@@ -6,6 +6,7 @@ layout: single
 
 There are multiple support channels available in case you need help.
 
+* Common issues are covered by the [FAQ](docs/faq.html).
 * For general questions, comments, feedback and community support
   please write a message to the
   [HaskellR mailing list](https://groups.google.com/group/haskellr).
