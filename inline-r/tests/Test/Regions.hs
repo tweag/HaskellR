@@ -80,7 +80,7 @@ tests = testGroup "regions"
           _ <- mkSEXP (1 :: Int32)
           withRegion $ do
             _ <- mkSEXP (1 :: Int32)
-            pure ()
+            return ()
     , testCase "withRegion-deep" $
       preserveDirectory $ assertBalancedStack $
         runRegion $ do
