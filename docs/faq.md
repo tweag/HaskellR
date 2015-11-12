@@ -34,3 +34,30 @@ This is a known issue with GHC, tracked as
 [Trac ticket #10458][trac-10458].
 
 [trac-10458]: https://ghc.haskell.org/trac/ghc/ticket/10458
+
+#### How do I fix linker errors?
+
+Most systems use the historic `ld.bfd` linker by default. However,
+some versions of this linker has a [bug][ld-pie-bug] preventing the
+linker from handling relocations properly. You might be seeing linker
+errors like the following:
+
+```
+/usr/bin/ld: .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/IHaskell/Display/InlineR.dyn_o: relocation R_X86_64_PC32 against symbol `ihaskellzminlinezmrzm0zi1zi0zi0_IHaskellziDisplayziInlineR_rprint5_closure' can not be used when making a shared object; recompile with -fPIC
+    /usr/bin/ld: final link failed: Bad value
+    collect2: error: ld returned 1 exit status
+```
+
+The fix is to either upgrade your linker, or better yet, switch to the
+gold linker. On Ubuntu, you can do this with:
+
+```
+# update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.gold" 20
+# update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.bfd" 10
+# update-alternatives --config ld
+```
+
+Stackage LTS Docker images use the `ld.gold` linker by default for
+this reason, so aren't affected by the bug.
+
+[ld-pie-bug]: https://sourceware.org/bugzilla/show_bug.cgi?id=17689
