@@ -22,4 +22,6 @@ dependencies:
 
 test:
   override:
-  - stack --no-terminal --docker build --pedantic --test --bench --haddock --no-haddock-deps
+  # XXX --docker-persist flag to workaround CircleCI bug: cannot remove
+  # containers (Nov 2015).
+  - stack --no-terminal --docker --docker-persist build --pedantic --test --bench --haddock --no-haddock-deps
