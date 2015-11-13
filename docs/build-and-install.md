@@ -54,6 +54,13 @@ copy the binary to `~/.cabal/bin` by default:
 $ cabal install H
 ```
 
+or the following if you used a `cabal-install` sandbox when building:
+
+```
+# From the directory where the sandbox is located.
+$ cabal exec H
+```
+
 Make sure to include the target directories in your `PATH`. On UNIX
 systems:
 
