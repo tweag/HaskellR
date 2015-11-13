@@ -9,10 +9,10 @@ machine:
 dependencies:
   override:
   # Even though we have stack in docker image, we still need it on CI
-  - curl -LO https://github.com/commercialhaskell/stack/releases/download/v0.1.5.0/stack-0.1.5.0-x86_64-linux.tar.gz
-  - tar xf stack-0.1.5.0-x86_64-linux.tar.gz
+  - curl -LO https://github.com/commercialhaskell/stack/releases/download/v0.1.6.0/stack-0.1.6.0-linux-x86_64.tar.gz
+  - tar xf stack-0.1.6.0-linux-x86_64.tar.gz
   - mkdir -p ~/.local/bin
-  - cp stack-0.1.5.0-x86_64-linux/stack ~/.local/bin
+  - cp stack-0.1.6.0-linux-x86_64/stack ~/.local/bin
   # should run inside docker container
   - stack --no-terminal docker pull
   - stack --no-terminal --docker build --only-snapshot --prefetch --test --bench
