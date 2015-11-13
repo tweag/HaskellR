@@ -15,7 +15,7 @@ dependencies:
   - cp stack-0.1.6.0-linux-x86_64/stack ~/.local/bin
   # should run inside docker container
   - stack --no-terminal docker pull
-  - stack --no-terminal --docker build --only-snapshot --prefetch --test --bench
+  - stack --no-terminal --docker --docker-persist build --only-snapshot --prefetch --test --bench
 
   cache_directories:
   - "~/.stack/"
