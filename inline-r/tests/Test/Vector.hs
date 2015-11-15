@@ -115,7 +115,7 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
 vectorIsImmutable :: TestTree
 vectorIsImmutable = testCase "fromList should have correct length" $ do
     i <- runRegion $ do
-           s <- fmap (R.cast (sing :: R.SSEXPTYPE R.Real)) [r| c(1.0,2.0,3.0) |]
+           s <- fmap (R.cast (sing :: R.SSEXPTYPE 'R.Real)) [r| c(1.0,2.0,3.0) |]
            let mutV = VM.fromSEXP s
            immV <- V.fromSEXP s
            VM.unsafeWrite mutV 0 7

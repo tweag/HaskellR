@@ -17,6 +17,7 @@ import           Foreign.R (SEXP)
 import           Data.Int (Int32)
 import           Language.R.QQ
 import           Control.Applicative
+import           Prelude -- Silence AMP warning
 
 neg :: SEXP s 'R.Logical
     -> SEXP s 'R.Int

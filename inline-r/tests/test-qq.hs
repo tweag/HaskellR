@@ -20,14 +20,15 @@ import qualified Data.Vector.SEXP as SVector
 import qualified Data.Vector.SEXP.Mutable as SMVector
 import Control.Memory.Region
 
-import Control.Applicative ((<$>))
+import Control.Applicative
 import Control.Monad.Trans (liftIO)
 import Data.Int
 import Data.Singletons (sing)
 import qualified Data.Text.Lazy as Text
 import Test.Tasty.HUnit hiding ((@=?))
+import Prelude -- Silence AMP warning
 
-hFib :: SEXP s R.Int -> R s (SEXP s R.Int)
+hFib :: SEXP s 'R.Int -> R s (SEXP s 'R.Int)
 hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
 hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
 hFib n =

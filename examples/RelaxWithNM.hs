@@ -15,6 +15,7 @@ import           H.Prelude as H
 import           Language.R.QQ
 import           Numeric.Integration.TanhSinh
 import           System.IO.Temp (withSystemTempDirectory)
+import           Prelude -- Silence AMP warning
 
 safeHead :: String -> [a] -> a
 safeHead msg [] = error $ "You have erred: " ++ msg
