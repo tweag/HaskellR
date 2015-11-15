@@ -83,7 +83,6 @@ import Unsafe.Coerce (unsafeCoerce)
 import Prelude
 
 #define USE_RINTERNALS
-#include "Hcompat.h"
 #include <R.h>
 #include <Rinternals.h>
 
