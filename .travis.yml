@@ -1,0 +1,43 @@
+language: c
+sudo: false
+
+os:
+  - linux
+  - osx
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - os: osx
+
+services:
+  - docker
+
+cache:
+  directories:
+  - $HOME/.stack
+
+env:
+  - PATH=$HOME/.local/bin:$PATH
+
+# XXX see https://github.com/travis-ci/travis-ci/issues/4709
+before_install:
+  - if [ $TRAVIS_OS_NAME = osx ]; then sudo security delete-certificate -Z 2F173F7DE99667AFA57AF80AA2D1B12FAC830338 /System/Library/Keychains/SystemRootCertificates.keychain; fi
+  - if [ $TRAVIS_OS_NAME = osx ]; then rvm osx-ssl-certs update all; fi
+
+install:
+  # Even though we have stack in docker image, we still need it on CI
+  - curl -LO https://github.com/commercialhaskell/stack/releases/download/v0.1.6.0/stack-0.1.6.0-$TRAVIS_OS_NAME-x86_64.tar.gz
+  - tar xf stack-0.1.6.0-$TRAVIS_OS_NAME-x86_64.tar.gz
+  - mkdir -p ~/.local/bin
+  - cp stack-0.1.6.0-$TRAVIS_OS_NAME-x86_64/stack ~/.local/bin
+  - if [ $TRAVIS_OS_NAME = osx ]; then brew install zeromq && brew update && brew tap homebrew/science && brew install r; fi
+  # should run inside docker container
+  - export STACK_ARGS="--no-terminal"
+  - if [ $TRAVIS_OS_NAME = linux ]; then stack $STACK_ARGS docker pull; fi
+  - if [ $TRAVIS_OS_NAME = linux ]; then export STACK_ARGS="$STACK_ARGS --docker"; fi
+  - stack $STACK_ARGS -j1 build --only-snapshot --prefetch --test --bench
+
+script:
+  - if [ $TRAVIS_OS_NAME = linux ]; then export STACK_ACTIONS="--test --bench --haddock"; fi
+  - stack $STACK_ARGS -j1 build --pedantic --no-haddock-deps $STACK_ACTIONS
