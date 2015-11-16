@@ -17,6 +17,15 @@ furthermore need:
 * (Optional) ZeroMQ 3.0 or later.
 * (Optional) Jupyter/IPython version 3.2 or later.
 
+For OS X, the build is known to work when using Homebrew to install
+dependencies, e.g.
+
+```
+$ brew update
+$ brew tap homebrew/science
+$ brew install r zeromq
+```
+
 TODO installation instructions for Windows.
 
 ## From Hackage
