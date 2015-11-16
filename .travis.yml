@@ -14,13 +14,14 @@ env:
 before_install:
   - sudo security delete-certificate -Z 2F173F7DE99667AFA57AF80AA2D1B12FAC830338 /System/Library/Keychains/SystemRootCertificates.keychain
   - rvm osx-ssl-certs update all
+  - mkdir -p ~/.local/bin
+  - travis_retry curl -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
 
 install:
-  - curl -LO https://github.com/commercialhaskell/stack/releases/download/v0.1.6.0/stack-0.1.6.0-$TRAVIS_OS_NAME-x86_64.tar.gz
-  - tar xf stack-0.1.6.0-$TRAVIS_OS_NAME-x86_64.tar.gz
-  - mkdir -p ~/.local/bin
-  - cp stack-0.1.6.0-$TRAVIS_OS_NAME-x86_64/stack ~/.local/bin
-  - brew install zeromq && brew update && brew tap homebrew/science && brew install r
+  - brew update
+  - brew tap homebrew/science
+  - brew install r zeromq python
+  - pip install ipython
   - stack setup
   - stack --no-terminal -j1 build --only-snapshot --prefetch --test --bench
 
