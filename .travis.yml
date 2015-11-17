@@ -23,8 +23,8 @@ install:
   - brew install r zeromq python
   - pip install ipython
   - stack setup
-  - stack --no-terminal -j1 build --only-snapshot --prefetch --test --bench
+  - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
 
 script:
   # XXX no tests for now since it times out.
-  - stack --no-terminal -j1 build --pedantic
+  - stack --no-terminal -j2 build --pedantic
