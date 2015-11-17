@@ -27,6 +27,7 @@ import           System.IO (hClose)
 import           System.IO.Temp (withSystemTempFile)
 import qualified Text.Blaze.Html5 as BH
 import qualified Text.Blaze.Html5.Attributes as BH
+import Prelude -- Silence AMP warning
 
 rprint :: QuasiQuoter
 rprint = QuasiQuoter { quoteExp = \s -> [| do H.p $(quoteExp r s) |] }

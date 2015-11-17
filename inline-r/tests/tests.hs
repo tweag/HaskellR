@@ -30,11 +30,12 @@ import           Language.R.QQ
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Control.Applicative ((<$>))
+import Control.Applicative
 import qualified Data.ByteString.Char8 (pack)
 import           Data.Vector.Generic (basicUnsafeIndexM)
 import           Data.Singletons (sing)
 import Foreign
+import Prelude -- Silence AMP warning
 
 tests :: TestTree
 tests = testGroup "Unit tests"
@@ -67,7 +68,7 @@ tests = testGroup "Unit tests"
             R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
                       R.r2 (Data.ByteString.Char8.pack ".Call") sf d
-                      >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE R.Real)
+                      >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE 'R.Real)
                                                      <$> R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ runRegion $ do
       key  <- mkSEXP (return 4 :: R s Int32)
@@ -83,7 +84,7 @@ tests = testGroup "Unit tests"
       return ()
   , testCase "Hexp works" $
       (((42::Double) @=?) =<<) $ runRegion $ do
-         y <- R.cast (sing :: R.SSEXPTYPE R.Real) . R.SomeSEXP
+         y <- R.cast (sing :: R.SSEXPTYPE 'R.Real) . R.SomeSEXP
                      <$> mkSEXP (42::Double)
          case hexp y of
            Real s -> basicUnsafeIndexM s 0
