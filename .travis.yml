@@ -1,0 +1,30 @@
+language: c
+os:
+  - osx
+
+# XXX Doesn't work on OS X VM's currently (Nov 2015).
+cache:
+  directories:
+  - $HOME/.stack
+
+env:
+  - PATH=$HOME/.local/bin:$PATH
+
+# XXX see https://github.com/travis-ci/travis-ci/issues/4709
+before_install:
+  - sudo security delete-certificate -Z 2F173F7DE99667AFA57AF80AA2D1B12FAC830338 /System/Library/Keychains/SystemRootCertificates.keychain
+  - rvm osx-ssl-certs update all
+  - mkdir -p ~/.local/bin
+  - travis_retry curl -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
+
+install:
+  - brew update
+  - brew tap homebrew/science
+  - brew install r zeromq python
+  - pip install ipython
+  - stack setup
+  - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
+
+script:
+  # XXX no tests for now since it times out.
+  - stack --no-terminal -j2 build --pedantic
