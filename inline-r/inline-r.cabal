@@ -16,8 +16,7 @@ description:
 
 cabal-version:       >=1.10
 
-extra-source-files:   cbits/Hcompat.h
-                      cbits/missing_r.h
+extra-source-files:   cbits/missing_r.h
                       tests/shootout/binarytrees.R
                       tests/shootout/fasta.R
                       tests/shootout/knucleotide.R
@@ -86,7 +85,7 @@ library
                      , transformers >= 0.3
                      , vector >= 0.10 && < 0.11
   hs-source-dirs:      src
-  includes:            cbits/Hcompat.h cbits/missing_r.h
+  includes:            cbits/missing_r.h
   c-sources:           cbits/missing_r.c
   include-dirs:        cbits
   default-language:    Haskell2010

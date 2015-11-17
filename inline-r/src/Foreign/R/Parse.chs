@@ -11,8 +11,6 @@
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 #endif
 
-#include "Hcompat.h"
-
 #include <Rinternals.h>
 #include <R_ext/Parse.h>
 module Foreign.R.Parse

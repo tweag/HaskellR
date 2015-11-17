@@ -172,7 +172,6 @@ import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
 #define USE_RINTERNALS
-#include "Hcompat.h"
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Memory.h>
