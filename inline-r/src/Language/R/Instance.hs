@@ -14,6 +14,7 @@
 --
 -- This module is intended to be imported qualified.
 
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
@@ -22,12 +23,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Language.R.Instance
   ( -- * The R monad
     R
   , runRegion
+  , withRegion
   , unsafeRToIO
   -- * R instance creation
   , Config(..)
@@ -37,6 +41,7 @@ module Language.R.Instance
   , finalize
   ) where
 
+import           Control.Memory.Region
 import           Control.Monad.Primitive (PrimMonad(..))
 import           Control.Monad.R.Class
 import           Control.Monad.ST.Unsafe (unsafeSTToIO)
@@ -126,6 +131,17 @@ runRegion r =
           (\d -> do
              x <- runReaderT (unR r) d
              x `deepseq` return x)
+
+-- | Run an R action in another R instance by nesting it under.
+--
+-- @withRegion m@ fully evaluates the result of action @m@, to ensure that no
+-- thunks hold onto resources in a way that would extrude the scope of the
+-- region. This means that the result must be first-order data (i.e. not
+-- a function).
+withRegion :: forall a s. (NFData a) => (forall q. (q <= s) => R q a) -> R s a
+withRegion nested = R $ do
+  x <- unR (nested :: R V a)
+  x `deepseq` return x
 
 -- | An unsafe version of 'runRegion', providing no static guarantees that
 -- resources do not extrude the scope of their region. For internal use only.

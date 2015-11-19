@@ -74,4 +74,20 @@ tests = testGroup "regions"
             _ <- [r| gctorture(FALSE) |]
             return ()
           return (z::Int32)
+    , testCase "withRegion-simple" $
+      preserveDirectory $ assertBalancedStack $
+        runRegion $ do
+          _ <- mkSEXP (1 :: Int32)
+          withRegion $ do
+            _ <- mkSEXP (1 :: Int32)
+            return ()
+    , testCase "withRegion-deep" $
+      preserveDirectory $ assertBalancedStack $
+        runRegion $ do
+          x <- mkSEXP (1 :: Int32)
+          withRegion $ withRegion $ withRegion $ do
+            y <- mkSEXP (1 :: Int32)
+            let x' = fromSEXP x :: Int32
+                y' = fromSEXP y :: Int32
+            io $ assertEqual "fromSEXP in withRegion" x' y'
     ]
