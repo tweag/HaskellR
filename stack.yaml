@@ -9,3 +9,7 @@ docker:
   # Disabled by default. Use --docker on command line to enable.
   enable: false
   repo: tweag/haskellr:latest
+nix-shell:
+    enable: false
+    #packages: [ ghc, python34Packages.ipython, R, zeromq, pkgconfig, zlib ]
+    shell-file: ../shell-from-nixpkgs-clone.nix
