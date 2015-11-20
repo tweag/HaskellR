@@ -15,14 +15,8 @@ import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
 import Foreign
 
-import System.Directory (getCurrentDirectory, setCurrentDirectory)
-import Control.Exception (bracket)
 
 #include <Rversion.h>
-
-preserveDirectory :: IO a -> IO a
-preserveDirectory =
- bracket getCurrentDirectory setCurrentDirectory . const
 
 #if defined(R_VERSION) && R_VERSION >= R_Version(3, 1, 0)
 foreign import ccall "&R_PPStackTop" ppStackTop :: Ptr Int
@@ -44,7 +38,7 @@ assertBalancedStack m = do
 tests :: TestTree
 tests = testGroup "regions"
     [ testCase "qq-dont-leak" $
-      preserveDirectory $ assertBalancedStack $
+      assertBalancedStack $
         runRegion $ do
           _ <- [r| gctorture(TRUE) |]
           R.SomeSEXP x <- [r| 1 |]
@@ -53,7 +47,7 @@ tests = testGroup "regions"
           _ <- [r| gctorture(FALSE) |]
           return ()
     , testCase "mksexp-dont-leak" $
-      preserveDirectory $ assertBalancedStack $
+      assertBalancedStack $
         runRegion $ do
           _ <- [r| gctorture(TRUE) |]
           x <- mkSEXP (1::Int32)
@@ -62,7 +56,6 @@ tests = testGroup "regions"
           _ <- [r| gctorture(FALSE) |]
           return ()
     , testCase "runRegion-no-leaked-thunks" $
-      preserveDirectory $
         ((8 @=?) =<<) $ do
           runRegion $ do
             _ <- [r| gctorture(TRUE) |]
