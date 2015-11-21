@@ -10,6 +10,7 @@ module Test.Regions
 import           Control.Memory.Region
 import qualified Foreign.R as R
 import           H.Prelude
+import           Language.R.HExp (hexp, (===))
 import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
@@ -78,4 +79,12 @@ tests = testGroup "regions"
             return ()
         _ <- [r| gc() |]
         io $ takeMVar mv
+    , testCase "withRegion-parent-region-unaffected" $
+      runRegion $ do
+        R.SomeSEXP x <- [r| 1 |]
+        () <- withRegion $ do
+          R.SomeSEXP y <- [r| 1 |]
+          io $ assert $ hexp (subr x) === hexp y
+        _ <- [r| gc() |]
+        io $ assertEqual "value is protected" R.Real (R.typeOf x)
     ]

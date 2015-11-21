@@ -7,9 +7,12 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# Language GADTs #-}
 {-# Language ViewPatterns #-}
+{-# Language TypeOperators #-}
 
 module Language.R
-  ( parseFile
+  ( subr
+  , subrSome
+  , parseFile
   , parseText
   , install
   , string
@@ -56,6 +59,16 @@ import Prelude
 
 -- NOTE: In this module, cannot use quasiquotations, since we are lower down in
 -- the dependency hierarchy.
+
+-- | Teleport an object from one memory region to another. This is safe to do
+-- provided the object was allocated in some ancestor region, i.e. a region
+-- whose dynamic extent outlives that of the target region.
+subr :: (s <= s') => SEXP s' a -> SEXP s a
+subr = R.sexp . R.unsexp
+
+-- | Like 'sub' but for 'SomeSEXP'.
+subrSome :: (s <= s') => SomeSEXP s' -> SomeSEXP s
+subrSome sx = SomeSEXP $ R.unSomeSEXP sx (R.sexp . R.unsexp)
 
 -- | Parse and then evaluate expression.
 parseEval :: ByteString -> IO (SomeSEXP V)
