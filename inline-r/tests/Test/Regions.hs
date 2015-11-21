@@ -7,14 +7,16 @@ module Test.Regions
   ( tests )
   where
 
-import           H.Prelude
+import           Control.Memory.Region
 import qualified Foreign.R as R
+import           H.Prelude
 import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
 import Foreign
 
+import Control.Concurrent (newEmptyMVar, putMVar, takeMVar)
 
 #include <Rversion.h>
 
@@ -58,4 +60,22 @@ tests = testGroup "regions"
           z <- runRegion $ fmap dynSEXP [r| 5+3 |]
           _ <- unsafeRToIO $ [r| gc() |]
           return (z::Int32)
+    , testCase "withRegion-object-live-inside-extent" $
+      runRegion $ withRegion $ do
+        R.SomeSEXP x <- [r| 1 |]
+        _ <- [r| gc () |]
+        io $ assertEqual "value is protected" R.Real (R.typeOf x)
+    , testCase "withRegion-object-dead-outside-extent" $
+      runRegion $ do
+        mv <- io $ newEmptyMVar
+        -- _ instead of () leads to a mysterious type error in GHC 7.10.
+        () <- withRegion $ do
+            env <- [r| new.env() |]
+            let f  (R.SomeSEXP _) = do
+                  io $ putMVar mv ()
+                  return nilValue :: R G (R.SEXP G 'R.Nil)
+            _ <- [r| reg.finalizer(env_hs, function(x)f_hs(x)) |]
+            return ()
+        _ <- [r| gc() |]
+        io $ takeMVar mv
     ]

@@ -22,12 +22,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Language.R.Instance
   ( -- * The R monad
     R
   , runRegion
+  , withRegion
   , unsafeRToIO
   -- * R instance creation
   , Config(..)
@@ -40,6 +43,7 @@ module Language.R.Instance
 import           Control.Monad.Primitive (PrimMonad(..))
 import           Control.Monad.R.Class
 import           Control.Monad.ST.Unsafe (unsafeSTToIO)
+import           Control.Memory.Region
 import           Data.Monoid
 import           Data.Default.Class (Default(..))
 import qualified Foreign.R as R
@@ -119,12 +123,25 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- thunks hold onto resources in a way that would extrude the scope of the
 -- region. This means that the result must be first-order data (i.e. not
 -- a function).
-runRegion :: NFData a => (forall s . R s a) -> IO a
+runRegion :: NFData a => (forall s. R s a) -> IO a
 runRegion r =
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)
           (\d -> do
              x <- runReaderT (unR r) d
+             x `deepseq` return x)
+
+-- | Open a nested memory region. All objects allocated during the dynamic extent
+-- of a call to this function are liable to be freed by R's garbage collector
+-- once the call returns. Since the dynamic extent of a nested region is smaller
+-- than that of its parent region, using a nested regions allows objects to be
+-- freed sooner.
+withRegion :: forall a s. NFData a => (forall s'. (s' <= s) => R s' a) -> R s a
+withRegion r =
+  io $ bracket (newIORef 0)
+          (R.unprotect <=< readIORef)
+          (\d -> do
+             x <- runReaderT (unR (r :: R s a)) d
              x `deepseq` return x)
 
 -- | An unsafe version of 'runRegion', providing no static guarantees that
