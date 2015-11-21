@@ -35,36 +35,27 @@ assertBalancedStack m = do
     m
 #endif
 
+-- XXX these tests are only effective when using a "hardened" version of
+-- R compiled with --enable-strict-barrier enabled, and with the R_GCTORTURE
+-- environment variable set.
+
 tests :: TestTree
 tests = testGroup "regions"
-    [ testCase "qq-dont-leak" $
+    [ testCase "qq-object-live-inside-extend" $
       assertBalancedStack $
         runRegion $ do
-          _ <- [r| gctorture(TRUE) |]
           R.SomeSEXP x <- [r| 1 |]
-          _ <- io $ R.allocList 1
+          _ <- [r| gc() |]
           io $ assertEqual "value is protected" R.Real (R.typeOf x)
-          _ <- [r| gctorture(FALSE) |]
-          return ()
-    , testCase "mksexp-dont-leak" $
+    , testCase "mksexp-object-live-inside-extend" $
       assertBalancedStack $
         runRegion $ do
-          _ <- [r| gctorture(TRUE) |]
           x <- mkSEXP (1::Int32)
-          _ <- io $ R.allocList 1
+          _ <- [r| gc() |]
           io $ assertEqual "value is protected" R.Int (R.typeOf x)
-          _ <- [r| gctorture(FALSE) |]
-          return ()
     , testCase "runRegion-no-leaked-thunks" $
         ((8 @=?) =<<) $ do
-          runRegion $ do
-            _ <- [r| gctorture(TRUE) |]
-            return ()
-          z <- runRegion $ do
-             fmap dynSEXP [r| 5+3 |]
-          runRegion $ do
-            _ <- io $ R.allocList 1
-            _ <- [r| gctorture(FALSE) |]
-            return ()
+          z <- runRegion $ fmap dynSEXP [r| 5+3 |]
+          _ <- unsafeRToIO $ [r| gc() |]
           return (z::Int32)
     ]
