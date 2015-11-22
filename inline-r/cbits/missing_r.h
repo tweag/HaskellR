@@ -7,6 +7,7 @@
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 
+/* Create a variadic R function given any function pointer. */
 SEXP funPtrToSEXP(DL_FUNC pf);
 
 /* Indicates whether R has been initialized. */

@@ -58,28 +58,26 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
 
     ("c(\"1\", \"2\", \"3\")" @=?) =<< [r| c(1,2,"3") |]
 
-    ("2" @=?) =<< [r| x <- 2 |]
+    ("2" @=?) =<< [r| x <<- 2 |]
 
     ("3" @=?) =<< [r| x+1 |]
 
     let y = (5::Double)
     ("6" @=?) =<< [r| y_hs + 1 |]
 
-    ("function (y = ) 5 + y" @=?) =<< [r| function(y) y_hs + y |]
-
-    _ <- [r| z <- function(y) y_hs + y |]
+    _ <- [r| z <<- function(y) y_hs + y |]
     ("8" @=?) =<< [r| z(3) |]
 
-    ("1:10" @=?) =<< [r| y <- c(1:10) |]
+    ("1:10" @=?) =<< [r| y <<- c(1:10) |]
 
     let foo1 = (\x -> (return $ x+1 :: R s Double))
     let foo2 = (\x -> (return $ map (+1) x :: R s [Int32]))
 
-    ("3" @=?) =<< [r| (function(x).Call(foo1_hs,x))(2) |]
+    ("3" @=?) =<< [r| mapply(foo1_hs, 2) |]
 
-    ("2:11" @=?) =<< [r| (function(x).Call(foo2_hs,x))(y) |]
+    ("2:11" @=?) =<< [r| mapply(foo2_hs, y) |]
 
-    ("43" @=?) =<< [r| x <- 42 ; x + 1 |]
+    ("43" @=?) =<< [r| x <<- 42 ; x + 1 |]
 
     let xs = [1,2,3]::[Double]
     ("c(1, 2, 3)" @=?) =<< [r| xs_hs |]
@@ -99,19 +97,11 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     ("120L" @=?) =<< [r| fact_hs(5L) |]
 
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
-    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s (R.SomeSEXP s)
+    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| n_hs(m_hs) |] :: R s (R.SomeSEXP s)
     ("29L" @=?) =<< [r| apply_hs(foo5_hs, 28L ) |]
 
     sym <- H.install "blah"
     ("blah" @=?) sym
-
-    _ <- [r| `+` <- function(x,y) x * y |]
-    ("100" @=?) =<< [r| 10 + 10 |]
-
-    ("20" @=?) =<< [r| base::`+`(10,10) |]
-
-    -- restore usual meaning of `+`
-    _ <- [r| `+` <- base::`+` |]
 
     -- test Vector literal instance
     v1 <- do
