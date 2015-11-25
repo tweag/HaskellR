@@ -12,4 +12,4 @@ docker:
 nix-shell:
     enable: false
     #packages: [ ghc, python34Packages.ipython, R, zeromq, pkgconfig, zlib ]
-    shell-file: ../shell-from-nixpkgs-clone.nix
+    shell-file: ./shell-from-nixpkgs-clone.nix
