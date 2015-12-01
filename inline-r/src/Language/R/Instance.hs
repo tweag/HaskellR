@@ -239,12 +239,14 @@ initialize Config{..} = do
           , R.missingArg
           , R.isRInteractive
           , R.inputHandlers
+          , R.signalHandlers
           )
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
+        poke signalHandlersPtr 0
         newCArray argv $ R.initEmbeddedR argc
         poke isRInteractive 0
         poke isRInitializedPtr 1
