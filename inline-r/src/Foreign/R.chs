@@ -127,6 +127,7 @@ module Foreign.R
   , baseEnv
   , emptyEnv
   , globalEnv
+  , signalHandlers
     -- * Communication with runtime
   , printValue
     -- * Low level info header access
@@ -173,6 +174,7 @@ import Prelude hiding (asTypeOf, length)
 
 #define USE_RINTERNALS
 #include <R.h>
+#include <Rinterface.h>
 #include <Rinternals.h>
 #include <R_ext/Memory.h>
 #include "missing_r.h"
@@ -578,6 +580,9 @@ foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G R.Env)
 
 -- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
+
+-- | Signal handler switch
+foreign import ccall "&R_SignalHandlers" signalHandlers :: Ptr CInt
 
 ----------------------------------------------------------------------------------
 -- Structure header                                                             --

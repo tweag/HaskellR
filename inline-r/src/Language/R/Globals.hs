@@ -19,6 +19,7 @@ module Language.R.Globals
   -- * R Internal constants
   , isRInteractive
   , inputHandlers
+  , signalHandlersPtr
   -- * R global constants
   -- $ghci-bug
   , pokeRVariables
@@ -59,6 +60,7 @@ type RVariables =
     , Ptr (SEXP G 'R.Symbol)
     , Ptr CInt
     , Ptr (Ptr R.InputHandler)
+    , Ptr CInt
     )
 
 -- | Stores R variables in a static location. This makes the variables'
@@ -76,6 +78,7 @@ pokeRVariables = poke rVariables <=< newStablePtr
  , missingArgPtr
  , isRInteractive
  , inputHandlersPtr
+ , signalHandlersPtr
  ) = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
 -- | Special value to which all symbols unbound in the current environment

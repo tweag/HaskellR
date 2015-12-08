@@ -143,6 +143,10 @@ data Config = Config
     configProgName :: Maybe String
     -- | Command-line arguments.
   , configArgs :: [String]
+
+    -- | Set to 'True' if you're happy to let R install its own signal handlers
+    -- during initialization.
+  , configSignalHandlers :: Bool
   }
 
 instance Default Config where
@@ -153,11 +157,12 @@ instance Monoid Config where
   mappend cfg1 cfg2 = Config
       { configProgName = configProgName cfg1 <> configProgName cfg2
       , configArgs = configArgs cfg1 <> configArgs cfg2
+      , configSignalHandlers =  configSignalHandlers cfg2
       }
 
 -- | Default argument to pass to 'initialize'.
 defaultConfig :: Config
-defaultConfig = Config Nothing ["--vanilla", "--silent"]
+defaultConfig = Config Nothing ["--vanilla", "--silent"] False
 
 -- | Populate environment with @R_HOME@ variable if it does not exist.
 populateEnv :: IO ()
@@ -200,8 +205,7 @@ initLock = unsafePerformIO $ newMVar ()
 -- main thread of the program. That is, from the same thread of execution that
 -- the program's @main@ function is running on. In GHCi, use @-fno-ghci-sandbox@
 -- to achieve this.
-initialize :: Config
-           -> IO ()
+initialize :: Config -> IO ()
 initialize Config{..} = do
 #ifdef H_ARCH_UNIX
 #ifdef H_ARCH_UNIX_DARWIN
@@ -239,12 +243,15 @@ initialize Config{..} = do
           , R.missingArg
           , R.isRInteractive
           , R.inputHandlers
+          , R.signalHandlers
           )
         populateEnv
         args <- (:) <$> maybe getProgName return configProgName
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
+        unless configSignalHandlers $
+          poke signalHandlersPtr 0
         newCArray argv $ R.initEmbeddedR argc
         poke isRInteractive 0
         poke isRInitializedPtr 1
