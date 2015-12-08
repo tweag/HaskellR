@@ -146,7 +146,7 @@ data Config = Config
 
     -- | Set to 'True' if you're happy to let R install its own signal handlers
     -- during initialization.
-  , configSignalHandlers :: Bool
+  , configSignalHandlers :: Last Bool
   }
 
 instance Default Config where
@@ -157,12 +157,12 @@ instance Monoid Config where
   mappend cfg1 cfg2 = Config
       { configProgName = configProgName cfg1 <> configProgName cfg2
       , configArgs = configArgs cfg1 <> configArgs cfg2
-      , configSignalHandlers =  configSignalHandlers cfg2
+      , configSignalHandlers =  configSignalHandlers cfg1 <> configSignalHandlers cfg2
       }
 
 -- | Default argument to pass to 'initialize'.
 defaultConfig :: Config
-defaultConfig = Config (Last Nothing) ["--vanilla", "--silent"] False
+defaultConfig = Config (Last Nothing) ["--vanilla", "--silent"] (Last (Just False))
 
 -- | Populate environment with @R_HOME@ variable if it does not exist.
 populateEnv :: IO ()
@@ -250,7 +250,7 @@ initialize Config{..} = do
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
-        unless configSignalHandlers $
+        unless (maybe False id $ getLast configSignalHandlers) $
           poke signalHandlersPtr 0
         newCArray argv $ R.initEmbeddedR argc
         poke isRInteractive 0
