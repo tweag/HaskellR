@@ -146,7 +146,7 @@ data Config = Config
 
     -- | Set to 'True' if you're happy to let R install its own signal handlers
     -- during initialization.
-  , configSignalHandlers :: Last Bool
+  , configSignalHandlers :: Bool
   }
 
 instance Default Config where
