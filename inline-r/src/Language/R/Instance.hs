@@ -140,13 +140,13 @@ unsafeRToIO r =
 data Config = Config
   { -- | Program name. If 'Nothing' then the value of 'getProgName' will be
     -- used.
-    configProgName :: Maybe String
+    configProgName :: Last String
     -- | Command-line arguments.
   , configArgs :: [String]
 
     -- | Set to 'True' if you're happy to let R install its own signal handlers
     -- during initialization.
-  , configSignalHandlers :: Bool
+  , configSignalHandlers :: Last Bool
   }
 
 instance Default Config where
@@ -162,7 +162,7 @@ instance Monoid Config where
 
 -- | Default argument to pass to 'initialize'.
 defaultConfig :: Config
-defaultConfig = Config Nothing ["--vanilla", "--silent"] False
+defaultConfig = Config (Last Nothing) ["--vanilla", "--silent"] False
 
 -- | Populate environment with @R_HOME@ variable if it does not exist.
 populateEnv :: IO ()
@@ -246,7 +246,7 @@ initialize Config{..} = do
           , R.signalHandlers
           )
         populateEnv
-        args <- (:) <$> maybe getProgName return configProgName
+        args <- (:) <$> maybe getProgName return (getLast configProgName)
                     <*> pure configArgs
         argv <- mapM newCString args
         let argc = length argv
