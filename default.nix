@@ -101,7 +101,7 @@ rec {
    ghcEnv = stdenv.mkDerivation {
               name = "env";
               buildInputs = [(rWrapper.override {
-                                packages = with rPackages; [ /* insert rPackages.XXXXXX here */ ];
+                                packages = with rPackages; [ numDeriv optimx /* insert rPackages.XXXXXX here */ ];
                              })
                              examples
                              (h.ghcWithPackages (p: [ H inline-r ]))];
