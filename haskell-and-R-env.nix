@@ -1,3 +1,5 @@
+/* This file shows how to create a nix derivation defining an environment containing GHC with HaskellR and R with desired libraries */
+
 let
 fH = { mkDerivation, base, bytestring, cmdargs, directory, file-embed
 , inline-r, pretty, process, singletons, stdenv, tasty
