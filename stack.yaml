@@ -9,3 +9,10 @@ docker:
   # Disabled by default. Use --docker on command line to enable.
   enable: false
   repo: tweag/haskellr:latest
+
+nix:
+    enable: false
+    packages: [ python34Packages.ipython, R, zeromq, pkgconfig, zlib ]
+    ## Right now, using just packages: is OK on Linux, not OSX
+    #shell-file: ./shell-OSX-from-nixpkgs-clone.nix
+
