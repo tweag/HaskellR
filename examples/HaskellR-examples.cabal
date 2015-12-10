@@ -24,7 +24,7 @@ executable RelaxWithNM
                      , base >= 4.6 && < 5
                      , deepseq
                      , integration
-                     , temporary-rc >= 1.2.0.3
+                     , temporary >= 1.2.0.3
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
 
