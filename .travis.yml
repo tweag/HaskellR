@@ -10,12 +10,10 @@ cache:
 env:
   - PATH=$HOME/.local/bin:$PATH
 
-# XXX see https://github.com/travis-ci/travis-ci/issues/4709
 before_install:
-  - sudo security delete-certificate -Z 2F173F7DE99667AFA57AF80AA2D1B12FAC830338 /System/Library/Keychains/SystemRootCertificates.keychain
-  - rvm osx-ssl-certs update all
   - mkdir -p ~/.local/bin
-  - travis_retry curl -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
+  # Passing -k to work around https://github.com/travis-ci/travis-ci/issues/4709.
+  - travis_retry curl -Lk https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
 
 install:
   - brew update
