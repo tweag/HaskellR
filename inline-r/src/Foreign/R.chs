@@ -40,6 +40,7 @@ module Foreign.R
     -- * Internal R structures
   , SEXPTYPE(..)
   , R.Logical(..)
+  , R.PairList
   , SEXP(..)
   , SomeSEXP(..)
   , Callback
