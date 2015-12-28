@@ -9,10 +9,10 @@
 
 SEXP funPtrToSEXP(DL_FUNC pf);
 
-// Indicates whether R has been initialized.
+/* Indicates whether R has been initialized. */
 extern int isRInitialized;
 
-// R global variables for GHCi.
+/* R global variables for GHCi. */
 extern HsStablePtr rVariables;
 
 #endif

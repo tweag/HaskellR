@@ -4,8 +4,9 @@
 #include <R.h>
 #include <R_ext/Rdynload.h>
 
-void freeHsSEXP(SEXP extPtr) {
-    hs_free_fun_ptr(R_ExternalPtrAddr(extPtr));
+static void freeHsSEXP(SEXP extPtr)
+{
+	hs_free_fun_ptr(R_ExternalPtrAddr(extPtr));
 }
 
 SEXP funPtrToSEXP(DL_FUNC pf) {
