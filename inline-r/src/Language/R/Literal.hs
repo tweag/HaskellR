@@ -9,6 +9,7 @@
 {-# Language FlexibleInstances #-}
 {-# Language FunctionalDependencies #-}
 {-# Language GADTs #-}
+{-# Language LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# Language TemplateHaskell #-}
@@ -16,17 +17,20 @@
 {-# Language ViewPatterns #-}
 
 module Language.R.Literal
-  ( Literal(..)
+  ( -- * Literals conversion
+    Literal(..)
+  , toPairList
+  , fromPairList
+    -- * Derived helpers
   , fromSomeSEXP
   , mkSEXP
   , dynSEXP
   , mkSEXPVector
   , mkSEXPVectorIO
-  , HFunWrap(..)
-  , funToSEXP
   , mkProtectedSEXPVector
   , mkProtectedSEXPVectorIO
-    -- * wrapper helpers
+    -- * Internal
+  , funToSEXP
   ) where
 
 import           Control.Memory.Region
@@ -38,6 +42,7 @@ import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Foreign.R ( SEXP, SomeSEXP(..) )
 import           Internal.Error
 import           Language.R.Internal (r1)
+import           Language.R.Globals (nilValue)
 import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Internal.FunWrappers
@@ -158,6 +163,33 @@ instance Literal [String] 'R.String where
         map (\(hexp -> Char xs) -> SVector.toString xs) (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "String expected where some other expression appeared."
+
+-- | Create a pairlist from an association list. Result is either a pairlist or
+-- @nilValue@ if the input is the null list. These are two distinct forms. Hence
+-- why the type of this function is not more precise.
+toPairList :: MonadR m => [(String, SomeSEXP (Region m))] -> m (SomeSEXP (Region m))
+toPairList [] = return $ SomeSEXP (R.release nilValue)
+toPairList ((k, SomeSEXP v):kvs) = do
+    -- No need to protect the tag because it's in the symbol table, so won't be
+    -- garbage collected.
+    tag <- io $ withCString k R.install
+    toPairList kvs >>= \case
+      SomeSEXP cdr@(hexp -> Nil) ->
+        fmap SomeSEXP $ unhexp $ List v cdr (R.unsafeRelease tag)
+      SomeSEXP cdr@(hexp -> List _ _ _) ->
+        fmap SomeSEXP $ unhexp $ List v cdr (R.unsafeRelease tag)
+      _ -> impossible "toPairList"
+
+-- | Create an association list from a pairlist. R Pairlists are nil-terminated
+-- chains of nested cons cells, as in LISP.
+fromPairList :: SomeSEXP s -> [(String, SomeSEXP s)]
+fromPairList (SomeSEXP (hexp -> Nil)) = []
+fromPairList (SomeSEXP (hexp -> List car cdr (hexp -> Symbol (hexp -> Char name) _ _))) =
+    (SVector.toString name, SomeSEXP car) : fromPairList (SomeSEXP cdr)
+fromPairList (SomeSEXP (hexp -> List _ _ _)) =
+    failure "fromPairList" "Association listed expected but tag not set."
+fromPairList _ =
+    failure "fromPairList" "Pairlist expected where some other expression appeared."
 
 -- Use the default definitions included in the class declaration.
 instance Literal R.Logical 'R.Logical
