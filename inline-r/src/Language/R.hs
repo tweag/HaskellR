@@ -144,5 +144,10 @@ throwRMessage = io . throwIO . R.RError
 -- | Read last error message.
 getErrorMessage :: MonadR m => R.SEXP s 'R.Env -> m String
 getErrorMessage e = io $ do
-  f <- withCString "geterrmessage" (R.install >=> R.lang1)
-  peekCString =<< R.char =<< peek =<< R.string . R.cast (sing :: R.SSEXPTYPE 'R.String) =<< R.eval f (R.release e)
+  R.withProtected (withCString "geterrmessage" ((R.install >=> R.lang1))) $ \f -> do
+    R.withProtected (return (R.release e)) $ \env -> do
+      peekCString
+        =<< R.char
+        =<< peek
+        =<< R.string . R.cast (sing :: R.SSEXPTYPE 'R.String)
+        =<< R.eval f env
