@@ -118,7 +118,7 @@ evalEnv (hexp -> Expr _ v) rho = acquireSome =<< do
       R.unprotect (Vector.length v)
       return x
 evalEnv x rho = acquireSome =<< do
-    io $ alloca $ \p -> do
+    io $ alloca $ \p -> R.withProtected (return (R.release x)) $ \_ -> do
       v <- R.tryEvalSilent x rho p
       e <- peek p
       when (e /= 0) $ unsafeRToIO $ throwR rho
