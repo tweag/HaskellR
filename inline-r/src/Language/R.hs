@@ -105,7 +105,8 @@ string str = withCString str R.mkChar
 strings :: String -> IO (SEXP V 'R.String)
 strings str = withCString str R.mkString
 
--- | Evaluate an expression in the given environment.
+-- | Evaluate a (sequence of) expression(s) in the given environment, returning the
+-- value of the last.
 evalEnv :: MonadR m => SEXP s a -> SEXP s 'R.Env -> m (SomeSEXP (Region m))
 evalEnv (hexp -> Expr _ v) rho = acquireSome =<< do
     io $ alloca $ \p -> do
@@ -124,7 +125,7 @@ evalEnv x rho = acquireSome =<< do
       when (e /= 0) $ unsafeRToIO $ throwR rho
       return v
 
--- | Evaluate an expression in the global environment.
+-- | Evaluate a (sequence of) expression(s) in the global environment.
 eval :: MonadR m => SEXP s a -> m (SomeSEXP (Region m))
 eval x = evalEnv x (R.release globalEnv)
 
