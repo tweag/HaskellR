@@ -43,7 +43,6 @@ module Foreign.R
   , R.PairList
   , SEXP(..)
   , SomeSEXP(..)
-  , Callback
   , unSomeSEXP
     -- * Casts and coercions
     -- $cast-coerce
@@ -255,11 +254,6 @@ instance NFData (SomeSEXP s) where
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
 unSomeSEXP :: SomeSEXP s -> (forall a. SEXP s a -> r) -> r
 unSomeSEXP (SomeSEXP s) k = k s
-
--- | Foreign functions are represented in R as external pointers. We call these
--- "callbacks", because they will typically be Haskell functions passed as
--- arguments to higher-order R functions.
-type Callback s = SEXP s R.Closure
 
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv = fromIntegral

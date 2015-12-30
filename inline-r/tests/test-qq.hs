@@ -97,7 +97,8 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     ("120L" @=?) =<< [r| fact_hs(5L) |]
 
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
-    let apply = \(n :: R.Callback s) (m :: Int32) -> [r| n_hs(m_hs) |] :: R s (R.SomeSEXP s)
+    let apply :: R.SEXP s 'R.Closure -> Int32 -> R s (R.SomeSEXP s)
+        apply n m = [r| n_hs(m_hs) |]
     ("29L" @=?) =<< [r| apply_hs(foo5_hs, 28L ) |]
 
     sym <- H.install "blah"

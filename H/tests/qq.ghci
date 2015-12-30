@@ -66,7 +66,7 @@ H.print =<< [r| fact_hs(5L) |]
 
 -- Should be [1] 29
 let foo5  = (\n -> return (n+1)) :: Int32 -> R s Int32
-let apply = (\n m -> [r| n_hs(m_hs) |]) :: R.Callback s -> Int32 -> R s (R.SomeSEXP s)
+let apply = (\n m -> [r| n_hs(m_hs) |]) :: SEXP s 'R.Closure -> Int32 -> R s (R.SomeSEXP s)
 H.print =<< [r| apply_hs(foo5_hs, 28L ) |]
 
 sym <- H.install "blah"
