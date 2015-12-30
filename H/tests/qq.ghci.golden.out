@@ -4,10 +4,6 @@
 [1] 2
 [1] 3
 [1] 6
-function (y = ) 
-5 + y
-function (y = ) 
-5 + y
 [1] 8
  [1]  1  2  3  4  5  6  7  8  9 10
 [1] 3
@@ -21,8 +17,6 @@ NULL
 [1] 120
 [1] 29
 blah
-[1] 100
-[1] 20
 class generator function for class "x-test" from package '.GlobalEnv'
 function (...) 
 new("x-test", ...)
