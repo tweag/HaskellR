@@ -1,11 +1,14 @@
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
 --
--- Tests. Run H on a number of R programs of increasing size and complexity,
--- comparing the output of H with the output of R.
+-- Main test suite for inline-r. Pass --torture on command-line or set
+-- R_GCTORTURE environment variable to perform memory tests. They will be
+-- ignored otherwise. Only pass --torture when linking against a version of
+-- R compiled with the --enable-strict-barrier configure flag turned on.
 
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 module Main where
@@ -29,16 +32,20 @@ import           Language.R.QQ
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.ExpectedFailure
 
 import Control.Applicative
+import Control.Monad (void)
 import qualified Data.ByteString.Char8 (pack)
-import           Data.Vector.Generic (basicUnsafeIndexM)
-import           Data.Singletons (sing)
-import Foreign
+import Data.List (delete, find)
+import Data.Singletons (sing)
+import Data.Vector.Generic (basicUnsafeIndexM)
+import Foreign hiding (void)
+import System.Environment (getArgs, lookupEnv, withArgs)
 import Prelude -- Silence AMP warning
 
-tests :: TestTree
-tests = testGroup "Unit tests"
+tests :: Bool -> TestTree
+tests torture = testGroup "Unit tests"
   [ testCase "fromSEXP . mkSEXP" $ do
       z <- fromSEXP <$> mkSEXPIO (2 :: Double)
       (2 :: Double) @=? z
@@ -91,8 +98,8 @@ tests = testGroup "Unit tests"
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , Test.HExp.tests
-  , Test.GC.tests
-  , Test.Regions.tests
+  , (if torture then id else ignoreTest) Test.GC.tests
+  , (if torture then id else ignoreTest) Test.Regions.tests
   , Test.Vector.tests
   , Test.Event.tests
     -- This test helps compiling quasiquoters concurrently from
@@ -105,4 +112,18 @@ tests = testGroup "Unit tests"
 main :: IO ()
 main = do
     _ <- R.initialize R.defaultConfig
-    defaultMain tests
+    argv <- getArgs
+    -- Assume gctorture() step size of 1.
+    let tortureCLI = "1" <$ find (== "--torture") argv
+    tortureEnv <- lookupEnv "R_GCTORTURE"
+    torture <- case tortureCLI <|> tortureEnv of
+      Nothing -> return False
+      Just x -> do
+        -- gctorture turned on. So assume moreover --enable-strict-barrier.
+        let step = read x :: Int32
+        putStrLn "WARNING: gctorture() turned on.\n\
+                 \    Tests will fail if R not compiled with --enable-strict-barrier."
+        runRegion $ void [r| gctorture2(step = step_hs, inhibit_release = TRUE) |]
+        return False
+    withArgs (delete "--torture" argv) $
+      defaultMain (tests torture)

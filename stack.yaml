@@ -4,6 +4,9 @@ packages:
 - IHaskell
 - inline-r
 resolver: lts-3.13
+extra-deps:
+- tasty-0.11.0.2
+- tasty-expected-failure-0.11.0.3
 
 docker:
   # Disabled by default. Use --docker on command line to enable.
