@@ -124,7 +124,8 @@ test-suite tests
                      , quickcheck-assertions >= 0.1.1
                      , singletons >= 0.10
                      , strict >= 0.3.2
-                     , tasty >= 0.3
+                     , tasty >= 0.11
+                     , tasty-expected-failure >= 0.11
                      , tasty-golden >= 2.3
                      , tasty-hunit >= 0.4.1
                      , tasty-quickcheck >= 0.4.1
