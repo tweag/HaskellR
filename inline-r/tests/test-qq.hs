@@ -29,11 +29,9 @@ import Test.Tasty.HUnit hiding ((@=?))
 import Prelude -- Silence AMP warning
 
 hFib :: SEXP s 'R.Int -> R s (SEXP s 'R.Int)
-hFib n@(H.fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-hFib n@(H.fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-hFib n =
-    (`R.asTypeOf` n) <$>
-      [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+hFib n@(H.fromSEXP -> 0 :: Int32) = fmap (flip R.asTypeOf n) [r| 0L |]
+hFib n@(H.fromSEXP -> 1 :: Int32) = fmap (flip R.asTypeOf n) [r| 1L |]
+hFib n = (`R.asTypeOf` n) <$> [r| hFib_hs(n_hs - 1L) + hFib_hs(n_hs - 2L) |]
 
 -- | Version of '(@=?)' that works in the R monad.
 (@=?) :: H.Show a => String -> a -> R s ()
@@ -91,17 +89,18 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     ("NULL" @=?) H.nilValue
 
     let foo3 = (\n -> fmap fromSomeSEXP [r| n_hs |]) :: Int32 -> R s Int32
-    ("3L" @=?) =<< [r| foo3_hs(as.integer(3)) |]
+    ("3L" @=?) =<< [r| foo3_hs(3L) |]
 
     let foo4 = (\n m -> return $ n + m) :: Double -> Double -> R s Double
     ("99" @=?) =<< [r| foo4_hs(33, 66) |]
 
-    let fact n = if n == (0 :: Int32) then (return 1 :: R s Int32) else fmap dynSEXP [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
-    ("120L" @=?) =<< [r| fact_hs(as.integer(5)) |]
+    let fact (0 :: Int32) = return 1 :: R s Int32
+        fact n = fmap dynSEXP [r| n_hs * fact_hs(n_hs - 1L) |]
+    ("120L" @=?) =<< [r| fact_hs(5L) |]
 
     let foo5  = \(n :: Int32) -> return (n+1) :: R s Int32
     let apply = \(n :: R.Callback s) (m :: Int32) -> [r| .Call(n_hs, m_hs) |] :: R s (R.SomeSEXP s)
-    ("29L" @=?) =<< [r| apply_hs(foo5_hs, as.integer(28) ) |]
+    ("29L" @=?) =<< [r| apply_hs(foo5_hs, 28L ) |]
 
     sym <- H.install "blah"
     ("blah" @=?) sym

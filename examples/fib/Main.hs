@@ -11,20 +11,19 @@ main :: IO ()
 main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
   H.print =<< [r| "test" |]
   H.print =<< [r| 1+2 |]
-  H.io $ putStrLn "[r| neg_hs(TRUE, as.integer(5)) |]"
-  H.print =<< [r| neg_hs(TRUE, as.integer(5)) |]
-  H.io $ putStrLn "[r| neg_hs(FALSE, as.integer(6)) |]"
-  H.print =<< [r| neg_hs(FALSE, as.integer(6)) |]
-  H.io $ putStrLn "[r| neg_hs(NA, as.integer(7)) |]"
-  H.print =<< [r| neg_hs(NA, as.integer(7)) |]
-  H.io $ putStrLn "[r| fib_hs(as.integer(1)) |]"
-  H.print =<< [r| fib_hs(as.integer(1)) |]
-  H.io $ putStrLn "[r| fib_hs(as.integer(10)) |]"
-  H.print =<< [r| fib_hs(as.integer(10)) |]
-  H.io $ putStrLn "[r| fact_hs(as.integer(0)) |]"
-  H.print =<< [r| fact_hs(as.integer(0)) |]
-  H.io $ putStrLn "[r| fact_hs(as.integer(7)) |]"
-  H.print =<< [r| fact_hs(as.integer(7)) |]
-  H.io $ putStrLn "[r| factSexp_hs(as.integer(7)) |]"
-  H.print =<< [r| factSexp_hs(as.integer(7)) |]
-
+  H.io $ putStrLn "[r| neg_hs(TRUE, 5L) |]"
+  H.print =<< [r| neg_hs(TRUE, 5L) |]
+  H.io $ putStrLn "[r| neg_hs(FALSE, 6L) |]"
+  H.print =<< [r| neg_hs(FALSE, 6L) |]
+  H.io $ putStrLn "[r| neg_hs(NA, 7L) |]"
+  H.print =<< [r| neg_hs(NA, 7L) |]
+  H.io $ putStrLn "[r| fib_hs(1L) |]"
+  H.print =<< [r| fib_hs(1L) |]
+  H.io $ putStrLn "[r| fib_hs(10L) |]"
+  H.print =<< [r| fib_hs(10L) |]
+  H.io $ putStrLn "[r| fact_hs(0L) |]"
+  H.print =<< [r| fact_hs(0L) |]
+  H.io $ putStrLn "[r| fact_hs(7L) |]"
+  H.print =<< [r| fact_hs(7L) |]
+  H.io $ putStrLn "[r| factSexp_hs(7L) |]"
+  H.print =<< [r| factSexp_hs(7L) |]

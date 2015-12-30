@@ -30,12 +30,12 @@ neg _ _ = error "Impossible."
 fib :: SEXP s 'R.Int -> R s (R.SomeSEXP s)
 fib (fromSEXP -> 1 :: Int32) = R.SomeSEXP <$> mkSEXP (1 :: Int32)
 fib (fromSEXP -> 2 :: Int32) = R.SomeSEXP <$> mkSEXP (1 :: Int32)
-fib (fromSEXP -> n :: Int32) = [r| fib_hs(as.integer(n_hs - 1)) + fib_hs(as.integer(n_hs - 2)) |]
+fib (fromSEXP -> n :: Int32) = [r| fib_hs(n_hs - 1L) + fib_hs(n_hs - 2L) |]
 
 fact :: Int32 -> R s Int32
 fact 0 = return 1
-fact n = fmap (H.fromSEXP . R.cast R.SInt) [r| as.integer(n_hs * fact_hs(as.integer(n_hs - 1))) |]
+fact n = fmap (H.fromSEXP . R.cast R.SInt) [r| n_hs * fact_hs(n_hs - 1L) |]
 
 factSexp :: SEXP s 'R.Int -> R s (SEXP s 'R.Int)
 factSexp (fromSEXP -> 0 :: Int32) = mkSEXP (1::Int32)
-factSexp (fromSEXP -> n :: Int32) = fmap (H.fromSEXP.R.cast R.SInt) [r| as.integer(n_hs * fact_hs(as.integer(n_hs -1))) |]
+factSexp (fromSEXP -> n :: Int32) = fmap (H.fromSEXP.R.cast R.SInt) [r| n_hs * fact_hs(n_hs - 1L) |]

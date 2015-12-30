@@ -29,11 +29,9 @@ fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
 
 hFib :: SEXP s 'R.Int -> R s (SEXP s 'R.Int)
-hFib n@(fromSEXP -> (0 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(0) |]
-hFib n@(fromSEXP -> (1 :: Int32)) = fmap (flip R.asTypeOf n) [r| as.integer(1) |]
-hFib n                            =
-    (`R.asTypeOf` n) <$>
-      [r| as.integer(hFib_hs(as.integer(n_hs - 1)) + hFib_hs(as.integer(n_hs - 2))) |]
+hFib n@(H.fromSEXP -> 0 :: Int32) = fmap (flip R.asTypeOf n) [r| 0L |]
+hFib n@(H.fromSEXP -> 1 :: Int32) = fmap (flip R.asTypeOf n) [r| 1L |]
+hFib n = (`R.asTypeOf` n) <$> [r| hFib_hs(n_hs - 1L) + hFib_hs(n_hs - 2L) |]
 
 main :: IO ()
 main = do
