@@ -56,6 +56,8 @@ import Data.Complex (Complex)
 import Foreign          ( FunPtr, castPtr )
 import Foreign.C.String ( withCString )
 import Foreign.Storable ( Storable, pokeElemOff )
+import qualified GHC.Foreign as GHC
+import GHC.IO.Encoding.UTF8
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
@@ -158,7 +160,8 @@ instance Literal [Complex Double] 'R.Complex where
 
 instance Literal [String] 'R.String where
     mkSEXPIO =
-        mkSEXPVectorIO sing . map (`withCString` R.mkCharCE R.CE_UTF8)
+        mkSEXPVectorIO sing .
+        map (\str -> GHC.withCString utf8 str (R.mkCharCE R.CE_UTF8))
     fromSEXP (hexp -> String v) =
         map (\(hexp -> Char xs) -> SVector.toString xs) (SVector.toList v)
     fromSEXP _ =

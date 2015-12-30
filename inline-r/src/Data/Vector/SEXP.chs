@@ -266,6 +266,8 @@ import Foreign ( Ptr, plusPtr, castPtr )
 import Foreign.C
 import Foreign.Storable
 import Foreign.Marshal.Array ( copyArray )
+import qualified GHC.Foreign as GHC
+import GHC.IO.Encoding.UTF8
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
 #endif
@@ -384,7 +386,7 @@ unsafeToSEXP = liftM Mutable.toSEXP . G.unsafeThaw
 
 -- | /O(n)/ Convert a character vector into a 'String'.
 toString :: Vector s 'Char Word8 -> String
-toString v = unsafeInlineIO $ peekCString . castPtr
+toString v = unsafeInlineIO $ GHC.peekCString utf8 . castPtr
          . R.unsafeSEXPToVectorPtr
          . unVector $ v
 
