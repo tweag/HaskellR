@@ -87,17 +87,16 @@ import Prelude
 newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
   deriving (Applicative, Functor, Monad, MonadIO, MonadCatch, MonadMask, MonadThrow)
 
+instance PrimMonad (R s) where
+  type PrimState (R s) = s
+  primitive f = R $ lift $ unsafeSTToIO $ primitive f
+
 instance MonadR (R s) where
-  type Region (R s) = s
   io m = R $ ReaderT $ \_ -> m
   acquire s = R $ ReaderT $ \cnt -> uninterruptibleMask_ $ do
     x <- R.release <$> R.protect s
     modifyIORef' cnt succ
     return x
-
-instance PrimMonad (R s) where
-  type PrimState (R s) = s
-  primitive f = R $ lift $ unsafeSTToIO $ primitive f
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance. This is typically called at the
