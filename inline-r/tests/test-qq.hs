@@ -48,13 +48,11 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
 
     ("1" @=?) =<< [r| 1 |]
 
-    -- Should be: [1] 1
-    -- H.print [rsafe| 1 |] -- XXX Fails with -O0 and --enable-strict-barrier
+    ("1" @=?) =<< return [rsafe| 1 |]
 
     ("3" @=?) =<< [r| 1 + 2 |]
 
-    -- Should be: [1] 2
-    -- H.print [rsafe| base::`+`(1, 2) |]  -- XXX Fails with -O0 and --enable-strict-barrier
+    ("3" @=?) =<< return [rsafe| base::`+`(1, 2) |]
 
     ("c(\"1\", \"2\", \"3\")" @=?) =<< [r| c(1,2,"3") |]
 

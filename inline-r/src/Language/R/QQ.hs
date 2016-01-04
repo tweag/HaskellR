@@ -63,7 +63,7 @@ r = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO . eval =<< $(expQQ txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO $ H.automaticSome =<< eval =<< $(expQQ txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
