@@ -15,7 +15,6 @@
 
 module Language.R.QQ
   ( r
-  , rexp
   , rsafe
   ) where
 
@@ -50,15 +49,6 @@ import System.IO.Unsafe (unsafePerformIO)
 r :: QuasiQuoter
 r = QuasiQuoter
     { quoteExp = \txt -> [| eval =<< $(expQQ txt) |]
-    , quotePat  = unimplemented "quotePat"
-    , quoteType = unimplemented "quoteType"
-    , quoteDec  = unimplemented "quoteDec"
-    }
-
--- | Construct an R expression but don't evaluate it.
-rexp :: QuasiQuoter
-rexp = QuasiQuoter
-    { quoteExp  = unimplemented "quoteExp"
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
