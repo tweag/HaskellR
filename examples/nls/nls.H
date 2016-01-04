@@ -24,7 +24,6 @@ next
 putStrLn $
   unlines [ "Prelare points in R:"
           , "We are creating 'xs' points with R command [r| xs <- c(1:100) |]"
-          , "   [rexp| ... |] creates parsed expression that may be evaluated in GHCi"
           , "   [r| ... |] creates expression and evaluates it"
           , ""
           , "To evaluate command you may use one of the following functions:"
@@ -40,13 +39,11 @@ putStrLn $
           ]
 :}
 next
-putStrLn "printValue [rexp| xs <- c(1:100) |] - expression"
-H.print =<< [rexp| xs <- c(1:100) |]
 putStrLn "printValue $ eval [r| xs <- c(1:100) |] - result"
 H.print =<< [r| xs <- c(1:100) |]
 next
 :{
-putStrLn $ 
+putStrLn $
   unlines [ "Now for each point we want to calculate complicated function"
           , "of cause if example we will use simple example"
           , "But we wil use separate file for it"
@@ -56,7 +53,7 @@ putStrLn $
 :}
 next
 :{
-putStrLn $ 
+putStrLn $
   unlines [ "Now we want to use that function in R:"
           , "in order to use function we need to lift it on vector level"
           ]

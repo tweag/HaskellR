@@ -27,7 +27,6 @@ import qualified Foreign.R as R
 import qualified Language.R.Instance as R
     ( initialize
     , defaultConfig )
-import qualified Language.R.Internal as R ( r2 )
 import           Language.R.QQ
 
 import Test.Tasty
@@ -36,7 +35,6 @@ import Test.Tasty.ExpectedFailure
 
 import Control.Applicative
 import Control.Monad (void)
-import qualified Data.ByteString.Char8 (pack)
 import Data.List (delete, find)
 import Data.Singletons (sing)
 import Data.Vector.Generic (basicUnsafeIndexM)
@@ -67,20 +65,19 @@ tests torture = testGroup "Unit tests"
               s3 = hexp z
           in s1 === s2 && s2 === s3 && s1 === s3
   , testCase "Haskell function from R" $ do
---      (("[1] 3.0" @=?) =<<) $
---        fmap ((\s -> trace s s).  show . toHVal) $ alloca $ \p -> do
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
           alloca $ \p -> do
             e <- peek R.globalEnv
             R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
-                      R.r2 (Data.ByteString.Char8.pack ".Call") sf d
-                      >>= \(R.SomeSEXP s) -> R.cast  (sing :: R.SSEXPTYPE 'R.Real)
-                                                     <$> R.tryEval s (R.release e) p
+                       R.withProtected (R.lang2 sf d) (unsafeRToIO . eval)
+                       >>= \(R.SomeSEXP s) ->
+                              R.cast (sing :: R.SSEXPTYPE 'R.Real) <$>
+                              R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ runRegion $ do
-      key  <- mkSEXP (return 4 :: R s Int32)
-      val  <- mkSEXP (return 5 :: R s Int32)
-      True <- return $ R.typeOf val == R.ExtPtr
+      R.SomeSEXP key  <- [r| new.env() |]
+      R.SomeSEXP val  <- [r| new.env() |]
+      True <- return $ R.typeOf val == R.Env
       n    <- unhexp Nil
       rf   <- io $ R.mkWeakRef key val n True
       True <- case hexp rf of

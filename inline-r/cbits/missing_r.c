@@ -9,12 +9,22 @@ static void freeHsSEXP(SEXP extPtr)
 	hs_free_fun_ptr(R_ExternalPtrAddr(extPtr));
 }
 
-SEXP funPtrToSEXP(DL_FUNC pf) {
-    SEXP value;
-    PROTECT(value = R_MakeExternalPtr(pf, install("native symbol"), R_NilValue));
-    R_RegisterCFinalizerEx(value, freeHsSEXP, TRUE);
-    UNPROTECT(1);
-    return value;
+SEXP funPtrToSEXP(DL_FUNC pf)
+{
+	static SEXP callsym, functionsym, nativesym;
+	if(!callsym) callsym = install(".Call");
+	if(!functionsym) functionsym = install("function");
+	if(!nativesym) nativesym = install("native symbol");
+	SEXP value, formals;
+
+	PROTECT(value = R_MakeExternalPtr(pf, nativesym, R_NilValue));
+	R_RegisterCFinalizerEx(value, freeHsSEXP, TRUE);
+	PROTECT(value = lang3(callsym, value, R_DotsSymbol));
+	PROTECT(formals = CONS(R_MissingArg, R_NilValue));
+	SET_TAG(formals, R_DotsSymbol);
+	PROTECT(value = lang4(functionsym, formals, value, R_NilValue));
+	UNPROTECT(4);
+	return value;
 }
 
 // XXX Initializing isRInitialized to 0 here causes GHCi to fail with

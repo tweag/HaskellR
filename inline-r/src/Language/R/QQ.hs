@@ -13,11 +13,8 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 module Language.R.QQ
   ( r
-  , rexp
   , rsafe
   ) where
 
@@ -25,30 +22,23 @@ import           Control.Memory.Region
 import           Control.Monad.R.Class
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import qualified Foreign.R.Type as SingR
-import           Foreign.R (SEXP, SomeSEXP(..), SEXPInfo)
+import           Foreign.R (SEXP, SomeSEXP(..))
 import qualified H.Prelude as H
 import           Internal.Error
-import           Language.R (parseText, string, eval)
+import           Language.R (parseText, eval)
 import           Language.R.HExp
 import           Language.R.Instance
-import           Language.R.Literal
-import           Language.R.Internal (installIO)
-
-import qualified Data.ByteString.Char8 as BS
+import           Language.R.Literal (mkSEXPIO)
 
 import Language.Haskell.TH (Q, runIO)
-import Language.Haskell.TH.Lift (deriveLift)
 import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
 import Control.Concurrent (MVar, newMVar, withMVar)
-import Control.Monad ((>=>), (<=<))
-import Data.List (isSuffixOf)
-import Data.Complex (Complex)
-import Data.Int (Int32)
-import Data.Word (Word8)
+import Data.List (intercalate, isSuffixOf)
+import qualified Data.Set as Set
+import Data.Set (Set)
 import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
@@ -58,16 +48,7 @@ import System.IO.Unsafe (unsafePerformIO)
 -- | An R value, expressed as an R expression, in R's syntax.
 r :: QuasiQuoter
 r = QuasiQuoter
-    { quoteExp  = \txt -> parseEval txt
-    , quotePat  = unimplemented "quotePat"
-    , quoteType = unimplemented "quoteType"
-    , quoteDec  = unimplemented "quoteDec"
-    }
-
--- | Construct an R expression but don't evaluate it.
-rexp :: QuasiQuoter
-rexp = QuasiQuoter
-    { quoteExp  = \txt -> [| io $(parseExp txt) |]
+    { quoteExp = \txt -> [| eval =<< $(expQQ txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -82,30 +63,11 @@ rexp = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO . eval =<< $(parseExp txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ unsafeRToIO . eval =<< $(expQQ txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
     }
-
-parseEval :: String -> Q TH.Exp
-parseEval txt = do
-    sexp <- parse txt
-    case hexp sexp of
-      Expr _ v ->
-        let vs = Vector.toList v
-        in [| acquireSome <=< io $ $(go vs) |]
-  where
-    go :: [SomeSEXP s] -> Q TH.Exp
-    go []     = error "Impossible happen."
-    go [SomeSEXP (returnIO -> a)]    = [| R.withProtected a (unsafeRToIO . eval) |]
-    go (SomeSEXP (returnIO -> a) : as) =
-        [| R.withProtected a $ unsafeRToIO . eval >=> \(SomeSEXP s) ->
-             R.withProtected (return s) (const $(go as))
-         |]
-
-returnIO :: a -> IO a
-returnIO = return
 
 -- | Serialize quasiquotes using a global lock, because the compiler is allowed
 -- in theory to run them in parallel, yet the R runtime is not reentrant.
@@ -118,199 +80,66 @@ parse txt = runIO $ do
     H.initialize H.defaultConfig
     withMVar qqLock $ \_ -> parseText txt False
 
-parseExp :: String -> Q TH.Exp
-parseExp txt = TH.lift . returnIO =<< parse txt
+antiSuffix :: String
+antiSuffix = "_hs"
 
--- XXX Orphan instance defined here due to bad interaction betwen TH and c2hs.
-instance TH.Lift (IO (SomeSEXP s)) where
-  lift = runIO >=> \s -> R.unSomeSEXP s (TH.lift . returnIO)
+isAnti :: SEXP s 'R.Char -> Bool
+isAnti (hexp -> Char (Vector.toString -> name)) = antiSuffix `isSuffixOf` name
+isAnti _ = error "Impossible"
 
-deriveLift ''SEXPInfo
-deriveLift ''Complex
-deriveLift ''R.Logical
+-- | Chop antiquotation variable names to get the corresponding Haskell variable name.
+chop :: String -> String
+chop name = take (length name - length antiSuffix) name
 
-instance TH.Lift (IO [SEXP s a]) where
-    lift = runIO >=> go
-      where
-        go []                       = [| return [] |]
-        go [returnIO -> xio]        = [| xio >>= return . (:[]) |]
-        go ((returnIO -> xio) : xs) =
-          [| R.withProtected xio $ $(go xs) . fmap . (:) |]
+-- | Traverse 'R.SEXP' structure and find all occurences of antiquotations.
+collectAntis :: R.SEXP s a -> Set (SEXP s 'R.Char)
+collectAntis (hexp -> Symbol name _ _)
+  | isAnti name = Set.singleton name
+collectAntis (hexp -> (List sxa sxb sxc)) = do
+    Set.unions [collectAntis sxa, collectAntis sxb, collectAntis sxc]
+collectAntis (hexp -> (Lang (hexp -> Symbol name _ _) sxb))
+  | isAnti name = Set.insert name (collectAntis sxb)
+collectAntis (hexp -> (Lang sxa sxb)) =
+    Set.union (collectAntis sxa) (collectAntis sxb)
+collectAntis (hexp -> (Closure sxa sxb sxc)) =
+    Set.unions [collectAntis sxa, collectAntis sxb, collectAntis sxc]
+collectAntis (hexp -> (Vector _ sxv)) =
+    Set.unions [collectAntis sx | SomeSEXP sx <- Vector.toList sxv]
+collectAntis (hexp -> (Expr _ sxv)) =
+    Set.unions [collectAntis sx | SomeSEXP sx <- Vector.toList sxv]
+collectAntis _ = Set.empty
 
-instance TH.Lift BS.ByteString where
-    lift bs = let s = BS.unpack bs in [| BS.pack s |]
-
-#if ! MIN_VERSION_th_orphans(0,11,0)
-instance TH.Lift Int32 where
-  lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Int32 |]
-
-instance TH.Lift Word8 where
-   lift x = let x' = fromIntegral x :: Integer in [| fromInteger x' :: Word8 |]
-
-instance TH.Lift Double where
-   lift x = [| $(return $ TH.LitE $ TH.RationalL $ toRational x) :: Double |]
-#endif
-
-instance TH.Lift (IO (Vector.Vector s 'R.Raw Word8)) where
-    -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
-    -- type. So we have to use some bespoke function.
-    lift = runIO >=> \v -> do
-      let xs :: String
-          xs = map (toEnum . fromIntegral) $ Vector.toList v
-      [| fmap vector $ string xs |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Char Word8)) where
-    -- Apparently R considers 'allocVector' to be "defunct" for the CHARSXP
-    -- type. So we have to use some bespoke function.
-    lift = runIO >=> \ v -> do
-      let xs :: String
-          xs = map (toEnum . fromIntegral) $ Vector.toList v
-      [| fmap vector $ string xs |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Logical R.Logical)) where
-    lift = runIO >=> \v -> do
-      let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SLogical $ map return xs |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Int Int32)) where
-    lift = runIO >=> \v -> do
-      let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SInt $ map return xs |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Real Double)) where
-    lift = runIO >=> \v -> do
-      let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SReal $ map return xs |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Complex (Complex Double))) where
-    lift = runIO >=> \v -> do
-      let xs = Vector.toList v
-      [| fmap vector $ mkSEXPVectorIO SingR.SComplex $ map return xs |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.String (SEXP s 'R.Char))) where
-    lift = runIO >=> \v -> do
-      let xsio = returnIO $ Vector.toList v
-      [| fmap vector . mkProtectedSEXPVectorIO SingR.SString =<< xsio |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Vector (SomeSEXP s))) where
-    lift = runIO >=> \v -> do
-      let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                          $ Vector.toList v :: IO [SEXP s 'R.Any]
-      [| fmap vector $ mkProtectedSEXPVectorIO SingR.SVector =<< xsio |]
-
-instance TH.Lift (IO (Vector.Vector s 'R.Expr (SomeSEXP s))) where
-    lift = runIO >=> \v -> do
-      let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                          $ Vector.toList v :: IO [SEXP s 'R.Any]
-      [| fmap vector . mkProtectedSEXPVectorIO SingR.SExpr =<< xsio |]
-
--- | Returns 'True' if the variable name is in fact a Haskell value splice.
-isSplice :: String -> Bool
-isSplice = ("_hs" `isSuffixOf`)
-
--- | Chop a splice variable in order to obtain the name of the haskell variable
--- to splice.
-spliceNameChop :: String -> String
-spliceNameChop name = take (length name - 3) name
-
-instance TH.Lift (IO (SEXP s a)) where
-    -- Special case some forms, rather than relying on the default code
-    -- generated by 'deriveLift'.
-    lift = runIO >=> \case
-      (hexp -> Symbol pname _ s) | not (hexp s === Nil) -> [| installIO xs |]
-        where
-          xs :: String
-          xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
-      (hexp -> List s (hexp -> Nil) (hexp -> Nil))
-        | R.unsexp s == R.unsexp H.missingArg ->
-          [| R.cons H.missingArg H.nilValue |]
-      s@(hexp -> Symbol (returnIO -> pnameio) value _)
-        | R.unsexp s == R.unsexp value -> [| selfSymbol =<< pnameio |] -- FIXME
-      (hexp -> Symbol pname _ (hexp -> Nil))
-        | Char (Vector.toString -> name) <- hexp pname
-        , isSplice name -> do
-          let hvar = TH.varE $ TH.mkName $ spliceNameChop name
-          [| H.mkSEXPIO $hvar |]
-        | otherwise -> [| installIO xs |]        -- FIXME
-       where
-        xs :: String
-        xs = map (toEnum . fromIntegral) $ Vector.toList $ vector pname
-      (hexp -> Lang (hexp -> Symbol pname _ (hexp -> Nil)) (returnIO -> randsio))
-        | Char (Vector.toString -> name) <- hexp pname
-        , isSplice name -> do
-          let nm = spliceNameChop name
-          hvar <- fmap (TH.varE . (maybe (TH.mkName nm) id)) (TH.lookupValueName nm)
-          [| R.withProtected (installIO ".Call") $ \call ->
-             R.withProtected (H.mkSEXPIO $hvar) $ \f -> do
-                rands <- randsio
-                unhexpIO . Lang call =<< unhexpIO . List f rands =<< unhexpIO Nil
-           |]
-    -- Override the default for expressions because the default Lift instance
-    -- for vectors will allocate a node of VECSXP type, when the node is real an
-    -- EXPRSXP.
-      (hexp -> Expr n v) ->
-        let xsio = returnIO $ map (\(SomeSEXP s) -> R.unsafeCoerce s)
-                            $ Vector.toList v :: IO [SEXP s 'R.Any]
-         in [| R.withProtected (mkProtectedSEXPVectorIO SingR.SExpr =<< xsio) $
-                 unhexpIO . Expr n . vector
-             |]
-      (returnIO . hexp -> iot) ->
-        [| unhexpIO =<< iot |]
-
-instance TH.Lift (IO (HExp s a)) where
-  lift = runIO >=> \case
-    Nil -> [| return Nil |]
-    Symbol (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| R.withProtected x0io $ \x0 ->
-         R.withProtected x1io $ \x1 ->
-           fmap (Symbol x0 x1) x2io
-        |]
-    List (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| R.withProtected x0io $ \x0 ->
-         R.withProtected x1io $ \x1 ->
-           fmap (List x0 x1) x2io
-        |]
-    Env (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| R.withProtected x0io $ \x0 ->
-         R.withProtected x1io $ \x1 ->
-           fmap (Env x0 x1) x2io
-        |]
-    Closure (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| R.withProtected x0io $ \x0 ->
-         R.withProtected x1io $ \x1 ->
-           fmap (Closure x0 x1) x2io
-        |]
-    Promise (returnIO -> x0io) (returnIO -> x1io) (returnIO -> x2io) ->
-      [| R.withProtected x0io $ \x0 ->
-         R.withProtected x1io $ \x1 ->
-           fmap (Promise x0 x1) x2io
-        |]
-    Lang (returnIO -> x0io) (returnIO -> x1io) ->
-      [| R.withProtected x0io $ \x0 ->
-           fmap (Lang x0) x1io
-        |]
-    Special                  x0  -> [| return $ Special x0 |]
-    Builtin                  x0  -> [| return $ Builtin x0 |]
-    Char      (returnIO -> x0io) -> [| fmap Char      x0io |]
-    Logical   (returnIO -> x0io) -> [| fmap Logical   x0io |]
-    Int       (returnIO -> x0io) -> [| fmap Int       x0io |]
-    Real      (returnIO -> x0io) -> [| fmap Real      x0io |]
-    Complex   (returnIO -> x0io) -> [| fmap Complex   x0io |]
-    String    (returnIO -> x0io) -> [| fmap String    x0io |]
-    DotDotDot (returnIO -> x0io) -> [| fmap DotDotDot x0io |]
-    Vector x0 (returnIO -> x1io) -> [| fmap (Vector x0) x1io |]
-    Expr   x0 (returnIO -> x1io) -> [| fmap (Expr x0) x1io |]
-    Bytecode -> [| return Bytecode |]
-    ExtPtr _ _ _ -> violation "TH.Lift.lift HExp" "Attempted to lift an ExtPtr."
-    WeakRef (returnIO -> x0io) (returnIO -> x1io)
-            (returnIO -> x2io) (returnIO -> x3io) ->
-      [| R.withProtected x0io $ \x0 ->
-         R.withProtected x1io $ \x1 ->
-         R.withProtected x2io $ \x2 ->
-           fmap (WeakRef x0 x1 x2) x3io
-        |]
-    Raw (returnIO -> x0io) -> [| fmap Raw x0io |]
-    S4  (returnIO -> x0io) -> [| fmap S4  x0io |]
-
-unhexpIO :: HExp s a -> IO (SEXP s a)
-unhexpIO = unsafeRToIO . unhexp
+-- | An R quasiquote is syntactic sugar for a function that we
+-- generate, which closes over all antiquotation variables, and applies the
+-- function to the Haskell values to which those variables are bound. Example:
+--
+-- @
+-- [r| x_hs + y_hs |] ==> apply (apply [r| function(x_hs, y_hs) x_hs + y_hs |] x) y
+-- @
+expQQ :: String -> Q TH.Exp
+expQQ input = do
+    expr <- parse input
+    let antis = [x | (hexp -> Char (Vector.toString -> x))
+                       <- Set.toList (collectAntis expr)]
+        args = map (TH.dyn . chop) antis
+        closure = "function(" ++ intercalate "," antis ++ "){" ++ input ++ "}"
+        z = [| return (R.release H.nilValue) |]
+    vars <- mapM (\_ -> TH.newName "x") antis
+    -- Abstract over antis using fresh vars, to avoid captures with names bound
+    -- internally (such as 'f' below).
+    (\body -> foldl TH.appE body args) $ TH.lamE (map TH.varP vars)
+      [| do -- Memoize the runtime parsing of the generated closure (provided the
+            -- compiler notices that it can let-float to top-level).
+            let sx = unsafePerformIO $ do
+                       exprs <- parseText closure False
+                       SomeSEXP e <- R.indexVector exprs 0
+                       clos <- R.eval e (R.release H.globalEnv)
+                       R.unSomeSEXP clos R.preserveObject
+                       return clos
+            io $ case sx of
+              SomeSEXP f ->
+                R.lcons f =<<
+                  $(foldr (\x xs -> [| R.withProtected $xs $ \cdr -> do
+                                         car <- mkSEXPIO $(TH.varE x)
+                                         R.lcons car cdr |]) z vars)
+       |]

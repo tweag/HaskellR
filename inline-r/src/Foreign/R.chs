@@ -43,7 +43,6 @@ module Foreign.R
   , R.PairList
   , SEXP(..)
   , SomeSEXP(..)
-  , Callback
   , unSomeSEXP
     -- * Casts and coercions
     -- $cast-coerce
@@ -68,6 +67,7 @@ module Foreign.R
     -- * Node accessor functions
     -- ** Lists
   , cons
+  , lcons
   , car
   , cdr
   , tag
@@ -254,11 +254,6 @@ instance NFData (SomeSEXP s) where
 -- existentially quantified variable hidden inside 'SomeSEXP' would escape.
 unSomeSEXP :: SomeSEXP s -> (forall a. SEXP s a -> r) -> r
 unSomeSEXP (SomeSEXP s) k = k s
-
--- | Foreign functions are represented in R as external pointers. We call these
--- "callbacks", because they will typically be Haskell functions passed as
--- arguments to higher-order R functions.
-type Callback s = SEXP s R.ExtPtr
 
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv = fromIntegral
@@ -489,6 +484,10 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 
 -- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
 {#fun Rf_cons as cons { unsexp `SEXP s a', unsexp `SEXP s b' } -> `SEXP V R.List' sexp #}
+
+-- | Allocate a so-called cons cell of language objects, in essence a pair of
+-- 'SEXP' pointers.
+{#fun Rf_lcons as lcons { unsexp `SEXP s a', unsexp `SEXP s b' } -> `SEXP V R.Lang' sexp #}
 
 -- | Print a string representation of a 'SEXP' on the console.
 {#fun Rf_PrintValue as printValue { unsexp `SEXP s a'} -> `()' #}
