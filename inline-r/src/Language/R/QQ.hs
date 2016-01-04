@@ -80,13 +80,16 @@ parse txt = runIO $ do
     H.initialize H.defaultConfig
     withMVar qqLock $ \_ -> parseText txt False
 
+antiSuffix :: String
+antiSuffix = "_hs"
+
 isAnti :: SEXP s 'R.Char -> Bool
-isAnti (hexp -> Char (Vector.toString -> name)) = "_hs" `isSuffixOf` name
+isAnti (hexp -> Char (Vector.toString -> name)) = antiSuffix `isSuffixOf` name
 isAnti _ = error "Impossible"
 
 -- | Chop antiquotation variable names to get the corresponding Haskell variable name.
 chop :: String -> String
-chop name = take (length name - 3) name
+chop name = take (length name - length antiSuffix) name
 
 -- | Traverse 'R.SEXP' structure and find all occurences of antiquotations.
 collectAntis :: R.SEXP s a -> Set (SEXP s 'R.Char)
