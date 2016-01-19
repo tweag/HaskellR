@@ -16,6 +16,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -112,11 +113,11 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
     idVec = id
 
 vectorIsImmutable :: TestTree
-vectorIsImmutable = testCase "fromList should have correct length" $ do
+vectorIsImmutable = testCase "immutable vector, should not be affected by SEXP changes" $ do
     i <- runRegion $ do
            s <- fmap (R.cast (sing :: R.SSEXPTYPE 'R.Real)) [r| c(1.0,2.0,3.0) |]
-           let mutV = VM.fromSEXP s
-           let immV = V.fromSEXP s
+           !mutV <- return $ VM.fromSEXP s
+           !immV <- return $ V.fromSEXP s
            VM.unsafeWrite mutV 0 7
            return $ immV V.! 0
     i @?= 1
