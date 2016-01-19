@@ -28,6 +28,7 @@ module Data.Vector.SEXP.Mutable
     MVector
   , fromSEXP
   , toSEXP
+  , release
     -- * Accessors
     -- ** Length information
   , length
