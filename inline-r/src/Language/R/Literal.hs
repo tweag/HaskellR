@@ -209,16 +209,14 @@ instance Literal String 'R.String where
         failure "fromSEXP" "String expected where some other expression appeared."
 
 instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
-    mkSEXPIO = SVector.toSEXP
-    fromSEXP = unsafePerformIO . SVector.freeze . fromSEXP
+    mkSEXPIO = return . SVector.toSEXP
+    fromSEXP = SVector.fromSEXP . R.cast (sing :: SSEXPTYPE ty)
+             . SomeSEXP . R.release
 
-instance SVector.VECTOR V ty a => Literal (SMVector.MVector V ty s a) ty where
-    mkSEXPIO = return . SMVector.toSEXP
-    fromSEXP =
-        SMVector.fromSEXP .
-        R.cast (sing :: SSEXPTYPE ty) .
-        SomeSEXP .
-        R.release
+instance SVector.VECTOR V ty a => Literal (SMVector.MVector V ty a) ty where
+    mkSEXPIO v = unsafeToIO (SMVector.toSEXP v :: R V (SEXP V ty))
+    fromSEXP = SMVector.fromSEXP . R.cast (sing :: SSEXPTYPE ty)
+             . SomeSEXP . R.release
 
 instance SingI a => Literal (SEXP s a) a where
     mkSEXPIO = fmap R.unsafeRelease . return
@@ -249,7 +247,7 @@ class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
 instance Literal a la => HFunWrap (R s a) (IO R.SEXP0) where
-    hFunWrap a = fmap R.unsexp $ (mkSEXPIO $!) =<< unsafeRToIO a
+    hFunWrap a = fmap R.unsexp $ (mkSEXPIO $!) =<< unsafeToIO a
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (R.SEXP0 -> wb) where

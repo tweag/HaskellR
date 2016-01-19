@@ -74,8 +74,7 @@ import Data.Maybe (isJust)
 import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
-import Foreign.C
-import Foreign ( castPtr )
+import Foreign (castPtr)
 import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
 import Prelude
@@ -483,17 +482,17 @@ unhexp s@(Promise{}) = io $
     withProtected (R.allocSEXP R.SPromise)
                   (\x -> poke (R.unSEXP x) s >> return x)
 unhexp  (Bytecode{}) = unimplemented "unhexp"
-unhexp (Real vt)     = io $ Vector.unsafeToSEXP vt
-unhexp (Logical vt)  = io $ Vector.unsafeToSEXP vt
-unhexp (Int vt)      = io $ Vector.unsafeToSEXP vt
-unhexp (Complex vt)  = io $ Vector.unsafeToSEXP vt
-unhexp (Vector _ vt) = io $ Vector.unsafeToSEXP vt
-unhexp (Char vt)     = io $ Vector.unsafeToSEXP vt
-unhexp (String vt)   = io $ Vector.unsafeToSEXP vt
-unhexp (Raw vt)      = io $ Vector.unsafeToSEXP vt
+unhexp (Real vt)     = return $ Vector.unsafeToSEXP vt
+unhexp (Logical vt)  = return $ Vector.unsafeToSEXP vt
+unhexp (Int vt)      = return $ Vector.unsafeToSEXP vt
+unhexp (Complex vt)  = return $ Vector.unsafeToSEXP vt
+unhexp (Vector _ vt) = return $ Vector.unsafeToSEXP vt
+unhexp (Char vt)     = return $ Vector.unsafeToSEXP vt
+unhexp (String vt)   = return $ Vector.unsafeToSEXP vt
+unhexp (Raw vt)      = return $ Vector.unsafeToSEXP vt
 unhexp S4{}          = unimplemented "unhexp"
-unhexp (Expr _ vt)   = io $ Vector.unsafeToSEXP vt
-unhexp WeakRef{}     = io $ error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
+unhexp (Expr _ vt)   = return $ Vector.unsafeToSEXP vt
+unhexp WeakRef{}     = error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
 unhexp DotDotDot{}   = unimplemented "unhexp"
 unhexp ExtPtr{}      = unimplemented "unhexp"
 
