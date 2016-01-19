@@ -29,6 +29,7 @@ module Data.Vector.SEXP.Mutable
   , fromSEXP
   , toSEXP
   , release
+  , unsafeRelease
     -- * Accessors
     -- ** Length information
   , length
@@ -86,8 +87,6 @@ import Control.Applicative
 import Control.Arrow ((>>>), (***))
 import Data.Proxy (Proxy(..))
 import Data.Reflection (Reifies(..), reify)
-import Foreign.C
-import Foreign.Storable
 import System.IO.Unsafe (unsafePerformIO)
 
 import Prelude hiding

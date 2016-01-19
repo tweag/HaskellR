@@ -17,6 +17,7 @@ module Data.Vector.SEXP.Mutable.Internal
   , proxyW
   , unsafeToPtr
   , release
+  , unsafeRelease
   ) where
 
 import Control.Memory.Region
@@ -32,7 +33,6 @@ import qualified Data.Vector.Generic.Mutable as G
 import Data.Vector.SEXP.Base
 import Foreign (castPtr, Ptr)
 import Foreign.Marshal.Array (copyArray, moveArray)
-import qualified Foreign.R as R
 import Foreign.R (SEXP)
 import Foreign.R.Type (SSEXPTYPE)
 import Foreign.Storable
@@ -106,4 +106,7 @@ withW :: proxy t -> MVector s ty a -> W t ty s a
 withW _ v = W v
 
 release :: (g <= s) => MVector s ty a -> MVector g ty a
-release (MVector b o l) = MVector (R.release b) o l
+release = unsafeRelease
+
+unsafeRelease :: MVector s ty a -> MVector g ty a
+unsafeRelease (MVector b o l) = MVector (R.unsafeRelease b) o l
