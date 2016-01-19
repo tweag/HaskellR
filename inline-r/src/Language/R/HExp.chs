@@ -52,7 +52,6 @@ module Language.R.HExp
   , hexp
   , unhexp
   , vector
-  , selfSymbol
   ) where
 
 import Control.Applicative
@@ -63,7 +62,6 @@ import Foreign.R (SEXP, SEXPREC, SomeSEXP(..), SEXPTYPE, withProtected)
 import Foreign.R.Constraints
 import Internal.Error
 import qualified Language.R.Globals as H
-import Language.R.Instance
 
 import qualified Data.Vector.SEXP as Vector
 
@@ -77,7 +75,7 @@ import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
 import Foreign.C
-import Foreign ( castPtr, nullPtr )
+import Foreign ( castPtr )
 import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
 import Prelude
@@ -510,11 +508,3 @@ vector (hexp -> String vec)   = vec
 vector (hexp -> Vector _ vec) = vec
 vector (hexp -> Expr _ vec)   = vec
 vector s = violation "vector" $ show (R.typeOf s) ++ " unexpected vector type."
-
--- | Symbols can have values attached to them. This function creates a symbol
--- whose value is itself.
-selfSymbol :: SEXP s R.Char -> IO (SEXP s R.Symbol)
-selfSymbol pname = unsafeRToIO $ do
-    s <- unhexp =<< Symbol pname (R.sexp nullPtr) <$> unhexp Nil
-    io $ R.setCdr s s
-    return s

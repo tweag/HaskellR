@@ -16,7 +16,6 @@ module Main where
 import qualified Test.Constraints
 import qualified Test.Event
 import qualified Test.FunPtr
-import qualified Test.HExp
 import qualified Test.GC
 import qualified Test.Regions
 import qualified Test.Vector
@@ -94,7 +93,6 @@ tests torture = testGroup "Unit tests"
            Real s -> basicUnsafeIndexM s 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
-  , Test.HExp.tests
   , (if torture then id else ignoreTest) Test.GC.tests
   , (if torture then id else ignoreTest) Test.Regions.tests
   , Test.Vector.tests

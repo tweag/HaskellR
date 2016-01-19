@@ -138,7 +138,6 @@ test-suite tests
                        Test.FunPtr
                        Test.Constraints
                        Test.Event
-                       Test.HExp
                        Test.Regions
                        Test.Vector
   -- Adding -j4 causes quasiquoters to be compiled concurrently
