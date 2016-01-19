@@ -4,7 +4,6 @@
 module Language.R.Internal (r1, r2, installIO) where
 
 import           Control.Memory.Region
-import           Control.Monad.R.Class
 import qualified Foreign.R as R
 import           Foreign.R (SEXP, SomeSEXP)
 import           Language.R

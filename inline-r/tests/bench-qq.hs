@@ -16,6 +16,7 @@ import H.Prelude as H
 import Language.R.QQ
 
 import Control.Applicative
+import Control.Memory.Region
 import Criterion.Main
 import Data.Int
 import Language.Haskell.TH.Quote
@@ -33,6 +34,9 @@ hFib n@(H.fromSEXP -> 0 :: Int32) = fmap (flip R.asTypeOf n) [r| 0L |]
 hFib n@(H.fromSEXP -> 1 :: Int32) = fmap (flip R.asTypeOf n) [r| 1L |]
 hFib n = (`R.asTypeOf` n) <$> [r| hFib_hs(n_hs - 1L) + hFib_hs(n_hs - 2L) |]
 
+inVoid :: R V s -> R V s
+inVoid = id
+
 main :: IO ()
 main = do
     H.withEmbeddedR H.defaultConfig $ runRegion $ do
@@ -42,10 +46,10 @@ main = do
                    [ bench "pure Haskell" $
                        nf fib 18
                    , bench "compile-time-qq" $
-                       nfIO $ unsafeRToIO $ do
+                       nfIO $ unsafeToIO $ inVoid $ do
                          [r| fib <<- function(n) {if (n == 1) return(1); if (n == 2) return(2); return(fib(n-1)+fib(n-2))} |] >> return ()
                          [r| fib(18) |]
                    , bench "compile-time-qq-hybrid" $
-                       nfIO $ unsafeRToIO $ hFib =<< mkSEXP (18 :: Int32)
+                       nfIO $ unsafeToIO $ inVoid $ hFib =<< mkSEXP (18 :: Int32)
                    ]
                ]

@@ -74,6 +74,7 @@ import Data.Maybe (isJust)
 import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
+import Foreign.C
 import Foreign (castPtr)
 import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP

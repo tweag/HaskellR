@@ -87,6 +87,8 @@ import Control.Applicative
 import Control.Arrow ((>>>), (***))
 import Data.Proxy (Proxy(..))
 import Data.Reflection (Reifies(..), reify)
+import Foreign.C
+import Foreign.Storable (peekByteOff)
 import System.IO.Unsafe (unsafePerformIO)
 
 import Prelude hiding

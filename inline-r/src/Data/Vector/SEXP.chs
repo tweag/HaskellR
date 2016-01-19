@@ -280,7 +280,6 @@ import qualified Data.ByteString as B
 import Control.Applicative ((<$>))
 import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
 import Data.Word ( Word8 )
--- import Data.Int  ( Int32 )
 import Foreign ( Ptr, plusPtr, castPtr, peekElemOff )
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
 import Foreign.Marshal.Array ( copyArray )
@@ -300,20 +299,13 @@ import Prelude
   , Ord(..)
   , Show(..)
   , Bool
-  , Int
   , IO
   , Maybe
   , Ordering
   , String
   , (.)
   , ($)
-  , ($!)
-  , (=<<)
-  , all
-  , and
-  , any
   , fromIntegral
-  , or
   , seq
   , uncurry
   )
