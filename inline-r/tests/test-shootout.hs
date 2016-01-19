@@ -6,6 +6,7 @@
 --
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Main where
 
@@ -15,6 +16,7 @@ import H.Prelude as H hiding (show)
 import Language.R.QQ
 
 import Control.Monad (forM)
+import Control.Memory.Region
 import qualified Language.Haskell.TH as TH
 import qualified Language.Haskell.TH.Quote as TH
 import System.IO
@@ -23,6 +25,9 @@ import System.Process
 import Test.Tasty
 import Test.Tasty.HUnit
 import Prelude
+
+inVoid :: R V s -> R V s
+inVoid = id
 
 main :: IO ()
 main = do
@@ -36,5 +41,5 @@ main = do
   where
     cmp script qq = testCase script $ do
       x <- readProcess "R" ["--slave"] =<< readFile script
-      y <- capture_ $ H.unsafeRToIO qq
+      y <- capture_ $ H.unsafeToIO $ inVoid qq
       x @=? y

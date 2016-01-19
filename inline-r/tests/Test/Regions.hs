@@ -11,6 +11,8 @@ import           H.Prelude
 import qualified Foreign.R as R
 import           Language.R.QQ
 
+import           Control.Memory.Region
+
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
 import Foreign
@@ -56,6 +58,6 @@ tests = testGroup "regions"
     , testCase "runRegion-no-leaked-thunks" $
         ((8 @=?) =<<) $ do
           z <- runRegion $ fmap dynSEXP [r| 5+3 |]
-          _ <- unsafeRToIO $ [r| gc() |]
+          _ <- unsafeToIO ([r| gc() |] :: R V (R.SomeSEXP V))
           return (z::Int32)
     ]

@@ -60,7 +60,7 @@ tests = testGroup "funptr"
          replicateM_ 10 performGC
          (\(HaveWeak _ x) -> takeMVar x >>= deRefWeak) hwr
   , testCase "funptr works in quasi-quotes" $
-       (((2::Double) @=?) =<<) $ unsafeRToIO $ do
+       (((2::Double) @=?) =<<) $ runRegion $ do
          let foo = (\x -> return $ x + 1) :: Double -> R s Double
          s <- [r| foo_hs(1) |]
          return $ dynSEXP s
