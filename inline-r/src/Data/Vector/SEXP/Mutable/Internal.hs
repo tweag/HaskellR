@@ -105,8 +105,8 @@ proxyW m _ = fmap unW m
 withW :: proxy t -> MVector s ty a -> W t ty s a
 withW _ v = W v
 
-release :: (g <= s) => MVector s ty a -> MVector g ty a
+release :: (s' <= s) => MVector s ty a -> MVector s' ty a
 release = unsafeRelease
 
-unsafeRelease :: MVector s ty a -> MVector g ty a
+unsafeRelease :: MVector s ty a -> MVector s' ty a
 unsafeRelease (MVector b o l) = MVector (R.unsafeRelease b) o l

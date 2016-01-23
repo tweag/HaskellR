@@ -420,7 +420,7 @@ unsafeToPtr v = unsafeInlineIO $ withForeignSEXP1 (vectorBase v) $ \p ->
 -- | /O(n)/ Create an immutable vector from a 'SEXP'. Because 'SEXP's are
 -- mutable, this function yields an immutable /copy/ of the 'SEXP'.
 fromSEXP :: (VECTOR s ty a) => SEXP s ty -> Vector s ty a
-fromSEXP s = phony $ \p -> runST $ do w <- run (proxyFW G.clone (unsafeFromSEXP s) p) 
+fromSEXP s = phony $ \p -> runST $ do w <- run (proxyFW G.clone (unsafeFromSEXP s) p)
                                       v <- G.unsafeFreeze w
                                       return (unW v)
 
@@ -456,7 +456,7 @@ toString v = unsafeInlineIO $
 
 -- | /O(n)/ Convert a character vector into a strict 'ByteString'.
 toByteString :: Vector s 'Char Word8 -> ByteString
-toByteString v = unsafeInlineIO $ 
+toByteString v = unsafeInlineIO $
    B.packCStringLen ( castPtr $ unsafeToPtr v
                     , fromIntegral $ vectorLength v)
 
@@ -774,7 +774,7 @@ infixr 5 ++
 -- | /O(m+n)/ Concatenate two vectors
 (++) :: VECTOR s ty a => Vector s ty a -> Vector s ty a -> Vector s ty a
 {-# INLINE (++) #-}
-v1 ++ v2 = phony $ unW . proxyFW2 (G.++) v1 v2 
+v1 ++ v2 = phony $ unW . proxyFW2 (G.++) v1 v2
 
 -- | /O(n)/ Concatenate all vectors in the list
 concat :: VECTOR s ty a => [Vector s ty a] -> Vector s ty a
