@@ -72,7 +72,9 @@ parseEval txt = useAsCString txt $ \ctxt ->
         unless (R.PARSE_OK == toEnum rc) $
           unsafeToIO $ inVoid $ throwRMessage $ "Parse error in: " ++ C8.unpack txt
         SomeSEXP expr <- peek $ castPtr $ R.unsafeSEXPToVectorPtr exprs
-        unsafeToIO $ inVoid $ eval expr
+        runRegion $ do
+          SomeSEXP val <- eval expr
+          return $ SomeSEXP (R.release val)
 
 -- | Parse file and perform some actions on parsed file.
 --

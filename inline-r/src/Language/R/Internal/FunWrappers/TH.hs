@@ -78,7 +78,13 @@ thWrapperLiteral n = do
     let mkTy []     = impossible "thWrapperLiteral"
         mkTy [x]    = [t| $nR $s $x |]
         mkTy (x:xs) = [t| $x -> $(mkTy xs) |]
-        ctx = cxt (zipWith f (map varT names1) (map varT names2))
+        ctx = cxt $
+#if MIN_VERSION_template_haskell(2,10,0)
+              [AppT (ConT (mkName "NFData")) <$> varT (last names1)] ++
+#else
+              [classP (mkName "NFData") [varT (last names1)]] ++
+#endif
+              zipWith f (map varT names1) (map varT names2)
           where
 #if MIN_VERSION_template_haskell(2,10,0)
             f tv1 tv2 = foldl AppT (ConT (mkName "Literal")) <$> sequence [tv1, tv2]

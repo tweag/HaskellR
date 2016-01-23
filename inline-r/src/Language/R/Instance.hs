@@ -28,6 +28,7 @@ module Language.R.Instance
   ( -- * The R monad
     R
   , runRegion
+  , unsafeRunRegion
   -- * R instance creation
   , Config(..)
   , defaultConfig
@@ -121,8 +122,11 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- thunks hold onto resources in a way that would extrude the scope of the
 -- region. This means that the result must be first-order data (i.e. not
 -- a function).
-runRegion :: NFData a => (forall s . R s a) -> IO a
-runRegion r =
+runRegion :: NFData a => (forall s. R s a) -> IO a
+runRegion r = unsafeRunRegion r
+
+unsafeRunRegion :: NFData a => R s a -> IO a
+unsafeRunRegion r =
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)
           (\d -> do

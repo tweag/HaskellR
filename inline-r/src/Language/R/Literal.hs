@@ -50,6 +50,7 @@ import           Language.R.Internal.FunWrappers.TH
 
 import Data.Singletons ( Sing, SingI, fromSing, sing )
 
+import Control.DeepSeq ( NFData )
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
 import Data.Complex (Complex)
@@ -214,7 +215,7 @@ instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
              . SomeSEXP . R.release
 
 instance SVector.VECTOR V ty a => Literal (SMVector.MVector V ty a) ty where
-    mkSEXPIO v = unsafeToIO (SMVector.toSEXP v :: R V (SEXP V ty))
+    mkSEXPIO = unsafeRunRegion . SMVector.toSEXP
     fromSEXP = SMVector.fromSEXP . R.cast (sing :: SSEXPTYPE ty)
              . SomeSEXP . R.release
 
@@ -229,15 +230,15 @@ instance Literal (SomeSEXP s) 'R.Any where
     mkSEXPIO (SomeSEXP s) = return . R.unsafeRelease $ R.unsafeCoerce s
     fromSEXP = SomeSEXP . R.unsafeRelease
 
-instance Literal a b => Literal (R s a) 'R.ExtPtr where
+instance (NFData a, Literal a b) => Literal (R s a) 'R.ExtPtr where
     mkSEXPIO = funToSEXP wrap0
     fromSEXP = unimplemented "Literal (R s a) fromSEXP"
 
-instance (Literal a a0, Literal b b0) => Literal (a -> R s b) 'R.ExtPtr where
+instance (NFData b, Literal a a0, Literal b b0) => Literal (a -> R s b) 'R.ExtPtr where
     mkSEXPIO = funToSEXP wrap1
     fromSEXP = unimplemented "Literal (a -> R s b) fromSEXP"
 
-instance (Literal a a0, Literal b b0, Literal c c0)
+instance (NFData c, Literal a a0, Literal b b0, Literal c c0)
          => Literal (a -> b -> R s c) 'R.ExtPtr where
     mkSEXPIO   = funToSEXP wrap2
     fromSEXP = unimplemented "Literal (a -> b -> IO c) fromSEXP"
@@ -246,8 +247,8 @@ instance (Literal a a0, Literal b b0, Literal c c0)
 class HFunWrap a b | a -> b where
     hFunWrap :: a -> b
 
-instance Literal a la => HFunWrap (R s a) (IO R.SEXP0) where
-    hFunWrap a = fmap R.unsexp $ (mkSEXPIO $!) =<< unsafeToIO a
+instance (NFData a, Literal a la) => HFunWrap (R s a) (IO R.SEXP0) where
+    hFunWrap a = fmap R.unsexp $ (mkSEXPIO $!) =<< unsafeRunRegion a
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (R.SEXP0 -> wb) where
