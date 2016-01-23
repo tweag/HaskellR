@@ -58,6 +58,7 @@ import Control.DeepSeq ( NFData, deepseq )
 import Control.Exception
     ( bracket
     , bracket_
+    , uninterruptibleMask_
     )
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
 import Control.Monad.Reader
@@ -89,7 +90,7 @@ newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
 instance MonadR (R s) where
   type Region (R s) = s
   io m = R $ ReaderT $ \_ -> m
-  acquire s = R $ ReaderT $ \cnt -> do
+  acquire s = R $ ReaderT $ \cnt -> uninterruptibleMask_ $ do
     x <- R.release <$> R.protect s
     modifyIORef' cnt succ
     return x
