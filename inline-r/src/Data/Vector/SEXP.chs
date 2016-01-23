@@ -82,7 +82,7 @@ module Data.Vector.SEXP
   -- ** Monadic initialisation
   , replicateM
   , generateM
-  -- , create
+  , create
   -- ** Unfolding
   , unfoldr
   , unfoldrN
@@ -112,24 +112,24 @@ module Data.Vector.SEXP
 
   -- ** Accumulations
   , accum
-  --, accumulate_
+  -- , accumulate_
   , unsafeAccum
-  --, unsafeAccumulate_
+  -- , unsafeAccumulate_
 
   -- ** Permutations
   , reverse
-  --, backpermute
-  --, unsafeBackpermute
+  -- , backpermute
+  -- , unsafeBackpermute
 
   -- ** Safe destructive updates
-  --, modify
+  -- , modify
 
   -- * Elementwise operations
 
   -- ** Mapping
   , map
   , imap
-  -- , concatMap
+  , concatMap
 
   -- ** Monadic mapping
   , mapM
@@ -150,8 +150,8 @@ module Data.Vector.SEXP
   , izipWith6
 
   -- ** Monadic zipping
-  --, zipWithM
-  --, zipWithM_
+  , zipWithM
+  , zipWithM_
 
   -- * Working with predicates
 
@@ -173,9 +173,9 @@ module Data.Vector.SEXP
   , notElem
   , find
   , findIndex
-  --, findIndices
-  , elemIndex 
-  --, elemIndices
+  -- , findIndices
+  , elemIndex
+  -- , elemIndices
 
   -- * Folding
   , foldl
@@ -192,12 +192,10 @@ module Data.Vector.SEXP
   , ifoldr'
 
   -- ** Specialised folds
-  {-
   , all
   , any
-  , and
-  , or
-  -}
+  -- , and
+  -- , or
   , sum
   , product
   , maximum
@@ -267,17 +265,18 @@ import qualified Foreign.R as R
 import Foreign.R.Type ( SEXPTYPE(Char) )
 
 import Control.Monad.Primitive ( PrimMonad )
-import Control.Monad.ST (runST)
+import Control.Monad.ST (ST, runST)
 import Data.Int
 import Data.Proxy (Proxy(..))
 import Data.Reflection (Reifies(..), reify)
 import qualified Data.Vector.Generic as G
 import Data.Vector.Generic.New (run)
 import qualified Data.Vector.Fusion.Stream as Stream
+import qualified Data.Vector.Fusion.Stream.Monadic as MStream
 import Data.ByteString ( ByteString )
 import qualified Data.ByteString as B
 
-import Control.Applicative ((<$>))
+import Control.Applicative hiding (empty)
 import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
 import Data.Word ( Word8 )
 import Foreign ( Ptr, plusPtr, castPtr, peekElemOff )
@@ -371,7 +370,7 @@ proxyFW f v p = f (withW p v)
 proxyFW2 :: (W t tya s a -> W t tyb s b -> r) -> Vector s tya a -> Vector s tyb b -> p t -> r
 proxyFW2 f v1 v2 p = f (withW p v1) (withW p v2)
 
-proxyW :: (W t ty s a) -> p t -> Vector s ty a
+proxyW :: W t ty s a -> p t -> Vector s ty a
 proxyW v _ = unW v
 
 type instance G.Mutable (W t ty s) = Mutable.W t ty
@@ -391,7 +390,7 @@ instance (Reifies t (AcquireIO s), VECTOR s ty a) => G.Vector (W t ty s) a where
       p = Proxy :: Proxy t
   basicLength (unW -> Vector _ _ len) = fromIntegral len
   {-# INLINE basicUnsafeSlice #-}
-  basicUnsafeSlice (fromIntegral ->i) 
+  basicUnsafeSlice (fromIntegral ->i)
      (fromIntegral ->n) (unW -> Vector fp off _len) = W $ Vector fp (off + i) n
   {-# INLINE basicUnsafeIndexM #-}
   basicUnsafeIndexM v i = return . unsafeInlineIO $ peekElemOff (unsafeToPtr (unW v)) i
@@ -797,20 +796,15 @@ generateM :: (Monad m, VECTOR s ty a) => Int -> (Int -> m a) -> m (Vector s ty a
 {-# INLINE generateM #-}
 generateM n f = phony $ \p -> (\v -> proxyW v p) <$> G.generateM n f
 
-{-
--- XXX:
 -- | Execute the monadic action and freeze the resulting vector.
 --
 -- @
 -- create (do { v \<- new 2; write v 0 \'a\'; write v 1 \'b\'; return v }) = \<'a','b'\>
 -- @
-create :: VECTOR s ty a => (forall r. ST r (MVector s ty a)) -> Vector s ty a
+create :: VECTOR s ty a => (forall r. ST r (MVector r ty a)) -> Vector s ty a
 {-# INLINE create #-}
 -- NOTE: eta-expanded due to http://hackage.haskell.org/trac/ghc/ticket/4120
-create p = withAcquire $ \z -> do
-  x <- G.create (Mutable.withW z <$> p)
-  -- phony $ \z -> _undefined (G.create (Mutable.withW z <$> p))
--}
+create f = phony $ \p -> unW $ G.create (Mutable.withW p <$> f)
 
 -- Restricting memory usage
 -- ------------------------
@@ -837,9 +831,10 @@ force v = phony $ unW . proxyFW G.force v
 --
 -- > <5,9,2,7> // [(2,1),(0,3),(2,8)] = <3,9,8,7>
 --
-(//) :: VECTOR s ty a => Vector s ty a   -- ^ initial vector (of length @m@)
-                -> [(Int, a)] -- ^ list of index/value pairs (of length @n@)
-                -> Vector s ty a
+(//) :: VECTOR s ty a
+     => Vector s ty a   -- ^ initial vector (of length @m@)
+     -> [(Int, a)]      -- ^ list of index/value pairs (of length @n@)
+     -> Vector s ty a
 {-# INLINE (//) #-}
 (//) v l = phony $ unW . proxyFW (G.// l) v
 
@@ -972,12 +967,20 @@ imap :: (VECTOR s ty a, VECTOR s ty b) => (Int -> a -> b) -> Vector s ty a -> Ve
 {-# INLINE imap #-}
 imap f v = phony $ unW . proxyFW (G.imap f) v
 
-{-
+
 -- | Map a function over a Vector s ty and concatenate the results.
-concatMap :: (VECTOR s ty a, VECTOR s tyb b) => (a -> Vector s tyb b) -> Vector s ty a -> Vector s tyb b
+concatMap :: (VECTOR s tya a, VECTOR s tyb b)
+          => (a -> Vector s tyb b)
+          -> Vector s tya a
+          -> Vector s tyb b
 {-# INLINE concatMap #-}
-concatMap f v = phony $ \p -> unW $ proxyFW (G.concatMap (withW p . f)) v p
--}
+concatMap f v =
+    phony $ \p ->
+    (`proxyW` p) $
+    G.unstream $
+    Stream.concatMap (G.stream . withW p . f) $
+    G.stream $
+    withW p v
 
 -- Monadic mapping
 -- ---------------
@@ -1092,22 +1095,36 @@ izipWith6 f as bs cs ds es fs = phony $ \p ->
 -- Monadic zipping
 -- ---------------
 
-{-
+
 -- | /O(min(m,n))/ Zip the two vectors with the monadic action and yield a
 -- vector of results
 zipWithM :: (Monad m, VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c)
-         => (a -> b -> m c) -> Vector s tya a -> Vector s tyb b -> m (Vector s tyc c)
+         => (a -> b -> m c)
+         -> Vector s tya a
+         -> Vector s tyb b
+         -> m (Vector s tyc c)
 {-# INLINE zipWithM #-}
-zipWithM f as bs = phony $ \p ->
-  proxyFW2 (G.zipWithM f) as bs p
+zipWithM f xs ys = phony $ \p ->
+    proxyW <$>
+    unstreamM (Stream.zipWithM f (G.stream (withW p xs)) (G.stream (withW p ys))) <*>
+    return p
+  where
+    -- Inlined from vector-0.10, which doesn't export unstreamM.
+    unstreamM s = do
+        zs <- MStream.toList s
+        return $ G.unstream $ Stream.unsafeFromList (MStream.size s) zs
+
 
 -- | /O(min(m,n))/ Zip the two vectors with the monadic action and ignore the
 -- results
 zipWithM_ :: (Monad m, VECTOR s tya a, VECTOR s tyb b)
-          => (a -> b -> m c) -> Vector s tya a -> Vector s tyb b -> m ()
+          => (a -> b -> m c)
+          -> Vector s tya a
+          -> Vector s tyb b
+          -> m ()
 {-# INLINE zipWithM_ #-}
-zipWithM_ f as bs = phony $ proxyFW2 (G.zipWithM_ f) as bs
--}
+zipWithM_ f xs ys = phony $ \p ->
+    Stream.zipWithM_ f (G.stream (withW p xs)) (G.stream (withW p ys))
 
 -- Filtering
 -- ---------
@@ -1289,27 +1306,26 @@ ifoldr' f s v = phony $ proxyFW (G.ifoldr' f s) v
 -- Specialised folds
 -- -----------------
 
-{-
+
 -- | /O(n)/ Check if all elements satisfy the predicate.
 all :: VECTOR s ty a => (a -> Bool) -> Vector s ty a -> Bool
 {-# INLINE all #-}
-all = G.all
+all f v = phony $ \p -> G.all f (withW p v)
 
 -- | /O(n)/ Check if any element satisfies the predicate.
 any :: VECTOR s ty a => (a -> Bool) -> Vector s ty a -> Bool
 {-# INLINE any #-}
-any = G.any
+any f v = phony $ \p -> G.any f (withW p v)
 
--- | /O(n)/ Check if all elements are 'True'
-and :: Vector 'Logical Bool -> R.Logical
-{-# INLINE and #-}
-and = G.and -- FIXME
-
--- | /O(n)/ Check if any element is 'True'
-or :: Vector 'Logical Bool -> R.Logical
-{-# INLINE or #-}
-or = G.or
--}
+-- -- | /O(n)/ Check if all elements are 'True'
+-- and :: Vector s 'Logical Bool -> Bool
+-- {-# INLINE and #-}
+-- and v = phony $ \p -> G.and (withW p v)
+--
+-- -- | /O(n)/ Check if any element is 'True'
+-- or :: Vector s 'Logical Bool -> Bool
+-- {-# INLINE or #-}
+-- or v = phony $ \p -> G.or (withW p v)
 
 -- | /O(n)/ Compute the sum of the elements
 sum :: (VECTOR s ty a, Num a) => Vector s ty a -> a
