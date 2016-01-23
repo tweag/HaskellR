@@ -66,6 +66,7 @@ library
                        Language.R.QQ
                        Control.Memory.Region
   other-modules:       Control.Monad.R.Class
+                       Control.Monad.R.Internal
                        Internal.Error
   build-depends:       base >= 4.7 && < 5
                      , aeson >= 0.6

@@ -17,6 +17,7 @@ import qualified H.Prelude as H
 
 instance MonadR IO where
   io = id
+  unsafeToIO = id
 
 -- | A form of the 'print' function that is more convenient in an
 -- interactive session.
