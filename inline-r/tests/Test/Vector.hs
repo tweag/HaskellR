@@ -16,6 +16,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -28,7 +29,7 @@ import Data.Singletons
 import qualified Data.Vector.SEXP
 import qualified Data.Vector.SEXP as V
 import qualified Data.Vector.SEXP.Mutable as VM
-import qualified Data.Vector.Generic as G
+-- import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Fusion.Stream as S
 import qualified Foreign.R as R
 import H.Prelude hiding (Show)
@@ -52,7 +53,7 @@ testIdentity :: (Eq a, Show a, Arbitrary a, V.VECTOR s ty a, AEq a) => V.Vector 
 testIdentity dummy = testGroup "Test identities"
     [ testProperty "fromList.toList == id" (prop_fromList_toList dummy)
     , testProperty "toList.fromList == id" (prop_toList_fromList dummy)
-    , testProperty "unstream.stream == id" (prop_unstream_stream dummy)
+--    , testProperty "unstream.stream == id" (prop_unstream_stream dummy)
 --    , testProperty "stream.unstream == id" (prop_stream_unstream dummy)
     ]
   where
@@ -60,8 +61,8 @@ testIdentity dummy = testGroup "Test identities"
       = (V.fromList . V.toList) v ?~== v
     prop_toList_fromList (_ :: V.Vector s ty a) (l :: [a])
       = ((V.toList :: V.Vector s ty a -> [a]) . V.fromList) l ?~== l
-    prop_unstream_stream (_ :: V.Vector s ty a) (v :: V.Vector s ty a)
-      = (G.unstream . G.stream) v ?~== v
+--    prop_unstream_stream (_ :: V.Vector s ty a) (v :: V.Vector s ty a)
+--      = (G.unstream . G.stream) v ?~== v
 --    prop_stream_unstream (_ :: V.Vector ty a) (s :: S.Stream a)
 --      = ((G.stream :: V.Vector ty a -> S.Stream a) . G.unstream) s == s
 
@@ -105,7 +106,6 @@ fromListLength :: TestTree
 fromListLength = testCase "fromList should have correct length" $ runRegion $ do
     _ <- return $ idVec $ V.fromListN 3 [-1.9, -0.1, -2.9]
     let v = idVec $ V.fromList [-1.9, -0.1, -2.9]
-    _ <- io $ R.protect (V.unVector v)
     io $ assertEqual "Length should be equal to list length" 3 (V.length v)
     return ()
   where
@@ -113,19 +113,19 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
     idVec = id
 
 vectorIsImmutable :: TestTree
-vectorIsImmutable = testCase "fromList should have correct length" $ do
+vectorIsImmutable = testCase "immutable vector, should not be affected by SEXP changes" $ do
     i <- runRegion $ do
            s <- fmap (R.cast (sing :: R.SSEXPTYPE 'R.Real)) [r| c(1.0,2.0,3.0) |]
-           let mutV = VM.fromSEXP s
-           immV <- V.fromSEXP s
+           !mutV <- return $ VM.fromSEXP s
+           !immV <- return $ V.fromSEXP s
            VM.unsafeWrite mutV 0 7
            return $ immV V.! 0
     i @?= 1
 
 vectorCopy :: TestTree
 vectorCopy = testCase "Copying vector of doubles works" $ runRegion $ do
-  vs1 :: R.SEXP s 'R.Real <- V.toSEXP (V.fromList [1..3::Double])
-  vs2 :: R.SEXP s 'R.Real <- V.unsafeToSEXP (V.fromList [1..3::Double])
+  let vs1 = V.toSEXP (V.fromList [1..3::Double]) :: R.SEXP s 'R.Real
+      vs2 = V.unsafeToSEXP (V.fromList [1..3::Double]) :: R.SEXP s 'R.Real
   R.SomeSEXP (hexp -> Logical [R.TRUE]) <- [r| identical(vs1_hs, vs2_hs) |]
   return ()
 

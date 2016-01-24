@@ -65,9 +65,11 @@ parseEval txt = useAsCString txt $ \ctxt ->
       R.withProtected (R.parseVector rtxt 1 status (R.release nilValue)) $ \exprs -> do
         rc <- fromIntegral <$> peek status
         unless (R.PARSE_OK == toEnum rc) $
-          unsafeRToIO $ throwRMessage $ "Parse error in: " ++ C8.unpack txt
+          runRegion $ throwRMessage $ "Parse error in: " ++ C8.unpack txt
         SomeSEXP expr <- peek $ castPtr $ R.unsafeSEXPToVectorPtr exprs
-        unsafeRToIO $ eval expr
+        runRegion $ do
+          SomeSEXP val <- eval expr
+          return $ SomeSEXP (R.release val)
 
 -- | Parse file and perform some actions on parsed file.
 --
@@ -114,7 +116,7 @@ evalEnv (hexp -> Expr _ v) rho = acquireSome =<< do
       x <- Prelude.last <$> forM (Vector.toList v) (\(SomeSEXP s) -> do
           z <- R.tryEvalSilent s rho p
           e <- peek p
-          when (e /= 0) $ unsafeRToIO $ throwR rho
+          when (e /= 0) $ runRegion $ throwR rho
           return z)
       R.unprotect (Vector.length v)
       return x
@@ -122,7 +124,7 @@ evalEnv x rho = acquireSome =<< do
     io $ alloca $ \p -> R.withProtected (return (R.release x)) $ \_ -> do
       v <- R.tryEvalSilent x rho p
       e <- peek p
-      when (e /= 0) $ unsafeRToIO $ throwR rho
+      when (e /= 0) $ runRegion $ throwR rho
       return v
 
 -- | Evaluate a (sequence of) expression(s) in the global environment.

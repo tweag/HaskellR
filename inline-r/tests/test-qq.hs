@@ -104,12 +104,13 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
 
     -- test Vector literal instance
     v1 <- do
-      x <- SMVector.new 3 :: R s (SMVector.MVector V 'R.Int s Int32)
+      x <- SMVector.new 3 :: R s (SMVector.MVector s 'R.Int Int32)
       SMVector.unsafeWrite x 0 1
       SMVector.unsafeWrite x 1 2
       SMVector.unsafeWrite x 2 3
       return x
-    ("c(7, 2, 3)" @=?) =<< [r| v = v1_hs; v[1] <- 7; v |]
+    let v2 = SMVector.release v1 :: SMVector.MVector V 'R.Int Int32
+    ("c(7, 2, 3)" @=?) =<< [r| v = v2_hs; v[1] <- 7; v |]
     io . assertEqual "" "fromList [1,2,3]" . Prelude.show =<< SVector.unsafeFreeze v1
 
     let utf8string = "abcd çéõßø"

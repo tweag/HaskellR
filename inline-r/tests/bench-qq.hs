@@ -42,10 +42,10 @@ main = do
                    [ bench "pure Haskell" $
                        nf fib 18
                    , bench "compile-time-qq" $
-                       nfIO $ unsafeRToIO $ do
+                       nfIO $ unsafeRunRegion $ do
                          [r| fib <<- function(n) {if (n == 1) return(1); if (n == 2) return(2); return(fib(n-1)+fib(n-2))} |] >> return ()
                          [r| fib(18) |]
                    , bench "compile-time-qq-hybrid" $
-                       nfIO $ unsafeRToIO $ hFib =<< mkSEXP (18 :: Int32)
+                       nfIO $ unsafeRunRegion $ hFib =<< mkSEXP (18 :: Int32)
                    ]
                ]

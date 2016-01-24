@@ -28,7 +28,7 @@ module Language.R.Instance
   ( -- * The R monad
     R
   , runRegion
-  , unsafeRToIO
+  , unsafeRunRegion
   -- * R instance creation
   , Config(..)
   , defaultConfig
@@ -97,6 +97,9 @@ instance MonadR (R s) where
     x <- R.release <$> R.protect s
     modifyIORef' cnt succ
     return x
+  newtype ExecContext (R s) = ExecContext (IORef Int)
+  getExecContext = R $ ReaderT $ \ref -> return (ExecContext ref)
+  unsafeRunWithExecContext m (ExecContext ref) = runReaderT (unR m) ref
 
 -- | Initialize a new instance of R, execute actions that interact with the
 -- R instance and then finalize the instance. This is typically called at the
@@ -119,21 +122,16 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- thunks hold onto resources in a way that would extrude the scope of the
 -- region. This means that the result must be first-order data (i.e. not
 -- a function).
-runRegion :: NFData a => (forall s . R s a) -> IO a
-runRegion r =
+runRegion :: NFData a => (forall s. R s a) -> IO a
+runRegion r = unsafeRunRegion r
+
+unsafeRunRegion :: NFData a => R s a -> IO a
+unsafeRunRegion r =
   bracket (newIORef 0)
           (R.unprotect <=< readIORef)
           (\d -> do
              x <- runReaderT (unR r) d
              x `deepseq` return x)
-
--- | An unsafe version of 'runRegion', providing no static guarantees that
--- resources do not extrude the scope of their region. For internal use only.
-unsafeRToIO :: R s a -> IO a
-unsafeRToIO r =
-  bracket (newIORef 0)
-          (R.unprotect <=< readIORef)
-          (runReaderT (unR r))
 
 -- | Configuration options for the R runtime. Configurations form monoids, so
 -- arguments can be accumulated left-to-right through monoidal composition.

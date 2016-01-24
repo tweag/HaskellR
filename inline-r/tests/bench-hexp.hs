@@ -31,7 +31,7 @@ import Data.Singletons (sing)
 import Control.Monad.Primitive
 import Criterion.Main
 import Data.Int
-import Data.Vector.Generic (basicUnsafeIndexM)
+import Data.Vector.SEXP (unsafeIndexM)
 import Foreign.Ptr (Ptr)
 import Foreign.Storable (peek)
 import System.IO.Unsafe (unsafePerformIO)
@@ -65,7 +65,7 @@ benchInteger x = do
 benchHExp :: SEXP s a -> Int32
 benchHExp x =
     case hexp x of
-      Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0
+      Int s -> unsafeInlineIO $ s `unsafeIndexM` 0
       _ -> error "unexpected SEXP"
 
 benchUncheckedInteger :: SEXP s 'R.Int -> IO Int32
@@ -75,4 +75,4 @@ benchCast :: SomeSEXP s -> Int32
 benchCast x =
  let y = R.cast (sing :: R.SSEXPTYPE 'R.Int) x
  in case hexp y of
-      Int s -> unsafeInlineIO $ basicUnsafeIndexM s 0
+      Int s -> unsafeInlineIO $ s `unsafeIndexM` 0

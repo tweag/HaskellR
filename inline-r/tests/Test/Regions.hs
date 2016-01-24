@@ -56,6 +56,6 @@ tests = testGroup "regions"
     , testCase "runRegion-no-leaked-thunks" $
         ((8 @=?) =<<) $ do
           z <- runRegion $ fmap dynSEXP [r| 5+3 |]
-          _ <- unsafeRToIO $ [r| gc() |]
+          _ <- runRegion $ [r| gc() |] >> return ()
           return (z::Int32)
     ]

@@ -517,7 +517,7 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 {#fun R_PreserveObject as preserveObject { unsexp `SEXP s a' } -> `()' #}
 
 -- | Allow GC to remove an preserved object.
-{#fun R_ReleaseObject as releaseObject { unsexp `SEXP G a' } -> `()' #}
+{#fun R_ReleaseObject as releaseObject { unsexp `SEXP s a' } -> `()' #}
 
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --

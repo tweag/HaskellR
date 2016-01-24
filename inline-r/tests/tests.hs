@@ -33,13 +33,17 @@ import Test.Tasty.HUnit
 import Test.Tasty.ExpectedFailure
 
 import Control.Applicative
+import Control.Memory.Region
 import Control.Monad (void)
 import Data.List (delete, find)
 import Data.Singletons (sing)
-import Data.Vector.Generic (basicUnsafeIndexM)
+import Data.Vector.SEXP (indexM)
 import Foreign hiding (void)
 import System.Environment (getArgs, lookupEnv, withArgs)
 import Prelude -- Silence AMP warning
+
+inVoid :: R V z -> R V z
+inVoid = id
 
 tests :: Bool -> TestTree
 tests torture = testGroup "Unit tests"
@@ -69,7 +73,7 @@ tests torture = testGroup "Unit tests"
             e <- peek R.globalEnv
             R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
-                       R.withProtected (R.lang2 sf d) (unsafeRToIO . eval)
+                       R.withProtected (R.lang2 sf d) (unsafeRunRegion . eval)
                        >>= \(R.SomeSEXP s) ->
                               R.cast (sing :: R.SSEXPTYPE 'R.Real) <$>
                               R.tryEval s (R.release e) p
@@ -90,7 +94,7 @@ tests torture = testGroup "Unit tests"
          y <- R.cast (sing :: R.SSEXPTYPE 'R.Real) . R.SomeSEXP
                      <$> mkSEXP (42::Double)
          case hexp y of
-           Real s -> basicUnsafeIndexM s 0
+           Real s -> s `indexM` 0
   , Test.Constraints.tests
   , Test.FunPtr.tests
   , (if torture then id else ignoreTest) Test.GC.tests
@@ -100,7 +104,7 @@ tests torture = testGroup "Unit tests"
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.
-  , testCase "qq/concurrent-initialization" $ unsafeRToIO $ [r| 1 |] >> return ()
+  , testCase "qq/concurrent-initialization" $ runRegion $ [r| 1 |] >> return ()
   , testCase "sanity check " $ return ()
   ]
 

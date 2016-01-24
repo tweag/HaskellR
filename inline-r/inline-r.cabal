@@ -43,6 +43,7 @@ library
   exposed-modules:     Data.Vector.SEXP
                        Data.Vector.SEXP.Base
                        Data.Vector.SEXP.Mutable
+                       Data.Vector.SEXP.Mutable.Internal
                        Foreign.R
                        Foreign.R.Constraints
                        Foreign.R.Embedded
@@ -66,6 +67,7 @@ library
                        Language.R.QQ
                        Control.Memory.Region
   other-modules:       Control.Monad.R.Class
+                       Control.Monad.R.Internal
                        Internal.Error
   build-depends:       base >= 4.7 && < 5
                      , aeson >= 0.6
@@ -78,6 +80,7 @@ library
                      , pretty >= 1.1
                      , primitive >= 0.5
                      , process >= 1.2
+                     , reflection >= 2
                      , setenv >= 0.1.1
                      , singletons >= 0.9
                      , template-haskell >= 2.8
