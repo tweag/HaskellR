@@ -123,6 +123,6 @@ main = do
         putStrLn "WARNING: gctorture() turned on.\n\
                  \    Tests will fail if R not compiled with --enable-strict-barrier."
         runRegion $ void [r| gctorture2(step = step_hs, inhibit_release = TRUE) |]
-        return False
+        return True
     withArgs (delete "--torture" argv) $
       defaultMain (tests torture)
