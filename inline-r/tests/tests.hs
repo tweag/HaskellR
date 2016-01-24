@@ -73,7 +73,7 @@ tests torture = testGroup "Unit tests"
             e <- peek R.globalEnv
             R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
-                       R.withProtected (R.lang2 sf d) (unsafeToIO . inVoid . eval)
+                       R.withProtected (R.lang2 sf d) (unsafeRunRegion . eval)
                        >>= \(R.SomeSEXP s) ->
                               R.cast (sing :: R.SSEXPTYPE 'R.Real) <$>
                               R.tryEval s (R.release e) p
@@ -104,7 +104,7 @@ tests torture = testGroup "Unit tests"
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.
-  , testCase "qq/concurrent-initialization" $ unsafeToIO $ inVoid $ [r| 1 |] >> return ()
+  , testCase "qq/concurrent-initialization" $ runRegion $ [r| 1 |] >> return ()
   , testCase "sanity check " $ return ()
   ]
 

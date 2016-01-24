@@ -41,5 +41,5 @@ main = do
   where
     cmp script qq = testCase script $ do
       x <- readProcess "R" ["--slave"] =<< readFile script
-      y <- capture_ $ H.unsafeToIO $ inVoid qq
+      y <- capture_ $ H.unsafeRunRegion qq
       x @=? y
