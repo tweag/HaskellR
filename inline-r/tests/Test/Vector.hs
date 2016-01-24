@@ -5,6 +5,7 @@
 -- Tests for the "Data.Vector.SEXP" module.
 
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -29,8 +30,11 @@ import Data.Singletons
 import qualified Data.Vector.SEXP
 import qualified Data.Vector.SEXP as V
 import qualified Data.Vector.SEXP.Mutable as VM
--- import qualified Data.Vector.Generic as G
+#if MIN_VERSION_vector(0,11,0)
+import qualified Data.Vector.Fusion.Bundle as S
+#else
 import qualified Data.Vector.Fusion.Stream as S
+#endif
 import qualified Foreign.R as R
 import H.Prelude hiding (Show)
 import Language.R.QQ
@@ -41,10 +45,15 @@ import Test.Tasty.HUnit
 import Test.QuickCheck.Assertions
 
 instance (Arbitrary a, V.VECTOR s ty a) => Arbitrary (V.Vector s ty a) where
-  arbitrary = fmap V.fromList arbitrary
+  arbitrary = fmap (\x -> V.fromListN (length x) x) arbitrary
 
+#if MIN_VERSION_vector(0,11,0)
+instance Arbitrary a => Arbitrary (S.Bundle v a) where
+  arbitrary = fmap (\x -> S.fromListN (length x) x) arbitrary
+#else
 instance Arbitrary a => Arbitrary (S.Stream a) where
-  arbitrary = fmap S.fromList arbitrary
+  arbitrary = fmap (\x -> S.fromListN (length x) x) arbitrary
+#endif
 
 instance (AEq a, V.VECTOR s ty a) => AEq (V.Vector s ty a) where
   a ~== b   = all (uncurry (~==)) $ zip (V.toList a) (V.toList b)
@@ -104,9 +113,17 @@ testNumericSEXPVector dummy = testGroup "Test Numeric Vector"
 
 fromListLength :: TestTree
 fromListLength = testCase "fromList should have correct length" $ runRegion $ do
-    _ <- return $ idVec $ V.fromListN 3 [-1.9, -0.1, -2.9]
-    let v = idVec $ V.fromList [-1.9, -0.1, -2.9]
+    let lst = [-1.9, -0.1, -2.9]
+    let vn = idVec $ V.fromListN 3 lst
+    let v  = idVec $ V.fromList lst
+    io $ assertEqual "Length should be equal to list length" 3 (V.length vn)
     io $ assertEqual "Length should be equal to list length" 3 (V.length v)
+    io $ assertBool "Vectors should be almost equal" (vn ~== v)
+    io $ assertEqual "i0" (lst !!0) =<< (V.unsafeIndexM vn 0)
+    io $ assertEqual "i1" (lst !!1) =<< (V.unsafeIndexM vn 1)
+    io $ assertEqual "i2" (lst !!2) =<< (V.unsafeIndexM vn 2)
+    io $ assertEqual "Convertion back to list works" lst (V.toList vn)
+    io $ assertEqual "Convertion back to list works 2" lst (V.toList v)
     return ()
   where
     idVec :: V.Vector s 'R.Real Double -> V.Vector s 'R.Real Double

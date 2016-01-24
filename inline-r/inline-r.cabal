@@ -88,7 +88,7 @@ library
                      , th-lift >= 0.6
                      , th-orphans >= 0.8
                      , transformers >= 0.3
-                     , vector >= 0.10 && < 0.11
+                     , vector >= 0.10 && < 0.12
   hs-source-dirs:      src
   includes:            cbits/missing_r.h
   c-sources:           cbits/missing_r.c

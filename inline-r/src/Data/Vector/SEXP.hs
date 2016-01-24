@@ -272,12 +272,22 @@ import Data.Proxy (Proxy(..))
 import Data.Reflection (Reifies(..), reify)
 import qualified Data.Vector.Generic as G
 import Data.Vector.Generic.New (run)
-import qualified Data.Vector.Fusion.Stream as Stream
-import qualified Data.Vector.Fusion.Stream.Monadic as MStream
 import Data.ByteString ( ByteString )
 import qualified Data.ByteString as B
 
 import Control.Applicative hiding (empty)
+#if MIN_VERSION_vector(0,11,0)
+import qualified Data.Vector.Fusion.Bundle.Monadic as Bundle
+import           Data.Vector.Fusion.Bundle.Monadic (sSize, sElems)
+import           Data.Vector.Fusion.Bundle.Size (Size(Unknown), smaller)
+import           Data.Vector.Fusion.Bundle (lift)
+import qualified Data.Vector.Fusion.Stream.Monadic as Stream
+import qualified Data.List as List
+#else
+import qualified Data.Vector.Fusion.Stream as Stream
+import qualified Data.Vector.Fusion.Stream.Monadic as MStream
+#endif
+
 import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
 import Data.Word ( Word8 )
 import Foreign ( Storable, Ptr, castPtr, peekElemOff )
@@ -971,6 +981,11 @@ concatMap :: (VECTOR s tya a, VECTOR s tyb b)
           -> Vector s tya a
           -> Vector s tyb b
 {-# INLINE concatMap #-}
+#if MIN_VERSION_vector(0,11,0)
+concatMap f v = phony $ \p ->
+    let v' = G.stream (withW p v)
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.concatMap (sElems . G.stream . withW p . f) (sElems v')) Unknown) p
+#else
 concatMap f v =
     phony $ \p ->
     (`proxyW` p) $
@@ -978,6 +993,7 @@ concatMap f v =
     Stream.concatMap (G.stream . withW p . f) $
     G.stream $
     withW p v
+#endif
 
 -- Monadic mapping
 -- ---------------
@@ -1008,27 +1024,58 @@ forM_ v f = phony $ proxyFW (`G.forM_` f) v
 
 -- Zipping
 -- -------
+#if MIN_VERSION_vector(0,11,0)
+smallest :: [Size] -> Size
+smallest = List.foldl1' smaller
+#endif
 
 -- | /O(min(m,n))/ Zip two vectors with the given function.
 zipWith :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c)
         => (a -> b -> c) -> Vector s tya a -> Vector s tyb b -> Vector s tyc c
 {-# INLINE zipWith #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWith f xs ys = phony $ \p ->
+    let xs' = G.stream (withW p xs)
+        ys' = G.stream (withW p ys)
+        sz  = smaller (sSize xs') (sSize ys')
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith f (sElems xs') (sElems ys')) sz) p
+#else
 zipWith f xs ys = phony $ \p ->
    proxyW (G.unstream (Stream.zipWith f (G.stream (withW p xs)) (G.stream (withW p ys)))) p
+#endif
 
 -- | Zip three vectors with the given function.
 zipWith3 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d)
          => (a -> b -> c -> d) -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d
 {-# INLINE zipWith3 #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWith3 f as bs cs = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        sz  = smallest [sSize as', sSize bs', sSize cs']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith3 f (sElems as') (sElems bs') (sElems cs')) sz) p
+#else
 zipWith3 f as bs cs = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith3 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)))) p
+#endif
 
 zipWith4 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VECTOR s tye e)
          => (a -> b -> c -> d -> e)
          -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d -> Vector s tye e
 {-# INLINE zipWith4 #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWith4 f as bs cs ds = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        ds' = G.stream (withW p ds)
+        sz  = smallest [sSize as', sSize bs', sSize cs', sSize ds']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith4 f (sElems as') (sElems bs') (sElems cs') (sElems ds')) sz) p
+#else
 zipWith4 f as bs cs ds = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith4 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)))) p
+#endif
 
 zipWith5 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VECTOR s tye e,
              VECTOR s tyf f)
@@ -1036,8 +1083,19 @@ zipWith5 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VEC
          -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d -> Vector s tye e
          -> Vector s tyf f
 {-# INLINE zipWith5 #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWith5 f as bs cs ds es = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        ds' = G.stream (withW p ds)
+        es' = G.stream (withW p es)
+        sz  = smallest [sSize as', sSize bs', sSize cs', sSize ds', sSize es']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith5 f (sElems as') (sElems bs') (sElems cs') (sElems ds') (sElems es')) sz) p
+#else
 zipWith5 f as bs cs ds es = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith5 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)))) p
+#endif
 
 zipWith6 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VECTOR s tye e,
              VECTOR s tyf f, VECTOR s tyg g)
@@ -1045,31 +1103,70 @@ zipWith6 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VEC
          -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d -> Vector s tye e
          -> Vector s tyf f -> Vector s tyg g
 {-# INLINE zipWith6 #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWith6 f as bs cs ds es fs = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        ds' = G.stream (withW p ds)
+        es' = G.stream (withW p es)
+        fs' = G.stream (withW p fs)
+        sz  = smallest [sSize as', sSize bs', sSize cs', sSize ds', sSize es', sSize fs']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith6 f (sElems as') (sElems bs') (sElems cs') (sElems ds') (sElems es') (sElems fs')) sz) p
+#else
 zipWith6 f as bs cs ds es fs = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith6 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)) (G.stream (withW p fs)))) p
+#endif
 
 -- | /O(min(m,n))/ Zip two vectors with a function that also takes the
 -- elements' indices.
 izipWith :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c)
          => (Int -> a -> b -> c) -> Vector s tya a -> Vector s tyb b -> Vector s tyc c
 {-# INLINE izipWith #-}
+#if MIN_VERSION_vector(0,11,0)
+izipWith f as bs = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        sz  = smaller (sSize as') (sSize bs')
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith (uncurry f) (Stream.indexed (sElems as')) (sElems bs')) sz) p
+#else
 izipWith f as bs = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)))) p
+#endif
 
 -- | Zip three vectors and their indices with the given function.
 izipWith3 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d)
           => (Int -> a -> b -> c -> d)
           -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d
 {-# INLINE izipWith3 #-}
+#if MIN_VERSION_vector(0,11,0)
+izipWith3 f as bs cs = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        sz  = smallest [sSize as', sSize bs', sSize cs']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith3 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs')) sz) p
+#else
 izipWith3 f as bs cs = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith3 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)))) p
+#endif
 
 izipWith4 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VECTOR s tye e)
           => (Int -> a -> b -> c -> d -> e)
           -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d -> Vector s tye e
 {-# INLINE izipWith4 #-}
+#if MIN_VERSION_vector(0,11,0)
+izipWith4 f as bs cs ds = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        ds' = G.stream (withW p ds)
+        sz  = smallest [ sSize as', sSize bs', sSize cs', sSize ds']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith4 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs') (sElems ds')) sz) p
+#else
 izipWith4 f as bs cs ds = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith4 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)))) p
+#endif
 
 izipWith5 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VECTOR s tye e,
               VECTOR s tyf f)
@@ -1077,8 +1174,19 @@ izipWith5 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VE
           -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d -> Vector s tye e
           -> Vector s tyf f
 {-# INLINE izipWith5 #-}
+#if MIN_VERSION_vector(0,11,0)
+izipWith5 f as bs cs ds es = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        ds' = G.stream (withW p ds)
+        es' = G.stream (withW p es)
+        sz  = smallest [ sSize as', sSize bs', sSize cs', sSize ds', sSize es']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith5 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs') (sElems ds') (sElems es')) sz) p
+#else
 izipWith5 f as bs cs ds es = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith5 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)))) p
+#endif
 
 izipWith6 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VECTOR s tye e,
               VECTOR s tyf f, VECTOR s tyg g)
@@ -1086,8 +1194,20 @@ izipWith6 :: (VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c, VECTOR s tyd d, VE
           -> Vector s tya a -> Vector s tyb b -> Vector s tyc c -> Vector s tyd d -> Vector s tye e
           -> Vector s tyf f -> Vector s tyg g
 {-# INLINE izipWith6 #-}
+#if MIN_VERSION_vector(0,11,0)
+izipWith6 f as bs cs ds es fs = phony $ \p ->
+    let as' = G.stream (withW p as)
+        bs' = G.stream (withW p bs)
+        cs' = G.stream (withW p cs)
+        ds' = G.stream (withW p ds)
+        es' = G.stream (withW p es)
+        fs' = G.stream (withW p fs)
+        sz  = smallest [ sSize as', sSize bs', sSize cs', sSize ds', sSize es', sSize fs']
+    in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith6 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs') (sElems ds') (sElems es') (sElems fs')) sz) p
+#else
 izipWith6 f as bs cs ds es fs = phony $ \p ->
   proxyW (G.unstream (Stream.zipWith6 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)) (G.stream (withW p fs)))) p
+#endif
 
 -- Monadic zipping
 -- ---------------
@@ -1095,12 +1215,20 @@ izipWith6 f as bs cs ds es fs = phony $ \p ->
 
 -- | /O(min(m,n))/ Zip the two vectors with the monadic action and yield a
 -- vector of results
-zipWithM :: (Monad m, VECTOR s tya a, VECTOR s tyb b, VECTOR s tyc c)
+zipWithM :: (MonadR m, VECTOR (Region m) tya a, VECTOR (Region m) tyb b, VECTOR (Region m) tyc c)
          => (a -> b -> m c)
-         -> Vector s tya a
-         -> Vector s tyb b
-         -> m (Vector s tyc c)
+         -> Vector (Region m) tya a
+         -> Vector (Region m) tyb b
+         -> m (Vector (Region m) tyc c)
 {-# INLINE zipWithM #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWithM f xs ys = phony $ \p ->
+    let xs' = lift $ G.stream (withW p xs)
+        ys' = lift $ G.stream (withW p ys)
+        sz  = smaller (sSize xs') (sSize ys')
+    in proxyW <$> Prelude.fmap G.unstream (Bundle.unsafeFromList sz <$> Stream.toList (Stream.zipWithM f (sElems xs') (sElems ys')))
+              <*> pure p
+#else
 zipWithM f xs ys = phony $ \p ->
     proxyW <$>
     unstreamM (Stream.zipWithM f (G.stream (withW p xs)) (G.stream (withW p ys))) <*>
@@ -1110,6 +1238,7 @@ zipWithM f xs ys = phony $ \p ->
     unstreamM s = do
         zs <- MStream.toList s
         return $ G.unstream $ Stream.unsafeFromList (MStream.size s) zs
+#endif
 
 
 -- | /O(min(m,n))/ Zip the two vectors with the monadic action and ignore the
@@ -1120,8 +1249,15 @@ zipWithM_ :: (Monad m, VECTOR s tya a, VECTOR s tyb b)
           -> Vector s tyb b
           -> m ()
 {-# INLINE zipWithM_ #-}
+#if MIN_VERSION_vector(0,11,0)
+zipWithM_ f xs ys = phony $ \p ->
+    let xs' = lift $ G.stream (withW p xs)
+        ys' = lift $ G.stream (withW p ys)
+    in Stream.zipWithM_ f (sElems xs') (sElems ys')
+#else
 zipWithM_ f xs ys = phony $ \p ->
     Stream.zipWithM_ f (G.stream (withW p xs)) (G.stream (withW p ys))
+#endif
 
 -- Filtering
 -- ---------
