@@ -1,5 +1,5 @@
 name:                ihaskell-inline-r
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            Embed R quasiquotes and plots in IHaskell notebooks.
 description:         Embed R quasiquotes and plots in IHaskell notebooks.
 homepage:            https://tweag.github.io/HaskellR/
