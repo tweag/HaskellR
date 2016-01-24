@@ -43,7 +43,6 @@ library
   exposed-modules:     Data.Vector.SEXP
                        Data.Vector.SEXP.Base
                        Data.Vector.SEXP.Mutable
-                       Data.Vector.SEXP.Mutable.Internal
                        Foreign.R
                        Foreign.R.Constraints
                        Foreign.R.Embedded
@@ -60,15 +59,16 @@ library
                        Language.R.Globals
                        Language.R.HExp
                        Language.R.Instance
-                       Language.R.Internal
-                       Language.R.Internal.FunWrappers
-                       Language.R.Internal.FunWrappers.TH
                        Language.R.Literal
                        Language.R.QQ
                        Control.Memory.Region
   other-modules:       Control.Monad.R.Class
                        Control.Monad.R.Internal
+                       Data.Vector.SEXP.Mutable.Internal
                        Internal.Error
+                       Language.R.Internal
+                       Language.R.Internal.FunWrappers
+                       Language.R.Internal.FunWrappers.TH
   build-depends:       base >= 4.7 && < 5
                      , aeson >= 0.6
                      , bytestring >= 0.10
