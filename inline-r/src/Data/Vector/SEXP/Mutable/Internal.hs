@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP #-}
 
 module Data.Vector.SEXP.Mutable.Internal
   ( MVector(..)
@@ -52,6 +53,9 @@ data MVector s ty a = MVector
 newtype W t ty s a = W { unW :: MVector s ty a }
 
 instance (Reifies t (AcquireIO s), VECTOR s ty a) => G.MVector (W t ty) a where
+#if MIN_VERSION_vector(0,11,0)
+  basicInitialize _ = return ()
+#endif
   {-# INLINE basicLength #-}
   basicLength (unW -> MVector _ _ len) = fromIntegral len
 
