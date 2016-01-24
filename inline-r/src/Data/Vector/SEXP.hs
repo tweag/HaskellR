@@ -330,23 +330,11 @@ foreignSEXP sx@(SEXP ptr) =
       R.preserveObject sx
       ForeignSEXP <$> GHC.newConcForeignPtr (castPtr ptr) (R.releaseObject sx)
 
-{-
--- | 'ForeignSEXP' deconstructor. Like with 'withForeignPtr' it's not safe to use
--- 'SEXP s ty' outside of 'withForeinSEXP'.
 withForeignSEXP
-  :: MonadR m
-  => ForeignSEXP ty
-  -> (forall s . SEXP s ty -> IO r)
-  -> m r
-withForeignSEXP (ForeignSEXP fptr) f =
-    io $ withForeignPtr fptr $ \ptr -> f (SEXP (castPtr ptr))
--}
-
-withForeignSEXP1
   ::  ForeignSEXP ty
   -> (SEXP s ty -> IO r)
   -> IO r
-withForeignSEXP1 (ForeignSEXP fptr) f =
+withForeignSEXP (ForeignSEXP fptr) f =
     withForeignPtr fptr $ \ptr -> f (SEXP (castPtr ptr))
 
 -- | Immutable vectors. The second type paramater is a phantom parameter
@@ -389,7 +377,7 @@ instance (Reifies t (AcquireIO s), VECTOR s ty a) => G.Vector (W t ty s) a where
       return $ W $ Vector fp off len
   {-# INLINE basicUnsafeThaw #-}
   basicUnsafeThaw (unW -> Vector fp off len) = unsafePrimToPrim $
-      withForeignSEXP1 fp $ \ptr -> do
+      withForeignSEXP fp $ \ptr -> do
          sx' <- acquireIO (R.release ptr)
          return $ Mutable.withW p $ Mutable.MVector (R.unsafeRelease sx') off len
     where
@@ -421,7 +409,7 @@ instance VECTOR s ty a => Exts.IsList (Vector s ty a) where
 -- | Return Pointer of the first element of the vector storage.
 unsafeToPtr :: Storable a => Vector s ty a -> Ptr a
 {-# INLINE unsafeToPtr #-}
-unsafeToPtr (Vector fp off len) = unsafeInlineIO $ withForeignSEXP1 fp $ \sx ->
+unsafeToPtr (Vector fp off len) = unsafeInlineIO $ withForeignSEXP fp $ \sx ->
     return $ Mutable.unsafeToPtr $ Mutable.MVector sx off len
 
 -- | /O(n)/ Create an immutable vector from a 'SEXP'. Because 'SEXP's are

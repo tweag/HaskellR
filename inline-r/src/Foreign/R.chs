@@ -159,7 +159,6 @@ import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Control.Exception (bracket)
 import Control.Monad.Primitive ( unsafeInlineIO )
-import Data.Bits
 import Data.Complex
 import Data.Int (Int32)
 import Data.Singletons (fromSing)
