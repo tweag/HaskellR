@@ -3,9 +3,8 @@ packages:
 - H
 - IHaskell
 - inline-r
-resolver: lts-3.13
+resolver: lts-4.1
 extra-deps:
-- tasty-0.11.0.2
 - tasty-expected-failure-0.11.0.3
 
 docker:

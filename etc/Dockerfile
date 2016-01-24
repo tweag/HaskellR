@@ -1,4 +1,4 @@
-FROM fpco/stack-build:lts-3.13_20151112
+FROM fpco/stack-build:lts-4.1
 MAINTAINER Mathieu Boespflug <m@tweag.io>
 
 # Install system dependencies.
