@@ -279,7 +279,7 @@ import qualified Data.ByteString as B
 import Control.Applicative hiding (empty)
 import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
 import Data.Word ( Word8 )
-import Foreign ( Ptr, plusPtr, castPtr, peekElemOff )
+import Foreign ( Storable, Ptr, castPtr, peekElemOff )
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
 import Foreign.Marshal.Array ( copyArray )
 import qualified GHC.Foreign as GHC
@@ -412,10 +412,10 @@ instance VECTOR s ty a => Exts.IsList (Vector s ty a) where
 #endif
 
 -- | Return Pointer of the first element of the vector storage.
-unsafeToPtr :: Vector s ty a -> Ptr a
+unsafeToPtr :: Storable a => Vector s ty a -> Ptr a
 {-# INLINE unsafeToPtr #-}
-unsafeToPtr v = unsafeInlineIO $ withForeignSEXP1 (vectorBase v) $ \p ->
-   return $  (R.unsafeSEXPToVectorPtr p `plusPtr` (fromIntegral $ vectorOffset v))
+unsafeToPtr (Vector fp off len) = unsafeInlineIO $ withForeignSEXP1 fp $ \sx ->
+    return $ Mutable.unsafeToPtr $ Mutable.MVector sx off len
 
 -- | /O(n)/ Create an immutable vector from a 'SEXP'. Because 'SEXP's are
 -- mutable, this function yields an immutable /copy/ of the 'SEXP'.
