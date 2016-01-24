@@ -15,6 +15,12 @@ docker:
 
 nix:
     enable: false
-    packages: [ python34Packages.ipython, R, zeromq, pkgconfig, zlib ]
+    packages:
+    - ncurses
+    - pkgconfig
+    - python34Packages.ipython
+    - R
+    - zeromq
+    - zlib
     ## Right now, using just packages: is OK on Linux, not OSX
     #shell-file: ./shell.nix

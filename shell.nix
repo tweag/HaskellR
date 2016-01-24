@@ -52,6 +52,6 @@ in
 
 haskell.buildStackProject {
   name = "HaskellR";
-  buildInputs = [ R zeromq zlib ];
+  buildInputs = [ ncurses pkgconfig python34Packages.ipython R zeromq zlib ];
   LANG = "en_US.UTF-8";
 }
