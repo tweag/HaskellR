@@ -10,7 +10,7 @@ dependencies:
   override:
   - mkdir -p ~/.local/bin
   # Even though we have stack in docker image, we still need it on CI
-  - curl -LO --retry 3 https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - curl -L --retry 3 https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
   # should run inside docker container
   - stack --no-terminal docker pull
   - stack --no-terminal --docker --docker-persist build --only-snapshot --prefetch --test --bench
