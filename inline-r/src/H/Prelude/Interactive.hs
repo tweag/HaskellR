@@ -4,6 +4,8 @@
 -- This class is not meant to be imported in any other circumstance than in
 -- a GHCi session.
 
+{-# LANGUAGE TypeFamilies #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module H.Prelude.Interactive
   ( module H.Prelude
@@ -17,7 +19,9 @@ import qualified H.Prelude as H
 
 instance MonadR IO where
   io = id
-  unsafeToIO = id
+  data ExecContext IO = ExecContext
+  getExecContext = return ExecContext
+  unsafeRunWithExecContext = const
 
 -- | A form of the 'print' function that is more convenient in an
 -- interactive session.

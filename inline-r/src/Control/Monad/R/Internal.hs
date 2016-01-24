@@ -20,7 +20,6 @@ withAcquire
      (MonadR m)
   => (forall s. Reifies s (AcquireIO (Region m)) => Proxy s -> m r)
   -> m r
-withAcquire f = reify (AcquireIO (unsafeToIO . macquire)) f
-  where
-    macquire :: SEXP V a -> m (SEXP (Region m) a)
-    macquire = acquire
+withAcquire f = do
+    cxt <- getExecContext
+    reify (AcquireIO (\sx -> unsafeRunWithExecContext (acquire sx) cxt)) f
