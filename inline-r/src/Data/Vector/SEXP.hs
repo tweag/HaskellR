@@ -19,6 +19,7 @@
 -- O(N) operation but it will copy vector data twice (instead of once).
 
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -309,10 +310,6 @@ import Prelude
   , uncurry
   )
 import qualified Prelude
-
-#include <R.h>
-#define USE_RINTERNALS
-#include <Rinternals.h>
 
 newtype ForeignSEXP (ty::SEXPTYPE) = ForeignSEXP (ForeignPtr ())
 

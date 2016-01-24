@@ -14,6 +14,7 @@
 -- and calling 'fromSEXP' on-the-fly.
 
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -94,10 +95,6 @@ import System.IO.Unsafe (unsafePerformIO)
 import Prelude hiding
   ( length, drop, init, null, read, replicate, splitAt, tail, take )
 
-#include <R.h>
-#define USE_RINTERNALS
-#include <Rinternals.h>
-
 -- Internal helpers
 -- ----------------
 
@@ -134,7 +131,7 @@ phony2 f v1 v2 =
 fromSEXP :: VECTOR s ty a => SEXP s ty -> MVector s ty a
 fromSEXP sx =
     MVector sx 0 $ unsafePerformIO $ do
-      fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp sx)
+      fromIntegral <$> R.length sx
 
 -- | /O(1)/ in the common case, /O(n)/ for proper slices. Convert a mutable
 -- vector to a 'SEXP'. This can be done efficiently, without copy, because
@@ -148,7 +145,7 @@ toSEXP (MVector sx 0 len)
   | len == sexplen = return sx
   where
     sexplen = unsafePerformIO $ do
-      fromIntegral <$> {# get VECSEXP->vecsxp.length #} (R.unsexp sx)
+      fromIntegral <$> R.length sx
 toSEXP v = toSEXP =<< clone v -- yield a zero based slice.
 
 -- Length information
