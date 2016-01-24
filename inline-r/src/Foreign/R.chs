@@ -30,6 +30,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
+-- Necessary for c2hs < 0.26 compat.
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 #if __GLASGOW_HASKELL__ >= 710
 -- We don't use ticks in this module, because they confuse c2hs.
@@ -159,6 +161,7 @@ import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Control.Exception (bracket)
 import Control.Monad.Primitive ( unsafeInlineIO )
+import Data.Bits -- For c2hs < 0.26.
 import Data.Complex
 import Data.Int (Int32)
 import Data.Singletons (fromSing)

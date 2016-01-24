@@ -46,6 +46,8 @@
 #else
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 #endif
+-- Necessary for c2hs < 0.26 compat.
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 module Language.R.HExp
   ( HExp(..)
   , (===)
@@ -74,7 +76,7 @@ import Data.Maybe (isJust)
 import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
-import Foreign.C
+import Foreign.C -- For c2hs < 0.26
 import Foreign (castPtr)
 import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
