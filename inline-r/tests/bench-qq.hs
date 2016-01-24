@@ -16,6 +16,7 @@ import H.Prelude as H
 import Language.R.QQ
 
 import Control.Applicative
+import Control.Monad (void)
 import Criterion.Main
 import Data.Int
 import Language.Haskell.TH.Quote
@@ -42,10 +43,11 @@ main = do
                    [ bench "pure Haskell" $
                        nf fib 18
                    , bench "compile-time-qq" $
-                       nfIO $ unsafeRunRegion $ do
-                         [r| fib <<- function(n) {if (n == 1) return(1); if (n == 2) return(2); return(fib(n-1)+fib(n-2))} |] >> return ()
-                         [r| fib(18) |]
+                       nfIO $ runRegion $ do
+                         _ <- [r| fib <<- function(n) {if (n == 1) return(1); if (n == 2) return(2); return(fib(n-1)+fib(n-2))} |]
+                         _ <- [r| fib(18) |]
+                         return ()
                    , bench "compile-time-qq-hybrid" $
-                       nfIO $ unsafeRunRegion $ hFib =<< mkSEXP (18 :: Int32)
+                       nfIO $ runRegion $ void $ hFib =<< mkSEXP (18 :: Int32)
                    ]
                ]
