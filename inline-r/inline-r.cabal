@@ -40,7 +40,8 @@ source-repository head
   subdir: inline-r
 
 library
-  exposed-modules:     Data.Vector.SEXP
+  exposed-modules:     Control.Memory.Region
+                       Data.Vector.SEXP
                        Data.Vector.SEXP.Base
                        Data.Vector.SEXP.Mutable
                        Foreign.R
@@ -61,14 +62,13 @@ library
                        Language.R.Instance
                        Language.R.Literal
                        Language.R.QQ
-                       Control.Memory.Region
+                       Language.R.Internal
+                       Language.R.Internal.FunWrappers
+                       Language.R.Internal.FunWrappers.TH
   other-modules:       Control.Monad.R.Class
                        Control.Monad.R.Internal
                        Data.Vector.SEXP.Mutable.Internal
                        Internal.Error
-                       Language.R.Internal
-                       Language.R.Internal.FunWrappers
-                       Language.R.Internal.FunWrappers.TH
   build-depends:       base >= 4.7 && < 5
                      , aeson >= 0.6
                      , bytestring >= 0.10
