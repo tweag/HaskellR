@@ -17,7 +17,8 @@ description:
 
 cabal-version:       >=1.10
 
-extra-source-files:   cbits/missing_r.h
+extra-source-files:   CHANGELOG.md
+                      cbits/missing_r.h
                       tests/shootout/binarytrees.R
                       tests/shootout/fasta.R
                       tests/shootout/knucleotide.R
