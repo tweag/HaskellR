@@ -21,12 +21,10 @@ import qualified Test.Regions
 import qualified Test.Vector
 
 import H.Prelude
-import Language.R.HExp
 import qualified Foreign.R as R
 import qualified Language.R.Instance as R
     ( initialize
     , defaultConfig )
-import           Language.R.QQ
 
 import Test.Tasty
 import Test.Tasty.HUnit

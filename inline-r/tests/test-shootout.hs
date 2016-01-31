@@ -12,8 +12,7 @@ module Main where
 
 import Test.Scripts
 
-import H.Prelude as H hiding (show)
-import Language.R.QQ
+import H.Prelude as H
 
 import Control.Monad (forM)
 import Control.Memory.Region

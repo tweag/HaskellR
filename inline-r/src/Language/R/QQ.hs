@@ -24,10 +24,11 @@ import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
 import           Foreign.R (SEXP, SomeSEXP(..))
-import qualified H.Prelude as H
+import           Foreign.R.Error
 import           Internal.Error
 import           Language.R (eval)
-import           Language.R.Globals (nilValue)
+import           Language.R.Globals (nilValue, globalEnv)
+import           Language.R.GC (automaticSome)
 import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Literal (mkSEXPIO)
@@ -69,7 +70,7 @@ r = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ runRegion $ H.automaticSome =<< eval =<< $(expQQ txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ runRegion $ automaticSome =<< eval =<< $(expQQ txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
@@ -83,7 +84,7 @@ qqLock = unsafePerformIO $ newMVar ()
 
 parse :: String -> IO (R.SEXP V 'R.Expr)
 parse txt = do
-    H.initialize H.defaultConfig
+    initialize defaultConfig
     withMVar qqLock $ \_ ->
       withCString txt $ \ctxt ->
         R.withProtected (R.mkString ctxt) $ \rtxt ->
@@ -91,7 +92,7 @@ parse txt = do
             R.withProtected (R.parseVector rtxt 1 status (R.release nilValue)) $ \exprs -> do
               rc <- fromIntegral <$> peek status
               unless (R.PARSE_OK == toEnum rc) $
-                throwIO . H.RError $ "Parse error in: " ++ txt
+                throwIO . RError $ "Parse error in: " ++ txt
               return exprs
 
 antiSuffix :: String
@@ -137,7 +138,7 @@ expQQ input = do
                        <- Set.toList (collectAntis expr)]
         args = map (TH.dyn . chop) antis
         closure = "function(" ++ intercalate "," antis ++ "){" ++ input ++ "}"
-        z = [| return (R.release H.nilValue) |]
+        z = [| return (R.release nilValue) |]
     vars <- mapM (\_ -> TH.newName "x") antis
     -- Abstract over antis using fresh vars, to avoid captures with names bound
     -- internally (such as 'f' below).
@@ -147,7 +148,7 @@ expQQ input = do
             let sx = unsafePerformIO $ do
                        exprs <- parse closure
                        SomeSEXP e <- R.indexVector exprs 0
-                       clos <- R.eval e (R.release H.globalEnv)
+                       clos <- R.eval e (R.release globalEnv)
                        R.unSomeSEXP clos R.preserveObject
                        return clos
             io $ case sx of

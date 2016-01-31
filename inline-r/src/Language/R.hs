@@ -36,6 +36,7 @@ import Control.Monad.R.Class
 import Foreign.R
   ( SEXP
   , SomeSEXP(..)
+  , typeOf
   , asTypeOf
   , cast
   , unSomeSEXP

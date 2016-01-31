@@ -36,9 +36,7 @@ import qualified Data.Vector.Fusion.Bundle as S
 import qualified Data.Vector.Fusion.Stream as S
 #endif
 import qualified Foreign.R as R
-import H.Prelude hiding (Show)
-import Language.R.QQ
-import Language.R.HExp (HExp(..), hexp)
+import H.Prelude
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.Tasty.HUnit

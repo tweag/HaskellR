@@ -14,8 +14,8 @@ module H.Prelude.Interactive
   )
   where
 
+import qualified Foreign.R as R
 import H.Prelude hiding (withEmbeddedR)
-import qualified H.Prelude as H
 
 instance MonadR IO where
   io = id
@@ -23,13 +23,22 @@ instance MonadR IO where
   getExecContext = return ExecContext
   unsafeRunWithExecContext = const
 
+class PrintR a where
+  printR :: MonadR m => a -> m ()
+
+instance PrintR (SEXP s a) where
+  printR = io . R.printValue
+
+instance PrintR (R.SomeSEXP s) where
+  printR s = R.unSomeSEXP s printR
+
 -- | A form of the 'print' function that is more convenient in an
 -- interactive session.
-p :: (MonadR m, H.Show a) => m a -> m ()
-p = (>>= H.print)
+p :: (MonadR m, PrintR a) => m a -> m ()
+p = (>>= printR)
 
 -- | A form of the 'print' function that that is more convenient in an
 -- interactive session.
 {-# DEPRECATED printQuote "Use 'p' instead." #-}
-printQuote :: (MonadR m, H.Show a) => m a -> m ()
+printQuote :: (MonadR m, PrintR a) => m a -> m ()
 printQuote = p

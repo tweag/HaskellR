@@ -14,7 +14,6 @@ module Main where
 
 import qualified Foreign.R as R
 import H.Prelude as H
-import Language.R.QQ
 import qualified Data.Vector.SEXP as SVector
 import qualified Data.Vector.SEXP.Mutable as SMVector
 import Control.Memory.Region
@@ -23,7 +22,6 @@ import Control.Applicative
 import Control.Monad.Trans (liftIO)
 import Data.Int
 import Data.Singletons (sing)
-import qualified Data.Text.Lazy as Text
 import Test.Tasty.HUnit hiding ((@=?))
 import Prelude -- Silence AMP warning
 
@@ -33,9 +31,10 @@ hFib n@(H.fromSEXP -> 1 :: Int32) = fmap (flip R.asTypeOf n) [r| 1L |]
 hFib n = (`R.asTypeOf` n) <$> [r| hFib_hs(n_hs - 1L) + hFib_hs(n_hs - 2L) |]
 
 -- | Version of '(@=?)' that works in the R monad.
-(@=?) :: H.Show a => String -> a -> R s ()
+(@=?) :: Literal a b => String -> a -> R s ()
 expected @=? actual = liftIO $ do
-    assertEqual "" expected (Text.unpack (H.show actual))
+    let actualstr = cast SString [rsafe| deparse(actual_hs) |]
+    assertEqual "" expected (fromSEXP actualstr)
 
 main :: IO ()
 main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
@@ -97,9 +96,6 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     let apply :: R.SEXP s 'R.Closure -> Int32 -> R s (R.SomeSEXP s)
         apply n m = [r| n_hs(m_hs) |]
     ("29L" @=?) =<< [r| apply_hs(foo5_hs, 28L ) |]
-
-    sym <- H.install "blah"
-    ("blah" @=?) sym
 
     -- test Vector literal instance
     v1 <- do

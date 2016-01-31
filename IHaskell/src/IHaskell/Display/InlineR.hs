@@ -22,7 +22,6 @@ import           IHaskell.Display
 import           IHaskell.Display.Blaze () -- to confirm it's installed
 import           Language.Haskell.TH.Quote
 import           Language.R.Instance
-import           Language.R.QQ
 import           System.IO (hClose)
 import           System.IO.Temp (withSystemTempFile)
 import qualified Text.Blaze.Html5 as BH

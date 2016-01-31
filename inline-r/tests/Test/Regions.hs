@@ -9,7 +9,6 @@ module Test.Regions
 
 import           H.Prelude
 import qualified Foreign.R as R
-import           Language.R.QQ
 
 import Test.Tasty hiding (defaultMain)
 import Test.Tasty.HUnit
