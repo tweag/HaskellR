@@ -9,6 +9,7 @@
 #if __GLASGOW_HASKELL__ >= 710
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 #endif
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 
 
 -- |
@@ -30,7 +31,17 @@
 -- functions whose result type depends on the value of one of its arguments. See
 -- e.g. 'Foreign.R.allocVector'.
 
-module Foreign.R.Type where
+module Foreign.R.Type
+  ( SEXPTYPE(..)
+  , SSEXPTYPE
+  , Sing(..)
+  , Logical(..)
+  , PairList
+  , IsVector
+  , IsGenericVector
+  , IsList
+  , IsPairList
+  ) where
 
 #include <Rinternals.h>
 
