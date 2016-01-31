@@ -78,16 +78,18 @@ parseEval txt = useAsCString txt $ \ctxt ->
 --
 -- This function is not safe to use inside GHCi.
 parseFile :: FilePath -> (SEXP s 'R.Expr -> IO a) -> IO a
+{-# DEPRECATED parseFile "Use [r| parse(file=\"path/to/file\") |] instead." #-}
 parseFile fl f = do
     withCString fl $ \cfl ->
       R.withProtected (R.mkString cfl) $ \rfl ->
         r1 (C8.pack "parse") rfl >>= \(R.SomeSEXP s) ->
           return (R.unsafeCoerce s) `R.withProtected` f
 
-parseText :: String                               -- ^ Text to parse
-          -> Bool                                 -- ^ Whether to annotate the
-                                                  -- AST with source locations.
-          -> IO (R.SEXP V 'R.Expr)
+parseText
+  :: String -- ^ Text to parse
+  -> Bool   -- ^ Whether to annotate the AST with source locations.
+  -> IO (R.SEXP V 'R.Expr)
+{-# DEPRECATED parseText "Use [r| parse(text=...) |] instead." #-}
 parseText txt b = do
     s <- parseEval $ C8.pack $
          "parse(text=" ++ show txt ++ ", keep.source=" ++ keep ++ ")"
@@ -98,6 +100,8 @@ parseText txt b = do
 
 install :: MonadR m => String -> m (SEXP V 'R.Symbol)
 install = io . installIO
+
+{-# DEPRECATED string, strings "Use mkSEXP instead" #-}
 
 -- | Create an R character string from a Haskell string.
 string :: String -> IO (SEXP V 'R.Char)
