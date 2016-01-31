@@ -75,8 +75,6 @@ parseEval txt = useAsCString txt $ \ctxt ->
 --
 -- This function uses continuation because this is an easy way to make
 -- operations GC-safe.
---
--- This function is not safe to use inside GHCi.
 parseFile :: FilePath -> (SEXP s 'R.Expr -> IO a) -> IO a
 {-# DEPRECATED parseFile "Use [r| parse(file=\"path/to/file\") |] instead." #-}
 parseFile fl f = do
@@ -98,6 +96,7 @@ parseText txt b = do
     keep | b         = "TRUE"
          | otherwise = "FALSE"
 
+-- | Internalize a symbol name.
 install :: MonadR m => String -> m (SEXP V 'R.Symbol)
 install = io . installIO
 
@@ -135,7 +134,7 @@ evalEnv x rho = acquireSome =<< do
 eval :: MonadR m => SEXP s a -> m (SomeSEXP (Region m))
 eval x = evalEnv x (R.release globalEnv)
 
--- | Silent version of 'evalIO' function that discards it's result.
+-- | Silent version of 'eval' function that discards it's result.
 eval_ :: MonadR m => SEXP s a -> m ()
 eval_ = void . eval
 

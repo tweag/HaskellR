@@ -11,7 +11,6 @@ import           Language.R
 import Data.ByteString as B
 import Foreign.C.String ( withCString )
 
--- | Helper
 inVoid :: R V z -> R V z
 inVoid = id
 {-# INLINE inVoid #-}
