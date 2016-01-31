@@ -17,16 +17,16 @@ furthermore need:
 * (Optional) ZeroMQ 3.0 or later.
 * (Optional) Jupyter/IPython version 3.2 or later.
 
-For OS X, the build is known to work when using Homebrew to install
-dependencies, e.g.
+**OS X users:** use Homebrew to install dependencies, e.g.
 
 ```
 $ brew update
 $ brew tap homebrew/science
 $ brew install r zeromq
+$ pip install ipython    # Only needed for IHaskell support
 ```
 
-TODO installation instructions for Windows.
+**Windows users:** TODO
 
 ## From Hackage
 
@@ -39,34 +39,26 @@ The H interactive environment can be copied to `~/.local/bin` using
 $ stack build --copy-bins H
 ```
 
-If stack complains about not being able to find `inline-r`, add it to
-your global stack config, for example like so:
-
-```
-flags: {}
-packages: []
-extra-deps:
-  - inline-r-0.7.0.0
-resolver: lts-3.4
-```
-
 You can then run `H` with
 
 ```
 stack exec H
 ```
 
-Alternatively, you can use [cabal-install][cabal-install], which will
-copy the binary to `~/.cabal/bin` by default:
+*Alternatively,* you can use [cabal-install][cabal-install], which
+will copy the binary to `~/.cabal/bin` by default:
 
 ```
 $ cabal install H
 ```
 
-or the following if you used a `cabal-install` sandbox when building:
+or the following if you use a `cabal-install` sandbox when building:
 
 ```
 # From the directory where the sandbox is located.
+$ mkdir haskellr-sandbox
+$ cabal sandbox init
+$ cabal install H
 $ cabal exec H
 ```
 
@@ -128,7 +120,11 @@ $ stack --docker exec H
 ```
 
 After launching the Jupyter notebook server you can visit
+
+```
 http://localhost:8888/notebooks/IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+```
+
 in your browser for an interactive tutorial, which is available in
 static form [here][tutorial].
 
