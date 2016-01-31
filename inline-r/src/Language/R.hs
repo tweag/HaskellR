@@ -9,48 +9,60 @@
 {-# Language ViewPatterns #-}
 
 module Language.R
-  ( parseFile
-  , parseText
-  , install
-  , string
-  , strings
+  ( module Foreign.R
+  , module Foreign.R.Type
+  , module Language.R.Instance
+  , module Language.R.Globals
+  , module Language.R.GC
+  , module Language.R.Literal
+  -- * Evaluation
   , eval
   , eval_
   , evalEnv
-  -- * R global constants
-  -- $ghci-bug
-  , module Language.R.Instance
+  , install
   -- * Exceptions
   , throwR
   , throwRMessage
-  -- * Memory management
-  , module Language.R.GC
+  -- * Deprecated
+  , parseFile
+  , parseText
+  , string
+  , strings
   ) where
 
 import           Control.Memory.Region
 import qualified Data.Vector.SEXP as Vector
 import Control.Monad.R.Class
-import Foreign.R (SEXP, SomeSEXP(..))
+import Foreign.R
+  ( SEXP
+  , SomeSEXP(..)
+  , asTypeOf
+  , cast
+  , unSomeSEXP
+  , unsafeCoerce
+  )
 import qualified Foreign.R as R
 import qualified Foreign.R.Parse as R
 import qualified Foreign.R.Error as R
+import           Foreign.R.Type
 import           Language.R.GC
 import           Language.R.Globals
 import           Language.R.HExp
 import           Language.R.Instance
 import           {-# SOURCE #-} Language.R.Internal
+import           Language.R.Literal
 
 import Control.Applicative
 import Control.Exception ( throwIO )
 import Control.Monad ( (>=>), when, unless, forM, void )
 import Data.ByteString as B
 import Data.ByteString.Char8 as C8 ( pack, unpack )
-import Foreign
-    ( alloca
-    , castPtr
-    , peek
-    )
 import Data.Singletons (sing)
+import Foreign
+  ( alloca
+  , castPtr
+  , peek
+  )
 import Foreign.C.String ( withCString, peekCString )
 import Prelude
 
@@ -113,7 +125,7 @@ strings str = withCString str R.mkString
 -- | Evaluate a (sequence of) expression(s) in the given environment, returning the
 -- value of the last.
 evalEnv :: MonadR m => SEXP s a -> SEXP s 'R.Env -> m (SomeSEXP (Region m))
-evalEnv (hexp -> Expr _ v) rho = acquireSome =<< do
+evalEnv (hexp -> Language.R.HExp.Expr _ v) rho = acquireSome =<< do
     io $ alloca $ \p -> do
       mapM_ (\(SomeSEXP s) -> void $ R.protect s) (Vector.toList v)
       x <- Prelude.last <$> forM (Vector.toList v) (\(SomeSEXP s) -> do

@@ -13,7 +13,6 @@
 module Main where
 
 import qualified Foreign.R as R
-import Foreign.R (SEXP)
 import H.Prelude as H
 import Language.R.QQ
 import qualified Data.Vector.SEXP as SVector

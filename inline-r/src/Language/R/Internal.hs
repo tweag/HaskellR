@@ -1,11 +1,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# Language ViewPatterns #-}
 
-module Language.R.Internal (r1, r2, installIO) where
+module Language.R.Internal
+  ( r1
+  , r2
+  , installIO
+  ) where
 
 import           Control.Memory.Region
 import qualified Foreign.R as R
-import           Foreign.R (SEXP, SomeSEXP)
 import           Language.R
 
 import Data.ByteString as B
