@@ -14,7 +14,3 @@ the Documentation for how to build a release.
 
 See the README file on the
 [Github repository page](https://github.com/tweag/HaskellR).
-
-## Binary packages
-
-Not available yet. Stay tuned.
