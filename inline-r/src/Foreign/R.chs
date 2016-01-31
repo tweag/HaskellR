@@ -40,9 +40,6 @@
 module Foreign.R
   ( module Foreign.R.Type
     -- * Internal R structures
-  , SEXPTYPE(..)
-  , R.Logical(..)
-  , R.PairList
   , SEXP(..)
   , SomeSEXP(..)
   , unSomeSEXP
@@ -154,8 +151,8 @@ module Foreign.R
 
 import Control.Memory.Region
 import {-# SOURCE #-} Language.R.HExp (HExp)
-import qualified Foreign.R.Type as R
-import           Foreign.R.Type (SEXPTYPE, SSEXPTYPE)
+import Foreign.R.Type
+import Foreign.R.Type as R
 
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
@@ -401,10 +398,10 @@ length s = fromIntegral <$> {#get VECSEXP->vecsxp.length #} (unsexp s)
 {#fun RAW as raw { unsexp `SEXP s R.Raw' } -> `Ptr CChar' castPtr #}
 
 -- XXX Workaround c2hs syntax limitations.
-type Logical = 'R.Logical
+type RLogical = 'R.Logical
 
 -- | Read logical vector data.
-{#fun LOGICAL as logical { unsexp `SEXP s Logical' } -> `Ptr R.Logical' castPtr #}
+{#fun LOGICAL as logical { unsexp `SEXP s RLogical' } -> `Ptr R.Logical' castPtr #}
 
 -- | Read complex vector data.
 {#fun COMPLEX as complex { unsexp `SEXP s R.Complex' }
