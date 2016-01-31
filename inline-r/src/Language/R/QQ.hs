@@ -22,10 +22,12 @@ import           Control.Memory.Region
 import           Control.Monad.R.Class
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
+import qualified Foreign.R.Parse as R
 import           Foreign.R (SEXP, SomeSEXP(..))
 import qualified H.Prelude as H
 import           Internal.Error
-import           Language.R (parseText, eval)
+import           Language.R (eval)
+import           Language.R.Globals (nilValue)
 import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Literal (mkSEXPIO)
@@ -36,9 +38,13 @@ import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
 import Control.Concurrent (MVar, newMVar, withMVar)
+import Control.Exception (throwIO)
+import Control.Monad (unless)
 import Data.List (intercalate, isSuffixOf)
 import qualified Data.Set as Set
 import Data.Set (Set)
+import Foreign (alloca, peek)
+import Foreign.C.String (withCString)
 import System.IO.Unsafe (unsafePerformIO)
 
 -------------------------------------------------------------------------------
@@ -75,10 +81,18 @@ qqLock :: MVar ()
 qqLock = unsafePerformIO $ newMVar ()
 {-# NOINLINE qqLock #-}
 
-parse :: String -> Q (R.SEXP V 'R.Expr)
-parse txt = runIO $ do
+parse :: String -> IO (R.SEXP V 'R.Expr)
+parse txt = do
     H.initialize H.defaultConfig
-    withMVar qqLock $ \_ -> parseText txt False
+    withMVar qqLock $ \_ ->
+      withCString txt $ \ctxt ->
+        R.withProtected (R.mkString ctxt) $ \rtxt ->
+          alloca $ \status -> do
+            R.withProtected (R.parseVector rtxt 1 status (R.release nilValue)) $ \exprs -> do
+              rc <- fromIntegral <$> peek status
+              unless (R.PARSE_OK == toEnum rc) $
+                throwIO . H.RError $ "Parse error in: " ++ txt
+              return exprs
 
 antiSuffix :: String
 antiSuffix = "_hs"
@@ -118,7 +132,7 @@ collectAntis _ = Set.empty
 -- @
 expQQ :: String -> Q TH.Exp
 expQQ input = do
-    expr <- parse input
+    expr <- runIO $ parse input
     let antis = [x | (hexp -> Char (Vector.toString -> x))
                        <- Set.toList (collectAntis expr)]
         args = map (TH.dyn . chop) antis
@@ -131,7 +145,7 @@ expQQ input = do
       [| do -- Memoize the runtime parsing of the generated closure (provided the
             -- compiler notices that it can let-float to top-level).
             let sx = unsafePerformIO $ do
-                       exprs <- parseText closure False
+                       exprs <- parse closure
                        SomeSEXP e <- R.indexVector exprs 0
                        clos <- R.eval e (R.release H.globalEnv)
                        R.unSomeSEXP clos R.preserveObject
