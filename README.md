@@ -48,6 +48,11 @@ $ stack build --test --haddock --bench
 Optionally, pass in the `--docker` flag to all commands if you wish to
 develop inside a Docker container for more reproducible builds.
 
+Optionally, pass in the `--nix` flag to all commands if you have the
+[Nix][nix] package manager installed (it's cross platform). Nix can
+populate a *local* build environment including all necessary system
+dependencies without touching your global filesystem.
+
 ## License
 
 Copyright (c) 2013-2015 Amgen, Inc.  
