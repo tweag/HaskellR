@@ -49,9 +49,12 @@ Optionally, pass in the `--docker` flag to all commands if you wish to
 develop inside a Docker container for more reproducible builds.
 
 Optionally, pass in the `--nix` flag to all commands if you have the
-[Nix][nix] package manager installed (it's cross platform). Nix can
-populate a *local* build environment including all necessary system
-dependencies without touching your global filesystem.
+[Nix][nix] package manager installed. Nix can populate a *local* build
+environment including all necessary system dependencies without
+touching your global filesystem. Use it as a cross-platform
+alternative to Docker.
+
+[nix]: http://nixos.org/nix
 
 ## License
 
