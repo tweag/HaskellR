@@ -18,13 +18,11 @@ source-repository head
   location: git://github.com/tweag/HaskellR.git
   subdir: examples
 
-executable RelaxWithNM
-  main-is:           RelaxWithNM.hs
-  build-depends:       inline-r
-                     , base >= 4.6 && < 5
-                     , deepseq
-                     , integration
-                     , temporary >= 1.2.0.3
+executable fft
+  main-is:          Main.hs
+  hs-source-dirs:   fft
+  build-depends:      inline-r
+                    , base >= 4.6 && < 5
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
 
@@ -52,5 +50,15 @@ executable nls2
   build-depends:      inline-r
                     , base >= 4.6 && < 5
                     , mwc-random >= 0.12
+  default-language:    Haskell2010
+  ghc-options:         -Wall -threaded
+
+executable RelaxWithNM
+  main-is:           RelaxWithNM.hs
+  build-depends:       inline-r
+                     , base >= 4.6 && < 5
+                     , deepseq
+                     , integration
+                     , temporary >= 1.2.0.3
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
