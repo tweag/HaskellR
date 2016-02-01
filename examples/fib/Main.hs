@@ -6,10 +6,9 @@ import Fib
 import qualified H.Prelude as H
 import           Language.R.QQ
 
-p x = [r| print(x_hs) |] >> return ()
-
 main :: IO ()
 main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
+  let p x = [r| print(x_hs) |] >> return ()
   p =<< [r| "test" |]
   p =<< [r| 1+2 |]
   H.io $ putStrLn "[r| neg_hs(TRUE, 5L) |]"

@@ -14,7 +14,6 @@ import           H.Prelude as H
 import           Foreign.R.Type as R
 import qualified Foreign.R as R
 import           Data.Int (Int32)
-import           Language.R.QQ
 import           Control.Applicative
 import           Prelude -- Silence AMP warning
 
