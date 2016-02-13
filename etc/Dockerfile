@@ -10,6 +10,7 @@ RUN apt-add-repository ppa:marutter/rrutter \
          python-pip \
          r-base \
          r-base-dev \
+         r-cran-ggplot2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin version for repeatability.
