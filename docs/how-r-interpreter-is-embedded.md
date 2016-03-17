@@ -6,25 +6,31 @@ id: how-r-interpreter-is-embedded
 
 We embed an instance of the R interpreter using R's C API, documented
 in the [Writing R extensions][R-exts] document. R only allows at most
-one instance of the interpreter in any given process. Furthermore, R's
-C API is not reentrant: only one thread should be accessing the
-R interpreter at any one time.
+one instance of the interpreter in any given process. Furthermore,
+R's C API has the following important constraints:
+
+* *it is not reentrant*, so only one thread should be accessing the
+  R interpreter at any one time,
+* the R interpreter *must* be running on the program's main thread.
+  Otherwise you'll experience weird behaviour. See the
+  [FAQ](faq.html).
 
 [R-exts]: http://cran.r-project.org/doc/manuals/r-release/R-exts.html
 
 ### The threading model
 
 In `inline-r`, single-threaded access is all but statically
-guaranteed, thanks to the `R` monad. Arbitrary `IO` actions can be
-lifted into the `R` monad, including `forkIO` actions. But since
-`forkIO` can only fork `IO` actions, so long as `withEmbeddedR` is
-called only once at the beginning of the `main` function, there is no
-way to fork actions that interact with the R interpreter in separate
-threads. At any rate, no such action can be defined using only
-`Language.R.*` modules.
+guaranteed, thanks to the `R` monad. For flexibility, entering the
+R monad is kept separate from initialization of the R instance via
+`withEmbeddedR`, but `runRegion` should be called only once, near the
+beginning of `main`. Arbitrary `IO` actions can be lifted into the `R`
+monad, but not `forkIO` actions. `forkIO` forks `IO` actions, but
+there is no way to interact with an R interpreter from the `IO` monad
+if you call `runRegion` only once from the main thread. At any rate,
+not if you keep to the API provided by the `Language.R.*` modules.
 
-You can fork as many threads as you like. It's that just all threads
-except the main thread will be `IO` threads, not `R` threads.
+There is a backdoor if you really need it, called `unsafeRToIO`. But
+as its name implies, calling it is at your own risks!
 
 R insists that the interpreter should be run from the main thread.
 Therefore, do not call `withEmbeddedR` from any other thread than the

@@ -18,7 +18,8 @@ Error: C stack usage 140730332267004 is too close to the limit
 
 The fix is to turn off GHCi sandboxing, by passing the
 `-fno-ghci-sandbox` when invoking GHCi. This forces GHCi to evaluate
-the code from its main thread.
+the code from its main thread. The H wrapper around GHCi does this for
+you.
 
 #### Why does loading the HaskellR code itself in GHCi fail in GHC
      7.10.2 or earlier?
