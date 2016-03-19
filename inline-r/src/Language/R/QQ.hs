@@ -89,7 +89,7 @@ parse txt = do
       withCString txt $ \ctxt ->
         R.withProtected (R.mkString ctxt) $ \rtxt ->
           alloca $ \status -> do
-            R.withProtected (R.parseVector rtxt 1 status (R.release nilValue)) $ \exprs -> do
+            R.withProtected (R.parseVector rtxt (-1) status (R.release nilValue)) $ \exprs -> do
               rc <- fromIntegral <$> peek status
               unless (R.PARSE_OK == toEnum rc) $
                 throwIO . RError $ "Parse error in: " ++ txt
