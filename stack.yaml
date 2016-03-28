@@ -16,6 +16,8 @@ nix:
     - ncurses
     - pkgconfig
     - python34Packages.ipython
+    - python34Packages.jupyter_client
+    - python34Packages.notebook
     - R
     - zeromq
     - zlib
