@@ -111,4 +111,13 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     let utf8string = "abcd çéõßø"
     io . assertEqual "" utf8string =<< fromSEXP <$> R.cast (sing :: R.SSEXPTYPE 'R.String) <$> [r| utf8string_hs |]
 
+
+    -- Disable gctorture, otherwise test takes too long to execute.
+    _ <- [r| gctorture2(0) |]
+    let x = ([1] :: [Double])
+    ("3" @=?) =<< [r| suppressMessages(require("Matrix"))
+                      v <- x_hs + 1
+                      v <- v + 1
+                      v |]
+
     return ()
