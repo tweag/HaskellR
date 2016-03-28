@@ -130,9 +130,9 @@ data HExp :: * -> SEXPTYPE -> * where
             -> HExp s R.Closure
   -- Fields: value, expr, env.
   -- Once an promise has been evaluated, the environment is set to NULL.
-  Promise   :: (R.IsPairList a, c :∈ [R.Env, R.Nil])
+  Promise   :: (c :∈ [R.Env, R.Nil])
             => SEXP s a
-            -> SEXP s b
+            -> SEXP s R.Expr
             -> SEXP s c
             -> HExp s R.Promise
   -- Derived types. These types don't have their own 'struct' declaration in
