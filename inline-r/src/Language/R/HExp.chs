@@ -130,15 +130,15 @@ data HExp :: * -> SEXPTYPE -> * where
             -> HExp s R.Closure
   -- Fields: value, expr, env.
   -- Once an promise has been evaluated, the environment is set to NULL.
-  Promise   :: (c :∈ [R.Env, R.Nil])
+  Promise   :: (IsExpression b, c :∈ [R.Env, R.Nil])
             => SEXP s a
-            -> SEXP s R.Expr
+            -> SEXP s b
             -> SEXP s c
             -> HExp s R.Promise
   -- Derived types. These types don't have their own 'struct' declaration in
   -- <Rinternals.h>.
   -- Fields: function, args.
-  Lang      :: (a :∈ [R.Symbol, R.Lang], R.IsPairList b)
+  Lang      :: (IsExpression a, R.IsPairList b)
             => SEXP s a
             -> SEXP s b
             -> HExp s R.Lang

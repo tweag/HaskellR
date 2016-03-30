@@ -220,3 +220,8 @@ type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': List ': '[])
 
 -- | @IsPairList a@ holds iff R's @is.pairlist()@ returns @TRUE@.
 type IsPairList (a :: SEXPTYPE) = (SingI a, a :∈ [List, Nil])
+
+-- | Constraint synonym grouping all expression forms into one class. According
+-- to R internals, an expression is usually a 'Lang', but can sometimes also be
+-- an 'Expr' or a 'Symbol'.
+type IsExpression (a :: SEXPTYPE) = (SingI a, a :∈ [Lang, Expr, Symbol])
