@@ -108,11 +108,11 @@ chop name = take (length name - length antiSuffix) name
 
 -- | Traverse 'R.SEXP' structure and find all occurences of antiquotations.
 collectAntis :: R.SEXP s a -> Set (SEXP s 'R.Char)
-collectAntis (hexp -> Symbol name _ _)
+collectAntis (hexp -> Symbol (R.unsafeCoerce -> name) _ _)
   | isAnti name = Set.singleton name
 collectAntis (hexp -> (List sxa sxb sxc)) = do
     Set.unions [collectAntis sxa, collectAntis sxb, collectAntis sxc]
-collectAntis (hexp -> (Lang (hexp -> Symbol name _ _) sxb))
+collectAntis (hexp -> (Lang (hexp -> Symbol (R.unsafeCoerce -> name) _ _) sxb))
   | isAnti name = Set.insert name (collectAntis sxb)
 collectAntis (hexp -> (Lang sxa sxb)) =
     Set.union (collectAntis sxa) (collectAntis sxb)

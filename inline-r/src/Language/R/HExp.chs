@@ -105,10 +105,11 @@ type role HExp phantom nominal
 data HExp :: * -> SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
   Nil       :: HExp s R.Nil
-  -- Fields: pname, value, internal.
-  Symbol    :: SEXP s R.Char
-            -> SEXP s a
+  -- Fields: pname (is Nil for R_UnboundValue), value, internal.
+  Symbol    :: (a :∈ [R.Char, R.Nil])
+            => SEXP s a
             -> SEXP s b
+            -> SEXP s c
             -> HExp s R.Symbol
   -- Fields: carval, cdrval, tagval.
   List      :: (R.IsPairList b, c :∈ [R.Symbol, R.Nil])
@@ -335,7 +336,7 @@ peekHExp s = do
     case R.typeOf s of
       R.Nil       -> coerce $ return Nil
       R.Symbol    -> coerce $
-        Symbol    <$> (R.sexp <$> {#get SEXP->u.symsxp.pname #} sptr)
+        Symbol    <$> (coerceAny <$> R.sexp <$> {#get SEXP->u.symsxp.pname #} sptr)
                   <*> (R.sexp <$> {#get SEXP->u.symsxp.value #} sptr)
                   <*> (R.sexp <$> {#get SEXP->u.symsxp.internal #} sptr)
       R.List      -> coerce $
