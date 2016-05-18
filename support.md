@@ -11,7 +11,7 @@ There are multiple support channels available in case you need help.
   please write a message to the
   [HaskellR mailing list](https://groups.google.com/group/haskellr).
 * If you spot a bug, typo or have feature requests please
-  [open an issue](https://github.com/commercialhaskell/stack/issues/new).
+  [open an issue](https://github.com/tweag/HaskellR/issues/new).
 * [Tweag I/O](http://tweag.io) provides professional support, see
   [below](#professional-support).
 
