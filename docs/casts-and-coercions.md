@@ -32,14 +32,27 @@ or *coercions* to inform the type checker of this:
 f :: SEXP s R.Real -> SEXP s R.Logical
 
 g = do x <- [r| 1 + 1 |]
-       return $ f (R.Int `R.cast` x)
+       return $ f (R.SInt `R.cast` x)
 ```
 
 A *cast* introduces a dynamic form check at runtime to verify that the
 form of the result was indeed of the specified type. This dynamic type
-check has a (very small) cost. If the user is extra sure about the
-form, she may use *coercions* to avoid even the dynamic check, when
-the situation warrants it (say in tight loops). This is done with
+check has a (very small) runtime cost. Note the type of `cast`:
+
+```Haskell
+cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
+```
+
+`SSEXPTYPE a` is a so-called singleton [type family][ghc-manual-tf].
+To each `SEXPTYPE` corresponds a `SSEXPTYPE a` and vice versa: `Int ::
+SEXPTYPE` has `SInt :: SSEXPTYPE Int`, `Char :: SEXPTYPE` has
+`SChar :: SSEXPTYPE Char`, etc. The only point of using
+[singleton][hackage-singletons] types here is to make the type of the
+result of `cast` be determined by the type of its arguments.
+
+If the user is extra sure about the form, she may use *coercions* to
+avoid even the dynamic check, when the situation warrants it (say in
+tight loops). This is done with
 
 ```Haskell
 unsafeCoerce :: SEXP s a -> SEXP s b
@@ -50,3 +63,6 @@ Haskell's `System.IO.Unsafe.unsafeCoerce`. It is a trapdoor that can
 break type safety: if the form of the argument happens to not match
 the expected form at runtime then a segfault may result, or worse,
 silent memory corruption.
+
+[ghc-manual-tf]: https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/type-families.html
+[singletons]: http://hackage.haskell.org/package/singletons
