@@ -44,5 +44,6 @@ install:
     mkdir $env:R_LIBS_USER
 
 build_script:
+  - R --version
   - stack --no-terminal setup > nul
   - stack --no-terminal build --extra-lib-dirs=D:\R-stable\bin\i386 --extra-include-dirs=D:\R-stable\include inline-r H
