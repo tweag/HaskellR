@@ -174,7 +174,6 @@ import Prelude hiding (asTypeOf, length)
 
 #define USE_RINTERNALS
 #include <R.h>
-#include <Rinterface.h>
 #include <Rinternals.h>
 #include <R_ext/Memory.h>
 #include "missing_r.h"
