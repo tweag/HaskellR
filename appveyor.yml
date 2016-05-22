@@ -1,8 +1,14 @@
 version: "{build}"
-cache: C:\Users\appveyor\AppData\Roaming\stack
 
 build:
   verbosity: normal
+
+environment:
+  global:
+    STACK_ROOT: "c:\\sr"
+
+cache:
+- "C:\\sr"                                   # The stack root dir.
 
 deploy: off
 
