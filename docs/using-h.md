@@ -17,7 +17,8 @@ in the `PATH` environment variable. In Unix-like systems, `libR.so`
 should be located within reach of the dynamic linker
 (`LD_LIBRARY_PATH`, `/etc/ld.so.conf`, etc).
 
-After installing H, type the following at a command prompt:
+After [installing](build-and-install.html) H, type the following at
+a command prompt:
 
     $ H
 
@@ -117,8 +118,8 @@ Running examples
 
 Some interactive examples of using H are located in the folders:
 
-    examples/nls
-    examples/nls2
+* `examples/nls`
+* `examples/nls2`
 
 The following commands can be used to run these examples:
 

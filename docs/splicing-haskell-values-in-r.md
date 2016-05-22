@@ -41,7 +41,7 @@ See the [Haddock API documentation][stackage-inline-r] of the
 both sides share memory or the data is copied. When memory is shared,
 special care is needed to prevent garbage collection on either Haskell
 or R sides to invalidate values pointed by the other side. See
-[Managing memory].
+[Managing memory](managing-memory.html).
 
 Note that as a general rule, in `inline-r` we avoid any conversion to
 and from R values. The reason is that such conversions have runtime
