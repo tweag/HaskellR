@@ -44,7 +44,9 @@ import           Data.Monoid
 import           Data.Default.Class (Default(..))
 import qualified Foreign.R as R
 import qualified Foreign.R.Embedded as R
+#ifndef mingw32_HOST_OS
 import qualified Foreign.R.EventLoop as R
+#endif
 import           Foreign.C.String
 import           Language.R.Globals
 
@@ -240,8 +242,10 @@ initialize Config{..} = do
           , R.unboundValue
           , R.missingArg
           , R.isRInteractive
-          , R.inputHandlers
           , R.signalHandlers
+#ifndef mingw32_HOST_OS
+          , R.inputHandlers
+#endif
           )
         populateEnv
         args <- (:) <$> maybe getProgName return (getLast configProgName)
