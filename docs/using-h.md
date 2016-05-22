@@ -72,16 +72,21 @@ Printing the resulting value can be done with the help of
 
     p mx = do { x <- mx; [r| print(x_hs) |] }
 
-Expressions are evaluated in the top-level R environment. As such, any
-side effects such as assignments remain visible from one quasiquote to
-another:
+Expressions are evaluated in their own local R environment, which
+inherits from the global environment. So assignments aren't visible
+from one quasiquote to another. But you can use the "super-assignment"
+`<<-` operator if you really need to:
 
-    H> p [r| x <- 1 |]
+    H> p [r| x <<- 1 |]
     [1] 1
     H> p [r| x |]
     [1] 1
-    H> p [r| x <- 2 |]
+    H> p [r| x <<- 2 |]
     [1] 2
+    H> p [r| x |]
+    [1] 2
+    H> p [r| x <- 3 |]
+    [1] 3
     H> p [r| x |]
     [1] 2
 
