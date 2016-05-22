@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -5,12 +6,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE CPP #-}
+
 #if __GLASGOW_HASKELL__ >= 710
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 #endif
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
-
 
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.
