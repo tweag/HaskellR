@@ -18,8 +18,10 @@ module Language.R.Globals
   , unboundValue
   -- * R Internal constants
   , isRInteractive
-  , inputHandlers
   , signalHandlersPtr
+#ifndef mingw32_HOST_OS
+  , inputHandlers
+#endif
   -- * R global constants
   -- $ghci-bug
   , pokeRVariables
@@ -38,7 +40,9 @@ import Foreign
 import Foreign.C.Types (CInt)
 import Foreign.R (SEXP)
 import qualified Foreign.R as R
+#ifndef mingw32_HOST_OS
 import qualified Foreign.R.EventLoop as R
+#endif
 import System.IO.Unsafe (unsafePerformIO)
 
 -- $ghci-bug
@@ -59,8 +63,10 @@ type RVariables =
     , Ptr (SEXP G 'R.Symbol)
     , Ptr (SEXP G 'R.Symbol)
     , Ptr CInt
-    , Ptr (Ptr R.InputHandler)
     , Ptr CInt
+#ifndef mingw32_HOST_OS
+    , Ptr (Ptr R.InputHandler)
+#endif
     )
 
 -- | Stores R variables in a static location. This makes the variables'
@@ -77,8 +83,10 @@ pokeRVariables = poke rVariables <=< newStablePtr
  , unboundValuePtr
  , missingArgPtr
  , isRInteractive
- , inputHandlersPtr
  , signalHandlersPtr
+#ifndef mingw32_HOST_OS
+ , inputHandlersPtr
+#endif
  ) = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
 -- | Special value to which all symbols unbound in the current environment
@@ -106,5 +114,7 @@ emptyEnv = unsafePerformIO $ peek emptyEnvPtr
 globalEnv :: SEXP G 'R.Env
 globalEnv = unsafePerformIO $ peek globalEnvPtr
 
+#ifndef mingw32_HOST_OS
 inputHandlers :: Ptr R.InputHandler
 inputHandlers = unsafePerformIO $ peek inputHandlersPtr
+#endif

@@ -166,15 +166,11 @@ import Data.Singletons (fromSing)
 import Data.Typeable (Typeable)
 #endif
 import Foreign (Ptr, castPtr, plusPtr, Storable(..))
-#ifdef H_ARCH_WINDOWS
-import Foreign (nullPtr)
-#endif
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
 #define USE_RINTERNALS
 #include <R.h>
-#include <Rinterface.h>
 #include <Rinternals.h>
 #include <R_ext/Memory.h>
 #include "missing_r.h"

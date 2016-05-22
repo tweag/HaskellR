@@ -48,7 +48,6 @@ library
                        Foreign.R
                        Foreign.R.Constraints
                        Foreign.R.Embedded
-                       Foreign.R.EventLoop
                        Foreign.R.Error
                        Foreign.R.Parse
                        Foreign.R.Type
@@ -56,7 +55,6 @@ library
                        H.Prelude.Interactive
                        Language.R
                        Language.R.Debug
-                       Language.R.Event
                        Language.R.GC
                        Language.R.Globals
                        Language.R.HExp
@@ -66,6 +64,9 @@ library
                        Language.R.Internal
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
+  if !os(windows)
+    exposed-modules:   Foreign.R.EventLoop
+                       Language.R.Event
   other-modules:       Control.Monad.R.Class
                        Control.Monad.R.Internal
                        Data.Vector.SEXP.Mutable.Internal
@@ -101,16 +102,9 @@ library
                      , hsc2hs
   if os(windows)
     extra-libraries:   R
-    cpp-options:       -DH_ARCH_WINDOWS
-    cc-options:        -DH_ARCH_WINDOWS
   else
     build-depends:     unix >= 2.6
     pkgconfig-depends: libR >= 3.0
-    cpp-options:       -DH_ARCH_UNIX
-    cc-options:        -DH_ARCH_UNIX
-    if os(darwin)
-      cpp-options:     -DH_ARCH_UNIX_DARWIN
-      cc-options:      -DH_ARCH_UNIX_DARWIN
   -- XXX -fcontext-stack=32 required on GHC >= 7.8 to allow foreign
   -- export function -wrappers of high arities.
   ghc-options:         -Wall -fcontext-stack=32
