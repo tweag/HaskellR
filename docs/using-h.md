@@ -48,13 +48,15 @@ In an H interactive session, one has full access to both Haskell,
     H> print it
     [1, 2, 3, 4, 5, 6]
 
-/and R, through a mechanism called *quasiquotation* (more details could be found on [Haskel Wiki](https://wiki.haskell.org/Quasiquotation)),
+and R, through a mechanism called *quasiquotation* (see the
+[Haskel Wiki](https://wiki.haskell.org/Quasiquotation) for more about
+quasiquotation),
 
     H> it <- [r| 1 + 1 |]
-    H> H.print it
+    H> printR it
     [1] 2
     H> it <- [r| append(c(1, 2, 3), c(4, 5, 6)) |]
-    H> H.print it
+    H> printR it
     [1] 1 2 3 4 5 6
     H> p [r| R.home() |]
     [1] "/usr/lib/R"

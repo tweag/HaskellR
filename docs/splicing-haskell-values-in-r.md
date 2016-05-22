@@ -9,15 +9,15 @@ a quasi-quote, the quasi-quote may suffix the name with `_hs` in order
 to splice the Haskell value.
 
     H> let x = 2 :: Double
-    H> H.printQuote [r| x_hs + x_hs |]
+    H> p [r| x_hs + x_hs |]
     [1] 4
 
     H> let f x = return (x + 1) :: R s Double
-    H> H.printQuote [r| f_hs(1) |]
+    H> p [r| f_hs(1) |]
     [1] 2
 
     H> x <- [r| 1 + 1 |]
-    H> H.printQuote [r| 1 + x_hs |]
+    H> p [r| 1 + x_hs |]
     [1] 3
 
 ## Defining spliceable types
