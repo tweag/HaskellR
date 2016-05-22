@@ -73,7 +73,7 @@ import System.Environment ( getProgName, lookupEnv )
 import System.IO.Unsafe   ( unsafePerformIO )
 import System.Process     ( readProcess )
 import System.SetEnv
-#ifdef H_ARCH_UNIX
+#ifndef mingw32_HOST_OS
 import Control.Exception ( onException )
 import System.IO ( hPutStrLn, stderr )
 import System.Posix.Resource
@@ -205,8 +205,8 @@ initLock = unsafePerformIO $ newMVar ()
 -- to achieve this.
 initialize :: Config -> IO ()
 initialize Config{..} = do
-#ifdef H_ARCH_UNIX
-#ifdef H_ARCH_UNIX_DARWIN
+#ifndef mingw32_HOST_OS
+#ifdef darwin_HOST_OS
     -- NOTE: OS X does not allow removing the stack size limit completely,
     -- instead forcing a hard limit of just under 64MB.
     let stackLimit = ResourceLimit 67104768
@@ -218,7 +218,7 @@ initialize Config{..} = do
                        "Language.R.Interpreter: "
                        ++ "Cannot increase stack size limit."
                        ++ "Try increasing your stack size limit manually:"
-#ifdef H_ARCH_UNIX_DARWIN
+#ifdef darwin_HOST_OS
                        ++ "$ launchctl limit stack 67104768"
                        ++ "$ ulimit -s 65532"
 #else

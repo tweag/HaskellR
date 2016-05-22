@@ -104,11 +104,6 @@ library
   else
     build-depends:     unix >= 2.6
     pkgconfig-depends: libR >= 3.0
-    cpp-options:       -DH_ARCH_UNIX
-    cc-options:        -DH_ARCH_UNIX
-    if os(darwin)
-      cpp-options:     -DH_ARCH_UNIX_DARWIN
-      cc-options:      -DH_ARCH_UNIX_DARWIN
   -- XXX -fcontext-stack=32 required on GHC >= 7.8 to allow foreign
   -- export function -wrappers of high arities.
   ghc-options:         -Wall -fcontext-stack=32
