@@ -9,6 +9,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module H.Prelude.Interactive
   ( module H.Prelude
+  , PrintR(..)
   , p
   , printQuote
   )
@@ -32,13 +33,13 @@ instance PrintR (SEXP s a) where
 instance PrintR (R.SomeSEXP s) where
   printR s = R.unSomeSEXP s printR
 
--- | A form of the 'print' function that is more convenient in an
--- interactive session.
+-- | A form of the 'printR' function that is more convenient in an interactive
+-- session.
 p :: (MonadR m, PrintR a) => m a -> m ()
 p = (>>= printR)
 
--- | A form of the 'print' function that that is more convenient in an
--- interactive session.
+-- | A form of the 'printR' function that is more convenient in an interactive
+-- session.
 {-# DEPRECATED printQuote "Use 'p' instead." #-}
 printQuote :: (MonadR m, PrintR a) => m a -> m ()
 printQuote = p
