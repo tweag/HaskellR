@@ -36,7 +36,7 @@ install:
     echo "R is now available on drive $RDrive"
 
     Write-Host "Setting PATH"
-    $env:PATH = $RDrive + '\Rtools\bin;' + $RDrive + '\Rtools\MinGW\bin;' + $RDrive + '\Rtools\gcc-4.6.3\bin;' + $RDrive + '\R\bin\i386;' + 'C:\stack;' + $env:PATH
+    $env:PATH = $RDrive + '\Rtools\bin;' + $RDrive + '\Rtools\MinGW\bin;' + $RDrive + '\Rtools\gcc-4.6.3\bin;' + $RDrive + '\R-stable\bin\i386;' + 'C:\stack;' + $env:PATH
     $env:PATH.Split(";")
 
     Write-Host "Setting R_LIBS_USER"
@@ -45,4 +45,4 @@ install:
 
 build_script:
   - stack --no-terminal setup > nul
-  - stack --no-terminal build --extra-lib-dirs=D:\R\bin\i386 --extra-include-dirs=D:\R\include inline-r H
+  - stack --no-terminal build --extra-lib-dirs=D:\R-stable\bin\i386 --extra-include-dirs=D:\R-stable\include inline-r H
