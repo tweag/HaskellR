@@ -4,12 +4,6 @@
 -- DEPRECATED: use "Language.R" instead.
 
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DataKinds #-}
-{-# Language GADTs #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# Language ViewPatterns #-}
 
 module H.Prelude
   ( module Language.R.Instance
