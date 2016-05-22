@@ -8,7 +8,7 @@ environment:
     STACK_ROOT: "c:\\sr"
 
 cache:
-- "C:\\sr"                                   # The stack root dir.
+- C:\sr -> stack.yaml                            # The stack root dir.
 - C:\Users\appveyor\AppData\Local\Programs\stack\i386-windows
 
 deploy: off
