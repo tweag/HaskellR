@@ -3,19 +3,48 @@ title: Building and installing HaskellR
 id: build-and-install
 ---
 
-## Prerequesites
+*Note: if you prefer to use your system's globally installed packages
+and to install from Hackage, see the section below. If you run into
+any issues see the [support](../support.html) page.*
 
-* `git` and `pkg-config` installed.
-* Either `stack` version 0.1.2 or later,
-* Or, `cabal-install` version 1.18.3 or later together with Haskell
-  Platform version 2013.2.0.0 or later.
+The easiest way to get started on Linux or OS X is using
+[Stack][stack] and its built-in [Nix][nix] support:
 
-If you are not using stack's Docker support detailed below, you will
-furthermore need:
+```
+$ git clone http://github.com/tweag/HaskellR
+$ git tag -l                        # list releases
+$ git checkout v<latest-release>    # skip if you want the master branch
+$ stack --nix build
+```
 
+You can make passing `--nix` to all Stack commands implicit by adding
+
+```
+nix:
+  enable: true
+```
+
+to your `stack.yaml`. Alternatively, use Docker, which like Nix
+obviates the need to install any dependencies globally on your system:
+
+```
+$ stack --docker build
+```
+
+[stack]: http://haskellstack.org
+[nix]: http://nixos.org/nix
+
+## Non sandboxed builds from Hackage
+
+If you'd rather use your system's globally installed packages, here
+are the system dependencies we rely on:
+
+* [pkg-config][pkg-config],
 * `R` version 3.0.2 or later (3.1 or later required for test suite).
 * (Optional) ZeroMQ 3.0 or later.
 * (Optional) Jupyter/IPython version 3.2 or later.
+
+[pkg-config]: https://www.freedesktop.org/wiki/Software/pkg-config/
 
 **OS X users:** use Homebrew to install dependencies, e.g.
 
@@ -28,95 +57,49 @@ $ pip install ipython    # Only needed for IHaskell support
 
 **Windows users:** TODO
 
-## From Hackage
+Once the system dependencies are installed, you can install H or the
+Jupyter kernel as below.
 
-### Installing H
+## Installing H
 
-The H interactive environment can be copied to `~/.local/bin` using
-[stack][stack] (recommended):
+You can launch the H interactive environment locally:
+
+```
+$ stack [--nix|--docker] exec H
+```
+
+But you can also install it user-globally to `~/.local/bin`:
 
 ```
 $ stack build --copy-bins H
 ```
 
-You can then run `H` with
+Make sure to include the installation directory in your `PATH`. On
+UNIX systems:
 
 ```
-stack exec H
+$ export PATH=~/.local/bin:$PATH
 ```
 
-*Alternatively,* you can use [cabal-install][cabal-install], which
-will copy the binary to `~/.cabal/bin` by default:
-
-```
-$ cabal install H
-```
-
-or the following if you use a `cabal-install` sandbox when building:
-
-```
-# From the directory where the sandbox is located.
-$ mkdir haskellr-sandbox
-$ cabal sandbox init
-$ cabal install H
-$ cabal exec H
-```
-
-Make sure to include the target directories in your `PATH`. On UNIX
-systems:
-
-```
-$ export PATH=~/.cabal/bin:$PATH
-```
-
-[stack]: https://github.com/commercialhaskell/stack
-[cabal-install]: https://wiki.haskell.org/Cabal/How_to_install_a_Cabal_package
-
-### Installing Jupyter/IHaskell support for inline-r
+## Installing Jupyter/IHaskell support for inline-r
 
 H is a very basic interactive environment. It is easy to install. If
-you would like a more featureful environment, HaskellR includes a plugin
-for Jupyter's [IHaskell][ihaskell] kernel. Since the latter depends on
-a number of system libraries that may or may not be installed using
-exactly the right configuration by your distribution, on Linux it is
-recommended to use stack's Docker support to get reliable installs,
-explained in the "From Github" section below.
+you would like a more featureful environment, HaskellR includes
+a plugin for Jupyter's [IHaskell][ihaskell] kernel. Since the latter
+depends on a number of system libraries that may or may not be
+installed using exactly the right configuration by your distribution,
+on Linux and OS X it is recommended to use Stack's Nix or Docker
+support to get reliable installs.
 
 [ihaskell]: https://github.com/gibiansky/IHaskell
 
-## From Github
-
-NOTE: currently, stack's Docker support only works on Linux 64-bit
-(virtual or metal). See the [stack Docker documentation][stack-docker]
-for more information. Omit the `--docker` flag in all the commands
-below if you want to build on unsupported platforms, or if you don't
-want to use Docker. Build results will just be less reliably
-reproducible.
-
-[stack-docker]: https://github.com/commercialhaskell/stack/wiki/Docker
-
-An alternative to using the release versions on Hackage is to check
-out the source code from the Github repository directly. You will need
-to use this method if you want to take advantage of stack's Docker
-support to get reliable IHaskell builds.
-
 ```
-$ git clone http://github.com/tweag/HaskellR
-$ cd HaskellR
-$ stack --docker build
-$ stack --docker exec ihaskell install
+$ stack [--docker|--nix] exec ihaskell install
 ```
-
 Now, you can open a new Jupyter notebook in your browser using
 
 ```
-$ stack --docker exec ipython notebook
-```
-
-or pop into an H REPL with
-
-```
-$ stack --docker exec H
+$ stack [--docker|--nix] exec ipython notebook
 ```
 
 After launching the Jupyter notebook server you can visit
