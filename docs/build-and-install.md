@@ -55,7 +55,14 @@ $ brew install r zeromq
 $ pip install ipython    # Only needed for IHaskell support
 ```
 
-**Windows users:** TODO
+**Windows users:** Only `inline-r` and `H` are supported (no Jupyter
+support yet). After installing R somewhere on your system, you'll need
+to pass additional flags when building and installing, as in the
+following example:
+
+```
+$ stack build H --extra-lib-dirs=C:\R\bin\i386 --extra-include-dirs=C:\R\include
+```
 
 Once the system dependencies are installed, you can install H or the
 Jupyter kernel as below.
