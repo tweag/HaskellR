@@ -34,20 +34,8 @@ class Literal a b | a -> b where
   fromSEXP :: SEXP s c ->      a
 ```
 
-Some predefined instances are:
-
-```Haskell
-instance Literal      Double (R.Vector Double)
-instance Literal    [Double] (R.Vector Double)
-instance Literal       Int32  (R.Vector Int32)
-instance Literal     [Int32]  (R.Vector Int32)
-instance Literal    (SEXP s a)                 b
-instance Literal      String        (R.String)
-
--- several instances of the form:
-instance ( Literal a_0 a_0’, ..., Literal a_n a_n’)
-      => Literal (a_0 -> ... -> a_(n-1) -> IO a_n) R.ExtPtr
-```
+See the [Haddock API documentation][stackage-inline-r] of the
+`Language.R.Literal` for a list of predefined instances.
 
 `mkSEXP` and `fromSEXP` can be defined so that either the values on
 both sides share memory or the data is copied. When memory is shared,
@@ -63,3 +51,4 @@ R values using Haskell literals. Contrary to arbitrary values,
 literals are typically small, and some of the conversion work can be
 inlined and executed at compile time, ahead of runtime.
 
+[stackage-inline-r]: http://www.stackage.org/package/inline-r
