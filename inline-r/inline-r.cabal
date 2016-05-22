@@ -130,8 +130,9 @@ test-suite tests
                      , tasty-quickcheck >= 0.4.1
                      , temporary >= 1.2
                      , text >= 0.11
-                     , unix >= 2.5
                      , vector
+  if !os(windows)
+    build-depends:     unix >= 2.5
   other-modules:       Test.GC
                        Test.FunPtr
                        Test.Constraints
