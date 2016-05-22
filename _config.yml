@@ -4,7 +4,7 @@ description: The full power of R in Haskell.
 url: https://tweag.github.io
 baseurl: /HaskellR
 highlighter: rouge
-markdown: redcarpet
+markdown: kramdown
 exclude:
   - Gemfile
   - Gemfile.lock
