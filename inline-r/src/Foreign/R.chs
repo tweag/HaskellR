@@ -166,9 +166,6 @@ import Data.Singletons (fromSing)
 import Data.Typeable (Typeable)
 #endif
 import Foreign (Ptr, castPtr, plusPtr, Storable(..))
-#ifdef H_ARCH_WINDOWS
-import Foreign (nullPtr)
-#endif
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
