@@ -30,11 +30,12 @@ Alternatively, one can also try:
 
     $ ghci -ghci-script H.ghci
 
-where `H.ghci` is a file colocated with the `H.cabal` file. (NB: for
-security reasons, you must ensure that `H.ghci` is not world
+where `H.ghci` is included in the
+[source distribution](http://hackage.haskell.org/package/H) for H.
+(NB: for security reasons, you must ensure that `H.ghci` is not world
 writeable.)
 
-In Windows, both H and GHCi work best from the `cmd.exe` terminal, as
+On Windows, both H and GHCi work best from the `cmd.exe` terminal, as
 opposed to MinGW (both ought work, but MinGW currently triggers bug
 [#7056](https://ghc.haskell.org/trac/ghc/ticket/7056) in GHC).
 
