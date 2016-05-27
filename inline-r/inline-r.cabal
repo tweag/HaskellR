@@ -49,6 +49,7 @@ library
                        Foreign.R.Constraints
                        Foreign.R.Embedded
                        Foreign.R.Error
+                       Foreign.R.Internal
                        Foreign.R.Parse
                        Foreign.R.Type
                        H.Prelude

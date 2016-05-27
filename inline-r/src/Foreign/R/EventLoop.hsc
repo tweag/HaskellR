@@ -27,6 +27,7 @@ import System.Posix.Types (Fd(..))
 import Prelude -- Silence AMP warning.
 
 #include <R_ext/eventloop.h>
+#let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 -- | R input handler chain. Each input handler points to the next. This view of
 -- input handlers is /shallow/, in the sense that the 'Storable' instance only
@@ -46,25 +47,24 @@ data InputHandler = InputHandler
     -- | The next input handler in the chain.
   , inputHandlerNext :: Ptr InputHandler
   } deriving (Eq, Show)
-{#pointer *InputHandler as InputHandler nocode#}
 
 instance Storable InputHandler where
-  sizeOf _ = {#sizeof InputHandler#}
-  alignment _ = {#alignof InputHandler#}
+  sizeOf _ = #{size InputHandler}
+  alignment _ = #{alignment InputHandler}
   peek hptr = InputHandler <$>
-      {#get InputHandler->handler#} hptr <*>
-      {#get InputHandler->activity#} hptr <*>
-      {#get InputHandler->active#} hptr <*>
-      (Fd <$> {#get InputHandler->fileDescriptor#} hptr) <*>
-      {#get InputHandler->userData#} hptr <*>
-      (castPtr <$> {#get InputHandler->next#} hptr)
+      #{peek InputHandler, handler} hptr <*>
+      #{peek InputHandler, activity} hptr <*>
+      #{peek InputHandler, active} hptr <*>
+      (Fd <$> #{peek InputHandler, fileDescriptor} hptr) <*>
+      #{peek InputHandler, userData} hptr <*>
+      (castPtr <$> #{peek InputHandler, next} hptr)
   poke hptr InputHandler{..} = do
-    {#set InputHandler->handler#} hptr inputHandlerCallback
-    {#set InputHandler->activity#} hptr inputHandlerActivity
-    {#set InputHandler->active#} hptr inputHandlerActive
-    {#set InputHandler->fileDescriptor#} hptr (case inputHandlerFD of Fd fd -> fd)
-    {#set InputHandler->userData#} hptr inputHandlerUserData
-    {#set InputHandler->next#} hptr (castPtr inputHandlerNext)
+    #{poke InputHandler, handler} hptr inputHandlerCallback
+    #{poke InputHandler, activity} hptr inputHandlerActivity
+    #{poke InputHandler, active} hptr inputHandlerActive
+    #{poke InputHandler, fileDescriptor} hptr (case inputHandlerFD of Fd fd -> fd)
+    #{poke InputHandler, userData} hptr inputHandlerUserData
+    #{poke InputHandler, next} hptr (castPtr inputHandlerNext)
 
 -- | @R_PolledEvents@ global variable.
 foreign import ccall "&R_PolledEvents" polledEvents :: Ptr (FunPtr (IO ()))

@@ -151,6 +151,7 @@ module Foreign.R
 
 import Control.Memory.Region
 import {-# SOURCE #-} Language.R.HExp (HExp)
+import Foreign.R.Internal hiding (SEXP0)
 import Foreign.R.Type
 import Foreign.R.Type as R
 
@@ -175,6 +176,12 @@ import Prelude hiding (asTypeOf, length)
 #include <R_ext/Memory.h>
 #include "missing_r.h"
 
+
+-- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
+-- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
+-- arbitrary type in a @#pointer@ hook).
+{#pointer SEXP as SEXP0 -> SEXPREC #}
+
 -- XXX temp workaround due to R bug: doesn't export R_CHAR when USE_RINTERNALS
 -- is defined.
 #c
@@ -182,95 +189,8 @@ const char *(R_CHAR)(SEXP x);
 #endc
 
 --------------------------------------------------------------------------------
--- R data structures                                                          --
---------------------------------------------------------------------------------
-
-data SEXPREC
-
--- | The basic type of all R expressions, classified by the form of the
--- expression, and the memory region in which it has been allocated.
-newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
-  deriving ( Eq
-           , Ord
-           , Storable
-#if __GLASGOW_HASKELL__ < 710
-           , Typeable
-#endif
-           )
-
-instance Show (SEXP s a) where
-  show (SEXP ptr) = show ptr
-
-instance NFData (SEXP s a) where
-  rnf = (`seq` ())
-
--- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
--- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
--- arbitrary type in a @#pointer@ hook).
-{#pointer SEXP as SEXP0 -> SEXPREC #}
-
--- | Add a type index to the pointer.
-sexp :: SEXP0 -> SEXP s a
-sexp = SEXP . castPtr
-
--- | Remove the type index from the pointer.
-unsexp :: SEXP s a -> SEXP0
-unsexp = castPtr . unSEXP
-
--- | Like 'sexp' but for 'SomeSEXP'.
-somesexp :: SEXP0 -> SomeSEXP s
-somesexp = SomeSEXP . sexp
-
--- | Release object into another region. Releasing is safe so long as the target
--- region is "smaller" than the source region, in the sense of
--- '(Control.Memory.Region.<=)'.
-release :: (t <= s) => SEXP s a -> SEXP t a
-release = unsafeRelease
-
-unsafeRelease :: SEXP s a -> SEXP r a
-unsafeRelease = sexp . unsexp
-
--- | A 'SEXP' of unknown form.
-data SomeSEXP s = forall a. SomeSEXP {-# UNPACK #-} !(SEXP s a)
-
-instance Show (SomeSEXP s) where
-  show s = unSomeSEXP s show
-
-instance Storable (SomeSEXP s) where
-  sizeOf _ = sizeOf (undefined :: SEXP s a)
-  alignment _ = alignment (undefined :: SEXP s a)
-  peek ptr = SomeSEXP <$> peek (castPtr ptr)
-  poke ptr (SomeSEXP s) = poke (castPtr ptr) s
-
-instance NFData (SomeSEXP s) where
-  rnf = (`seq` ())
-
--- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
--- existentially quantified variable hidden inside 'SomeSEXP' would escape.
-unSomeSEXP :: SomeSEXP s -> (forall a. SEXP s a -> r) -> r
-unSomeSEXP (SomeSEXP s) k = k s
-
-cIntConv :: (Integral a, Integral b) => a -> b
-cIntConv = fromIntegral
-
-cUIntToEnum :: Enum a => CUInt -> a
-cUIntToEnum = toEnum . cIntConv
-
-cUIntFromSingEnum :: SSEXPTYPE a -> CUInt
-cUIntFromSingEnum = cIntConv . fromEnum . fromSing
-
-cIntFromEnum :: Enum a => a -> CInt
-cIntFromEnum = cIntConv . fromEnum
-
---------------------------------------------------------------------------------
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
-
--- | Return the \"type\" tag (aka the form tag) of the given 'SEXP'. This
--- function is pure because the type of an object does not normally change over
--- the lifetime of the object.
-typeOf :: SEXP s a -> SEXPTYPE
-typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} (unsexp s)
 
 -- | read CAR object value
 {#fun CAR as car { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}
@@ -280,54 +200,6 @@ typeOf s = unsafeInlineIO $ cUIntToEnum <$> {#get SEXP->sxpinfo.type #} (unsexp 
 
 -- | read object`s Tag
 {# fun TAG as tag { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}  --- XXX: add better constraint
-
--- | Set CAR field of object, when object is viewed as a cons cell.
-setCar :: SEXP s a -> SEXP s b -> IO ()
-setCar s s' = {#set SEXP->u.listsxp.carval #} (unsexp s) (castPtr $ unsexp s')
-
--- | Set CDR field of object, when object is viewed as a cons cell.
-setCdr :: SEXP s a -> SEXP s b -> IO ()
-setCdr s s' = {#set SEXP->u.listsxp.cdrval #} (unsexp s) (castPtr $ unsexp s')
-
--- | Set TAG field of object, when object is viewed as a cons cell.
-setTag :: SEXP s a -> SEXP s b -> IO ()
-setTag s s' = {#set SEXP->u.listsxp.tagval #} (unsexp s) (castPtr $ unsexp s')
-
---------------------------------------------------------------------------------
--- Coercion functions                                                         --
---------------------------------------------------------------------------------
-
--- $cast-coerce
---
--- /Coercions/ have no runtime cost, but are completely unsafe. Use with
--- caution, only when you know that a 'SEXP' is of the target type. /Casts/ are
--- safer, but introduce a runtime type check. The difference between the two is
--- akin to the difference between a C-style typecasts and C++-style
--- @dynamic_cast@'s.
-
-unsafeCast :: SEXPTYPE -> SomeSEXP s -> SEXP s b
-unsafeCast ty (SomeSEXP s)
-  | ty == typeOf s = unsafeCoerce s
-  | otherwise =
-    error $ "cast: Dynamic type cast failed. Expected: " ++ show ty ++
-            ". Actual: " ++ show (typeOf s) ++ "."
-
--- | Cast the type of a 'SEXP' into another type. This function is partial: at
--- runtime, an error is raised if the source form tag does not match the target
--- form tag.
-cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
-cast ty s = unsafeCast (fromSing ty) s
-
--- | Cast form of first argument to that of the second argument.
-asTypeOf :: SomeSEXP s -> SEXP s a -> SEXP s a
-asTypeOf s s' = typeOf s' `unsafeCast` s
-
--- | Unsafe coercion from one form to another. This is unsafe, in the sense that
--- using this function improperly could cause code to crash in unpredictable
--- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
--- any dynamic check at runtime.
-unsafeCoerce :: SEXP s a -> SEXP s b
-unsafeCoerce = sexp . castPtr . unsexp
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
@@ -372,10 +244,6 @@ unsafeCoerce = sexp . castPtr . unsexp
 -- Vector accessor functions                                                  --
 --------------------------------------------------------------------------------
 
--- | Length of the vector.
-length :: R.IsVector a => SEXP s a -> IO Int
-length s = fromIntegral <$> {#get VECSEXP->vecsxp.length #} (unsexp s)
-
 -- | Read True Length vector field.
 {#fun TRUELENGTH as trueLength `R.IsVector a' => { unsexp `SEXP s a' } -> `CInt' id #}
 
@@ -406,14 +274,6 @@ type RLogical = 'R.Logical
 -- | Read string vector data.
 {#fun STRING_PTR as string { unsexp `SEXP s R.String'}
       -> `Ptr (SEXP s R.Char)' castPtr #}
-
--- | Extract the data pointer from a vector.
-unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
-unsafeSEXPToVectorPtr s = (unsexp s) `plusPtr` {#sizeof SEXPREC_ALIGN #}
-
--- | Inverse of 'vectorPtr'.
-unsafeVectorPtrToSEXP :: Ptr a -> SomeSEXP s
-unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (-{#sizeof SEXPREC_ALIGN #})
 
 {# fun VECTOR_ELT as indexVector `R.IsGenericVector a'
      => { unsexp `SEXP s a', `Int' }
@@ -551,101 +411,6 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 
 {#fun R_MakeWeakRef as mkWeakRef { unsexp `SEXP s a', unsexp `SEXP s b', unsexp `SEXP s c', cIntFromEnum `Bool' }
       -> `SEXP V R.WeakRef' sexp #}
-
---------------------------------------------------------------------------------
--- Global variables                                                           --
---------------------------------------------------------------------------------
-
-foreign import ccall "&R_Interactive" isRInteractive :: Ptr CInt
-
--- | Global nil value. Constant throughout the lifetime of the R instance.
-foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G R.Nil)
-
--- | Unbound marker. Constant throughout the lifetime of the R instance.
-foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G R.Symbol)
-
--- | Missing argument marker. Constant throughout the lifetime of the R instance.
-foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
-
--- | The base environment.
-foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
-
--- | The empty environment.
-foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G R.Env)
-
--- | Global environment.
-foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
-
--- | Signal handler switch
-foreign import ccall "&R_SignalHandlers" signalHandlers :: Ptr CInt
-
-----------------------------------------------------------------------------------
--- Structure header                                                             --
-----------------------------------------------------------------------------------
-
--- | Info header for the SEXP data structure.
-data SEXPInfo = SEXPInfo
-      { infoType  :: SEXPTYPE    -- ^ Type of the SEXP.
-      , infoObj   :: Bool        -- ^ Is this an object with a class attribute.
-      , infoNamed :: Int         -- ^ Control copying information.
-      , infoGp    :: Int         -- ^ General purpose data.
-      , infoMark  :: Bool        -- ^ Mark object as 'in use' in GC.
-      , infoDebug :: Bool        -- ^ Debug marker.
-      , infoTrace :: Bool        -- ^ Trace marker.
-      , infoSpare :: Bool        -- ^ Alignment (not in use).
-      , infoGcGen :: Int         -- ^ GC Generation.
-      , infoGcCls :: Int         -- ^ GC Class of node.
-      } deriving ( Show )
-
--- | Extract the header from the given 'SEXP'.
-peekInfo :: SEXP s a -> IO SEXPInfo
-peekInfo ts =
-    SEXPInfo
-      <$> (toEnum.fromIntegral <$> {#get SEXP->sxpinfo.type #} s)
-      <*> ((/=0)               <$> {#get SEXP->sxpinfo.obj #} s)
-      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.named #} s)
-      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gp #} s)
-      <*> ((/=0)               <$> {#get SEXP->sxpinfo.mark #} s)
-      <*> ((/=0)               <$> {#get SEXP->sxpinfo.debug #} s)
-      <*> ((/=0)               <$> {#get SEXP->sxpinfo.trace #} s)
-      <*> ((/=0)               <$> {#get SEXP->sxpinfo.spare #} s)
-      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gcgen #} s)
-      <*> (fromIntegral        <$> {#get SEXP->sxpinfo.gccls #} s)
-  where
-    s = unsexp ts
-
--- | Write a new header.
-pokeInfo :: SEXP s a -> SEXPInfo -> IO ()
-pokeInfo (unsexp -> s) i = do
-    {#set SEXP->sxpinfo.type  #} s (fromIntegral.fromEnum $ infoType i)
-    {#set SEXP->sxpinfo.obj   #} s (if infoObj  i then 1 else 0)
-    {#set SEXP->sxpinfo.named #} s (fromIntegral $ infoNamed i)
-    {#set SEXP->sxpinfo.gp    #} s (fromIntegral $ infoGp i)
-    {#set SEXP->sxpinfo.mark  #} s (if infoMark i  then 1 else 0)
-    {#set SEXP->sxpinfo.debug #} s (if infoDebug i then 1 else 0)
-    {#set SEXP->sxpinfo.trace #} s (if infoTrace i then 1 else 0)
-    {#set SEXP->sxpinfo.spare #} s (if infoSpare i then 1 else 0)
-    {#set SEXP->sxpinfo.gcgen #} s (fromIntegral $ infoGcGen i)
-    {#set SEXP->sxpinfo.gccls #} s (fromIntegral $ infoGcCls i)
-
--- | Set the GC mark.
-mark :: Bool -> SEXP s a -> IO ()
-mark b ts = {#set SEXP->sxpinfo.mark #} (unsexp ts) (if b then 1 else 0)
-
-named :: Int -> SEXP s a -> IO ()
-named v ts = {#set SEXP->sxpinfo.named #} (unsexp ts) (fromIntegral v)
-
--------------------------------------------------------------------------------
--- Attribute header                                                          --
--------------------------------------------------------------------------------
-
--- | Get the attribute list from the given object.
-getAttribute :: SEXP s a -> IO (SEXP s b)
-getAttribute s = sexp . castPtr <$> ({#get SEXP->attrib #} (unsexp s))
-
--- | Set the attribute list.
-setAttribute :: SEXP s a -> SEXP s b -> IO ()
-setAttribute s v = {#set SEXP->attrib #} (unsexp s) (castPtr $ unsexp v)
 
 -------------------------------------------------------------------------------
 -- Encoding                                                                  --
