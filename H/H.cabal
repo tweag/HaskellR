@@ -16,8 +16,6 @@ cabal-version:       >=1.10
 extra-source-files:  H.ghci
                      tests/qq.ghci
                      tests/qq.ghci.golden.out
-                     tests/qq-errors.ghci
-                     tests/qq-errors.ghci.golden.err
 
 source-repository head
   type:     git
