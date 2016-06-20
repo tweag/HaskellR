@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.9.0 - 2016-06-20
+
+* Breaking change: Rewrite of the `H.Prelude` module API.
+* Reexport more modules from Language.R.
+* Windows support for inline-r and H.
+* Partially move away from c2hs internally: too many bugs on Windows.
+* Export `PrintR` type class.
+* Loosen the constraints of a few `HExp` constructors.
+* Deprecate `parseFile`, `parseText`, `string` and `strings`.
+
 ## 0.8.0 - 2016-01-24
 
 ### Changed
