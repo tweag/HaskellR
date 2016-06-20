@@ -59,14 +59,6 @@ tests = testGroup "Integration tests"
       "qq"
        "tests/qq.ghci.golden.out"
        (fst <$> invokeH "tests/qq.ghci")
-  , gold
-      "qq-stderr"
-       "tests/qq-errors.ghci.golden.err"
-       (snd <$> invokeH "tests/qq-errors.ghci")
-  -- , scriptCase "Functions - factorial" $
-  --     "tests" </> "R" </> "fact.R"
-  -- , scriptCase "Functions - Fibonacci sequence" $
-  --     "tests" </> "R" </> "fib.R"
   ]
 
 main :: IO ()
