@@ -5,7 +5,7 @@ license-file:        LICENSE
 copyright:           Copyright (c) 2013-2015 Amgen, Inc.
                      Copyright (c) 2015 Tweag I/O Limited.
 author:              Mathieu Boespflug, Facundo Dominguez, Alexander Vershilov
-maintainer:          Alexander Vershilov <alexander.vershilov@tweag.io>
+maintainer:          Mathieu Boespflug <m@tweag.io>
 cabal-version:       >=1.10
 build-type:          Simple
 Category:            FFI
