@@ -25,11 +25,11 @@ source-repository head
 executable H
   main-is:             H.hs
   other-modules:       Paths_H
-  build-depends:       inline-r
-                     , base >= 4.6 && < 5
+  build-depends:       base >= 4.6 && < 5
                      , bytestring >= 0.10
                      , cmdargs >= 0.10.5
                      , file-embed >= 0.0.7
+                     , inline-r >= 0.9 && < 0.10
                      , pretty >= 1.1
                      , process >= 1.2
                      , temporary >= 1.2.0.3
@@ -43,7 +43,7 @@ test-suite tests
   build-depends:       base >= 4.6 && < 5
                      , bytestring >= 0.10
                      , directory >= 1.2
-                     , inline-r >= 0.6
+                     , inline-r >= 0.9 && < 0.10
                      , process >= 1.2
                      , tasty >= 0.3
                      , tasty-golden >= 2.3
