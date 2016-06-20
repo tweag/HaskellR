@@ -15,6 +15,7 @@ description:
   For up to date Haddock documentation, please see
   <http://www.stackage.org/package/inline-r>.
 
+homepage:            https://tweag.github.io/HaskellR
 cabal-version:       >=1.10
 
 extra-source-files:   CHANGELOG.md

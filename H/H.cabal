@@ -11,6 +11,7 @@ build-type:          Simple
 Category:            FFI
 Synopsis:            The Haskell/R mixed programming environment.
 description:         This package is part of the HaskellR project.
+homepage:            https://tweag.github.io/HaskellR
 cabal-version:       >=1.10
 extra-source-files:  H.ghci
                      tests/qq.ghci
