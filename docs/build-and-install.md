@@ -12,6 +12,7 @@ The easiest way to get started on Linux or OS X is using
 
 ```
 $ git clone http://github.com/tweag/HaskellR
+$ cd HaskellR
 $ git tag -l                        # list releases
 $ git checkout v<latest-release>    # skip if you want the master branch
 $ stack --nix build
