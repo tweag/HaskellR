@@ -28,7 +28,7 @@ you're stuck, the community also has
 
 ## Professional support
 
-[Tweag I/O](https://tweag.io) provides professional support for H,
+[Tweag I/O](http://tweag.io) provides professional support for H,
 inline-r and related packages of the HaskellR project. This provides
 you with direct access to the people who created it. Say
 [hello@tweag.io](mailto:hello@tweag.io) for enquiries about how we can
