@@ -2,6 +2,8 @@
 :set -fno-ghci-sandbox
 :set -XDataKinds
 :set -XGADTs
+:set -XPartialTypeSignatures
+:set -XOverloadedLists
 :set -XQuasiQuotes
 :set -XScopedTypeVariables
 :set -XTemplateHaskell
