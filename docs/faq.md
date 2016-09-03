@@ -21,6 +21,9 @@ The fix is to turn off GHCi sandboxing, by passing the
 the code from its main thread. The H wrapper around GHCi does this for
 you.
 
+If you get this error by using notebook, you can add `:set -fno-ghci-sandbox`
+to `~/ihaskell/rc.hs`. If the file didn't exist just create it.
+
 #### Why does loading the HaskellR code itself in GHCi fail in GHC
      7.10.2 or earlier?
 
