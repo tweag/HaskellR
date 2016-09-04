@@ -4,7 +4,7 @@ id: faq
 
 # The HaskellR FAQ
 
-#### Why do I get a stack limit error when using GHCi and how can I fix it?
+#### Why do I get a stack limit error when using GHCi or Jupyter and how can I fix it?
 
 R incorporates a stack usage check. This check only works reliably
 when run from a program's main thread. By default, GHCi evaluates all
@@ -21,8 +21,9 @@ The fix is to turn off GHCi sandboxing, by passing the
 the code from its main thread. The H wrapper around GHCi does this for
 you.
 
-If you get this error by using notebook, you can add `:set -fno-ghci-sandbox`
-to `~/.ihaskell/rc.hs`. If the file didn't exist just create it.
+If you get this error in a Jupyter notebook, you can add
+`:set -fno-ghci-sandbox` to `~/.ihaskell/rc.hs`. If the file didn't
+exist previously just create it.
 
 #### Why does loading the HaskellR code itself in GHCi fail in GHC
      7.10.2 or earlier?
