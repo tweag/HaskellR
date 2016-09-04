@@ -3,7 +3,7 @@ packages:
 - H
 - IHaskell
 - inline-r
-resolver: lts-5.10
+resolver: lts-6.12
 
 docker:
   # Disabled by default. Use --docker on command line to enable.
