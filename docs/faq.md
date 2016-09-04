@@ -65,3 +65,9 @@ Stackage LTS Docker images use the `ld.gold` linker by default for
 this reason, so aren't affected by the bug.
 
 [ld-pie-bug]: https://sourceware.org/bugzilla/show_bug.cgi?id=17689
+
+#### What if I still get linker errors (e.g. on Fedora)?
+
+You may be running into https://github.com/tweag/HaskellR/issues/257.
+The recommended course of action is to apply one of the workarounds
+listed there. This is an upstream issue in Cabal.
