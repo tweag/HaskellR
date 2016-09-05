@@ -20,31 +20,19 @@ install:
     mkdir C:\stack
     mv stack.exe C:\stack
 
-    Write-Host "Downloading R.vhd"
-    bash -c 'curl -Ls https://rportable.blob.core.windows.net/r-portable/master/R.vhd.gz | gunzip -c > ../R.vhd'
+    # The URL keeps changing from release to release and old versions
+    # aren't kept around. In order to prevent the package from
+    # stopping to work, we automatically find the latest version:
 
-    Write-Host "Getting full path for R.vhd"
-    $ImageFullPath = Get-ChildItem "..\R.vhd" | % { $_.FullName }
-    $ImageSize = (Get-Item $ImageFullPath).length
-    echo "$ImageFullPath [$ImageSize bytes]"
-
-    Write-Host "Mounting R.vhd"
-    $RDrive = [string](Mount-DiskImage -ImagePath $ImageFullPath -Passthru | Get-DiskImage | Get-Disk | Get-Partition | Get-Volume).DriveLetter + ":"
-    # Assert that R was mounted properly
-    if ( -not (Test-Path "${RDrive}\R\bin" -PathType Container) ) {
-      Throw "Failed to mount R. Could not find directory: ${RDrive}\R\bin"
+    $baseUrl='http://cran.at.r-project.org/bin/windows/base/'
+    $wc = New-Object System.Net.WebClient
+    if(!($wc.DownloadString($baseUrl) -match "R-(\d\.\d\.\d)-win.exe")) {
+      throw "Unable to determine latest version from $baseUrl"
     }
-    echo "R is now available on drive $RDrive"
-
-    Write-Host "Setting PATH"
-    $env:PATH = $RDrive + '\Rtools\bin;' + $RDrive + '\Rtools\MinGW\bin;' + $RDrive + '\Rtools\gcc-4.6.3\bin;' + $RDrive + '\R-stable\bin\i386;' + 'C:\stack;' + $env:PATH
-    $env:PATH.Split(";")
-
-    Write-Host "Setting R_LIBS_USER"
-    $env:R_LIBS_USER = 'c:\RLibrary'
-    mkdir $env:R_LIBS_USER
+    $wc.DownloadFile("$baseUrl$($Matches[0])", "$pwd\Rinstaller.exe")
+    Start-Process -FilePath .\Rinstaller.exe -ArgumentList "/VERYSILENT /DIR=C:\R" -NoNewWindow -Wait
 
 build_script:
-  - R --version
+  - set PATH=C:\stack;C:\R\bin\i386;%PATH%
   - stack --no-terminal setup > nul
-  - stack --no-terminal build --extra-lib-dirs=D:\R-stable\bin\i386 --extra-include-dirs=D:\R-stable\include inline-r H --test
+  - stack --no-terminal --extra-lib-dirs="C:\R\bin\i386" --extra-include-dirs="C:\R\include" build --test inline-r H
