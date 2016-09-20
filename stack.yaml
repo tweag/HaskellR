@@ -11,15 +11,4 @@ docker:
   repo: tweag/haskellr:latest
 
 nix:
-    enable: false
-    packages:
-    - ncurses
-    - pkgconfig
-    - python34Packages.ipython
-    - python34Packages.jupyter_client
-    - python34Packages.notebook
-    - R
-    - zeromq
-    - zlib
-    ## Right now, using just packages: is OK on Linux, not OSX
-    #shell-file: ./shell.nix
+    shell-file: ./shell.nix
