@@ -107,7 +107,7 @@ $ stack [--docker|--nix] exec ihaskell install
 Now, you can open a new Jupyter notebook in your browser using
 
 ```
-$ stack [--docker|--nix] exec ipython notebook
+$ stack [--docker|--nix] exec jupyter notebook
 ```
 
 After launching the Jupyter notebook server you can visit
