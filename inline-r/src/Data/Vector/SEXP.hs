@@ -252,6 +252,7 @@ module Data.Vector.SEXP
   -- ** SEXP specific helpers.
   , toString
   , toByteString
+  , unsafeToPtr
   ) where
 
 import Control.Monad.R.Class
