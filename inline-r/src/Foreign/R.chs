@@ -63,6 +63,8 @@ module Foreign.R
   , typeOf
   , setAttribute
   , getAttribute
+  , setAttrib
+  , duplicateAttrib
     -- * Node accessor functions
     -- ** Lists
   , cons
@@ -128,6 +130,7 @@ module Foreign.R
   , emptyEnv
   , globalEnv
   , signalHandlers
+  , classSymbol
     -- * Communication with runtime
   , printValue
     -- * Low level info header access

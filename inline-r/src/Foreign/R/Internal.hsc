@@ -231,6 +231,9 @@ foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
 -- | Signal handler switch
 foreign import ccall "&R_SignalHandlers" signalHandlers :: Ptr CInt
 
+-- | Class symbol.
+foreign import ccall "&R_ClassSymbol" classSymbol :: Ptr (SEXP G R.Symbol)
+
 ----------------------------------------------------------------------------------
 -- Structure header                                                             --
 ----------------------------------------------------------------------------------
@@ -322,6 +325,15 @@ getAttribute s = sexp <$> cATTRIB (unsexp s)
 setAttribute :: SEXP s a -> SEXP s b -> IO ()
 setAttribute s v = cSET_ATTRIB (unsexp s) (castPtr $ unsexp v)
 
+-- | Set concrete attribute.
+setAttrib :: SEXP s1 a -> SEXP s2 R.Symbol -> SEXP s3 b -> IO ()
+setAttrib o s v = cSetAttrib (unsexp o) (unsexp s) (unsexp v)
+
+duplicateAttrib :: SEXP s a -> SEXP s2 b -> IO ()
+duplicateAttrib to from = cDUPLICATE_ATTRIB (unsexp to) (unsexp from)
+
 foreign import capi unsafe "Rinternals.h ATTRIB" cATTRIB :: SEXP0 -> IO SEXP0
 foreign import capi unsafe "Rinternals.h SET_ATTRIB" cSET_ATTRIB :: SEXP0 -> SEXP0 -> IO ()
 
+foreign import capi unsafe "Rinternals.h Rf_setAttrib" cSetAttrib :: SEXP0 -> SEXP0 -> SEXP0 -> IO ()
+foreign import capi unsafe "Rinternals.h DUPLICATE_ATTRIB" cDUPLICATE_ATTRIB :: SEXP0 -> SEXP0 -> IO ()
