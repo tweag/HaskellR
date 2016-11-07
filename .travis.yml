@@ -18,7 +18,7 @@ before_install:
 install:
   - brew update
   - brew tap homebrew/science
-  - brew install r zeromq python
+  - brew install r zeromq
   - pip install ipython
   - stack setup
   - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
