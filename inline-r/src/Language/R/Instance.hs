@@ -145,7 +145,15 @@ data Config = Config
   , configArgs :: [String]
 
     -- | Set to 'True' if you're happy to let R install its own signal handlers
-    -- during initialization.
+    -- during initialization. By default R sets following signal handlers:
+    --
+    --  * SIGPIPE - ignore signal;
+    --  * SIGUSR1 - save workspace and terminate program;
+    --  * SIGUSR2 - terminate program without saving workspace;
+    --  * SIGINT  - cancel execution of the current function.
+    --
+    -- *N.B.* When program is terminated, haskell runtime will not have any chances
+    -- to run any exception handlers or finalizers.
   , configSignalHandlers :: Last Bool
   }
 
