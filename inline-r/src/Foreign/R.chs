@@ -128,6 +128,7 @@ module Foreign.R
   , emptyEnv
   , globalEnv
   , signalHandlers
+  , interruptsPending
     -- * Communication with runtime
   , printValue
     -- * Low level info header access
