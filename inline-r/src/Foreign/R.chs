@@ -61,8 +61,10 @@ module Foreign.R
   , mkWeakRef
     -- * Node attributes
   , typeOf
-  , setAttribute
+  , isS4
+  , setAttributes
   , getAttribute
+  , getAttributes
     -- * Node accessor functions
     -- ** Lists
   , cons

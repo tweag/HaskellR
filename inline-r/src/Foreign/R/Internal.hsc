@@ -314,14 +314,28 @@ named v ts = cSET_NAMED (unsexp ts) (fromIntegral v)
 -- Attribute header                                                          --
 -------------------------------------------------------------------------------
 
+-- | Check if object is an S4 object.
+--
+-- This is a function call so it will be more precise than using 'typeOf'.
+isS4 :: SEXP s ty -> Bool
+isS4 s = (>0) $ cisS4 (unsexp s)
+
 -- | Get the attribute list from the given object.
-getAttribute :: SEXP s a -> IO (SEXP s b)
-getAttribute s = sexp <$> cATTRIB (unsexp s)
+getAttributes :: SEXP s a -> IO (SEXP s b)
+getAttributes s = sexp <$> cAttrib (unsexp s)
+
+-- | Get attribute with the given name.
+getAttribute :: SEXP s  a -- ^ Value
+             -> SEXP s2 b -- ^ Attribute name
+             -> SEXP s  c
+getAttribute a b = sexp $ cgetAttrib (unsexp a) (unsexp b)
+
 
 -- | Set the attribute list.
-setAttribute :: SEXP s a -> SEXP s b -> IO ()
-setAttribute s v = cSET_ATTRIB (unsexp s) (castPtr $ unsexp v)
+setAttributes :: SEXP s a -> SEXP s b -> IO ()
+setAttributes s v = csetAttrib (unsexp s) (castPtr $ unsexp v)
 
-foreign import capi unsafe "Rinternals.h ATTRIB" cATTRIB :: SEXP0 -> IO SEXP0
-foreign import capi unsafe "Rinternals.h SET_ATTRIB" cSET_ATTRIB :: SEXP0 -> SEXP0 -> IO ()
-
+foreign import capi unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
+foreign import capi unsafe "Rinternals.h SET_ATTRIB" csetAttrib :: SEXP0 -> SEXP0 -> IO ()
+foreign import capi unsafe "Rinternals.h Rf_getAttrib" cgetAttrib :: SEXP0 -> SEXP0 -> SEXP0
+foreign import capi unsafe "Rinternals.h Rf_isS4" cisS4 :: SEXP0 -> Int

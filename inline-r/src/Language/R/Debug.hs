@@ -72,7 +72,7 @@ instance ToJSON (SEXP s a) where
       nil = R.unsexp H.nilValue
       miss = R.unsexp H.missingArg
       info = unsafePerformIO $ R.peekInfo x
-      attr = unsafePerformIO $ R.getAttribute x
+      attr = unsafePerformIO $ R.getAttributes x
       tp = T.pack . show $ R.infoType info
       go :: SEXP s a -> Value
       go y | R.unsexp y == ub   = A.String "UnboundValue"
