@@ -1,0 +1,54 @@
+- title: Quick Start
+  items:
+  - id: build-and-install
+    title: Building and Installing HaskellR
+  - id: using-h
+    title: Using H
+- title: Tutorial
+  items:
+  - id: evaluating-r-expressions
+    title: Evaluating R expressions in GHCi
+  - id: splicing-haskell-values-in-r
+    title: Splicing Haskell values in R
+  - id: r-monad
+    title: The R monad
+  - id: how-to-analyze-r-values
+    title: How to analyze R values in Haskell
+  - id: vectors
+    title: Vectors
+  - id: casts-and-coercions
+    title: Casts and coercions
+  - id: managing-memory
+    title: Managing memory
+  - id: catching-runtime-errors
+    title: Catching runtime errors
+  - id: differences-repl-source
+    title: Interactive vs. source files
+- title: inline-r Internals
+  items:
+  - id: internals-introduction
+    title: Introduction
+  - id: architectural-overview
+    title: Architectural overview
+    items:
+    - id: rationale
+      title: rationale
+  - id: internal-structures
+    title: Internal Structures
+    items:
+    - id: a-native-view-of-expressions
+      title: A native view of expressions
+    - id: a-form-indexed-native-view-of-expressions
+      title: A form indexed native view of expresions
+  - id: implementation-of-quasiquoters
+    title: Implementation of quasiquoters
+  - id: how-r-interpreter-is-embedded
+    title: How the R interpreter is embedded
+  - id: memory-allocation
+    title: Memory allocation
+- title: Other documents
+  items:
+  - id: inline-r-with-IHaskell
+    title: Using inline-r with IHaskell
+  - id: faq
+    title: The HaskellR FAQ

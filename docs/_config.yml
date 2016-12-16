@@ -1,0 +1,22 @@
+---
+name: HaskellR
+description: The full power of R in Haskell.
+url: https://tweag.github.io
+baseurl: /HaskellR
+highlighter: rouge
+markdown: kramdown
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - circle.yml
+defaults:
+  - scope:
+      path: docs
+      type: pages
+    values:
+      layout: twocol
+sass:
+  style: compressed
+  sass_dir: _css
+---

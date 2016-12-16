@@ -1,0 +1,139 @@
+---
+layout: default
+title: Project H - programming R in Haskell
+id: home
+---
+<div class="jumbotron">
+  <div class="container">
+    <div class="page-header">
+      <h1>HaskellR<br/><small>Programming R in Haskell</small></h1>
+    </div>
+    <p> <a class="btn btn-lg btn-primary" role="button" href="{{ site.baseurl }}/downloads.html">Download</a> &nbsp;
+        <a class="btn btn-lg btn-primary" role="button" href="{{ site.baseurl }}/docs/build-and-install.html">Getting started</a>
+    </p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <h2>Comprehensive</h2>
+      <p>The full power of R's extensive standard library at your
+      fingertips, plus virtually all CRAN packages, which work from
+      Haskell just as they would from R.
+      <!-- <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p> -->
+    </div>
+    <div class="col-md-4">
+      <h2>Safe</h2>
+      <p>Optional type annotations let you leverage the full power of
+          Haskell's type system to program R safely. Region-based
+          memory allocation means precise and predictable memory usage
+          without the dangers: Haskell's type system has your back to
+          statically guarantee the absence of use-after-free bugs.</p>
+      <p><a class="btn btn-default" href="{{ site.baseurl }}/docs/managing-memory.html" role="button">View details &raquo;</a></p>
+   </div>
+    <div class="col-md-3">
+      <h2>Fast</h2>
+      <p>Zero marshalling language interop, for crossing language
+      boundaries extremely efficiently at runtime. Mapping an
+      R function over a million element container from Haskell is just
+      as fast as from R.</p>
+      <p><a class="btn btn-default" href="{{ site.baseurl }}/docs/internal-structures.html" role="button">View details &raquo;</a></p>
+    </div>
+ </div>
+
+<hr />
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-7">
+      <div style="text-align: justify; line-height: 1.6">
+	<h1> The power of R ...<br/>with the safety of Haskell </h1>
+	<p>Haskell is a statically typed, purely functional programming
+	  language with a state-of-the-art native code compiler.
+
+	<p>R is an old but effective programming language sporting one
+	  of the most comprehensive sets of libraries for statistical
+	  analysis.
+
+	<p>HaskellR is an umbrella project bringing together a number
+	  of packages for statistical analysis and machine learning in
+	  Haskell using R's comprehensive library support. Including:
+
+	  <ul>
+	    <li><a href="https://hackage.haskell.org/package/inline-r">inline-r</a>:
+	      efficiently mix Haskell and R code in the same source
+	      file using quasiquotation. R code is designed to be
+	      evaluated using an instance of the R interpreter
+	      embedded in the binary, with no marshalling costs and
+	      hence little to no overhead when communicating values
+	      back to Haskell.</li>
+	    <li><a href="https://hackage.haskell.org/package/H">H</a>:
+	      an interactive prompt for exploring and graphing data
+	      sets. This is a thin wrapper around GHCi, with the full
+	      power of an R prompt, and the full power of Haskell
+	      prompt: you can enter expressions of either language,
+	      providing you with plotting and distributed computing
+	      facilities out-of-the-box.</li>
+	    <li><a href="https://hackage.haskell.org/package/ihaskell-inline-r">ihaskell-inline-r</a>:
+	      an alternative and featureful interactive environment
+	      leveraging
+	      the <a href="https://jupyter.org/">Jupyter</a> framework
+	      for authoring shareable and
+	      collaborative <em>notebooks</em> replete with inline
+	      descriptions, equations and graphs.</li>
+	  </ul>
+      </div>
+    </div>
+    <em>Interactively author notebooks using IHaskell/Jupyter:</em>
+    <div class="col-md-4">
+      <a href="img/notebook-1.png" class="thumbnail" target="_blank">
+	<img src="img/notebook-1-thumb.png"/>
+      </a>
+    <em>R's powerful graphing facilities at your fingertips:</em>
+      <a href="img/expVsrec.png" class="thumbnail" target="_blank">
+	<img src="img/expVsrec-thumb.png"/>
+	<em><small>&copy; 2015 FP Complete Corp.</small></em>
+      </a>
+    </div>
+  </div>
+</div>
+
+<hr />
+
+<div class="container">
+  <h1> Code examples </h1>
+  <h3> Clustering example </h3>
+  <div class="row">
+  <div class="col-md-7">
+{% highlight haskell %}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+import H.Prelude as H
+import Language.R.QQ
+
+import System.Random
+
+main = H.withEmbeddedR defaultConfig $ do
+  H.runRegion $ do
+    -- Put any complex model here
+    std <- io $ newStdGen
+    let (xs::[Double]) = take 100 $ randoms std
+    d  <- [r| matrix(xs_hs,ncol = 2) |]
+    rv <- [r| clusters <- kmeans(d_hs, 2) |]
+    [r| par(mar = c(5.1, 4.1, 0, 1));
+        plot(d_hs, col = rv_hs$cluster, pch = 20
+            , cex = 3, xlab = "x", ylab = "y");
+        points(rv_hs$centers, pch = 4, cex = 4, lwd = 4);
+      |]
+    return ()
+{% endhighlight %}
+    </div>
+    <div class="col-md-4">
+      <a href="img/cluster-1.png" class="thumbnail" target="_blank">
+        <img src="img/cluster-1-thumb.png"/>
+      </a>
+      <!-- <a class="btn btn-lg btn-primary" role="button" href="{{ site.baseurl }}/examples/">Get more examples &raquo;</a> -->
+    </div>
+  </div>
+</div>
