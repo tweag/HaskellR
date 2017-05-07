@@ -38,6 +38,7 @@ import           Control.Monad.R.Class
 import qualified Data.Vector.SEXP as SVector
 import qualified Data.Vector.SEXP.Mutable as SMVector
 import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R (somesexp)
 import           Foreign.R.Type ( IsVector, SSEXPTYPE )
 import           Foreign.R ( SEXP, SomeSEXP(..) )
 import           Internal.Error
@@ -62,7 +63,7 @@ import GHC.IO.Encoding.UTF8
 import System.IO.Unsafe ( unsafePerformIO )
 
 -- | Values that can be converted to 'SEXP'.
-class Literal a ty | a -> ty where
+class SingI ty => Literal a ty | a -> ty where
     -- | Internal function for converting a literal to a 'SEXP' value. You
     -- probably want to be using 'mkSEXP' instead.
     mkSEXPIO :: a -> IO (SEXP V ty)
@@ -252,7 +253,7 @@ instance (NFData a, Literal a la) => HFunWrap (R s a) (IO R.SEXP0) where
 
 instance (Literal a la, HFunWrap b wb)
          => HFunWrap (a -> b) (R.SEXP0 -> wb) where
-    hFunWrap f a = hFunWrap $ f $! fromSEXP (R.sexp a :: SEXP s la)
+    hFunWrap f a = hFunWrap $ f $! fromSEXP (R.cast sing (R.somesexp a) :: SEXP s la)
 
 foreign import ccall "missing_r.h funPtrToSEXP" funPtrToSEXP
     :: FunPtr a -> IO (SEXP s 'R.ExtPtr)
