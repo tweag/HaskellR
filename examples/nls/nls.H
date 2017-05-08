@@ -1,6 +1,7 @@
 -- Initializing R runtime and all constants
 -- Copyright: (C) 2013 Amgen, Inc.
 :m +Control.Monad
+:set -XQuasiQuotes
 :load system.hs
 let next = putStrLn "<Press enter to continue>" >> void (getLine)
 :{
@@ -15,7 +16,7 @@ putStrLn $
             , "   * system.hs - haskell module that is used in callbacks"
             , ""
             , "How to run this example:"
-            , "   H -- -ghci-script nls.H"
+            , "   H -- -ghci-script H/H.ghci -ghci-script nls.H"
             , "You will need mwc-random package to be installed"
             ]
 :}
@@ -33,14 +34,14 @@ putStrLn $
           , "   H.eval   - pure lazy evaluation of the expression."
           , ""
           , "To print result one may use R facilities: "
-          , "   H.print       - prints expression like R does"
+          , "   printR       - prints expression like R does"
           , ""
-          , "Thus we are calling: H.print [r| xs <- c(1:100) |]"
+          , "Thus we are calling: H.print [r| xs <<- c(1:100) |]"
           ]
 :}
 next
-putStrLn "printValue $ eval [r| xs <- c(1:100) |] - result"
-H.print =<< [r| xs <- c(1:100) |]
+putStrLn "printValue $ eval [r| xs <<- c(1:100) |] - result"
+printR =<< [r| xs <<- c(1:100) |]
 next
 :{
 putStrLn $
@@ -58,11 +59,11 @@ putStrLn $
           , "in order to use function we need to lift it on vector level"
           ]
 :}
-putStrLn "[r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]"
-H.print =<< [r| ys <- (function(x).Call(generate_lifted_hs,x))(xs) |]
+putStrLn "[r| ys <<- generate_lifted_hs(xs) |]"
+printR =<< [r| ys <<- generate_lifted_hs(xs) |]
 next
-putStrLn "[r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]"
-H.print  =<< [r| nlmod <- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
+putStrLn "[r| nlmod <<- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]"
+printR  =<< [r| nlmod <<- nls( ys~a*xs*xs+b*xs+c, start=list( a = 0.13, b = 1.5, c = 0.4)) |]
 next
 [r| plot(xs,ys,main="nls") |]
 [r| lines(xs,predict(nlmod), col = 2)|]
