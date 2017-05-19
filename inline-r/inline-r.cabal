@@ -66,6 +66,7 @@ library
                        Language.R.Internal
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
+                       Language.R.Parser
   if !os(windows)
     exposed-modules:   Foreign.R.EventLoop
                        Language.R.Event
