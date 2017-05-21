@@ -19,6 +19,7 @@ import qualified Test.FunPtr
 import qualified Test.GC
 import qualified Test.Regions
 import qualified Test.Vector
+import qualified Test.Parser
 
 import H.Prelude
 import qualified Foreign.R as R
@@ -99,6 +100,7 @@ tests torture = testGroup "Unit tests"
   , (if torture then id else ignoreTest) Test.Regions.tests
   , Test.Vector.tests
   , Test.Event.tests
+  , Test.Parser.tests
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.
