@@ -31,6 +31,8 @@ import Test.Tasty.HUnit
 import Test.Tasty.ExpectedFailure
 
 import Control.Applicative
+import Control.Concurrent
+import Control.Exception (handle)
 import Control.Memory.Region
 import Control.Monad (void)
 import Data.List (delete, find)
@@ -104,6 +106,10 @@ tests torture = testGroup "Unit tests"
     -- conditions when initializing R from multiple threads.
   , testCase "qq/concurrent-initialization" $ runRegion $ [r| 1 |] >> return ()
   , testCase "sanity check " $ return ()
+  , testCase "cancel works" $ do
+      void $ forkIO $ cancel
+      handle (\RError{} -> return ())
+             (runRegion $ void $ [r| while(1){}; |])
   ]
 
 main :: IO ()

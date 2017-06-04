@@ -20,6 +20,7 @@ module Language.R
   , eval_
   , evalEnv
   , install
+  , cancel
   -- * Exceptions
   , throwR
   , throwRMessage
@@ -63,6 +64,7 @@ import Foreign
   ( alloca
   , castPtr
   , peek
+  , poke
   )
 import Foreign.C.String ( withCString, peekCString )
 import Prelude
@@ -155,6 +157,16 @@ eval_ = void . eval
 throwR :: MonadR m => R.SEXP s 'R.Env   -- ^ Environment in which to find error.
        -> m a
 throwR env = getErrorMessage env >>= io . throwIO . R.RError
+
+-- | Cancel any ongoing R computation in the current process. After interruption
+-- an 'RError' exception will be raised.
+--
+-- This call is safe to run in any thread. If there is no R computation running,
+-- the next computaion will be immediately cancelled. Note that R will only
+-- interrupt computations at so-called "safe points" (in particular, not in the
+-- middle of a C call).
+cancel :: IO ()
+cancel = poke R.interruptsPending 1
 
 -- | Throw an R exception with specified message.
 throwRMessage :: MonadR m => String -> m a

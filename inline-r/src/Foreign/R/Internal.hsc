@@ -231,6 +231,9 @@ foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
 -- | Signal handler switch
 foreign import ccall "&R_SignalHandlers" signalHandlers :: Ptr CInt
 
+-- | Flag that shows if computation should be interrupted.
+foreign import ccall "&R_interrupts_pending" interruptsPending :: Ptr CInt
+
 ----------------------------------------------------------------------------------
 -- Structure header                                                             --
 ----------------------------------------------------------------------------------
