@@ -1,4 +1,11 @@
-{ pkgs ? import <nixpkgs> { }, ghc ? pkgs.haskellPackages.ghc }:
+{ bootstrap_pkgs ? import <nixpkgs> { }
+, pkgs ? import (bootstrap_pkgs.fetchFromGitHub {
+                  owner = "NixOS";
+                  repo = "nixpkgs";
+                  rev = "5b5f3f542a8d62f16ba360dfde42a98c7ee02e1a";
+                  sha256 = "17f1yljk3vs67j8gvg12g2d2wfzgab4pbn3m3hs05wm368p45lyc";
+                }) {}
+, ghc ? pkgs.haskellPackages.ghc }:
 
 with pkgs;
 
