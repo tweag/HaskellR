@@ -32,8 +32,8 @@ class (Applicative m, MonadIO m, MonadCatch m, MonadMask m, PrimMonad m)
   -- | Acquire ownership in the current region of the given object. This means
   -- that the liveness of the object is guaranteed so long as the current region
   -- remains active (the R garbage collector will not attempt to free it).
-  acquire :: SEXP V a -> m (SEXP (Region m) a)
-  default acquire :: (MonadIO m, Region m ~ G) => SEXP s a -> m (SEXP G a)
+  acquire :: s ~ V => SEXP s a -> m (SEXP (Region m) a)
+  default acquire :: (MonadIO m, Region m ~ G) => SEXP s a -> m (SEXP (Region m) a)
   acquire = liftIO . protect
 
   -- | A reification of an R execution context, i.e. a "session".
