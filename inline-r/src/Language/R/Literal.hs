@@ -192,7 +192,7 @@ fromPairList (SomeSEXP (hexp -> Nil)) = []
 fromPairList (SomeSEXP (hexp -> List car cdr (hexp -> Symbol (hexp -> Char name) _ _))) =
     (SVector.toString name, SomeSEXP car) : fromPairList (SomeSEXP cdr)
 fromPairList (SomeSEXP (hexp -> List _ _ _)) =
-    failure "fromPairList" "Association listed expected but tag not set."
+    failure "fromPairList" "An association list is expected but the tag is not set."
 fromPairList _ =
     failure "fromPairList" "Pairlist expected where some other expression appeared."
 
@@ -209,14 +209,14 @@ toUnnamedList ((SomeSEXP v):kvs) = do
         fmap SomeSEXP $ unhexp $ List v cdr (R.release nilValue)
       _ -> impossible "toUnnamedList"
 
--- | Create an association list from a pairlist. R Pairlists are nil-terminated
+-- | Create an list from an unnamed pairlist. R Pairlists are nil-terminated
 -- chains of nested cons cells, as in LISP.
 fromUnnamedPairList :: SomeSEXP s -> [SomeSEXP s]
 fromUnnamedPairList (SomeSEXP (hexp -> Nil)) = []
 fromUnnamedPairList (SomeSEXP (hexp -> List car cdr (hexp -> Nil)) =
     (SomeSEXP car) : fromUnnamedPairList (SomeSEXP cdr)
 fromUnnamedPairList (SomeSEXP (hexp -> List _ _ _)) =
-    failure "fromUnnamedPairList" "Association listed expected but tag set."
+    failure "fromUnnamedPairList" "An unnamed list is expected but the tag is set."
 fromUnnamedPairList _ =
     failure "fromUnnamedPairList" "Pairlist expected where some other expression appeared."
 
