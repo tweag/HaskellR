@@ -196,6 +196,30 @@ fromPairList (SomeSEXP (hexp -> List _ _ _)) =
 fromPairList _ =
     failure "fromPairList" "Pairlist expected where some other expression appeared."
 
+-- | Create an unnamed pairlist from an association list. Result is either a pairlist or
+-- @nilValue@ if the input is the null list. These are two distinct forms. Hence
+-- why the type of this function is not more precise.
+toUnnamedList :: MonadR m => [SomeSEXP (Region m)] -> m (SomeSEXP (Region m))
+toUnnamedList [] = return $ SomeSEXP (R.release nilValue)
+toUnnamedList ((SomeSEXP v):kvs) = do
+    toUnnamedList kvs >>= \case
+      SomeSEXP cdr@(hexp -> Nil) ->
+        fmap SomeSEXP $ unhexp $ List v cdr (R.release nilValue)
+      SomeSEXP cdr@(hexp -> List _ _ _) ->
+        fmap SomeSEXP $ unhexp $ List v cdr (R.release nilValue)
+      _ -> impossible "toUnnamedList"
+
+-- | Create an association list from a pairlist. R Pairlists are nil-terminated
+-- chains of nested cons cells, as in LISP.
+fromUnnamedPairList :: SomeSEXP s -> [SomeSEXP s]
+fromUnnamedPairList (SomeSEXP (hexp -> Nil)) = []
+fromUnnamedPairList (SomeSEXP (hexp -> List car cdr (hexp -> Nil)) =
+    (SomeSEXP car) : fromUnnamedPairList (SomeSEXP cdr)
+fromUnnamedPairList (SomeSEXP (hexp -> List _ _ _)) =
+    failure "fromUnnamedPairList" "Association listed expected but tag set."
+fromUnnamedPairList _ =
+    failure "fromUnnamedPairList" "Pairlist expected where some other expression appeared."
+
 -- Use the default definitions included in the class declaration.
 instance Literal R.Logical 'R.Logical
 instance Literal Int32 'R.Int
