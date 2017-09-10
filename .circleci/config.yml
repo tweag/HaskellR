@@ -9,9 +9,11 @@ jobs:
     - restore_cache:
         key: HaskellR-stack-dependencies-{{ checksum "stack.yaml" }}
     - run:
+        name: Install GHC
+        command: stack --no-terminal setup
+    - run:
         name: build dependencies
-        command: stack --no-terminal build --only-dependencies --prefetch --test --bench
-    - save_cache:
+        command: stack --no-terminal build --only-dependencies --prefetch --test --bench    - save_cache:
         key: HaskellR-stack-dependencies
         paths:
         - ~/.stack
