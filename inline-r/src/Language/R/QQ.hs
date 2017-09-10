@@ -147,7 +147,7 @@ expQQ input = do
             -- compiler notices that it can let-float to top-level).
             let sx = unsafePerformIO $ do
                        exprs <- parse closure
-                       SomeSEXP e <- R.indexVector exprs 0
+                       SomeSEXP e <- R.readVector exprs 0
                        clos <- R.eval e (R.release globalEnv)
                        R.unSomeSEXP clos R.preserveObject
                        return clos
