@@ -61,12 +61,12 @@ library
                        Language.R.Globals
                        Language.R.HExp
                        Language.R.Instance
-                       Language.R.Literal
-                       Language.R.QQ
                        Language.R.Internal
                        Language.R.Internal.FunWrappers
                        Language.R.Internal.FunWrappers.TH
-                       Language.R.Parser
+                       Language.R.Literal
+                       Language.R.Matcher
+                       Language.R.QQ
   if !os(windows)
     exposed-modules:   Foreign.R.EventLoop
                        Language.R.Event

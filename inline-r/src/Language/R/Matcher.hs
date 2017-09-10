@@ -16,10 +16,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Language.R.Parser
-  ( Parser(..)
-  , parseOnly
-    -- * Parser interface.
+module Language.R.Matcher
+  ( Matcher(..)
+  , matchOnly
+    -- * Matcher interface.
     -- $interface
   , somesexp
   , sexp
@@ -40,12 +40,12 @@ module Language.R.Parser
   , attribute
   , attributes
   , lookupAttribute
-    -- * Attribute parsers
+    -- * Attribute matchers
   , names
   , dim
   , dimnames
   , rownames
-    -- * Derived parsers
+    -- * Derived matchers
   , factor
     -- * Helpers
   , charList
@@ -74,53 +74,53 @@ import System.IO.Unsafe
 
 import Prelude hiding (null)
 
--- | A composition of 'SEXP' destructors. A 'Parser' is bound to the region
+-- | A composition of 'SEXP' destructors. A 'Matcher' is bound to the region
 -- where 'SomeSEXP' is allocated, so extracted value will not leak out of the
 -- region scope.
 --
--- This parser is a pure function, so if you need to allocate any object (for
--- example for comparison or lookup) you should do it before running parser.
-newtype Parser s a = Parser
-  { runParser
+-- This matcher is a pure function, so if you need to allocate any object (for
+-- example for comparison or lookup) you should do it before running matcher.
+newtype Matcher s a = Matcher
+  { runMatcher
       :: forall r.
-         SomeSEXP s  -- parsed expression
+         SomeSEXP s  -- expression to match
       -> (a -> r) -- continuation in case of success
-      -> (ParserError s -> r) -- continuation in case of failure
+      -> (MatcherError s -> r) -- continuation in case of failure
       -> r
   }
 
--- Continuation monad is used in order to make parsing fast and and have an
+-- Continuation monad is used in order to make matching fast and and have an
 -- equal cost for left and right combinations. Different continuations for
 -- success and failure cases were chosen because otherwise we'd have to keep
 -- result in 'Either' that would lead to more boxing. Though I have to admit
 -- that benchmarks were not done, and this approach were chosen as initial one,
 -- as it's not much more complex then others.
 
-instance Monad (Parser s) where
-  return x = Parser $ \_ f _ -> f x
-  Parser f >>= k = Parser $ \s ok err -> f s (\o -> runParser (k o) s ok err) err
-  fail s = Parser $ \_ _ err -> err $ ParserError s
+instance Monad (Matcher s) where
+  return x = Matcher $ \_ f _ -> f x
+  Matcher f >>= k = Matcher $ \s ok err -> f s (\o -> runMatcher (k o) s ok err) err
+  fail s = Matcher $ \_ _ err -> err $ MatcherError s
 
-instance Applicative (Parser s) where
+instance Applicative (Matcher s) where
   pure = return
   (<*>) = ap
 
-instance Functor (Parser s) where
+instance Functor (Matcher s) where
   fmap = liftM
 
-instance Alternative (Parser s) where
+instance Alternative (Matcher s) where
   empty = fail "empty"
-  f <|> g = Parser $ \s ok err ->
-      runParser f s ok (\e' -> runParser g s ok (err . (mappend e')))
+  f <|> g = Matcher $ \s ok err ->
+      runMatcher f s ok (\e' -> runMatcher g s ok (err . (mappend e')))
 
-instance Monoid (ParserError s) where
-  mempty = ParserError "empty"
-  a `mappend` ParserError "empty" = a
+instance Monoid (MatcherError s) where
+  mempty = MatcherError "empty"
+  a `mappend` MatcherError "empty" = a
   _ `mappend` a = a
 
--- | Exception during parsing.
-data ParserError s
-  = ParserError String
+-- | Exception during matching.
+data MatcherError s
+  = MatcherError String
     -- ^ Generic error.
   | TypeMissmatch (SomeSEXP s) R.SEXPTYPE R.SEXPTYPE
     -- ^ SEXP's type differ from requested one.
@@ -128,49 +128,49 @@ data ParserError s
     -- ^ Requested attribute does not exit.
   deriving (Typeable, Show, Generic)
 
-instance NFData (ParserError s)
+instance NFData (MatcherError s)
 
--- | Parse 'SomeSEXP', throwing 'ParseException' if parsing failed.
+-- | Match a 'SomeSEXP', returning a 'MatchError' if matching failed.
 --
--- Result is always forced to NF as otherwise it's not possible to guarantee
--- that value with thunks will not escape the memory region.
-parseOnly
+-- Result is always fully evaluated, since otherwise it wouldn't be possible to
+-- guarantee that thunks in the return value will not escape the memory region.
+matchOnly
   :: (MonadR m, Region m ~ s, NFData a)
-  => Parser s a
+  => Matcher s a
   -> SomeSEXP s
-  -> m (Either (ParserError s) a)
-parseOnly p s =
-  runParser p s (return . force . Right) (return . force . Left)
+  -> m (Either (MatcherError s) a)
+matchOnly p s =
+  runMatcher p s (return . force . Right) (return . force . Left)
 
 -- $interface
 --
--- The main functions of the parser provide a simple way of accessing
+-- The main functions of the matcher provide a simple way of accessing
 -- information about the current 'SomeSEXP'. Those functions are useful if you
 -- use pure internal functions 'Foreign.R' functions to get information out of
 -- the data structure.
 --
--- Another scenario is to use them in subparsers together with 'with'
+-- Another scenario is to use them in submatchers together with 'with'
 -- combinator, that allow you to inspect the structure deeper without exiting
--- the parser.
+-- the matcher.
 
 -- | Returns current 'SomeSEXP'. Never fails.
-somesexp :: Parser s (SomeSEXP s)
-somesexp = Parser $ \s ok _ -> ok s
+somesexp :: Matcher s (SomeSEXP s)
+somesexp = Matcher $ \s ok _ -> ok s
 
 -- | Returns current 'SEXP' if it is of the requested type, fails otherwise,
 -- returns @TypeMissmatch@ in that case.
-sexp :: SSEXPTYPE ty -> Parser s (SEXP s ty)
-sexp p = Parser $ \(SomeSEXP s) ok err ->
+sexp :: SSEXPTYPE ty -> Matcher s (SEXP s ty)
+sexp p = Matcher $ \(SomeSEXP s) ok err ->
     if fromSing p == H.typeOf s
     then ok (R.unsafeCoerce s)
     else err $ TypeMissmatch (SomeSEXP s) (R.typeOf s) (fromSing p)
 
--- | Run a subparser on another 'SomeSEXP'. All exceptions in the internal
--- parser are propagated to the parent one. This combinator allows to inspect
--- nested structures without exiting the parser, so it's possible to effectively
+-- | Run a submatcher on another 'SomeSEXP'. All exceptions in the internal
+-- matcher are propagated to the parent one. This combinator allows to inspect
+-- nested structures without exiting the matcher, so it's possible to effectively
 -- combine it with alternative function.
-with :: SomeSEXP s -> Parser s a -> Parser s a
-with s p = Parser $ \_ ok err -> runParser p s ok err
+with :: SomeSEXP s -> Matcher s a -> Matcher s a
+with s p = Matcher $ \_ ok err -> runMatcher p s ok err
 
 -- $guards
 --
@@ -178,14 +178,14 @@ with s p = Parser $ \_ ok err -> runParser p s ok err
 -- we are interesting in.
 
 -- | Succeeds if current @SomeSEXP@ is 'R.Null'.
-null :: Parser s ()
+null :: Matcher s ()
 null = void $ sexp SNil
 
 -- | Succeeds if current @SomeSEXP@ is S4 object. This check is more accurate
 -- then using @guardType S4@ as it uses internal R's function to check if the
 -- object is S4.
-s4 :: Parser s ()
-s4 = Parser $ \(SomeSEXP s) ok err ->
+s4 :: Matcher s ()
+s4 = Matcher $ \(SomeSEXP s) ok err ->
     -- Manual check using 'sexp' or 'hexp' is not enough, as R is clever enough
     -- to make this check not obvious.
     if R.isS4 s
@@ -199,13 +199,13 @@ s4 = Parser $ \(SomeSEXP s) ok err ->
 -- This test is not expressible in terms of the 'guardType', becausee guardType
 -- does not see additional information about S3 types. And any raw object can be
 -- a class instance.
-s3 :: [String] -> Parser s ()
+s3 :: [String] -> Matcher s ()
 s3 ns = getS3Class >>= guard . (ns ==)
 
 -- | Continue execution if SEXP have required type. This check tests basic types
 -- of the expression like if it's integer, or real or character vector and such.
 -- If you need to test object type use 's3' or 's4' directly.
-guardType :: R.SEXPTYPE -> Parser s ()
+guardType :: R.SEXPTYPE -> Matcher s ()
 guardType s = typeOf >>= guard . (s ==)
 
 -- $attributes
@@ -219,8 +219,8 @@ guardType s = typeOf >>= guard . (s ==)
 
 -- | Returns any attribute by it's name if it exists. Fails with
 -- @NoSuchAttribute@ otherwise.
-someAttribute :: String -> Parser s (SomeSEXP s)
-someAttribute n = Parser $ \(SomeSEXP s) ok err ->
+someAttribute :: String -> Matcher s (SomeSEXP s)
+someAttribute n = Matcher $ \(SomeSEXP s) ok err ->
     let result = unsafePerformIO $ do
           c <- withCString n R.install
           evaluate $ R.getAttribute s c
@@ -230,17 +230,17 @@ someAttribute n = Parser $ \(SomeSEXP s) ok err ->
 
 -- | Typed version of the 'someAttribute' call. In addition to retrieving value
 -- it's dynamically type checked.
-attribute :: SSEXPTYPE a -> String -> Parser s (SEXP s a)
+attribute :: SSEXPTYPE a -> String -> Matcher s (SEXP s a)
 attribute p s = do
     (SomeSEXP z) <- someAttribute s
     if fromSing p == H.typeOf z
     then return $ R.unsafeCoerce z
     else empty
 
--- | Parse all attributes, takes a parser and applies it to the each attribute
--- exists, returns list of the attribute name, together with parser result. If
--- parser returns @Nothing@ - result is omitted..
-attributes :: Parser s (Maybe a) -> Parser s [(String, a)]
+-- | Match all attributes, takes a matcher and applies it to the each attribute
+-- exists, returns list of the attribute name, together with matcher result. If
+-- matcher returns @Nothing@ - result is omitted..
+attributes :: Matcher s (Maybe a) -> Matcher s [(String, a)]
 attributes p = do
     SomeSEXP s <- somesexp
     let sa = unsafePerformIO $ SomeSEXP <$> R.getAttributes s
@@ -256,21 +256,21 @@ attributes p = do
       ]
 
 -- | Find an attribute in attribute list if it exists.
-lookupAttribute :: String -> Parser s (Maybe (SomeSEXP s))
+lookupAttribute :: String -> Matcher s (Maybe (SomeSEXP s))
 lookupAttribute s = (Just <$> someAttribute s) <|> pure Nothing
 
--- | 'Language.R.Hexp.hexp' lifted to Parser, applies hexp to the current value
--- and allow to run internal parser on it. Is useful when you need to inspect
+-- | 'Language.R.Hexp.hexp' lifted to Matcher, applies hexp to the current value
+-- and allow to run internal matcher on it. Is useful when you need to inspect
 -- data using high level functions from @Language.R@.
-hexp :: SSEXPTYPE ty -> (HExp s ty -> Parser s a) -> Parser s a
+hexp :: SSEXPTYPE ty -> (HExp s ty -> Matcher s a) -> Matcher s a
 hexp ty f = f . H.hexp =<< sexp ty
 
 -- | Returns type of the current SEXP. Can never fail.
-typeOf :: Parser s R.SEXPTYPE
+typeOf :: Matcher s R.SEXPTYPE
 typeOf = (\(SomeSEXP s) -> H.typeOf s) <$> somesexp
 
 -- | Return the class of the S3 object, fails otherwise.
-getS3Class :: Parser s [String]
+getS3Class :: Matcher s [String]
 getS3Class = charList <$> attribute SString "class"
 
 --------------------------------------------------------------------------------
@@ -284,7 +284,7 @@ charList (H.hexp -> String v) =
 charList _ = error "Impossible happened."
 
 -- | Get 'dim' attribute.
-dim :: Parser s [Int]
+dim :: Matcher s [Int]
 dim = go <$> attribute SInt "dim"
   where
     go :: SEXP s 'R.Int -> [Int]
@@ -292,7 +292,7 @@ dim = go <$> attribute SInt "dim"
     go _ = error "Impossible happened."
 
 -- | Get 'dimnames' attribute.
-dimnames :: Parser s [[String]]
+dimnames :: Matcher s [[String]]
 dimnames = do
     s <- attribute SVector "dimnames"
     case H.hexp s of
@@ -301,26 +301,26 @@ dimnames = do
     go = choice [charList <$> sexp SString, null *> pure []]
 
 -- | Get 'names' attribute.
-names :: Parser s [String]
+names :: Matcher s [String]
 names = do
     s <- attribute SString "names"
     return $ charList s
 
 -- | Get 'rownames' attribute.
-rownames :: Parser s [String]
+rownames :: Matcher s [String]
 rownames = do
     s <- attribute SString "row.names"
     return $ charList s
 
--- | Execute first parser that will not fail.
-choice :: [Parser s a] -> Parser s a
+-- | Execute first matcher that will not fail.
+choice :: [Matcher s a] -> Matcher s a
 choice = asum
 
 -- | Matches a @List@ object.
 list
   :: Int -- ^ Upper bound on number of elements to match.
-  -> Parser s a -- ^ Parser to apply to each element
-  -> Parser s [a]
+  -> Matcher s a -- ^ Matcher to apply to each element
+  -> Matcher s [a]
 list 0 _ = return []
 list n p = choice
     [ null *> pure []
@@ -333,7 +333,7 @@ list n p = choice
     ]
 
 -- | Match a factor. Returns the levels of the factor.
-factor :: Parser s [String]
+factor :: Matcher s [String]
 factor = do
     s3 ["factor"]
     levels <- charList <$> attribute SString "levels"
