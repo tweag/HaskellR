@@ -103,7 +103,7 @@ module Foreign.R
   , string
   , unsafeSEXPToVectorPtr
   , unsafeVectorPtrToSEXP
-  , indexVector
+  , readVector
   , writeVector
     -- * Evaluation
   , eval
@@ -150,6 +150,8 @@ module Foreign.R
   , release
   , unsafeRelease
   , withProtected
+  -- * Deprecated
+  , indexVector
   ) where
 
 import Control.Memory.Region
@@ -278,9 +280,13 @@ type RLogical = 'R.Logical
 {#fun STRING_PTR as string { unsexp `SEXP s R.String'}
       -> `Ptr (SEXP s R.Char)' castPtr #}
 
-{# fun VECTOR_ELT as indexVector `R.IsGenericVector a'
+{# fun VECTOR_ELT as readVector `R.IsGenericVector a'
      => { unsexp `SEXP s a', `Int' }
      -> `SomeSEXP s' somesexp #}
+
+indexVector :: IsGenericVector a => SEXP s a -> Int -> IO (SomeSEXP s)
+{-# DEPRECATED indexVector "Use readVector instead." #-}
+indexVector = readVector
 
 {# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a'
      => { unsexp `SEXP s a', `Int', unsexp `SEXP s b' }
