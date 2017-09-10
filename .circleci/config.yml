@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/HaskellR
+    docker:
+    - image: tweag/haskellr
+    steps:
+    - checkout
+    - restore_cache:
+        key: HaskellR-stack-dependencies-{{ checksum "stack.yaml" }}
+    - run:
+        name: build dependencies
+        command: stack --no-terminal build --only-dependencies --prefetch --test --bench
+    - save_cache:
+        key: HaskellR-stack-dependencies
+        paths:
+        - ~/.stack
+    - run:
+        name: build project
+        command: stack --no-terminal build --pedantic --test --bench --no-run-tests --no-run-benchmarks
+    - run:
+        name: test
+        command: stack --no-terminal test
