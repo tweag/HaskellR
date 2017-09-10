@@ -3,19 +3,19 @@
 -- Stability:   Experimental
 -- Portability: Portable
 --
--- The "Parser" module provides an interface to deconstruct SEXP values and
--- to compose destructors, where cascades of cases would be necessary
--- otherwise.
+-- The "Parser" module provides an interface to deconstruct SEXP values and to
+-- compose destructors, where cascades of cases would be necessary otherwise.
 --
--- In addition this is the the simplest way to get additional attributes
--- that exists in the structure.
---
+-- In addition this is the the simplest way to get additional attributes that
+-- exists in the structure.
+
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RankNTypes #-}
+
 module Language.R.Parser
   ( Parser(..)
   , parseOnly
@@ -77,53 +77,54 @@ import           GHC.Generics (Generic)
 
 import Prelude hiding (null)
 
--- | Parser. That run inspection over 'SomeSEXP'.
--- Parser is bound to the region where 'SomeSEXP' is allocated,
--- so extracted value will not leak out of the region scope.
+-- | Parser. That run inspection over 'SomeSEXP'. Parser is bound to the region
+-- where 'SomeSEXP' is allocated, so extracted value will not leak out of the
+-- region scope.
 --
--- This parser is a pure function, so if you need to allocate
--- any object (for example for comparison or lookup) you should
--- do it before running parser.
+-- This parser is a pure function, so if you need to allocate any object (for
+-- example for comparison or lookup) you should do it before running parser.
 --
 -- Parameters meaning:
 --
 --   * @s@ - region that parsed expression belongs to
 --   * @r@ - value that will be returned as a result of parsing
---
-newtype Parser s a = Parser {
-  runParser :: forall r . SomeSEXP s  -- parsed expression
-            -> (a -> r)    -- continuation in case of success
-            -> (ParserError s -> r) -- continuation in case of failure
-            -> r
+newtype Parser s a = Parser
+  { runParser
+      :: forall r.
+         SomeSEXP s  -- parsed expression
+      -> (a -> r) -- continuation in case of success
+      -> (ParserError s -> r) -- continuation in case of failure
+      -> r
   }
 
--- Continuation monad is used in order to make parsing fast and
--- and have an equal cost for left and right combinations.
--- Different continuations for success and failure cases were chosen
--- because otherwise we'd have to keep result in 'Either' that would
--- lead to more boxing. Though I have to admit that benchmarks were
--- not done, and this approach were chosen as initial one, as it's
--- not much more complex then others.
+-- Continuation monad is used in order to make parsing fast and and have an
+-- equal cost for left and right combinations. Different continuations for
+-- success and failure cases were chosen because otherwise we'd have to keep
+-- result in 'Either' that would lead to more boxing. Though I have to admit
+-- that benchmarks were not done, and this approach were chosen as initial one,
+-- as it's not much more complex then others.
 
 instance Monad (Parser s) where
   return x = Parser $ \_ f _ -> f x
-  (Parser f) >>= k = Parser $ \s ok err ->
-    f s (\o -> runParser (k o) s ok err) err
-  fail s = Parser $ \_ _ err -> err $ ParserError s 
+  Parser f >>= k = Parser $ \s ok err -> f s (\o -> runParser (k o) s ok err) err
+  fail s = Parser $ \_ _ err -> err $ ParserError s
+
 instance Applicative (Parser s) where
   pure = return
   (<*>) = ap
+
 instance Functor (Parser s) where
   fmap = liftM
+
 instance Alternative (Parser s) where
   empty = fail "empty"
   f <|> g = Parser $ \s ok err ->
-    runParser f s ok (\e' -> runParser g s ok (err . (mappend e')))
+      runParser f s ok (\e' -> runParser g s ok (err . (mappend e')))
 
 instance Monoid (ParserError s) where
   mempty = ParserError "empty"
-  a `mappend` (ParserError "empty") = a
-  _ `mappend` a = a 
+  a `mappend` ParserError "empty" = a
+  _ `mappend` a = a
 
 -- | Exception during parsing.
 data ParserError s
@@ -138,23 +139,23 @@ data ParserError s
 instance NFData (ParserError s)
 
 -- | Parse 'SomeSEXP' throwing 'ParseException' in case if parse failed.
--- 
+--
 -- Result is always forced to NF as otherwise it's not possible to
 -- guarantee that value with thunks will not escape protection region.
-parseOnly :: (MonadR m, Region m ~ s, NFData a)
-          => Parser s a
-          -> SomeSEXP s
-          -> m (Either (ParserError s) a)
-parseOnly p s = runParser p s (return . force . Right)
-                              (return . force . Left)
-
+parseOnly
+  :: (MonadR m, Region m ~ s, NFData a)
+  => Parser s a
+  -> SomeSEXP s
+  -> m (Either (ParserError s) a)
+parseOnly p s =
+  runParser p s (return . force . Right) (return . force . Left)
 
 -- $interface
 -- The main functions of the parser provide a simple way of accessing
 -- information about the current 'SomeSEXP'. Those functions are useful
 -- if you use pure internal functions 'Foreign.R' functions to get
 -- information out of the data structure.
--- 
+--
 -- Another scenario is to use them in subparsers together with 'with'
 -- combinator, that allow you to inspect the structure deeper without
 -- exiting the parser.
@@ -165,12 +166,11 @@ somesexp = Parser $ \s ok _ -> ok s
 
 -- | Returns current 'SEXP' if it is of the requested type,
 -- fails otherwise, returns @TypeMissmatch@ in that case.
-sexp :: SSEXPTYPE ty
-     -> Parser s (SEXP s ty)
+sexp :: SSEXPTYPE ty -> Parser s (SEXP s ty)
 sexp p = Parser $ \(SomeSEXP s) ok err ->
-  if fromSing p == H.typeOf s
-  then ok (R.unsafeCoerce s)
-  else err $ TypeMissmatch (SomeSEXP s) (R.typeOf s) (fromSing p)
+    if fromSing p == H.typeOf s
+    then ok (R.unsafeCoerce s)
+    else err $ TypeMissmatch (SomeSEXP s) (R.typeOf s) (fromSing p)
 
 -- | Run a subparser on another 'SomeSEXP'. All exceptions in the
 -- internal parser are propagated to the parent one.
@@ -193,12 +193,12 @@ null = void $ sexp SNil
 -- internal R's function to check if the object is S4.
 s4 :: Parser s ()
 s4 = Parser $ \(SomeSEXP s) ok err ->
-  -- Manual check using 'sexp' or 'hexp' is not enough, as R is
-  -- clever enough to make this check not obvious.
-  if R.isS4 s
-  then ok ()
-  else err (TypeMissmatch (SomeSEXP s) (R.typeOf s) R.S4)
- 
+    -- Manual check using 'sexp' or 'hexp' is not enough, as R is
+    -- clever enough to make this check not obvious.
+    if R.isS4 s
+    then ok ()
+    else err (TypeMissmatch (SomeSEXP s) (R.typeOf s) R.S4)
+
 -- | Succeeds if 'SomeSEXP' is an S3 object of the given type.
 -- In general case it's better to use 'getS3Class' because it
 -- will run same check, but also will return the class(es) of
@@ -226,45 +226,44 @@ guardType s = typeOf >>= guard . (s ==)
 -- out of vector, or factors are presented as an interger
 -- vector with 'rownames' attribute attached.
 
-
 -- | Returns any attribute by it's name if it exists.
 -- Fails with @NoSuchAttribute@ otherwise.
 someAttribute :: String -> Parser s (SomeSEXP s)
 someAttribute n = Parser $ \(SomeSEXP s) ok err ->
-  let result = unsafePerformIO $ do
-        c <- withCString n R.install
-        evaluate $ R.getAttribute s c
-  in case R.typeOf result of
-    R.Nil -> err (NoSuchAttribute (SomeSEXP s) n)
-    _ -> ok (SomeSEXP result)
+    let result = unsafePerformIO $ do
+          c <- withCString n R.install
+          evaluate $ R.getAttribute s c
+    in case R.typeOf result of
+      R.Nil -> err (NoSuchAttribute (SomeSEXP s) n)
+      _ -> ok (SomeSEXP result)
 
 -- | Typed version of the 'someAttribute' call. In addition
 -- to retrieving value it's dynamically type checked.
 attribute :: SSEXPTYPE a -> String -> Parser s (SEXP s a)
 attribute p s = do
-  (SomeSEXP z) <- someAttribute s
-  if fromSing p == H.typeOf z
-  then return $ R.unsafeCoerce z
-  else empty
+    (SomeSEXP z) <- someAttribute s
+    if fromSing p == H.typeOf z
+    then return $ R.unsafeCoerce z
+    else empty
 
--- | Parse all attributes, takes a parser and applies it to the  
+-- | Parse all attributes, takes a parser and applies it to the
 -- each attribute exists, returns list of the attribute name, together
 -- with parser result.
 -- If parser returns @Nothing@ - result is omitted..
 attributes :: Parser s (Maybe a) -> Parser s [(String, a)]
 attributes p = do
-   SomeSEXP s <- somesexp
-   let sa = unsafePerformIO $ SomeSEXP <$> R.getAttributes s
-   with sa $ choice
-     [ null *> pure []
-     , do mns <- optional names
-          case mns of
-            Nothing -> return []
-            Just ns -> do
-              ps <- list (length ns) p
-              return $ mapMaybe (\(x,y) -> fmap (x,) y) $ zip ns ps
-     , pure []
-     ]
+    SomeSEXP s <- somesexp
+    let sa = unsafePerformIO $ SomeSEXP <$> R.getAttributes s
+    with sa $ choice
+      [ null *> pure []
+      , do mns <- optional names
+           case mns of
+             Nothing -> return []
+             Just ns -> do
+               ps <- list (length ns) p
+               return $ mapMaybe (\(x,y) -> fmap (x,) y) $ zip ns ps
+      , pure []
+      ]
 
 -- | Find an attribute in attribute list if it exists.
 lookupAttribute :: String -> Parser s (Maybe (SomeSEXP s))
@@ -283,6 +282,7 @@ typeOf = (\(SomeSEXP s) -> H.typeOf s) <$> somesexp
 -- | Return the class of the S3 object, fails otherwise.
 getS3Class :: Parser s [String]
 getS3Class = charList <$> attribute SString "class"
+
 --------------------------------------------------------------------------------
 -- Helpers
 --------------------------------------------------------------------------------
@@ -296,32 +296,31 @@ charList _ = error "Impossible happened."
 -- | Get 'dim' attribute.
 dim :: Parser s [Int]
 dim = go <$> attribute SInt "dim"
- where
-   go :: SEXP s 'R.Int -> [Int]
-   go (H.hexp -> Int v) = fromIntegral <$> SV.toList v
-   go _ = error "Impossible happened."
+  where
+    go :: SEXP s 'R.Int -> [Int]
+    go (H.hexp -> Int v) = fromIntegral <$> SV.toList v
+    go _ = error "Impossible happened."
 
 -- | Get 'dimnames' attribute.
 dimnames :: Parser s [[String]]
 dimnames = do
-  s <- attribute SVector "dimnames"
-  case H.hexp s of
-    Vector _ v -> for (SV.toList v) (`with` go)
+    s <- attribute SVector "dimnames"
+    case H.hexp s of
+      Vector _ v -> for (SV.toList v) (`with` go)
   where
-    go = choice [ charList <$> sexp SString
-                , null *> pure []
-                ]
+    go = choice [charList <$> sexp SString, null *> pure []]
 
 -- | Get 'names' attribute.
 names :: Parser s [String]
 names = do
-  s <- attribute SString "names"
-  return $ charList s
+    s <- attribute SString "names"
+    return $ charList s
 
 -- | Get 'rownames' attribute.
 rownames :: Parser s [String]
-rownames = do s <- attribute SString "row.names"
-              return $ charList s
+rownames = do
+    s <- attribute SString "row.names"
+    return $ charList s
 
 -- | Execute first parser that will not fail.
 choice :: [Parser s a] -> Parser s a
@@ -329,19 +328,20 @@ choice = asum
 
 -- | Parser that is applied to the R @List@ object and returns l
 -- of the results.
-list :: Int -- ^ Number of elements in a list.
-     -> Parser s a -- ^ Parser to apply to each element
-     -> Parser s [a]
+list
+  :: Int -- ^ Number of elements in a list.
+  -> Parser s a -- ^ Parser to apply to each element
+  -> Parser s [a]
 list 0 _ = return []
 list n p = choice
-  [ null *> pure []
-    -- Note: quite possibly this method uses linear stack space.
-    -- It should be verified and fixed if this is a case.
-  , hexp SList $ \(List car cdr _) -> do
-       v  <- with (SomeSEXP car) p
-       vs <- with (SomeSEXP cdr) $ list (n-1) p
-       return (v:vs)
-  ]
+    [ null *> pure []
+      -- Note: quite possibly this method uses linear stack space.
+      -- It should be verified and fixed if this is a case.
+    , hexp SList $ \(List car cdr _) -> do
+         v  <- with (SomeSEXP car) p
+         vs <- with (SomeSEXP cdr) $ list (n-1) p
+         return (v:vs)
+    ]
 
 -- $parsers
 -- inline-r provides a set of the parsers that can be used in the libraries
@@ -351,8 +351,7 @@ list n p = choice
 -- and returns a list of strings as an ouput
 factor :: Parser s [String]
 factor = do
-  s3 ["factor"]
-  levels <- charList <$> attribute SString "levels"
-  hexp R.SInt $ \(Int v) ->
-    return $! (\i -> levels !! (fromIntegral i - 1)) <$> SV.toList v
-
+    s3 ["factor"]
+    levels <- charList <$> attribute SString "levels"
+    hexp R.SInt $ \(Int v) ->
+      return $! (\i -> levels !! (fromIntegral i - 1)) <$> SV.toList v
