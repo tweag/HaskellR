@@ -13,7 +13,7 @@ jobs:
         command: stack --no-terminal setup
     - run:
         name: build dependencies
-        command: stack --no-terminal build --only-dependencies --prefetch --test --bench
+        command: stack --jobs 1 --no-terminal build --only-dependencies --prefetch --test --bench
     - save_cache:
         key: HaskellR-stack-dependencies
         paths:
