@@ -3,18 +3,25 @@
 -- Stability:   Experimental
 -- Portability: Portable
 --
--- Provides an interface to deconstruct 'SEXP' values and to compose
--- destructors, where cascades of cases would otherwise be necessary otherwise.
+-- A 'Matcher' lets you match 'SEXP' values against composable patterns, where
+-- cascading cases would otherwise be necessary otherwise.
 --
--- In addition, this is the the simplest way to get additional attributes that
--- exists in the structure.
+-- Example:
+--
+-- @
+-- -- Check that input is an S3 object of class "matrix"
+-- -- and return the value of the "dim" attribute.
+-- isMatrix = matchOnly $ do
+--    s3 ["matrix"]
+--    dim
+-- @
 
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Language.R.Matcher
   ( Matcher(..)
