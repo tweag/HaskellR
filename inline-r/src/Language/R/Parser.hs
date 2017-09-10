@@ -330,8 +330,8 @@ choice = asum
 -- | Parser that is applied to the R @List@ object and returns l
 -- of the results.
 list :: Int -- ^ Number of elements in a list.
-     -> Parser s (Maybe a) -- ^ Parser to apply to each element
-     -> Parser s [Maybe a]
+     -> Parser s a -- ^ Parser to apply to each element
+     -> Parser s [a]
 list 0 _ = return []
 list n p = choice
   [ null *> pure []
