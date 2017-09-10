@@ -4,6 +4,10 @@ packages:
 - IHaskell
 - inline-r
 resolver: lts-6.12
+extra-deps:
+- ghc-parser-0.2.0.0
+- ihaskell-0.9.0.1
+- ipython-kernel-0.9.0.0
 
 docker:
   # Disabled by default. Use --docker on command line to enable.
