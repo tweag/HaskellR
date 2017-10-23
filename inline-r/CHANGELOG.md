@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.9.0.2 - 2016-10-23
+* Fix build on ghc-8.2.
+* Introduce Matcher API.
+
 ## 0.9.0 - 2016-06-20
 
 * Breaking change: Rewrite of the `H.Prelude` module API.
