@@ -142,7 +142,7 @@ instance NFData (MatcherError s)
 -- Result is always fully evaluated, since otherwise it wouldn't be possible to
 -- guarantee that thunks in the return value will not escape the memory region.
 matchOnly
-  :: (MonadR m, Region m ~ s, NFData a)
+  :: (MonadR m, NFData a)
   => Matcher s a
   -> SomeSEXP s
   -> m (Either (MatcherError s) a)
