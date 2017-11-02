@@ -133,7 +133,7 @@ collectAntis _ = Set.empty
 -- @
 expQQ :: String -> Q TH.Exp
 expQQ input = do
-    expr <- runIO $ parse input
+    expr <- runIO $ R.protect =<< parse input
     let antis = [x | (hexp -> Char (Vector.toString -> x))
                        <- Set.toList (collectAntis expr)]
         args = map (TH.dyn . chop) antis
@@ -142,7 +142,7 @@ expQQ input = do
     vars <- mapM (\_ -> TH.newName "x") antis
     -- Abstract over antis using fresh vars, to avoid captures with names bound
     -- internally (such as 'f' below).
-    (\body -> foldl TH.appE body args) $ TH.lamE (map TH.varP vars)
+    x <- (\body -> foldl TH.appE body args) $ TH.lamE (map TH.varP vars)
       [| do -- Memoize the runtime parsing of the generated closure (provided the
             -- compiler notices that it can let-float to top-level).
             let sx = unsafePerformIO $ do
@@ -158,3 +158,5 @@ expQQ input = do
                                          car <- mkSEXPIO $(TH.varE x)
                                          R.lcons car cdr |]) z vars)
        |]
+    runIO $ R.unprotectPtr expr
+    pure x
