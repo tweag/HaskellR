@@ -19,7 +19,7 @@ install:
   - brew update
   - brew tap homebrew/science
   - brew install r zeromq
-  - pip install ipython
+  - pip install ipython==5.5.0
   - stack setup
   - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
 
