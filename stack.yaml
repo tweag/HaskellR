@@ -17,4 +17,5 @@ docker:
   repo: tweag/haskellr:latest
 
 nix:
-    shell-file: ./shell.nix
+  shell-file: ./shell.nix
+  path: ["nixpkgs=./nixpkgs.nix"]
