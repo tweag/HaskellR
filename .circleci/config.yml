@@ -1,26 +1,74 @@
 version: 2
+
 jobs:
-  build:
-    working_directory: ~/HaskellR
+  publish:
     docker:
-    - image: tweag/haskellr
+      - image: docker
+    working_directory: ~/HaskellR
     steps:
-    - checkout
-    - restore_cache:
-        key: HaskellR-stack-dependencies-{{ checksum "stack.yaml" }}
-    - run:
-        name: Install GHC
-        command: stack --no-terminal setup
-    - run:
-        name: build dependencies
-        command: stack --jobs 1 --no-terminal build --only-dependencies --prefetch --test --bench
-    - save_cache:
-        key: HaskellR-stack-dependencies
-        paths:
-        - ~/.stack
-    - run:
-        name: build project
-        command: stack --no-terminal build --pedantic --test --bench --no-run-tests --no-run-benchmarks
-    - run:
-        name: test
-        command: stack --no-terminal test
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t tweag/haskellr .
+      - run:
+          name: Publish Docker image
+          command: |
+            if [[ $CIRCLE_PROJECT_USERNAME = "tweag" ]];
+            then
+                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                docker push tweag/haskellr
+                docker tag tweag/haskellr tweag/haskellr:$CIRCLE_TAG
+                docker push tweag/haskellr:$CIRCLE_TAG
+            fi
+  build:
+    docker:
+      - image: nixos/nix
+    working_directory: ~/HaskellR
+    steps:
+      - checkout
+      - run:
+          name: Install Stack
+          command: |
+            apk update --no-progress && apk --no-progress add ca-certificates bash
+            nix-env -f nixpkgs.nix -iA stack
+      - run:
+          name: Compute cache key
+          command: |
+            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
+      - restore_cache:
+          keys:
+            - HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+            - HaskellR-stack-dependencies-{{ arch }}-
+      - run:
+          name: Build dependencies
+          command: |
+            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
+      - save_cache:
+          key: HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          paths:
+            - ~/.stack
+      - run:
+          name: Build project
+          command: |
+            stack --no-terminal --nix build --pedantic --test --bench --no-run-tests --no-run-benchmarks
+      - run:
+          name: Test
+          command: |
+            stack --nix --no-terminal test
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+  publish:
+    jobs:
+      - publish:
+          context: org-global
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
