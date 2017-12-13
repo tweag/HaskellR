@@ -15,9 +15,9 @@ haskell.lib.buildStackProject {
   inherit ghc;
   buildInputs =
     [ ncurses
-      python35Packages.ipython
-      python35Packages.jupyter_client
-      python35Packages.notebook
+      python36Packages.ipython
+      python36Packages.jupyter_client
+      python36Packages.notebook
       R
       zeromq
       zlib
