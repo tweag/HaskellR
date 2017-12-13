@@ -142,7 +142,7 @@ test-suite tests
                        Test.Event
                        Test.Regions
                        Test.Vector
-                       Test.Parser
+                       Test.Matcher
   -- Adding -j4 causes quasiquoters to be compiled concurrently
   -- in tests, which helps testing for race conditions when
   -- trying to initialize R from multiple threads.

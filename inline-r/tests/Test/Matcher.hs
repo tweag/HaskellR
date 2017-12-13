@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes     #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Test.Parser
+module Test.Matcher
   ( tests )
   where
 
