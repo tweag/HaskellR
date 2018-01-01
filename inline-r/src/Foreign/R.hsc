@@ -29,14 +29,13 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
--- Necessary for c2hs < 0.26 compat.
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
-{-# OPTIONS_GHC -fno-warn-unused-matches #-}
-#if __GLASGOW_HASKELL__ >= 710
--- We don't use ticks in this module, because they confuse c2hs.
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-#endif
+-- Warns about some sanity checks like IsVector, that has no methods and are
+-- not used.
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+
 module Foreign.R
   ( module Foreign.R.Type
     -- * Internal R structures
@@ -155,206 +154,219 @@ module Foreign.R
   ) where
 
 import Control.Memory.Region
-import {-# SOURCE #-} Language.R.HExp (HExp)
-import Foreign.R.Internal hiding (SEXP0)
+import Data.Monoid ((<>))
+import Foreign.R.Internal
 import Foreign.R.Type
 import Foreign.R.Type as R
 
 import Control.Applicative
-import Control.DeepSeq (NFData(..))
 import Control.Exception (bracket)
-import Control.Monad.Primitive ( unsafeInlineIO )
-import Data.Bits -- For c2hs < 0.26.
 import Data.Complex
 import Data.Int (Int32)
-import Data.Singletons (fromSing)
 #if __GLASGOW_HASKELL__ < 710
 import Data.Typeable (Typeable)
 #endif
-import Foreign (Ptr, castPtr, plusPtr, Storable(..))
+import Foreign (Ptr, castPtr)
 import Foreign.C
+import Foreign.R.Context (rCtx, SEXP0, SEXPREC)
+import qualified Language.C.Inline as C
 import Prelude hiding (asTypeOf, length)
 
 #define USE_RINTERNALS
-#include <R.h>
 #include <Rinternals.h>
-#include <R_ext/Memory.h>
-#include "missing_r.h"
 
-
--- | 'SEXP' with no type index. This type and 'sexp' / 'unsexp'
--- are purely an artifact of c2hs (which doesn't support indexing a Ptr with an
--- arbitrary type in a @#pointer@ hook).
-{#pointer SEXP as SEXP0 -> SEXPREC #}
-
--- XXX temp workaround due to R bug: doesn't export R_CHAR when USE_RINTERNALS
--- is defined.
-#c
-const char *(R_CHAR)(SEXP x);
-#endc
+C.context (C.baseCtx <> rCtx)
+C.include "<Rinternals.h>"
+C.include "<stdlib.h>"
 
 --------------------------------------------------------------------------------
 -- Generic accessor functions                                                 --
 --------------------------------------------------------------------------------
 
 -- | read CAR object value
-{#fun CAR as car { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}
+car :: SEXP s a -> IO (SomeSEXP s)
+car (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
 
 -- | read CDR object
-{#fun CDR as cdr { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}
+cdr :: SEXP s a -> IO (SomeSEXP s)
+cdr (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
 
 -- | read object`s Tag
-{# fun TAG as tag { unsexp `SEXP s a' } -> `SomeSEXP s' somesexp #}  --- XXX: add better constraint
+tag :: SEXP s a -> IO (SomeSEXP s)
+tag (unsexp -> s) = somesexp <$> [C.exp| SEXP { TAG( $(SEXP s) ) } |]
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
 --------------------------------------------------------------------------------
 
--- | Environment frame.
-{# fun FRAME as envFrame { unsexp `SEXP s R.Env' } -> `SEXP s R.PairList' sexp #}
+envFrame :: (SEXP s 'R.Env) -> IO (SEXP s R.PairList)
+envFrame (unsexp -> s) = sexp <$> [C.exp| SEXP { FRAME( $(SEXP s) ) } |]
 
 -- | Enclosing environment.
-{# fun ENCLOS as envEnclosing { unsexp `SEXP s R.Env' } -> `SEXP s R.Env' sexp #}
+envEnclosing :: SEXP s 'R.Env -> IO (SEXP s 'R.Env)
+envEnclosing (unsexp -> s) = sexp <$> [C.exp| SEXP { ENCLOS( $(SEXP s) ) } |]
 
 -- | Hash table associated with the environment, used for faster name lookups.
-{# fun HASHTAB as envHashtab { unsexp `SEXP s R.Env' } -> `SEXP s R.Vector' sexp #}
+envHashtab :: SEXP s 'R.Env -> IO (SEXP s 'R.Vector)
+envHashtab (unsexp -> s) = sexp <$> [C.exp| SEXP { HASHTAB( $(SEXP s) ) } |]
 
 --------------------------------------------------------------------------------
 -- Closure functions                                                          --
 --------------------------------------------------------------------------------
 
 -- | Closure formals (aka the actual arguments).
-{# fun FORMALS as closureFormals { unsexp `SEXP s R.Closure' } -> `SEXP s R.PairList' sexp #}
+closureFormals :: SEXP s 'R.Closure -> IO (SEXP s R.PairList)
+closureFormals (unsexp -> s) = sexp <$> [C.exp| SEXP { FORMALS( $(SEXP s) ) }|]
 
 -- | The code of the closure.
-{# fun BODY as closureBody { unsexp `SEXP s R.Closure' } -> `SomeSEXP s' somesexp #}
+closureBody :: SEXP s 'R.Closure -> IO (SomeSEXP s)
+closureBody (unsexp -> s) = somesexp <$> [C.exp| SEXP { BODY( $(SEXP s) ) } |]
 
 -- | The environment of the closure.
-{# fun CLOENV as closureEnv { unsexp `SEXP s R.Closure' } -> `SEXP s R.Env' sexp #}
+closureEnv :: SEXP s 'R.Closure -> IO (SEXP s 'R.Env)
+closureEnv (unsexp -> s) = sexp <$> [C.exp| SEXP { CLOENV( $(SEXP s) ) }|]
 
 --------------------------------------------------------------------------------
 -- Promise functions                                                          --
 --------------------------------------------------------------------------------
 
 -- | The code of a promise.
-{# fun PRCODE as promiseCode { unsexp `SEXP s R.Promise'} -> `SomeSEXP s' somesexp #}
+promiseCode :: SEXP s 'R.Promise -> IO (SomeSEXP s)
+promiseCode (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRCODE( $(SEXP s) )}|]
 
 -- | The environment in which to evaluate the promise.
-{# fun PRENV as promiseEnv { unsexp `SEXP s R.Promise'} -> `SEXP s R.Env' sexp #}
+promiseEnv :: SEXP s 'R.Promise -> IO (SomeSEXP s)
+promiseEnv (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRENV( $(SEXP s) )}|]
 
 -- | The value of the promise, if it has already been forced.
-{# fun PRVALUE as promiseValue { unsexp `SEXP s R.Promise'} -> `SomeSEXP s' somesexp #}
+promiseValue :: SEXP s 'R.Promise -> IO (SomeSEXP s)
+promiseValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRVALUE( $(SEXP s) )}|]
 
 --------------------------------------------------------------------------------
 -- Vector accessor functions                                                  --
 --------------------------------------------------------------------------------
 
 -- | Read True Length vector field.
-{#fun TRUELENGTH as trueLength `R.IsVector a' => { unsexp `SEXP s a' } -> `CInt' id #}
+trueLength :: R.IsVector a => SEXP s a -> IO CInt
+trueLength (unsexp -> s) = [C.exp| int { TRUELENGTH( $(SEXP s) ) }|]
 
 -- | Read character vector data
-{#fun R_CHAR as char { unsexp `SEXP s R.Char' } -> `CString' id #}
+char :: SEXP s 'R.Char -> IO CString
+char (unsexp -> s) = castPtr <$> [C.exp| const char* { CHAR($(SEXP s))}|]
 -- XXX: check if we really need Word8 here, maybe some better handling of
 -- encoding
 
 -- | Read real vector data.
-{#fun REAL as real { unsexp `SEXP s R.Real' } -> `Ptr Double' castPtr #}
+real :: SEXP s 'R.Real -> IO (Ptr Double)
+real (unsexp -> s) = castPtr <$> [C.exp| double* { REAL( $(SEXP s)) }|]
 
 -- | Read integer vector data.
-{#fun unsafe INTEGER as integer { unsexp `SEXP s R.Int' } -> `Ptr Int32' castPtr #}
+integer :: SEXP s 'R.Int -> IO (Ptr Int32)
+integer (unsexp -> s) = [C.exp| int32_t* { INTEGER( $(SEXP s) )}|]
 
 -- | Read raw data.
-{#fun RAW as raw { unsexp `SEXP s R.Raw' } -> `Ptr CChar' castPtr #}
-
--- XXX Workaround c2hs syntax limitations.
-type RLogical = 'R.Logical
+raw :: SEXP s 'R.Raw -> IO (Ptr CChar)
+raw (unsexp -> s) = [C.exp| char* { RAW($(SEXP s)) } |]
 
 -- | Read logical vector data.
-{#fun LOGICAL as logical { unsexp `SEXP s RLogical' } -> `Ptr R.Logical' castPtr #}
+logical :: SEXP s 'R.Logical -> IO (Ptr R.Logical)
+logical (unsexp -> s) = castPtr <$>
+  [C.exp| int* { LOGICAL($(SEXP s)) } |]
 
 -- | Read complex vector data.
-{#fun COMPLEX as complex { unsexp `SEXP s R.Complex' }
-      -> `Ptr (Complex Double)' castPtr #}
+complex :: SEXP s 'R.Complex -> IO (Ptr (Complex Double))
+complex (unsexp -> s) = [C.exp| Rcomplex* { COMPLEX($(SEXP s)) }|]
 
 -- | Read string vector data.
-{#fun STRING_PTR as string { unsexp `SEXP s R.String'}
-      -> `Ptr (SEXP s R.Char)' castPtr #}
+string :: SEXP s 'R.String -> IO (Ptr (SEXP s 'R.Char))
+string (unsexp -> s) = castPtr <$>
+  [C.exp| SEXP* { STRING_PTR($(SEXP s)) }|]
 
-{# fun VECTOR_ELT as readVector `R.IsGenericVector a'
-     => { unsexp `SEXP s a', `Int' }
-     -> `SomeSEXP s' somesexp #}
+readVector :: R.IsGenericVector a => SEXP s a -> Int -> IO (SomeSEXP s)
+readVector (unsexp -> s) (fromIntegral -> n) = somesexp <$>
+  [C.exp| SEXP { VECTOR_ELT( $(SEXP s), $(int n) ) } |]
 
 indexVector :: IsGenericVector a => SEXP s a -> Int -> IO (SomeSEXP s)
 {-# DEPRECATED indexVector "Use readVector instead." #-}
 indexVector = readVector
 
-{# fun SET_VECTOR_ELT as writeVector `R.IsGenericVector a'
-     => { unsexp `SEXP s a', `Int', unsexp `SEXP s b' }
-     -> `SEXP s a' sexp #}
+writeVector :: R.IsGenericVector a => SEXP s a -> Int -> SEXP s b -> IO (SEXP s a)
+writeVector (unsexp -> a) (fromIntegral -> n) (unsexp -> b) = sexp <$>
+  [C.exp| SEXP { SET_VECTOR_ELT($(SEXP a),$(int n), $(SEXP b)) } |]
 
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-{#fun PRINTNAME as symbolPrintName { unsexp `SEXP s R.Symbol' } -> `SEXP s R.Char' sexp #}
+symbolPrintName :: SEXP s 'R.Symbol -> IO (SEXP s a)
+symbolPrintName (unsexp -> s) = sexp <$> [C.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
 
 -- | Read value from symbol.
-{#fun SYMVALUE as symbolValue { unsexp `SEXP s R.Symbol' } -> `SEXP s a' sexp #}
+symbolValue :: SEXP s 'R.Symbol -> IO (SEXP s a)
+symbolValue (unsexp -> s) = sexp <$> [C.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
 
 -- | Read internal value from symbol.
-{#fun INTERNAL as symbolInternal { unsexp `SEXP s R.Symbol' } -> `SEXP s a' sexp #}
-
---------------------------------------------------------------------------------
--- Value conversion                                                           --
---------------------------------------------------------------------------------
+symbolInternal :: SEXP s 'R.Symbol -> IO (SEXP s a)
+symbolInternal (unsexp -> s) = sexp <$> [C.exp| SEXP { INTERNAL( $(SEXP s)) }|]
 
 --------------------------------------------------------------------------------
 -- Value contruction                                                          --
 --------------------------------------------------------------------------------
 
 -- | Initialize a new string vector.
-{#fun Rf_mkString as mkString { id `CString' } -> `SEXP V R.String' sexp #}
+mkString :: CString -> IO (SEXP V 'R.String)
+mkString value = sexp <$>  [C.exp| SEXP { Rf_mkString($(char * value)) } |]
 
 -- | Initialize a new character vector (aka a string).
-{#fun Rf_mkChar as mkChar { id `CString' } -> `SEXP V R.Char' sexp #}
+mkChar :: CString -> IO (SEXP V 'R.Char)
+mkChar value = sexp <$> [C.exp| SEXP { Rf_mkChar($(char * value)) } |]
 
 -- | Create Character value with specified encoding
-{#fun Rf_mkCharCE as mkCharCE_ { id `CString', cIntFromEnum `CEType' } -> `SEXP V R.Char' sexp #}
-
-mkCharCE :: CEType -> CString -> IO (SEXP V R.Char)
-mkCharCE = flip mkCharCE_
+mkCharCE :: CEType -> CString -> IO (SEXP V 'R.Char)
+mkCharCE (cIntFromEnum -> ce) value = sexp <$> 
+  [C.exp| SEXP  { Rf_mkCharCE($(char * value), $(int ce)) } |]
 
 -- | Intern a string @name@ into the symbol table.
 --
 -- If @name@ is not found, it is added to the symbol table. The symbol
 -- corresponding to the string @name@ is returned.
-{#fun Rf_install as install { id `CString' } -> `SEXP V R.Symbol' sexp #}
+install :: CString -> IO (SEXP V 'R.Symbol)
+install name = sexp <$>
+  [C.exp| SEXP { Rf_install($(char * name)) }|]
 
 -- | Allocate a 'SEXP'.
-{#fun Rf_allocSExp as allocSEXP { cUIntFromSingEnum `SSEXPTYPE a' }
-      -> `SEXP V a' sexp #}
+allocSEXP :: SSEXPTYPE a -> IO (SEXP V a)
+allocSEXP (cUIntFromSingEnum -> s) = sexp <$>
+  [C.exp| SEXP { Rf_allocSExp( $(unsigned int s) ) }|]
 
 -- | Allocate a pairlist of 'SEXP's, chained together.
-{#fun Rf_allocList as allocList { `Int' } -> `SEXP V R.List' sexp #}
+allocList :: Int -> IO (SEXP V 'R.List)
+allocList (fromIntegral -> n) = sexp <$> [C.exp| SEXP {Rf_allocList($(int n))} |]
 
 -- | Allocate Vector.
-{#fun Rf_allocVector as allocVector `R.IsVector a'
-      => { cUIntFromSingEnum `SSEXPTYPE a',`Int' }
-      -> `SEXP V a' sexp #}
+allocVector :: R.IsVector a => SSEXPTYPE a -> Int -> IO (SEXP V a)
+allocVector (cUIntFromSingEnum -> p) (fromIntegral -> n) = sexp <$>
+  [C.exp| SEXP {Rf_allocVector( $(unsigned int p), $(int n)) } |]
 
 allocVectorProtected :: (R.IsVector a) => SSEXPTYPE a -> Int -> IO (SEXP s a)
 allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 
 -- | Allocate a so-called cons cell, in essence a pair of 'SEXP' pointers.
-{#fun Rf_cons as cons { unsexp `SEXP s a', unsexp `SEXP s b' } -> `SEXP V R.List' sexp #}
+cons :: SEXP s a -> SEXP s b -> IO (SEXP V 'R.List)
+cons (unsexp -> a) (unsexp -> b) = sexp <$>
+  [C.exp| SEXP { Rf_cons($(SEXP a), $(SEXP b)) }|]
 
 -- | Allocate a so-called cons cell of language objects, in essence a pair of
 -- 'SEXP' pointers.
-{#fun Rf_lcons as lcons { unsexp `SEXP s a', unsexp `SEXP s b' } -> `SEXP V R.Lang' sexp #}
+lcons :: SEXP s a -> SEXP s b -> IO (SEXP V 'R.Lang)
+lcons (unsexp -> a) (unsexp -> b) = sexp <$>
+  [C.exp| SEXP { Rf_lcons($(SEXP a), $(SEXP b)) } |]
 
--- | Print a string representation of a 'SEXP' on the console.
-{#fun Rf_PrintValue as printValue { unsexp `SEXP s a'} -> `()' #}
+
+printValue :: SEXP s a -> IO ()
+printValue (unsexp -> s) =
+  [C.exp| void { Rf_PrintValue($(SEXP s)) }|]
 
 --------------------------------------------------------------------------------
 -- Garbage collection                                                         --
@@ -366,67 +378,111 @@ allocVectorProtected ty n = fmap release (protect =<< allocVector ty n)
 --
 -- To avoid unbalancing calls to 'protect' and 'unprotect', do not use these
 -- functions directly but use 'Language.R.withProtected' instead.
-{#fun Rf_protect as protect { unsexp `SEXP s a'} -> `SEXP G a' sexp #}
+protect :: SEXP s a -> IO (SEXP G a)
+protect (unsexp -> s) = sexp <$> 
+  [C.exp| SEXP { Rf_protect($(SEXP s)) }|]
 
 -- | @unprotect n@ unprotects the last @n@ objects that were protected.
-{#fun Rf_unprotect as unprotect { `Int' } -> `()' #}
+unprotect :: Int -> IO ()
+unprotect (fromIntegral -> i) =
+  [C.exp| void { Rf_unprotect($(int i)) } |]
 
 -- | Unprotect a specific object, referred to by pointer.
-{#fun Rf_unprotect_ptr as unprotectPtr { unsexp `SEXP G a' } -> `()' #}
+unprotectPtr :: SEXP G a -> IO ()
+unprotectPtr (unsexp -> s) =
+  [C.exp| void { Rf_unprotect_ptr($(SEXP s)) }|]
 
 -- | Invoke an R garbage collector sweep.
-{#fun R_gc as gc { } -> `()' #}
+gc :: IO ()
+gc = [C.exp| void { R_gc() }|]
 
 -- | Preserve an object accross GCs.
-{#fun R_PreserveObject as preserveObject { unsexp `SEXP s a' } -> `()' #}
+preserveObject :: SEXP s a -> IO ()
+preserveObject (unsexp -> s) =
+  [C.exp| void { R_PreserveObject( $(SEXP s) )} |]
 
 -- | Allow GC to remove an preserved object.
-{#fun R_ReleaseObject as releaseObject { unsexp `SEXP s a' } -> `()' #}
+releaseObject :: SEXP s a -> IO ()
+releaseObject (unsexp -> s) =
+  [C.exp| void { R_ReleaseObject( $(SEXP s) )} |]
 
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
 --------------------------------------------------------------------------------
 
 -- | Evaluate any 'SEXP' to its value.
-{#fun Rf_eval as eval { unsexp `SEXP s a', unsexp `SEXP s R.Env' }
-      -> `SomeSEXP V' somesexp #}
+eval :: SEXP s a -> SEXP s 'R.Env -> IO (SomeSEXP V)
+eval (unsexp -> expr) (unsexp -> env) = somesexp <$>
+  [C.exp| SEXP { Rf_eval($(SEXP expr), $(SEXP env)) }|]
 
 -- | Try to evaluate expression.
-{#fun R_tryEval as tryEval { unsexp `SEXP s a', unsexp `SEXP s R.Env', id `Ptr CInt'}
-      -> `SomeSEXP V' somesexp #}
+tryEval :: SEXP s a -> SEXP s 'R.Env -> Ptr CInt -> IO (SomeSEXP V)
+tryEval (unsexp -> expr) (unsexp -> env) retCode = somesexp <$>
+  [C.exp| SEXP { R_tryEval($(SEXP expr), $(SEXP env), $(int* retCode)) }|]
 
 -- | Try to evaluate without printing error/warning messages to stdout.
-{#fun R_tryEvalSilent as tryEvalSilent
-    { unsexp `SEXP s a', unsexp `SEXP s R.Env', id `Ptr CInt'}
-      -> `SomeSEXP V' somesexp #}
+tryEvalSilent :: SEXP  s a -> SEXP s 'R.Env -> Ptr CInt -> IO (SomeSEXP V)
+tryEvalSilent (unsexp -> expr) (unsexp -> env) retCode = somesexp <$>
+  [C.exp| SEXP { R_tryEvalSilent($(SEXP expr), $(SEXP env), $(int* retCode)) }|]
 
 -- | Construct a nullary function call.
-{#fun Rf_lang1 as lang1 { unsexp `SEXP s a'} -> `SEXP V R.Lang' sexp #}
+lang1 :: SEXP s a -> IO (SEXP V 'R.Lang)
+lang1 (unsexp -> s) = sexp <$>
+  [C.exp| SEXP {Rf_lang1($(SEXP s)) }|]
 
 -- | Construct unary function call.
-{#fun Rf_lang2 as lang2 { unsexp `SEXP s a', unsexp `SEXP s b'} -> `SEXP V R.Lang' sexp #}
+lang2 :: SEXP s a -> SEXP s b ->  IO (SEXP V 'R.Lang)
+lang2 (unsexp -> f) (unsexp -> x) = sexp <$>
+  [C.exp| SEXP {Rf_lang2($(SEXP f), $(SEXP x)) }|]
 
 -- | Construct a binary function call.
-{#fun Rf_lang3 as lang3 { unsexp `SEXP s a', unsexp `SEXP s b', unsexp `SEXP s c'}
-      -> `SEXP V R.Lang' sexp #}
+lang3 :: SEXP s a -> SEXP s b ->  SEXP s c -> IO (SEXP V 'R.Lang)
+lang3 (unsexp -> f) (unsexp -> x) (unsexp -> y) = sexp <$>
+  [C.exp| SEXP {Rf_lang3($(SEXP f), $(SEXP x), $(SEXP y)) }|]
 
 -- | Find a function by name.
-{#fun Rf_findFun as findFun { unsexp `SEXP s a', unsexp `SEXP s R.Env'}
-      -> `SomeSEXP s' somesexp #}
+findFun :: SEXP s a -> SEXP s 'R.Env -> IO (SomeSEXP s)
+findFun (unsexp -> a) (unsexp -> env) = somesexp <$>
+  [C.exp| SEXP { Rf_findFun($(SEXP a), $(SEXP env)) }|]
 
 -- | Find a variable by name.
-{#fun Rf_findVar as findVar { unsexp `SEXP s a', unsexp `SEXP s R.Env'}
-      -> `SEXP s R.Symbol' sexp #}
+findVar :: SEXP s a -> SEXP s 'R.Env -> IO (SEXP s 'R.Symbol)
+findVar (unsexp -> a) (unsexp -> env) = sexp <$>
+  [C.exp| SEXP {Rf_findVar($(SEXP a), $(SEXP env))}|]
 
-{#fun R_MakeWeakRef as mkWeakRef { unsexp `SEXP s a', unsexp `SEXP s b', unsexp `SEXP s c', cIntFromEnum `Bool' }
-      -> `SEXP V R.WeakRef' sexp #}
+mkWeakRef :: SEXP s a -> SEXP s b -> SEXP s c -> Bool -> IO (SEXP V 'R.WeakRef)
+mkWeakRef (unsexp -> a) (unsexp -> b) (unsexp -> c) (cIntFromEnum -> t) = sexp <$>
+  [C.exp| SEXP {R_MakeWeakRef($(SEXP a), $(SEXP b), $(SEXP c), $(int t))}|]
 
 -------------------------------------------------------------------------------
 -- Encoding                                                                  --
 -------------------------------------------------------------------------------
 
 -- | Content encoding.
-{#enum cetype_t as CEType {} deriving (Eq, Show) #}
+data CEType
+  = CE_Native
+  | CE_UTF8
+  | CE_Latin1
+  | CE_Bytes
+  | CE_Symbol
+  | CE_Any
+  deriving (Eq, Show)
+
+instance Enum CEType where
+  fromEnum CE_Native = #const CE_NATIVE
+  fromEnum CE_UTF8   = #const CE_UTF8
+  fromEnum CE_Latin1 = #const CE_LATIN1
+  fromEnum CE_Bytes  = #const CE_BYTES
+  fromEnum CE_Symbol = #const CE_SYMBOL
+  fromEnum CE_Any    = #const CE_ANY
+  toEnum i = case i of
+    (#const CE_NATIVE) -> CE_Native
+    (#const CE_UTF8)   -> CE_UTF8
+    (#const CE_LATIN1) -> CE_Latin1
+    (#const CE_BYTES)  -> CE_Bytes
+    (#const CE_SYMBOL) -> CE_Symbol
+    (#const CE_ANY)    -> CE_Any
+    _ -> error "CEType.fromEnum: unknown tag"
 
 -- | Perform an action with resource while protecting it from the garbage
 -- collection. This function is a safer alternative to 'R.protect' and

@@ -2,9 +2,7 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 -- Low-level bindings to core R datatypes and functions which depend on
--- computing offsets of C struct field. We use hsc2hs for this purpose to
--- sidestep issues in c2hs. https://github.com/haskell/c2hs/issues/168
---
+-- computing offsets of C struct field. We use hsc2hs for this purpose.
 
 {-# LANGUAGE CApiFFI #-}
 {-# LANGUAGE CPP #-}
@@ -31,6 +29,7 @@ import Control.Memory.Region
 import {-# SOURCE #-} Language.R.HExp (HExp)
 import Foreign.R.Type
 import Foreign.R.Type as R
+import Foreign.R.Context (SEXP0)
 
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
@@ -53,8 +52,6 @@ import Prelude hiding (asTypeOf, length)
 -- R data structures                                                          --
 --------------------------------------------------------------------------------
 
-data {-# CTYPE  "SEXPREC" #-} SEXPREC
-
 -- | The basic type of all R expressions, classified by the form of the
 -- expression, and the memory region in which it has been allocated.
 newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
@@ -71,8 +68,6 @@ instance Show (SEXP s a) where
 
 instance NFData (SEXP s a) where
   rnf = (`seq` ())
-
-type SEXP0 = Ptr SEXPREC
 
 -- | Add a type index to the pointer.
 sexp :: SEXP0 -> SEXP s a

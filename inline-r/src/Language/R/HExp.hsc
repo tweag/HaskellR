@@ -40,14 +40,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
-#if __GLASGOW_HASKELL__ >= 710
--- XXX necessary for c2hs.
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-#else
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-#endif
--- Necessary for c2hs < 0.26 compat.
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 module Language.R.HExp
   ( HExp(..)
   , (===)
@@ -59,7 +51,6 @@ module Language.R.HExp
 import Control.Applicative
 import Control.Monad.R.Class
 import qualified Foreign.R      as R
-import qualified Foreign.R.Type as R
 import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, withProtected)
 import Foreign.R.Constraints
 import Internal.Error
@@ -76,7 +67,7 @@ import Data.Maybe (isJust)
 import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
-import Foreign.C -- For c2hs < 0.26
+import Foreign.C -- for hsc2hs
 import Foreign (castPtr)
 import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
@@ -85,7 +76,6 @@ import Prelude
 #define USE_RINTERNALS
 #include <R.h>
 #include <Rinternals.h>
-
 
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
@@ -100,100 +90,100 @@ import Prelude
 --
 -- Note further that Haddock does not currently support constructor comments
 -- when using the GADT syntax.
-#if __GLASGOW_HASKELL__ >= 708
 type role HExp phantom nominal
-#endif
 data HExp :: * -> SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
-  Nil       :: HExp s R.Nil
+  Nil       :: HExp s 'R.Nil
   -- Fields: pname (is Nil for R_UnboundValue), value, internal.
-  Symbol    :: (a :∈ [R.Char, R.Nil])
+  Symbol    :: (a :∈ ['R.Char, 'R.Nil])
             => SEXP s a
             -> SEXP s b
             -> SEXP s c
-            -> HExp s R.Symbol
+            -> HExp s 'R.Symbol
   -- Fields: carval, cdrval, tagval.
-  List      :: (R.IsPairList b, c :∈ [R.Symbol, R.Nil])
+  List      :: (R.IsPairList b, c :∈ ['R.Symbol, 'R.Nil])
             => SEXP s a
             -> SEXP s b
             -> SEXP s c
-            -> HExp s R.List
+            -> HExp s 'R.List
   -- Fields: frame, enclos, hashtab.
-  Env       :: (R.IsPairList a, b :∈ [R.Env, R.Nil], c :∈ [R.Vector, R.Nil])
+  Env       :: (R.IsPairList a, b :∈ ['R.Env, 'R.Nil], c :∈ ['R.Vector, 'R.Nil])
             => SEXP s a
             -> SEXP s b
             -> SEXP s c
-            -> HExp s R.Env
+            -> HExp s 'R.Env
   -- Fields: formals, body, env.
   Closure   :: (R.IsPairList a)
             => SEXP s a
             -> SEXP s b
-            -> SEXP s R.Env
-            -> HExp s R.Closure
+            -> SEXP s 'R.Env
+            -> HExp s 'R.Closure
   -- Fields: value, expr, env.
   -- Once an promise has been evaluated, the environment is set to NULL.
-  Promise   :: (R.IsExpression b, c :∈ [R.Env, R.Nil])
+  Promise   :: (R.IsExpression b, c :∈ ['R.Env, 'R.Nil])
             => SEXP s a
             -> SEXP s b
             -> SEXP s c
-            -> HExp s R.Promise
+            -> HExp s 'R.Promise
   -- Derived types. These types don't have their own 'struct' declaration in
   -- <Rinternals.h>.
   -- Fields: function, args.
   Lang      :: (R.IsExpression a, R.IsPairList b)
             => SEXP s a
             -> SEXP s b
-            -> HExp s R.Lang
+            -> HExp s 'R.Lang
   -- Fields: offset.
   Special   :: {-# UNPACK #-} !Int32
-            -> HExp s R.Special
+            -> HExp s 'R.Special
   -- Fields: offset.
   Builtin   :: {-# UNPACK #-} !Int32
-            -> HExp s R.Builtin
-  Char      :: {-# UNPACK #-} !(Vector.Vector s R.Char Word8)
-            -> HExp s R.Char
+            -> HExp s 'R.Builtin
+  Char      :: {-# UNPACK #-} !(Vector.Vector s 'R.Char Word8)
+            -> HExp s 'R.Char
   Logical   :: {-# UNPACK #-} !(Vector.Vector s 'R.Logical R.Logical)
             -> HExp s 'R.Logical
-  Int       :: {-# UNPACK #-} !(Vector.Vector s R.Int Int32)
-            -> HExp s R.Int
-  Real      :: {-# UNPACK #-} !(Vector.Vector s R.Real Double)
-            -> HExp s R.Real
-  Complex   :: {-# UNPACK #-} !(Vector.Vector s R.Complex (Complex Double))
-            -> HExp s R.Complex
-  String    :: {-# UNPACK #-} !(Vector.Vector s R.String (SEXP s R.Char))
-            -> HExp s R.String
+  Int       :: {-# UNPACK #-} !(Vector.Vector s 'R.Int Int32)
+            -> HExp s 'R.Int
+  Real      :: {-# UNPACK #-} !(Vector.Vector s 'R.Real Double)
+            -> HExp s 'R.Real
+  Complex   :: {-# UNPACK #-} !(Vector.Vector s 'R.Complex (Complex Double))
+            -> HExp s 'R.Complex
+  String    :: {-# UNPACK #-} !(Vector.Vector s 'R.String (SEXP s 'R.Char))
+            -> HExp s 'R.String
   -- Fields: pairlist of promises.
   DotDotDot :: (R.IsPairList a)
             => SEXP s a
-            -> HExp s R.List
+            -> HExp s 'R.List
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector s R.Vector (SomeSEXP s))
-            -> HExp s R.Vector
+            -> {-# UNPACK #-} !(Vector.Vector s 'R.Vector (SomeSEXP s))
+            -> HExp s 'R.Vector
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector s R.Expr (SomeSEXP s))
-            -> HExp s R.Expr
-  Bytecode  :: HExp s R.Bytecode -- TODO
+            -> {-# UNPACK #-} !(Vector.Vector s 'R.Expr (SomeSEXP s))
+            -> HExp s 'R.Expr
+  Bytecode  :: HExp s 'R.Bytecode -- TODO
   -- Fields: pointer, protectionValue, tagval
   ExtPtr    :: Ptr ()
             -> SEXP s b
-            -> SEXP s R.Symbol
-            -> HExp s R.ExtPtr
+            -> SEXP s 'R.Symbol
+            -> HExp s 'R.ExtPtr
   -- Fields: key, value, finalizer, next.
-  WeakRef   :: ( a :∈ [R.Env, R.ExtPtr, R.Nil]
-               , c :∈ [R.Closure, R.Builtin, R.Special, R.Nil]
-               , d :∈ [R.WeakRef, R.Nil] )
+  WeakRef   :: ( a :∈ ['R.Env, 'R.ExtPtr, 'R.Nil]
+               , c :∈ ['R.Closure, 'R.Builtin, 'R.Special, 'R.Nil]
+               , d :∈ ['R.WeakRef, 'R.Nil] )
             => SEXP s a
             -> SEXP s b
             -> SEXP s c
             -> SEXP s d
-            -> HExp s R.WeakRef
-  Raw       :: {-# UNPACK #-} !(Vector.Vector s R.Raw Word8)
-            -> HExp s R.Raw
+            -> HExp s 'R.WeakRef
+  Raw       :: {-# UNPACK #-} !(Vector.Vector s 'R.Raw Word8)
+            -> HExp s 'R.Raw
   -- Fields: tagval.
   S4        :: SEXP s a
-            -> HExp s R.S4
+            -> HExp s 'R.S4
+
+-- 'Im a hack
 
 instance Eq (HExp s a) where
   (==) = (===)
@@ -295,21 +285,6 @@ instance TestEquality (HExp s) where
       return Refl
   testEquality _ _ = Nothing
 
--- XXX Orphan instance. Could find a better place to put it.
--- this #ifdef is not correct as it should be MIN_VERSION_base,
--- so this one will not work in non GHC compilers.
-#if __GLASGOW_HASKELL__ < 710
-instance (Fractional a, Real a, Storable a) => Storable (Complex a) where
-  sizeOf _ = {#sizeof Rcomplex #}
-  alignment _ = {#alignof Rcomplex #}
-  poke cptr (r :+ i) = do
-      #{poke Rcomplex, r} cptr (realToFrac r)
-      #{poke Rcomplex, i} cptr (realToFrac i)
-  peek cptr =
-      (:+) <$> (realToFrac <$> (#{peek Rcomplex, r} cptr :: IO CDouble))
-           <*> (realToFrac <$> (#{peek Rcomplex, i} cptr :: IO CDouble))
-#endif
-
 instance Storable (HExp s a) where
   sizeOf _ = #{size SEXPREC}
   alignment _ = #{alignment SEXPREC}
@@ -329,7 +304,7 @@ peekHExp s = do
         -- fields actually always contain fields of form ANYSXP. This has no
         -- operational significance - it's only a way to bypass what's
         -- impossible to prove.
-        coerceAny :: SEXP s a -> SEXP s R.Any
+        coerceAny :: SEXP s a -> SEXP s 'R.Any -- '
         coerceAny = R.unsafeCoerce
 
         sptr = R.unsexp s

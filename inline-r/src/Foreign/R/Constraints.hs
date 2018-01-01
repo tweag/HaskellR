@@ -23,6 +23,5 @@ type family (a :: SEXPTYPE) :∈ (as :: [SEXPTYPE]) :: Constraint where
   a :∈ (a ': as) = ()
   a :∈ (b ': as) = a :∈ as
 
--- | Class alias used for c2hs @fun@ hooks, since it currently does not like
--- Unicode operators.
+-- | Non unicode wrapper for the ':∈' type family.
 type In a b = a :∈ b
