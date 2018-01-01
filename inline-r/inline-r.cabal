@@ -101,8 +101,7 @@ library
   default-language:    Haskell2010
   other-extensions:    CPP
                        ForeignFunctionInterface
-  build-tools:         c2hs
-                     , hsc2hs
+  build-tools:         hsc2hs
   if os(windows)
     extra-libraries:   R
   else
