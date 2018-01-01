@@ -16,6 +16,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# Language ViewPatterns #-}
 
+-- required to not warn about IsVector usage.
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 module Language.R.Literal
   ( -- * Literals conversion
     Literal(..)
@@ -82,13 +84,13 @@ mkSEXP x = acquire =<< io (mkSEXPIO x)
 
 -- | Like 'fromSEXP', but with no static type satefy. Performs a dynamic
 -- (i.e. at runtime) check instead.
-fromSomeSEXP :: forall s a form. (Literal a form,SingI form) => R.SomeSEXP s -> a
+fromSomeSEXP :: forall s a form. (Literal a form) => R.SomeSEXP s -> a
 fromSomeSEXP = fromSEXP . R.cast (sing :: Sing form)
 
 -- | Like 'fromSomeSEXP', but behaves like the @as.*@ family of functions
 -- in R, by performing a best effort conversion to the target form (e.g. rounds
 -- reals to integers, etc) for atomic types.
-dynSEXP :: forall a s ty. (Literal a ty, SingI ty) => SomeSEXP s -> a
+dynSEXP :: forall a s ty. (Literal a ty) => SomeSEXP s -> a
 dynSEXP (SomeSEXP sx) =
     fromSomeSEXP $ unsafePerformIO $ case fromSing (sing :: SSEXPTYPE ty) of
       R.Char -> r1 "as.character" sx

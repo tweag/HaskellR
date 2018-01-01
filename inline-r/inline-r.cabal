@@ -48,6 +48,7 @@ library
                        Data.Vector.SEXP.Mutable
                        Foreign.R
                        Foreign.R.Constraints
+                       Foreign.R.Context
                        Foreign.R.Embedded
                        Foreign.R.Error
                        Foreign.R.Internal
@@ -94,6 +95,14 @@ library
                      , th-orphans >= 0.8
                      , transformers >= 0.3
                      , vector >= 0.10 && < 0.13
+  if impl(ghc < 8.2.1)
+    build-depends:
+      inline-c >=0.5.6.1 && <0.6
+    c-sources:
+      src/Foreign/R.c
+  else
+    build-depends:
+      inline-c >=0.6 && <0.7
   hs-source-dirs:      src
   includes:            cbits/missing_r.h
   c-sources:           cbits/missing_r.c
@@ -101,8 +110,7 @@ library
   default-language:    Haskell2010
   other-extensions:    CPP
                        ForeignFunctionInterface
-  build-tools:         c2hs
-                     , hsc2hs
+  build-tools:         hsc2hs
   if os(windows)
     extra-libraries:   R
   else

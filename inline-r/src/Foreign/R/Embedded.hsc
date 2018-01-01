@@ -6,6 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 module Foreign.R.Embedded
@@ -20,7 +21,14 @@ import Foreign.C
 #include "missing_r.h"
 
 -- | Initialize R.
-{# fun Rf_initEmbeddedR as initEmbeddedR { `Int', castPtr `Ptr CString' } -> `()' #}
+initEmbeddedR :: Int -> Ptr CString -> IO ()
+initEmbeddedR (fromIntegral -> argc) argv = c_initEmbeddedR argc argv
 
--- | Finalize R.
-{# fun Rf_endEmbeddedR as endEmbeddedR { `Int' } -> `()' #}
+foreign import ccall safe "Rembedded.h Rf_initEmbeddedR" c_initEmbeddedR
+  :: CInt -> Ptr CString -> IO ()
+
+endEmbeddedR :: Int -> IO ()
+endEmbeddedR (fromIntegral -> retCode) = c_endEmbeddedR retCode
+
+foreign import ccall safe "Rembedded.h Rf_endEmbeddedR" c_endEmbeddedR
+  :: CInt -> IO ()
