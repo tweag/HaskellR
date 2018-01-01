@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Compute cache key
           command: |
-            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
+            find . -name "*.cabal" -o -name "stack.yaml" -o -name "*.nix" -type f | sort | xargs cat > /tmp/stack-deps
       - restore_cache:
           keys:
             - HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
