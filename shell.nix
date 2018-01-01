@@ -14,8 +14,7 @@ haskell.lib.buildStackProject {
   name = "HaskellR";
   inherit ghc;
   buildInputs =
-    [ ncurses
-      python36Packages.ipython
+    [ python36Packages.ipython
       python36Packages.jupyter_client
       python36Packages.notebook
       R
