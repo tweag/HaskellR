@@ -44,7 +44,7 @@ jobs:
       - run:
           name: Build dependencies
           command: |
-            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
+            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1
       - save_cache:
           key: HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
           paths:
