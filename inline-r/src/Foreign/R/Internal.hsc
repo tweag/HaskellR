@@ -2,9 +2,7 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 -- Low-level bindings to core R datatypes and functions which depend on
--- computing offsets of C struct field. We use hsc2hs for this purpose to
--- sidestep issues in c2hs. https://github.com/haskell/c2hs/issues/168
---
+-- computing offsets of C struct field. We use hsc2hs for this purpose.
 
 {-# LANGUAGE CApiFFI #-}
 {-# LANGUAGE CPP #-}
