@@ -17,8 +17,6 @@ before_install:
 
 install:
   - brew update
-  - brew tap homebrew/science
-  # hack some command to make brew happy
   - brew install --force r zeromq
   - pip install ipython==5.5.0
   - stack setup
