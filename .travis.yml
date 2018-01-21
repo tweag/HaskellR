@@ -17,7 +17,7 @@ before_install:
 
 install:
   - brew update
-  - brew install --force r zeromq
+  - brew install --overwrite r zeromq
   - pip install ipython==5.5.0
   - stack setup
   - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
