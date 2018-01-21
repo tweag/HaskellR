@@ -18,7 +18,8 @@ before_install:
 install:
   - brew update
   - brew install gcc --force
-  - brew link --overwrite gcc
+    # ignore bad exit status.
+  - brew link --overwrite gcc || return 0
   - brew install --force r zeromq
   - pip install ipython==5.5.0
   - stack setup
