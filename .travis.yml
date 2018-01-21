@@ -21,6 +21,7 @@ install:
   - brew install gcc --force || return 0
   - brew link --overwrite gcc
   - brew install --force r zeromq
+  - brew install pip
   - pip install ipython==5.5.0
   - stack setup
   - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
