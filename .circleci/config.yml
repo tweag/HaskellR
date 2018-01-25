@@ -62,14 +62,25 @@ jobs:
       xcode: "9.9"
     steps:
       - checkout
-      - mkdir -p ~/.local/bin
-      - curl -Lk https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
-      - brew update
-      - brew install --force r zeromq
-      - pip install ipython==5.5.0
-      - stack setup
-      - stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
-      - stack --no-terminal -j2 build --pedantic
+      - run:
+          name: prepare system
+          command: |
+            mkdir -p ~/.local/bin
+            curl -Lk https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
+      - run:
+          name: install software
+          command: |
+            brew update
+            brew install --force r zeromq
+            pip install ipython==5.5.0
+      - run:
+          name: install package
+          command: |
+            stack setup
+            stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
+      - run:
+          name: test
+          command: stack --no-terminal -j2 build --pedantic
 
 workflows:
   version: 2
