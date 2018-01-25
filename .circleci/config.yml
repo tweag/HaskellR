@@ -71,6 +71,7 @@ jobs:
           name: install software
           command: |
             brew update
+            brew install pkg-config
             brew install --force r zeromq
             pip install ipython==5.5.0
       - run:
