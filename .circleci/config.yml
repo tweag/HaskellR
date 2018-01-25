@@ -80,7 +80,7 @@ jobs:
             ~/.local/bin/stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
       - run:
           name: test
-          command: ~/.local/bin/stack --no-terminal -j2 build --pedantic
+          command: LC_ALL=en_US.UTF-8 ~/.local/bin/stack --no-terminal -j2 build --pedantic
 
 workflows:
   version: 2
