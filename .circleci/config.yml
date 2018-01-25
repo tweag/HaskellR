@@ -76,11 +76,11 @@ jobs:
       - run:
           name: install package
           command: |
-            stack setup
-            stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
+            ~/.local/bin/stack setup
+            ~/.local/bin/stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
       - run:
           name: test
-          command: stack --no-terminal -j2 build --pedantic
+          command: ~/.local/bin/stack --no-terminal -j2 build --pedantic
 
 workflows:
   version: 2
