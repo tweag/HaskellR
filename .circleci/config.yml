@@ -58,7 +58,7 @@ jobs:
           command: |
             stack --nix --no-terminal test
   build-osx:
-    macosx: 
+    macos:
       xcode: "9.9"
     steps:
       - checkout
