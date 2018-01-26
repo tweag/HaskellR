@@ -57,12 +57,38 @@ jobs:
           name: Test
           command: |
             stack --nix --no-terminal test
+  build-osx:
+    macos:
+      xcode: "9.0"
+    steps:
+      - checkout
+      - run:
+          name: prepare system
+          command: |
+            mkdir -p ~/.local/bin
+            curl -Lk https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
+      - run:
+          name: install software
+          command: |
+            brew update
+            brew install pkg-config
+            brew install --force r zeromq
+            pip install ipython==5.5.0
+      - run:
+          name: install package
+          command: |
+            ~/.local/bin/stack setup
+            ~/.local/bin/stack --no-terminal -j2 build --only-snapshot --prefetch --test --bench
+      - run:
+          name: test
+          command: LC_ALL=en_US.UTF-8 ~/.local/bin/stack --no-terminal -j2 build --pedantic
 
 workflows:
   version: 2
   build:
     jobs:
       - build
+      - build-osx
   publish:
     jobs:
       - publish:
