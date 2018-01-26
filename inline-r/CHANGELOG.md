@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.9.1 - 2018-01-26
+* Droped c2hs usage. Fixes installation on macOS.
+* Fix QQ generation. Fixed possible resource free during QQ generation.
+
 ## 0.9.0.2 - 2016-10-23
 * Fix build on ghc-8.2.
 * Introduce Matcher API.
