@@ -178,6 +178,7 @@ import Prelude hiding (asTypeOf, length)
 C.context (C.baseCtx <> rCtx)
 C.include "<Rinternals.h>"
 C.include "<stdlib.h>"
+C.include "<stdint.h>"
 
 --------------------------------------------------------------------------------
 -- Generic accessor functions                                                 --
