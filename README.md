@@ -58,8 +58,8 @@ alternative to Docker.
 
 ## License
 
-Copyright (c) 2013-2015 Amgen, Inc.  
-Copyright (c) 2015-2016 Tweag I/O Limited.
+Copyright (c) 2013-2015 Amgen, Inc.
+Copyright (c) 2015-2018 Tweag I/O Limited.
 
 All rights reserved.
 
