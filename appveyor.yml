@@ -35,4 +35,4 @@ install:
 build_script:
   - set PATH=C:\stack;C:\R\bin\i386;%PATH%
   - stack --no-terminal setup > nul
-  - stack --no-terminal --extra-lib-dirs="C:\R\bin\i386" --extra-include-dirs="C:\R\include" build --test --no-run-tests inline-r H
+  - stack --no-terminal --extra-lib-dirs="C:\R\bin\i386" --extra-include-dirs="C:\R\include" build --test inline-r H
