@@ -8,9 +8,16 @@ let
   # diagnostics.
 
   # R = pkgs.R.override { enableStrictBarrier = true; };
+
+  # XXX Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
+  libHack = if stdenv.isDarwin then {
+      DYLD_LIBRARY_PATH = ["${R}/lib/R/lib"];
+    } else {
+      LD_LIBRARY_PATH = ["${R}/lib/R"];
+    };
 in
 
-haskell.lib.buildStackProject {
+haskell.lib.buildStackProject ({
   name = "HaskellR";
   inherit ghc;
   buildInputs =
@@ -23,4 +30,4 @@ haskell.lib.buildStackProject {
     ];
   LANG = "en_US.UTF-8";
   LD_LIBRARY_PATH = ["${R}/lib/R/"];
-}
+} // libHack)
