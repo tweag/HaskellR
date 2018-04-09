@@ -22,7 +22,7 @@ jobs:
                 docker tag tweag/haskellr tweag/haskellr:$CIRCLE_TAG
                 docker push tweag/haskellr:$CIRCLE_TAG
             fi
-  build:
+  build-linux-nix:
     docker:
       - image: nixos/nix
     working_directory: ~/HaskellR
@@ -57,7 +57,7 @@ jobs:
           name: Test
           command: |
             stack --nix --no-terminal test
-  build-osx:
+  build-osx-brew:
     macos:
       xcode: "9.0"
     steps:
@@ -82,13 +82,46 @@ jobs:
       - run:
           name: test
           command: LC_ALL=en_US.UTF-8 ~/.local/bin/stack --no-terminal -j2 build --pedantic
+  build-osx-nix:
+    macos:
+      xcode: "9.0"
+    steps:
+      - checkout
+      - run:
+          name: Install Nix
+          command: |
+            curl https://nixos.org/nix/install | sh
+      - run:
+          name: Compute cache key
+          command: |
+            find . -name "*.cabal" -o -name "stack.yaml" -o -name "*.nix" -type f | sort | xargs cat > /tmp/stack-deps
+      - restore_cache:
+          keys:
+            - HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+            - HaskellR-stack-dependencies-{{ arch }}-
+      - run:
+          name: Build dependencies
+          shell: /bin/bash -eilo pipefail
+          command: |
+            nix-env -f nixpkgs.nix -iA stack
+            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1
+      - save_cache:
+          key: HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          paths:
+            - ~/.stack
+      - run:
+          name: Build project
+          shell: /bin/bash -eilo pipefail
+          command: |
+            stack --no-terminal --nix build --pedantic
 
 workflows:
   version: 2
   build:
     jobs:
-      - build
-      - build-osx
+      - build-linux-nix
+      - build-osx-brew
+      - build-osx-nix
   publish:
     jobs:
       - publish:
