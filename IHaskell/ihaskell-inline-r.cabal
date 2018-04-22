@@ -17,6 +17,7 @@ library
   build-depends:       base >=4.7 && <5
                       ,inline-r >= 0.6.0.1
                       ,ihaskell
+                      ,ihaskell-blaze
                       ,filepath
                       ,blaze-html
                       ,bytestring
