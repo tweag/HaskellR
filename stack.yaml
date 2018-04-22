@@ -8,6 +8,7 @@ packages:
 
 extra-deps:
 - ihaskell-0.9.0.2
+- ihaskell-blaze-0.3.0.1
 - ghc-parser-0.2.0.1
 
 docker:

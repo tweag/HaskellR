@@ -19,6 +19,7 @@ import qualified Data.ByteString.Char8 as Char
 import           Data.Monoid
 import           H.Prelude.Interactive as H -- we use provide instances to IO Monad
 import           IHaskell.Display
+import           IHaskell.Display.Blaze()
 import           Language.Haskell.TH.Quote
 import           Language.R.Instance
 import           System.IO (hClose)
