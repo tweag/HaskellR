@@ -67,6 +67,7 @@ import Control.Monad (guard, ap, liftM)
 import Data.Foldable (asum)
 import Data.Functor (void)
 import Data.Maybe (mapMaybe)
+import Data.Semigroup as Sem
 import Data.Singletons
 import Data.Traversable
 import Data.Typeable (Typeable)
@@ -120,10 +121,13 @@ instance Alternative (Matcher s) where
   f <|> g = Matcher $ \s ok err ->
       runMatcher f s ok (\e' -> runMatcher g s ok (err . (mappend e')))
 
+instance Sem.Semigroup (MatcherError s) where
+  a <> MatcherError "empty" = a
+  _ <> a = a
+
 instance Monoid (MatcherError s) where
   mempty = MatcherError "empty"
-  a `mappend` MatcherError "empty" = a
-  _ `mappend` a = a
+  mappend = (<>)
 
 -- | Exception during matching.
 data MatcherError s
