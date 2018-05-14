@@ -40,6 +40,7 @@ module Language.R.Instance
 import           Control.Monad.Primitive (PrimMonad(..))
 import           Control.Monad.R.Class
 import           Control.Monad.ST.Unsafe (unsafeSTToIO)
+import qualified Data.Semigroup as Sem
 import           Data.Monoid
 import           Data.Default.Class (Default(..))
 import qualified Foreign.R as R
@@ -160,13 +161,16 @@ data Config = Config
 instance Default Config where
   def = defaultConfig
 
-instance Monoid Config where
-  mempty = defaultConfig
-  mappend cfg1 cfg2 = Config
+instance Sem.Semigroup Config where
+  (<>) cfg1 cfg2 = Config
       { configProgName = configProgName cfg1 <> configProgName cfg2
       , configArgs = configArgs cfg1 <> configArgs cfg2
       , configSignalHandlers =  configSignalHandlers cfg1 <> configSignalHandlers cfg2
       }
+
+instance Monoid Config where
+  mempty = defaultConfig
+  mappend = (<>)
 
 -- | Default argument to pass to 'initialize'.
 defaultConfig :: Config
