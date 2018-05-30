@@ -186,7 +186,7 @@ with s p = Matcher $ \_ ok err -> runMatcher p s ok err
 -- $guards
 --
 -- Guards provides a handy way to check if we are expecting object of the type
--- we are interesting in.
+-- we are interested in.
 
 -- | Succeeds if current @SomeSEXP@ is 'R.Null'.
 null :: Matcher s ()
