@@ -207,7 +207,7 @@ s4 = Matcher $ \(SomeSEXP s) ok err ->
 -- it's better to use 'getS3Class' because it will run same check, but also will
 -- return the class(es) of the current expression.
 --
--- This test is not expressible in terms of the 'guardType', becausee guardType
+-- This test is not expressible in terms of the 'guardType', because guardType
 -- does not see additional information about S3 types. And any raw object can be
 -- a class instance.
 s3 :: [String] -> Matcher s ()
@@ -228,7 +228,7 @@ guardType s = typeOf >>= guard . (s ==)
 -- vector, or factors are presented as an interger vector with 'rownames'
 -- attribute attached.
 
--- | Returns any attribute by it's name if it exists. Fails with
+-- | Returns any attribute by its name if it exists. Fails with
 -- @NoSuchAttribute@ otherwise.
 someAttribute :: String -> Matcher s (SomeSEXP s)
 someAttribute n = Matcher $ \(SomeSEXP s) ok err ->
@@ -271,7 +271,7 @@ lookupAttribute :: String -> Matcher s (Maybe (SomeSEXP s))
 lookupAttribute s = (Just <$> someAttribute s) <|> pure Nothing
 
 -- | 'Language.R.Hexp.hexp' lifted to Matcher, applies hexp to the current value
--- and allow to run internal matcher on it. Is useful when you need to inspect
+-- and allows you to run internal matcher on it. Is useful when you need to inspect
 -- data using high level functions from @Language.R@.
 hexp :: SSEXPTYPE ty -> (HExp s ty -> Matcher s a) -> Matcher s a
 hexp ty f = f . H.hexp =<< sexp ty
