@@ -57,6 +57,8 @@ import Control.DeepSeq ( NFData )
 import Control.Monad ( void, zipWithM_ )
 import Data.Int (Int32)
 import Data.Complex (Complex)
+import Data.Text (Text)
+import qualified Data.Text as T
 import Foreign          ( FunPtr, castPtr )
 import Foreign.C.String ( withCString )
 import Foreign.Storable ( Storable, pokeElemOff )
@@ -170,6 +172,17 @@ instance Literal [String] 'R.String where
         map (\(hexp -> Char xs) -> SVector.toString xs) (SVector.toList v)
     fromSEXP _ =
         failure "fromSEXP" "String expected where some other expression appeared."
+
+instance Literal Text 'R.String where
+    mkSEXPIO s =
+        mkSEXPVectorIO sing
+          [GHC.withCString utf8 (T.unpack s) (R.mkCharCE R.CE_UTF8)]
+    fromSEXP (hexp -> String v) =
+      case map (\(hexp -> Char xs) -> SVector.toString xs) (SVector.toList v) of
+        [x] -> T.pack x
+        _ -> failure "fromSEXP" "Not a singleton vector"
+    fromSEXP _ =
+      failure "fromSEXP" "String expected where some other expression appeared."
 
 -- | Create a pairlist from an association list. Result is either a pairlist or
 -- @nilValue@ if the input is the null list. These are two distinct forms. Hence

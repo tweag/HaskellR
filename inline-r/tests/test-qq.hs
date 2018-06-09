@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
@@ -17,6 +18,7 @@ import H.Prelude as H
 import qualified Data.Vector.SEXP as SVector
 import qualified Data.Vector.SEXP.Mutable as SMVector
 import Control.Memory.Region
+import Data.Text (Text)
 
 import Control.Applicative
 import Control.Monad.Trans (liftIO)
@@ -108,9 +110,11 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     ("c(7, 2, 3)" @=?) =<< [r| v = v2_hs; v[1] <- 7; v |]
     io . assertEqual "" "fromList [1,2,3]" . Prelude.show =<< SVector.unsafeFreeze v1
 
-    let utf8string = "abcd çéõßø"
+    let utf8string = "abcd çéõßø" :: String
     io . assertEqual "" utf8string =<< fromSEXP <$> R.cast (sing :: R.SSEXPTYPE 'R.String) <$> [r| utf8string_hs |]
 
+    let utf8string1 = "abcd çéõßø" :: Text
+    io . assertEqual "" utf8string1 =<< fromSEXP <$> R.cast (sing :: R.SSEXPTYPE 'R.String) <$> [r| utf8string1_hs |]
 
     -- Disable gctorture, otherwise test takes too long to execute.
     _ <- [r| gctorture2(0) |]
