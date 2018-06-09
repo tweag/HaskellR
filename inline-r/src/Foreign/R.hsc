@@ -57,6 +57,7 @@ module Foreign.R
   , mkChar
   , CEType(..)
   , mkCharCE
+  , mkCharLenCE
   , mkWeakRef
     -- * Node attributes
   , typeOf
@@ -327,6 +328,10 @@ mkChar value = sexp <$> [C.exp| SEXP { Rf_mkChar($(char * value)) } |]
 mkCharCE :: CEType -> CString -> IO (SEXP V 'R.Char)
 mkCharCE (cIntFromEnum -> ce) value = sexp <$> 
   [C.exp| SEXP  { Rf_mkCharCE($(char * value), $(int ce)) } |]
+
+mkCharLenCE :: CEType -> CString -> Int -> IO (SEXP V 'R.Char)
+mkCharLenCE (cIntFromEnum -> ce) value (fromIntegral -> len) = sexp <$>
+  [C.exp| SEXP { Rf_mkCharLenCE($(char * value), $(int len), $(int ce)) } |]
 
 -- | Intern a string @name@ into the symbol table.
 --
