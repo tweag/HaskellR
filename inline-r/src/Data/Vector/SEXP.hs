@@ -252,8 +252,10 @@ module Data.Vector.SEXP
   -- ** SEXP specific helpers.
   , toString
   , toByteString
+  , unsafeWithByteString
   ) where
 
+import Control.Exception (evaluate)
 import Control.Monad.R.Class
 import Control.Monad.R.Internal
 import Control.Memory.Region
@@ -265,7 +267,6 @@ import Foreign.R ( SEXP(..) )
 import qualified Foreign.R as R
 import Foreign.R.Type ( SEXPTYPE(Char) )
 
-import Control.Monad.Primitive ( PrimMonad )
 import Control.Monad.ST (ST, runST)
 import Data.Int
 import Data.Proxy (Proxy(..))
@@ -274,6 +275,7 @@ import qualified Data.Vector.Generic as G
 import Data.Vector.Generic.New (run)
 import Data.ByteString ( ByteString )
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Unsafe as B
 
 import Control.Applicative hiding (empty)
 #if MIN_VERSION_vector(0,11,0)
@@ -288,7 +290,8 @@ import qualified Data.Vector.Fusion.Stream as Stream
 import qualified Data.Vector.Fusion.Stream.Monadic as MStream
 #endif
 
-import Control.Monad.Primitive ( unsafeInlineIO, unsafePrimToPrim )
+import Control.Monad.Primitive ( PrimMonad, unsafeInlineIO, unsafePrimToPrim )
+import qualified Control.DeepSeq as DeepSeq
 import Data.Word ( Word8 )
 import Foreign ( Storable, Ptr, castPtr, peekElemOff )
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
@@ -454,6 +457,17 @@ toByteString :: Vector s 'Char Word8 -> ByteString
 toByteString v = unsafeInlineIO $
    B.packCStringLen ( castPtr $ unsafeToPtr v
                     , fromIntegral $ vectorLength v)
+
+-- | This function is unsafe and ByteString should not be used
+-- outside of the function. Any change to bytestring will be
+-- reflected in the source vector, thus breaking referencial
+-- transparancy.
+unsafeWithByteString :: DeepSeq.NFData a => Vector s 'Char Word8 -> (ByteString -> IO a) -> a
+unsafeWithByteString v f = unsafeInlineIO $ do
+   x <- B.unsafePackCStringLen (castPtr $ unsafeToPtr v
+                               ,fromIntegral $ vectorLength v)
+   w <- DeepSeq.force <$> f x
+   evaluate w 
 
 ------------------------------------------------------------------------
 -- Vector API
