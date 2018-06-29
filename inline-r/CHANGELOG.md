@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.9.2 - 2018-06-29
+* GHC 8.4 compatibility
+* Add Literal instance for 'Text'
+
 ## 0.9.1 - 2018-01-26
 * Droped c2hs usage. Fixes installation on macOS.
 * Fix QQ generation. Fixed possible resource free during QQ generation.
