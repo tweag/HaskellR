@@ -72,3 +72,23 @@ this reason, so aren't affected by the bug.
 You may be running into https://github.com/tweag/HaskellR/issues/257.
 The recommended course of action is to apply one of the workarounds
 listed there. This is an upstream issue in Cabal.
+
+### What if I get protection stack overflow?
+
+If you have protection stack overflow, it means that you have too
+many objects protected by inline-r. This happens when you write
+recursive functions in a single resource region. You can solve it
+by adding an explicit subregion, as in
+
+```
+function = R.runRegion $ do
+  let xs = [1..10000000] :: [Double]
+  Fold.foldM
+    ( Fold.FoldM
+{- 1 -} (\acc _ -> io $ runRegion $ fmap (fromSEXP . R.cast R.SReal) [r| 1 |])
+        (return (0::Double))
+        return) xs
+```
+
+In `{- 1 -}` we are creating a nested region so all temporary values from
+that region will be unprotected on exit from the region.
