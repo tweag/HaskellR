@@ -220,8 +220,8 @@ initLock = unsafePerformIO $ newMVar ()
 initialize :: Config -> IO ()
 initialize Config{..} = do
 #ifndef mingw32_HOST_OS
-#ifdef darwin_HOST_OS
-    -- NOTE: OS X does not allow removing the stack size limit completely,
+#if defined(darwin_HOST_OS) || defined(freebsd_HOST_OS)
+    -- NOTE: OS X and FreeBSD does not allow removing the stack size limit completely,
     -- instead forcing a hard limit of just under 64MB.
     let stackLimit = ResourceLimit 67104768
 #else
@@ -235,6 +235,8 @@ initialize Config{..} = do
 #ifdef darwin_HOST_OS
                        ++ "$ launchctl limit stack 67104768"
                        ++ "$ ulimit -s 65532"
+#elif defined(freebsd_HOST_OS)
+                       ++ "$ ulimit -s 67104768"
 #else
                        ++ "$ ulimit -s unlimited"
 #endif
