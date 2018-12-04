@@ -39,24 +39,23 @@ jobs:
             find . -name "*.cabal" -o -name "stack.yaml" -o -name "*.nix" -type f | sort | xargs cat > /tmp/stack-deps
       - restore_cache:
           keys:
-            - HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
-            - HaskellR-stack-dependencies-{{ arch }}-
+            - HaskellR-stack-dependencies-0-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
       - run:
           name: Build dependencies
           command: |
-            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1
+            nix-shell --run 'stack --no-terminal build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1 --system-ghc'
       - save_cache:
-          key: HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          key: HaskellR-stack-dependencies-1-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
           paths:
             - ~/.stack
       - run:
           name: Build project
           command: |
-            stack --no-terminal --nix build --pedantic --test --bench --no-run-tests --no-run-benchmarks
+            nix-shell --run 'stack --no-terminal --nix build --pedantic --test --bench --no-run-tests --no-run-benchmarks --system-ghc'
       - run:
           name: Test
           command: |
-            stack --nix --no-terminal test
+            nix-shell --run 'stack --nix --no-terminal test --system-ghc'
   build-osx-brew:
     macos:
       xcode: "9.0"
@@ -97,23 +96,24 @@ jobs:
             find . -name "*.cabal" -o -name "stack.yaml" -o -name "*.nix" -type f | sort | xargs cat > /tmp/stack-deps
       - restore_cache:
           keys:
-            - HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
-            - HaskellR-stack-dependencies-{{ arch }}-
+            - HaskellR-stack-dependencies-0-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
       - run:
           name: Build dependencies
           shell: /bin/bash -eilo pipefail
           command: |
             nix-env -f nixpkgs.nix -iA stack
-            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1
+            export LC_ALL="en_US.UTF-8"
+            nix-shell --run 'stack --no-terminal build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1'
       - save_cache:
-          key: HaskellR-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          key: HaskellR-stack-dependencies-1-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
           paths:
             - ~/.stack
       - run:
           name: Build project
           shell: /bin/bash -eilo pipefail
           command: |
-            stack --no-terminal --nix build --pedantic
+            export LC_ALL="en_US.UTF-8"
+            nix-shell --run 'stack --no-terminal build --pedantic'
 
 workflows:
   version: 2
