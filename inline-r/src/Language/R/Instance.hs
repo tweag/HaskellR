@@ -125,6 +125,11 @@ withEmbeddedR config = bracket_ (initialize config) finalize
 -- thunks hold onto resources in a way that would extrude the scope of the
 -- region. This means that the result must be first-order data (i.e. not
 -- a function).
+--
+-- @throws@ 'Foreign.R.Error'. Generaly any R function may throw @RError@ that
+-- is safe to be cached and computation can proceed. However @RError@ will cancel
+-- entire R block. So in order to catch exception in more fine grained way one
+-- has to use function @tryCatch@ inside R block.
 runRegion :: NFData a => (forall s. R s a) -> IO a
 runRegion r = unsafeRunRegion r
 
