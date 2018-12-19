@@ -38,7 +38,7 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
-import Control.Concurrent (MVar, newMVar, withMVar)
+import Control.Concurrent (MVar, newMVar, takeMVar, putMVar)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Data.List (intercalate, isSuffixOf)
@@ -85,8 +85,7 @@ qqLock = unsafePerformIO $ newMVar ()
 parse :: String -> IO (R.SEXP V 'R.Expr)
 parse txt = do
     initialize defaultConfig
-    withMVar qqLock $ \_ ->
-      withCString txt $ \ctxt ->
+    withCString txt $ \ctxt ->
         R.withProtected (R.mkString ctxt) $ \rtxt ->
           alloca $ \status -> do
             R.withProtected (R.parseVector rtxt (-1) status (R.release nilValue)) $ \exprs -> do
@@ -133,6 +132,7 @@ collectAntis _ = Set.empty
 -- @
 expQQ :: String -> Q TH.Exp
 expQQ input = do
+    _ <- runIO $ takeMVar qqLock
     expr <- runIO $ R.protect =<< parse input
     let antis = [x | (hexp -> Char (Vector.toString -> x))
                        <- Set.toList (collectAntis expr)]
@@ -159,4 +159,5 @@ expQQ input = do
                                          R.lcons car cdr |]) z vars)
        |]
     runIO $ R.unprotectPtr expr
+    runIO $ putMVar qqLock ()
     pure x
