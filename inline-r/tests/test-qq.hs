@@ -119,8 +119,7 @@ main = H.withEmbeddedR H.defaultConfig $ H.runRegion $ do
     -- Disable gctorture, otherwise test takes too long to execute.
     _ <- [r| gctorture2(0) |]
     let x = ([1] :: [Double])
-    ("3" @=?) =<< [r| suppressMessages(require("Matrix"))
-                      v <- x_hs + 1
+    ("3" @=?) =<< [r| v <- x_hs + 1
                       v <- v + 1
                       v |]
 

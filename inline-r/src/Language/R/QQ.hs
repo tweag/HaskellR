@@ -143,21 +143,21 @@ expQQ input = do
     -- Abstract over antis using fresh vars, to avoid captures with names bound
     -- internally (such as 'f' below).
     x <- (\body -> foldl TH.appE body args) $ TH.lamE (map TH.varP vars)
-      [| do -- Memoize the runtime parsing of the generated closure (provided the
-            -- compiler notices that it can let-float to top-level).
-            let sx = unsafePerformIO $ do
-                       exprs <- parse closure
-                       SomeSEXP e <- R.readVector exprs 0
-                       clos <- R.eval e (R.release globalEnv)
-                       R.unSomeSEXP clos R.preserveObject
-                       return clos
-            io $ case sx of
-              SomeSEXP f ->
-                R.lcons f =<<
-                  $(foldr (\x xs -> [| R.withProtected $xs $ \cdr -> do
-                                         car <- mkSEXPIO $(TH.varE x)
-                                         R.lcons car cdr |]) z vars)
+      [| -- Memoize the runtime parsing of the generated closure (provided the
+         -- compiler notices that it can let-float to top-level).
+         let sx = unsafePerformIO $ do
+                    exprs <- parse closure
+                    SomeSEXP e <- R.readVector exprs 0
+                    clos <- R.eval e (R.release globalEnv)
+                    R.unSomeSEXP clos R.preserveObject
+                    return clos
+         in io $ case sx of
+           SomeSEXP f ->
+             R.lcons f =<<
+               $(foldr (\x xs -> [| R.withProtected $xs $ \cdr -> do
+                                        car <- mkSEXPIO $(TH.varE x)
+                                        R.lcons car cdr |]) z vars)
        |]
-    runIO $ R.unprotectPtr expr
+    runIO $ R.unprotect 1 -- Ptr expr
     runIO $ putMVar qqLock ()
     pure x
