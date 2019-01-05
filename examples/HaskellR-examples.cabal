@@ -3,7 +3,6 @@ version:             0.1.0.0
 license:             AllRightsReserved
 copyright:           Copyright (c) 2013-2015 Amgen, Inc.
                      Copyright (c) 2015 Tweag I/O Limited.
-cabal-version:       >=1.10
 build-type:          Simple
 Category:            FFI
 Synopsis:            Examples bundled with the HaskellR project

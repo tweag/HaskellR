@@ -1,4 +1,4 @@
-resolver: lts-10.2
+resolver: lts-12.20
 
 packages:
 - examples
@@ -7,9 +7,8 @@ packages:
 - inline-r
 
 extra-deps:
-- ihaskell-0.9.0.2
+- ihaskell-0.9.1.0
 - ihaskell-blaze-0.3.0.1
-- ghc-parser-0.2.0.1
 
 docker:
   # Disabled by default. Use --docker on command line to enable.

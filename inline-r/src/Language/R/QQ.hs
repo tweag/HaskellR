@@ -38,7 +38,7 @@ import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
-import Control.Concurrent (MVar, newMVar, withMVar)
+import Control.Concurrent (MVar, newMVar, takeMVar, putMVar)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Data.List (intercalate, isSuffixOf)
@@ -85,8 +85,7 @@ qqLock = unsafePerformIO $ newMVar ()
 parse :: String -> IO (R.SEXP V 'R.Expr)
 parse txt = do
     initialize defaultConfig
-    withMVar qqLock $ \_ ->
-      withCString txt $ \ctxt ->
+    withCString txt $ \ctxt ->
         R.withProtected (R.mkString ctxt) $ \rtxt ->
           alloca $ \status -> do
             R.withProtected (R.parseVector rtxt (-1) status (R.release nilValue)) $ \exprs -> do
@@ -133,6 +132,7 @@ collectAntis _ = Set.empty
 -- @
 expQQ :: String -> Q TH.Exp
 expQQ input = do
+    _ <- runIO $ takeMVar qqLock
     expr <- runIO $ R.protect =<< parse input
     let antis = [x | (hexp -> Char (Vector.toString -> x))
                        <- Set.toList (collectAntis expr)]
@@ -143,20 +143,21 @@ expQQ input = do
     -- Abstract over antis using fresh vars, to avoid captures with names bound
     -- internally (such as 'f' below).
     x <- (\body -> foldl TH.appE body args) $ TH.lamE (map TH.varP vars)
-      [| do -- Memoize the runtime parsing of the generated closure (provided the
-            -- compiler notices that it can let-float to top-level).
-            let sx = unsafePerformIO $ do
-                       exprs <- parse closure
-                       SomeSEXP e <- R.readVector exprs 0
-                       clos <- R.eval e (R.release globalEnv)
-                       R.unSomeSEXP clos R.preserveObject
-                       return clos
-            io $ case sx of
-              SomeSEXP f ->
-                R.lcons f =<<
-                  $(foldr (\x xs -> [| R.withProtected $xs $ \cdr -> do
-                                         car <- mkSEXPIO $(TH.varE x)
-                                         R.lcons car cdr |]) z vars)
+      [| -- Memoize the runtime parsing of the generated closure (provided the
+         -- compiler notices that it can let-float to top-level).
+         let sx = unsafePerformIO $ do
+                    exprs <- parse closure
+                    SomeSEXP e <- R.readVector exprs 0
+                    clos <- R.eval e (R.release globalEnv)
+                    R.unSomeSEXP clos R.preserveObject
+                    return clos
+         in io $ case sx of
+           SomeSEXP f ->
+             R.lcons f =<<
+               $(foldr (\x xs -> [| R.withProtected $xs $ \cdr -> do
+                                        car <- mkSEXPIO $(TH.varE x)
+                                        R.lcons car cdr |]) z vars)
        |]
-    runIO $ R.unprotectPtr expr
+    runIO $ R.unprotect 1 -- Ptr expr
+    runIO $ putMVar qqLock ()
     pure x

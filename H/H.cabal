@@ -6,7 +6,6 @@ copyright:           Copyright (c) 2013-2015 Amgen, Inc.
                      Copyright (c) 2015-2018 Tweag I/O Limited.
 author:              Mathieu Boespflug, Facundo Dominguez, Alexander Vershilov
 maintainer:          Mathieu Boespflug <m@tweag.io>
-cabal-version:       >=1.10
 build-type:          Simple
 Category:            FFI
 Synopsis:            The Haskell/R mixed programming environment.
