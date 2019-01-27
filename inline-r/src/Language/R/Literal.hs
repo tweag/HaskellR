@@ -228,10 +228,10 @@ instance Literal String 'R.String where
     fromSEXP _ =
         failure "fromSEXP" "String expected where some other expression appeared."
 
-instance SVector.VECTOR V ty a => Literal (SVector.Vector V ty a) ty where
+instance SVector.SVECTOR ty a => Literal (SVector.Vector ty a) ty where
     mkSEXPIO = return . SVector.toSEXP
     fromSEXP = SVector.fromSEXP . R.cast (sing :: SSEXPTYPE ty)
-             . SomeSEXP . R.release
+             . SomeSEXP
 
 instance SVector.VECTOR V ty a => Literal (SMVector.MVector V ty a) ty where
     mkSEXPIO = unsafeRunRegion . SMVector.toSEXP

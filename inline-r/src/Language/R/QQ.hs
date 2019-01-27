@@ -118,9 +118,9 @@ collectAntis (hexp -> (Lang sxa sxb)) =
 collectAntis (hexp -> (Closure sxa sxb sxc)) =
     Set.unions [collectAntis sxa, collectAntis sxb, collectAntis sxc]
 collectAntis (hexp -> (Vector _ sxv)) =
-    Set.unions [collectAntis sx | SomeSEXP sx <- Vector.toList sxv]
+    Set.unions [collectAntis (R.unsafeRelease sx) | SomeSEXP sx <- Vector.toList sxv]
 collectAntis (hexp -> (Expr _ sxv)) =
-    Set.unions [collectAntis sx | SomeSEXP sx <- Vector.toList sxv]
+    Set.unions [collectAntis (R.unsafeRelease sx) | SomeSEXP sx <- Vector.toList sxv]
 collectAntis _ = Set.empty
 
 -- | An R quasiquote is syntactic sugar for a function that we

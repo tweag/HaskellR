@@ -90,6 +90,9 @@ release = unsafeRelease
 unsafeRelease :: SEXP s a -> SEXP r a
 unsafeRelease = sexp . unsexp
 
+unsafeReleaseSome :: SomeSEXP s -> SomeSEXP g
+unsafeReleaseSome (SomeSEXP x) = SomeSEXP (unsafeRelease x)
+
 -- | A 'SEXP' of unknown form.
 data SomeSEXP s = forall a. SomeSEXP {-# UNPACK #-} !(SEXP s a)
 

@@ -307,7 +307,8 @@ dimnames :: Matcher s [[String]]
 dimnames = do
     s <- attribute SVector "dimnames"
     case H.hexp s of
-      Vector _ v -> for (SV.toList v) (`with` go)
+      Vector _ v -> for (SV.toList v) $ \x ->
+        with (R.unsafeReleaseSome x) go
   where
     go = choice [charList <$> sexp SString, null *> pure []]
 

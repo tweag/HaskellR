@@ -19,6 +19,7 @@ module Language.R.Debug
   ( inspect )
   where
 
+import Control.Memory.Region (V)
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
@@ -65,8 +66,8 @@ instance ToJSON (SEXP s a) where
         , tp .= go x
         ]
     where
-      vector :: (IsVector a, ToJSON (Vector.ElemRep s a), Storable (Vector.ElemRep s a))
-             => Vector.Vector s a (Vector.ElemRep s a) -> V.Vector Value
+      vector :: (IsVector a, ToJSON (Vector.ElemRep V a), Storable (Vector.ElemRep V a))
+             => Vector.Vector a (Vector.ElemRep V a) -> V.Vector Value
       vector = V.fromList . map toJSON . Vector.toList -- XXX: do not use lists
       ub = R.unsexp H.unboundValue
       nil = R.unsexp H.nilValue

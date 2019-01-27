@@ -149,6 +149,7 @@ module Foreign.R
   , unsexp
   , release
   , unsafeRelease
+  , unsafeReleaseSome
   , withProtected
   -- * Deprecated
   , indexVector
