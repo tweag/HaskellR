@@ -132,7 +132,7 @@ evalEnv (hexp -> Language.R.HExp.Expr _ v) rho = acquireSome =<< do
     io $ alloca $ \p -> do
       mapM_ (\(SomeSEXP s) -> void $ R.protect s) (Vector.toList v)
       x <- Prelude.last <$> forM (Vector.toList v) (\(SomeSEXP s) -> do
-          z <- R.tryEvalSilent s rho p
+          z <- R.tryEvalSilent s (R.release rho) p
           e <- peek p
           when (e /= 0) $ runRegion $ throwR rho
           return z)

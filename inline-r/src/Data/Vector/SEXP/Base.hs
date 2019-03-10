@@ -37,7 +37,7 @@ type family ElemRep s (a :: SEXPTYPE) where
 type E s a b = ElemRep s a ~ b
 
 -- | Constraint synonym for all operations on vectors.
-type VECTOR s ty a = (Storable a, IsVector ty, SingI ty, ElemRep s ty ~ a)
+type VECTOR s ty a = (Storable a, IsVector ty, SingI ty)
 
 -- | Constraint synonym for all operations on vectors.
 type SVECTOR ty a = (Storable a, IsVector ty, SingI ty, ElemRep V ty ~ a)

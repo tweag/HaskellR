@@ -49,6 +49,7 @@ module Language.R.HExp
   ) where
 
 import Control.Applicative
+import Control.Memory.Region (V)
 import Control.Monad.R.Class
 import qualified Foreign.R      as R
 import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, withProtected)
@@ -138,17 +139,17 @@ data HExp :: * -> SEXPTYPE -> * where
   -- Fields: offset.
   Builtin   :: {-# UNPACK #-} !Int32
             -> HExp s 'R.Builtin
-  Char      :: {-# UNPACK #-} !(Vector.Vector s 'R.Char Word8)
+  Char      :: {-# UNPACK #-} !(Vector.Vector 'R.Char Word8)
             -> HExp s 'R.Char
-  Logical   :: {-# UNPACK #-} !(Vector.Vector s 'R.Logical R.Logical)
+  Logical   :: {-# UNPACK #-} !(Vector.Vector 'R.Logical R.Logical)
             -> HExp s 'R.Logical
-  Int       :: {-# UNPACK #-} !(Vector.Vector s 'R.Int Int32)
+  Int       :: {-# UNPACK #-} !(Vector.Vector 'R.Int Int32)
             -> HExp s 'R.Int
-  Real      :: {-# UNPACK #-} !(Vector.Vector s 'R.Real Double)
+  Real      :: {-# UNPACK #-} !(Vector.Vector 'R.Real Double)
             -> HExp s 'R.Real
-  Complex   :: {-# UNPACK #-} !(Vector.Vector s 'R.Complex (Complex Double))
+  Complex   :: {-# UNPACK #-} !(Vector.Vector 'R.Complex (Complex Double))
             -> HExp s 'R.Complex
-  String    :: {-# UNPACK #-} !(Vector.Vector s 'R.String (SEXP s 'R.Char))
+  String    :: {-# UNPACK #-} !(Vector.Vector 'R.String (SEXP V 'R.Char))
             -> HExp s 'R.String
   -- Fields: pairlist of promises.
   DotDotDot :: (R.IsPairList a)
@@ -156,11 +157,11 @@ data HExp :: * -> SEXPTYPE -> * where
             -> HExp s 'R.List
   -- Fields: truelength, content.
   Vector    :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector s 'R.Vector (SomeSEXP s))
+            -> {-# UNPACK #-} !(Vector.Vector 'R.Vector (SomeSEXP V))
             -> HExp s 'R.Vector
   -- Fields: truelength, content.
   Expr      :: {-# UNPACK #-} !Int32
-            -> {-# UNPACK #-} !(Vector.Vector s 'R.Expr (SomeSEXP s))
+            -> {-# UNPACK #-} !(Vector.Vector 'R.Expr (SomeSEXP V))
             -> HExp s 'R.Expr
   Bytecode  :: HExp s 'R.Bytecode -- TODO
   -- Fields: pointer, protectionValue, tagval
@@ -177,7 +178,7 @@ data HExp :: * -> SEXPTYPE -> * where
             -> SEXP s c
             -> SEXP s d
             -> HExp s 'R.WeakRef
-  Raw       :: {-# UNPACK #-} !(Vector.Vector s 'R.Raw Word8)
+  Raw       :: {-# UNPACK #-} !(Vector.Vector 'R.Raw Word8)
             -> HExp s 'R.Raw
   -- Fields: tagval.
   S4        :: SEXP s a
@@ -477,7 +478,7 @@ unhexp DotDotDot{}   = unimplemented "unhexp"
 unhexp ExtPtr{}      = unimplemented "unhexp"
 
 -- | Project the vector out of 'SEXP's.
-vector :: R.IsVector a => SEXP s a -> Vector.Vector s a (Vector.ElemRep s a)
+vector :: R.IsVector a => SEXP s a -> Vector.Vector a (Vector.ElemRep V a)
 vector (hexp -> Char vec)     = vec
 vector (hexp -> Logical vec)  = vec
 vector (hexp -> Int vec)      = vec
