@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.10 - 2018-03-10
+* inline-r supports running on FreeBSD
+* Fixed Lock system during QQ-generation
+* Support for new vector API.
+
 ## 0.9.2 - 2018-06-29
 * GHC 8.4 compatibility
 * Add Literal instance for 'Text'
