@@ -100,7 +100,7 @@ library
       inline-c >=0.5.6.1 && <0.6
   else
     build-depends:
-      inline-c >=0.6 && <0.7
+      inline-c >=0.6 && <0.8
   hs-source-dirs:      src
   includes:            cbits/missing_r.h
   c-sources:           cbits/missing_r.c
@@ -152,7 +152,7 @@ test-suite tests
   -- Adding -j4 causes quasiquoters to be compiled concurrently
   -- in tests, which helps testing for race conditions when
   -- trying to initialize R from multiple threads.
-  ghc-options:         -Wall -threaded -j4
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
 
@@ -182,7 +182,7 @@ test-suite test-shootout
                      , tasty >= 0.3
                      , tasty-hunit >= 0.4.1
                      , template-haskell >= 2.8
-  ghc-options:         -Wall -threaded -O0
+  ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
   if os(windows)
