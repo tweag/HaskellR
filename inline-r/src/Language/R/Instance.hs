@@ -64,6 +64,9 @@ import Control.Exception
     , uninterruptibleMask_
     )
 import Control.Monad.Catch ( MonadCatch, MonadMask, MonadThrow )
+#if MIN_VERSION_base(4,9,0)
+import Control.Monad.Fail
+#endif
 import Control.Monad.Reader
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 import Foreign
@@ -89,6 +92,11 @@ import Prelude
 -- be lifted to 'R' actions.
 newtype R s a = R { unR :: ReaderT (IORef Int) IO a }
   deriving (Applicative, Functor, Monad, MonadIO, MonadCatch, MonadMask, MonadThrow)
+
+#if MIN_VERSION_base(4,9,0)
+instance MonadFail (R s) where
+  fail s = R $ ReaderT $ \_ -> Control.Monad.Fail.fail s
+#endif
 
 instance PrimMonad (R s) where
   type PrimState (R s) = s
