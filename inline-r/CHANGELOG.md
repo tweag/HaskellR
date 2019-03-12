@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.10.1 - 2018-03-12
+* MonadFail instance to R.
+
 ## 0.10 - 2018-03-10
 * inline-r supports running on FreeBSD
 * Fixed Lock system during QQ-generation
