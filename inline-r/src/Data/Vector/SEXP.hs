@@ -279,6 +279,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 
 import Control.Applicative hiding (empty)
+import Control.Exception (mask_)
 #if MIN_VERSION_vector(0,11,0)
 import qualified Data.Vector.Fusion.Bundle.Monadic as Bundle
 import           Data.Vector.Fusion.Bundle.Monadic (sSize, sElems)
@@ -330,7 +331,7 @@ newtype ForeignSEXP (ty::SEXPTYPE) = ForeignSEXP (ForeignPtr ())
 -- | Create a 'ForeignSEXP' from 'SEXP'.
 foreignSEXP :: PrimMonad m => SEXP s ty -> m (ForeignSEXP ty)
 foreignSEXP sx@(SEXP ptr) =
-    unsafePrimToPrim $ do
+    unsafePrimToPrim $ mask_ $ do
       R.preserveObject sx
       ForeignSEXP <$> GHC.newConcForeignPtr (castPtr ptr) (R.releaseObject sx)
 
@@ -1753,6 +1754,6 @@ phony :: (forall t . Reifies t (AcquireIO s) => Proxy t -> r) -> r
 phony f = reify (AcquireIO acquireIO) $ \p ->  f p
   where
     acquireIO :: SEXP V ty -> IO (SEXP g ty)
-    acquireIO x = do
+    acquireIO x = mask_ $ do
       R.preserveObject x
       return $ R.unsafeRelease x

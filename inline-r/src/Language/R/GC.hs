@@ -24,6 +24,7 @@ module Language.R.GC
 
 import Control.Memory.Region
 import Control.Monad.R.Class
+import Control.Exception
 import Foreign.R (SomeSEXP(..))
 import qualified Foreign.R as R
 import System.Mem.Weak (addFinalizer)
@@ -38,7 +39,7 @@ import System.Mem.Weak (addFinalizer)
 -- deallocate the value sooner - it would still be semantically correct to never
 -- deallocate it at all.
 automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
-automatic s = io $ do
+automatic s = io $ mask_ $ do
     R.preserveObject s'
     s' `addFinalizer` (R.releaseObject (R.unsafeRelease s'))
     return s'
@@ -47,7 +48,7 @@ automatic s = io $ do
 
 -- | 'automatic' for 'SomeSEXP'.
 automaticSome :: MonadR m => R.SomeSEXP s -> m (R.SomeSEXP G)
-automaticSome (SomeSEXP s) = io  $ do
+automaticSome (SomeSEXP s) = io  $ mask_ $ do
     R.preserveObject s'
     s' `addFinalizer` (R.releaseObject s')
     return $ SomeSEXP s'
