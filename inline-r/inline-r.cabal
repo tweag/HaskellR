@@ -100,7 +100,7 @@ library
       inline-c >=0.5.6.1 && <0.6
   else
     build-depends:
-      inline-c >=0.6 && <0.8
+      inline-c >=0.6 && <0.9
   hs-source-dirs:      src
   includes:            cbits/missing_r.h
   c-sources:           cbits/missing_r.c
