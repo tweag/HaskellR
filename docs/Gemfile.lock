@@ -23,7 +23,7 @@ GEM
     faraday (0.15.0)
       multipart-post (>= 1.2, < 3)
     fast-stemmer (1.0.2)
-    ffi (1.9.23)
+    ffi (1.12.2)
     gemoji (2.1.0)
     github-pages (43)
       RedCloth (= 4.2.9)
