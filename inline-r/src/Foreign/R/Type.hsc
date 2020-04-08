@@ -33,7 +33,7 @@
 
 module Foreign.R.Type
   ( SEXPTYPE(..)
-  , SSEXPTYPE
+  , SSEXPTYPE(..)
   , Sing(..)
   , Logical(..)
   , PairList

@@ -107,6 +107,8 @@ newtype Matcher s a = Matcher
 instance Monad (Matcher s) where
   return x = Matcher $ \_ f _ -> f x
   Matcher f >>= k = Matcher $ \s ok err -> f s (\o -> runMatcher (k o) s ok err) err
+
+instance MonadFail (Matcher s) where
   fail s = Matcher $ \_ _ err -> err $ MatcherError s
 
 instance Applicative (Matcher s) where
