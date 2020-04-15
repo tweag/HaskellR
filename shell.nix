@@ -21,9 +21,9 @@ haskell.lib.buildStackProject ({
   name = "HaskellR";
   inherit ghc;
   buildInputs =
-    [ python36Packages.ipython
-      python36Packages.jupyter_client
-      python36Packages.notebook
+    [ python37Packages.ipython
+      python37Packages.jupyter_client
+      python37Packages.notebook
       R
       zeromq
       zlib
