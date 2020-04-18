@@ -3,36 +3,46 @@ version: "{build}"
 build:
   verbosity: normal
 
-environment:
-  global:
-    STACK_ROOT: "c:\\sr"
+clone_folder: "c:\\WORK"
+clone_depth: 5
 
-cache:
-- C:\sr -> stack.yaml                            # The stack root dir.
-- C:\Users\appveyor\AppData\Local\Programs\stack\i386-windows
+# Do not build feature branch with open Pull Requests
+skip_branch_with_pr: true
+
+platform:
+  - x86_64
 
 deploy: off
 
+cache:
+  - "C:\\SR"
+  - dist-newstyle
+
+environment:
+  global:
+    CABOPTS: --store-dir=C:\\SR
+
+  matrix:
+    - GHCVER: 8.8.3
+
+# enable RDP, see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
+# init:
+#   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 install:
-  ps: |
-    bash -c 'curl -Lso stack.zip -L --insecure http://www.stackage.org/stack/windows-i386'
-    7z x stack.zip stack.exe
-    mkdir C:\stack
-    mv stack.exe C:\stack
+  - choco source add -n mistuke -s https://www.myget.org/F/mistuke/api/v2
+  - choco install -y cabal --version 3.0.0.0
+  - choco install -y ghc   --version %GHCVER%
+  - choco install -y r
+  - refreshenv
 
-    # The URL keeps changing from release to release and old versions
-    # aren't kept around. In order to prevent the package from
-    # stopping to work, we automatically find the latest version:
-
-    $baseUrl='http://cran.at.r-project.org/bin/windows/base/'
-    $wc = New-Object System.Net.WebClient
-    if(!($wc.DownloadString($baseUrl) -match "R-(\d\.\d\.\d)-win.exe")) {
-      throw "Unable to determine latest version from $baseUrl"
-    }
-    $wc.DownloadFile("$baseUrl$($Matches[0])", "$pwd\Rinstaller.exe")
-    Start-Process -FilePath .\Rinstaller.exe -ArgumentList "/VERYSILENT /DIR=C:\R" -NoNewWindow -Wait
+before_build:
+  - cabal --version
+  - ghc   --version
+  - cabal %CABOPTS% update
 
 build_script:
-  - set PATH=C:\stack;C:\R\bin\i386;%PATH%
-  - stack --no-terminal setup > nul
-  - stack --no-terminal --extra-lib-dirs="C:\R\bin\i386" --extra-include-dirs="C:\R\include" build --test --no-run-tests inline-r H
+  - cabal %CABOPTS% build all --extra-lib-dirs="C:/Program files/R/R-3.6.3/bin/x64" --extra-include-dirs="C:/Program files/R/R-3.6.3/include"
