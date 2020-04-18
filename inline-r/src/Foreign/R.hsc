@@ -156,7 +156,9 @@ module Foreign.R
   ) where
 
 import Control.Memory.Region
+#if __GLASGOW_HASKELL__ < 804
 import Data.Monoid ((<>))
+#endif
 import Foreign.R.Internal
 import Foreign.R.Type
 import Foreign.R.Type as R
