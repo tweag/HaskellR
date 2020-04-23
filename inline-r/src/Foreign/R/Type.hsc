@@ -34,7 +34,7 @@
 module Foreign.R.Type
   ( SEXPTYPE(..)
   , SSEXPTYPE(..)
-  , Sing(..)
+  , Sing
   , Logical(..)
   , PairList
   , IsVector

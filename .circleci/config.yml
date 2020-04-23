@@ -43,6 +43,7 @@ jobs:
       - run:
           name: Build dependencies
           command: |
+            nix-env -f nixpkgs.nix -iA haskell.compiler.ghc883
             nix-shell --run 'stack --no-terminal build --only-snapshot --prefetch --no-haddock --test --bench --jobs=1 --system-ghc'
       - save_cache:
           key: HaskellR-stack-dependencies-2-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
@@ -67,7 +68,7 @@ jobs:
           name: prepare system
           command: |
             mkdir -p ~/.local/bin
-            curl -Lk https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 -C ~/.local/bin
+            curl -Lk https://get.haskellstack.org/stable/osx-x86_64.tar.gz | tar xz --strip-components=1 -C ~/.local/bin
       - run:
           name: install software
           command: |
@@ -123,7 +124,6 @@ workflows:
   build:
     jobs:
       - build-linux-nix
-      - build-osx-brew
       - build-osx-nix
   publish:
     jobs:
