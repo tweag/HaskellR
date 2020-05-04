@@ -1,6 +1,6 @@
 # The HaskellR project
 
-[![Circle CI](https://circleci.com/gh/tweag/HaskellR.svg?style=svg&circle-token=203e28077ff516f587169b261f089d1e9d50693d)](https://circleci.com/gh/tweag/HaskellR)
+![Continuous integration](https://github.com/tweag/HaskellR/workflows/Continuous%20integration/badge.svg?branch=master)
 
 * Website: https://tweag.github.io/HaskellR
 * Mailing list: [Google Groups](https://groups.google.com/group/haskellr)
