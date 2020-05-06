@@ -1,0 +1,60 @@
+name: Continuous integration
+on: [push]
+
+jobs:
+  build:
+    name: Build - Windows
+    runs-on: windows-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          # Use GHC 8.10.1 because of segfaults on Windows with the
+          # 8.8.* series.
+          choco install -y ghc --version 8.10.1
+          choco install -y haskell-stack
+          choco install -y r --version 4.0.0
+      - uses: actions/checkout@v1
+      - name: Get Stack snapshot install directory
+        id: stack-snapshot
+        run: |
+          echo "::set-output name=dir::$(stack path --snapshot-install-root)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.stack-snapshot.outputs.dir }}
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+      - name: Build
+        run: |
+          stack build inline-r H --skip-ghc-check --system-ghc `
+            --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
+            --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
+  test:
+    name: Build & Test - ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+      - uses: cachix/install-nix-action@v8
+      - name: Install Stack
+        run: |
+          nix-env -f. -iA nixpkgs.stack
+      - name: Get Stack snapshot install directory
+        id: stack-snapshot
+        run: |
+          echo "::set-output name=dir::$(stack --nix path --snapshot-install-root)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.stack-snapshot.outputs.dir }}
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/*.nix')}}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+      - name: Build
+        run: |
+          stack --nix build
+      - name: Test
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          stack --nix test
