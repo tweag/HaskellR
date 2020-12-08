@@ -8,8 +8,6 @@ packages:
 
 extra-deps:
 - ihaskell-blaze-0.3.0.1
-- ihaskell-0.10.1.2
-- ghc-parser-0.2.1.0
 
 docker:
   # Disabled by default. Use --docker on command line to enable.
