@@ -3,7 +3,7 @@ version:             0.10.4
 license:             BSD3
 license-file:        LICENSE
 copyright:           Copyright (c) 2013-2015 Amgen, Inc.
-                     Copyright (c) 2015-2018 Tweag I/O Limited.
+                     Copyright (c) 2015-2020 Tweag I/O Limited.
 author:              Mathieu Boespflug, Facundo Dominguez, Alexander Vershilov
 maintainer:          Mathieu Boespflug <m@tweag.io>
 build-type:          Simple
