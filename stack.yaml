@@ -1,4 +1,4 @@
-resolver: lts-16.25
+resolver: lts-17.1
 
 packages:
 - examples
