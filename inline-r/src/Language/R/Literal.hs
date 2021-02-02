@@ -144,26 +144,18 @@ mkProtectedSEXPVectorIO ty xs = do
 instance Literal [R.Logical] 'R.Logical where
     mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Logical v) = SVector.toList v
-    fromSEXP _ =
-        failure "fromSEXP" "Logical expected where some other expression appeared."
 
 instance Literal [Int32] 'R.Int where
     mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Int v) = SVector.toList v
-    fromSEXP _ =
-        failure "fromSEXP" "Int expected where some other expression appeared."
 
 instance Literal [Double] 'R.Real where
     mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Real v) = SVector.toList v
-    fromSEXP _ =
-        failure "fromSEXP" "Numeric expected where some other expression appeared."
 
 instance Literal [Complex Double] 'R.Complex where
     mkSEXPIO = mkSEXPVectorIO sing . map return
     fromSEXP (hexp -> Complex v) = SVector.toList v
-    fromSEXP _ =
-        failure "fromSEXP" "Complex expected where some other expression appeared."
 
 instance Literal [String] 'R.String where
     mkSEXPIO =
@@ -171,8 +163,6 @@ instance Literal [String] 'R.String where
         map (\str -> GHC.withCString utf8 str (R.mkCharCE R.CE_UTF8))
     fromSEXP (hexp -> String v) =
         map (\(hexp -> Char xs) -> SVector.toString xs) (SVector.toList v)
-    fromSEXP _ =
-        failure "fromSEXP" "String expected where some other expression appeared."
 
 instance Literal Text 'R.String where
     mkSEXPIO s =
@@ -184,8 +174,6 @@ instance Literal Text 'R.String where
         [hexp -> Char x] -> SVector.unsafeWithByteString x $ \p -> do
            pure $ T.decodeUtf8 p
         _ -> failure "fromSEXP" "Not a singleton vector"
-    fromSEXP _ =
-      failure "fromSEXP" "String expected where some other expression appeared."
 
 -- | Create a pairlist from an association list. Result is either a pairlist or
 -- @nilValue@ if the input is the null list. These are two distinct forms. Hence
@@ -225,8 +213,6 @@ instance Literal String 'R.String where
     fromSEXP x@(hexp -> String {})
       | [h] <- fromSEXP x = h
       | otherwise = failure "fromSEXP" "Not a singleton vector."
-    fromSEXP _ =
-        failure "fromSEXP" "String expected where some other expression appeared."
 
 instance SVector.SVECTOR ty a => Literal (SVector.Vector ty a) ty where
     mkSEXPIO = return . SVector.toSEXP

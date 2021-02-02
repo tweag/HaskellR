@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
 #if __GLASGOW_HASKELL__ >= 810
@@ -53,7 +54,6 @@ import Foreign.R.Constraints
 import Internal.Error
 
 import qualified Language.Haskell.TH.Syntax as Hs
-import qualified Language.Haskell.TH.Lib as Hs
 
 import Data.Singletons.TH
 
@@ -102,7 +102,7 @@ data SEXPTYPE
     | New
     | Free
     | Fun
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Hs.Lift)
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -166,9 +166,6 @@ instance NFData SEXPTYPE where
   rnf = (`seq` ())
 
 genSingletons [''SEXPTYPE]
-
-instance Hs.Lift SEXPTYPE where
-  lift a = [| $(Hs.conE (Hs.mkName $ "Foreign.R.Type." ++ show a)) |]
 
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.

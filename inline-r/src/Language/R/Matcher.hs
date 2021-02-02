@@ -294,7 +294,6 @@ getS3Class = charList <$> attribute SString "class"
 charList :: SEXP s 'R.String -> [String]
 charList (H.hexp -> String v) =
   map ((\(Char s) -> SV.toString s) . H.hexp) $ SV.toList v
-charList _ = error "Impossible happened."
 
 -- | Get 'dim' attribute.
 dim :: Matcher s [Int]
@@ -302,7 +301,6 @@ dim = go <$> attribute SInt "dim"
   where
     go :: SEXP s 'R.Int -> [Int]
     go (H.hexp -> Int v) = fromIntegral <$> SV.toList v
-    go _ = error "Impossible happened."
 
 -- | Get 'dimnames' attribute.
 dimnames :: Matcher s [[String]]

@@ -99,7 +99,6 @@ antiSuffix = "_hs"
 
 isAnti :: SEXP s 'R.Char -> Bool
 isAnti (hexp -> Char (Vector.toString -> name)) = antiSuffix `isSuffixOf` name
-isAnti _ = error "Impossible"
 
 -- | Chop antiquotation variable names to get the corresponding Haskell variable name.
 chop :: String -> String
