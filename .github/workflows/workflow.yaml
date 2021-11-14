@@ -8,9 +8,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          # Use GHC 8.10.1 because of segfaults on Windows with the
-          # 8.8.* series.
-          choco install -y ghc --version 8.10.1
+          choco install -y ghc --version 8.10.7 --allow-downgrade
           choco install -y haskell-stack
           choco install -y r --version 4.0.0
       - uses: actions/checkout@v1
