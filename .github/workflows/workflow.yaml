@@ -8,7 +8,6 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          choco install -y ghc --version 8.10.7 --allow-downgrade
           choco install -y haskell-stack
           choco install -y r --version 4.0.0
       - uses: actions/checkout@v1
@@ -24,7 +23,7 @@ jobs:
             ${{ runner.os }}-stack-
       - name: Build
         run: |
-          stack build inline-r H --skip-ghc-check --system-ghc `
+          stack build inline-r H `
             --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
             --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
   test:
