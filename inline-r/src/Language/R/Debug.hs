@@ -20,6 +20,7 @@ module Language.R.Debug
   where
 
 import Control.Memory.Region (V)
+import Data.String (fromString)
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
 import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
@@ -74,7 +75,7 @@ instance ToJSON (SEXP s a) where
       miss = R.unsexp H.missingArg
       info = unsafePerformIO $ R.peekInfo x
       attr = unsafePerformIO $ R.getAttributes x
-      tp = T.pack . show $ R.infoType info
+      tp = fromString . show $ R.infoType info
       go :: SEXP s a -> Value
       go y | R.unsexp y == ub   = A.String "UnboundValue"
            | R.unsexp y == nil  = A.String "NilValue"
