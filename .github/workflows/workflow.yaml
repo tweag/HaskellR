@@ -8,9 +8,6 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          # Use GHC 8.10.1 because of segfaults on Windows with the
-          # 8.8.* series.
-          choco install -y ghc --version 8.10.1
           choco install -y haskell-stack
           choco install -y r --version 4.0.0
       - uses: actions/checkout@v1
@@ -26,7 +23,7 @@ jobs:
             ${{ runner.os }}-stack-
       - name: Build
         run: |
-          stack build inline-r H --skip-ghc-check --system-ghc `
+          stack build inline-r H `
             --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
             --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
   test:
@@ -37,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v12
+      - uses: cachix/install-nix-action@v15
         with:
           nix_path: nixpkgs=./nixpkgs.nix
       - name: Install Stack

@@ -1,4 +1,4 @@
-{pkgs ? import ./nixpkgs.nix { }, ghc ? pkgs.haskell.compiler}:
+{pkgs ? import ./nixpkgs.nix { }, ghc ? pkgs.haskell.compiler.ghc8104}:
 
 with pkgs;
 
@@ -21,9 +21,9 @@ haskell.lib.buildStackProject ({
   name = "HaskellR";
   inherit ghc;
   buildInputs =
-    [ python37Packages.ipython
-      python37Packages.jupyter_client
-      python37Packages.notebook
+    [ python3Packages.ipython
+      python3Packages.jupyter_client
+      python3Packages.notebook
       R
       zeromq
       zlib
