@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.10.5 - 2020-11-16
+* Support aeson >= 2
+
 ## 0.10.1 - 2018-03-12
 * MonadFail instance to R.
 
