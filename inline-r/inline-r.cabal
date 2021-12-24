@@ -88,7 +88,8 @@ library
                      , process >= 1.2
                      , reflection >= 2
                      , setenv >= 0.1.1
-                     , singletons >= 0.9 && < 3
+                     , singletons >= 3
+                     , singletons-th >= 3
                      , template-haskell >= 2.8
                      , text >= 0.11
                      , th-lift >= 0.6
