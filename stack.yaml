@@ -1,9 +1,10 @@
-resolver: nightly-2021-12-23
+#resolver: nightly-2021-12-23
+resolver: ghc-9.2.1.yaml
 
 packages:
-- examples
-- H
-- IHaskell
+  # - examples
+  # - H
+  # - IHaskell
 - inline-r
 
 extra-deps:
@@ -17,3 +18,4 @@ docker:
 nix:
   shell-file: ./shell.nix
   path: ["nixpkgs=./nixpkgs.nix"]
+  enable: true
