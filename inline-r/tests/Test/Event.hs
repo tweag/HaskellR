@@ -39,12 +39,13 @@ tests = testGroup "events"
           f <- wrap $ \_ -> return ()
           ref1 <- newIORef (0 :: Int)
           forIH_ inputHandlers $ \_ -> modifyIORef' ref1 (+1)
-          _ <- R.addInputHandler inputHandlers fd f 0
+          ih <- R.addInputHandler inputHandlers fd f 0
           ref2 <- newIORef 0
           forIH_ inputHandlers $ \_ -> modifyIORef' ref2 (+1)
           n1 <- readIORef ref1
           n2 <- readIORef ref2
           n1 @?= n2 - 1
+          (@?= True) =<< R.removeInputHandler inputHandlers ih
           freeHaskellFunPtr f
 
     , testCase "removeInputHandler decreases handler count" $ do
