@@ -36,11 +36,12 @@ import Control.Concurrent
 import Control.Exception (handle)
 import Control.Memory.Region
 import Control.Monad (void)
-import Data.List (delete, find)
+import Data.List
 import Data.Singletons (sing)
 import Data.Vector.SEXP (indexM)
 import Foreign hiding (void)
 import System.Environment (getArgs, lookupEnv, withArgs)
+import qualified Text.Heredoc as Heredoc
 import Prelude -- Silence AMP warning
 
 inVoid :: R V z -> R V z
@@ -112,6 +113,31 @@ tests torture = testGroup "Unit tests"
       void $ forkIO $ cancel
       handle (\RError{} -> return ())
              (runRegion $ void $ [r| while(1){}; |])
+  , testGroup "collectAntis"
+    [ testCase "Succeeds on a simple expression" $ do
+        result <- collectAntis "foo_hs + bar + baz_hs"
+        case result of
+          Left err -> assertFailure err
+          Right ids -> sort ids @?=
+            sort ["foo_hs", "baz_hs"]
+    , testCase "Returns an error on invalid R code" $ do
+        result <- collectAntis "foo_hs bar"
+        case result of
+          Left err -> assertBool "Unrecognized error message" $
+            "unexpected symbol" `isInfixOf` err
+          Right _ -> assertFailure "Unexpected success"
+    , testCase "Succeeds on a more complicated expression and ignores symbols inside strings" $ do
+        result <- collectAntis [Heredoc.here|
+            function () {
+              r <- fft(foo_hs) + bar_hs + "baz_hs"
+              f(r, quux_hs)
+            }
+          |]
+        case result of
+          Left err -> assertFailure err
+          Right ids -> sort ids @?=
+            sort ["foo_hs", "bar_hs", "quux_hs"]
+    ]
   ]
 
 main :: IO ()

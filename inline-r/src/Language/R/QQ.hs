@@ -16,6 +16,7 @@
 module Language.R.QQ
   ( r
   , rsafe
+  , collectAntis
   ) where
 
 import           Control.Memory.Region
@@ -41,12 +42,18 @@ import qualified Language.Haskell.TH.Lib as TH
 import Control.Concurrent (MVar, newMVar, takeMVar, putMVar)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
+import Control.Monad.IO.Class (liftIO)
 import Data.List (intercalate, isSuffixOf)
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Foreign (alloca, peek)
 import Foreign.C.String (withCString)
 import System.IO.Unsafe (unsafePerformIO)
+import qualified Text.Heredoc as Heredoc
+import qualified System.IO.Temp as Temp
+import System.Process
+import System.IO
+import System.Exit
 
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
@@ -97,30 +104,41 @@ parse txt = do
 antiSuffix :: String
 antiSuffix = "_hs"
 
-isAnti :: SEXP s 'R.Char -> Bool
-isAnti (hexp -> Char (Vector.toString -> name)) = antiSuffix `isSuffixOf` name
-
 -- | Chop antiquotation variable names to get the corresponding Haskell variable name.
 chop :: String -> String
 chop name = take (length name - length antiSuffix) name
 
--- | Traverse 'R.SEXP' structure and find all occurences of antiquotations.
-collectAntis :: R.SEXP s a -> Set (SEXP s 'R.Char)
-collectAntis (hexp -> Symbol (R.unsafeCoerce -> name) _ _)
-  | isAnti name = Set.singleton name
-collectAntis (hexp -> (List sxa sxb sxc)) = do
-    Set.unions [collectAntis sxa, collectAntis sxb, collectAntis sxc]
-collectAntis (hexp -> (Lang (hexp -> Symbol (R.unsafeCoerce -> name) _ _) sxb))
-  | isAnti name = Set.insert name (collectAntis sxb)
-collectAntis (hexp -> (Lang sxa sxb)) =
-    Set.union (collectAntis sxa) (collectAntis sxb)
-collectAntis (hexp -> (Closure sxa sxb sxc)) =
-    Set.unions [collectAntis sxa, collectAntis sxb, collectAntis sxc]
-collectAntis (hexp -> (Vector _ sxv)) =
-    Set.unions [collectAntis (R.unsafeRelease sx) | SomeSEXP sx <- Vector.toList sxv]
-collectAntis (hexp -> (Expr _ sxv)) =
-    Set.unions [collectAntis (R.unsafeRelease sx) | SomeSEXP sx <- Vector.toList sxv]
-collectAntis _ = Set.empty
+-- | Find all occurences of antiquotations.
+--
+-- This function works by parsing the user's R code in a separate
+-- R process. As a nice side-effect, it will detect and return any syntax
+-- errors in the quasi-quoted R code.
+--
+-- This function is exposed only for testing; you probably don't need to
+-- call it in the user code.
+collectAntis
+  :: String
+    -- ^ the R code that may contain antiquotations, which are
+    -- identifiers ending with 'antiSuffix'
+  -> IO (Either String [String])
+    -- ^ either an error message from R, or a list of unique antiquoted
+    -- identifiers
+collectAntis input = do
+  -- Write our input to a temporary file. We could interpolate it into the
+  -- R code below directly, but that would make it harder to disentangle
+  -- syntax errors in the user's code from our wrapper code.
+  Temp.withSystemTempFile "inline-r-.R" $ \input_file input_fh -> do
+    hPutStr input_fh input
+    hClose input_fh
+    (code, stdout, stderr) <- readProcessWithExitCode "R" ["--slave"] $
+      -- Note: --slave was recently renamed to --no-echo. --slave still works
+      -- but is no longer documented. Using the old option name for now just
+      -- in case the user have an older (pre-2020) version of R.
+      "input_file <- \"" ++ input_file ++ "\"\n" ++
+        [Heredoc.there|R/collectAntis.R|]
+    return $ case code of
+      ExitSuccess -> Right $ words stdout
+      ExitFailure{} -> Left stderr
 
 -- | An R quasiquote is syntactic sugar for a function that we
 -- generate, which closes over all antiquotation variables, and applies the
@@ -131,11 +149,15 @@ collectAntis _ = Set.empty
 -- @
 expQQ :: String -> Q TH.Exp
 expQQ input = do
-    _ <- runIO $ takeMVar qqLock
-    expr <- runIO $ R.protect =<< parse input
-    let antis = [x | (hexp -> Char (Vector.toString -> x))
-                       <- Set.toList (collectAntis expr)]
-        args = map (TH.dyn . chop) antis
+    mb_antis <- liftIO $ collectAntis input
+    antis <- case mb_antis of
+      Right antis -> pure antis
+      Left msg -> fail . unlines $
+        [ "An error occurred while trying to parse the R code."
+        , "The stderr of the R interpreter was:"
+        , msg
+        ]
+    let args = map (TH.dyn . chop) antis
         closure = "function(" ++ intercalate "," antis ++ "){" ++ input ++ "}"
         z = [| return (R.release nilValue) |]
     vars <- mapM (\_ -> TH.newName "x") antis
@@ -157,6 +179,4 @@ expQQ input = do
                                         car <- mkSEXPIO $(TH.varE x)
                                         R.lcons car cdr |]) z vars)
        |]
-    runIO $ R.unprotect 1 -- Ptr expr
-    runIO $ putMVar qqLock ()
     pure x
