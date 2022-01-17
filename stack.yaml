@@ -2,7 +2,7 @@
 resolver: ghc-9.2.1.yaml
 
 packages:
-  # - examples
+- examples
   # - H
   # - IHaskell
 - inline-r
