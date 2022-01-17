@@ -150,9 +150,6 @@ test-suite tests
                        Test.Regions
                        Test.Vector
                        Test.Matcher
-  -- Adding -j4 causes quasiquoters to be compiled concurrently
-  -- in tests, which helps testing for race conditions when
-  -- trying to initialize R from multiple threads.
   ghc-options:         -Wall -threaded
   hs-source-dirs:      tests
   default-language:    Haskell2010
