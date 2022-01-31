@@ -50,6 +50,9 @@ jobs:
           key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/*.nix')}}
           restore-keys: |
             ${{ runner.os }}-stack-
+      - name: Print ghc version
+        run: |
+          stack --nix exec ghc -- --version
       - name: Build
         run: |
           stack --nix build
