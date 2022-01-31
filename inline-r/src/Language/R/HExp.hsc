@@ -89,99 +89,118 @@ import Prelude
 -- assign a reasonable type (existentially quantified type variables would
 -- escape).
 --
--- Note further that Haddock does not currently support constructor comments
--- when using the GADT syntax.
+-- See <https://cran.r-project.org/doc/manuals/r-release/R-ints.html#SEXPTYPEs>.
 type role HExp phantom nominal
 data HExp :: * -> SEXPTYPE -> * where
   -- Primitive types. The field names match those of <RInternals.h>.
+  -- | The NULL value (@NILSXP@).
   Nil       :: HExp s 'R.Nil
-  -- Fields: pname (is Nil for R_UnboundValue), value, internal.
+  -- | A symbol (@SYMSXP@).
   Symbol    :: (a :∈ ['R.Char, 'R.Nil])
-            => SEXP s a
-            -> SEXP s b
-            -> SEXP s c
+            => SEXP s a -- ^ the name (is 'Nil' for 'H.unboundValue')
+            -> SEXP s b -- ^ the value. Many symbols have their value set to 'H.unboundValue'.
+            -> SEXP s c -- ^ «internal»: if the symbol's value is a @.Internal@ function,
+                        -- this is a pointer to the appropriate 'SEXP'.
             -> HExp s 'R.Symbol
-  -- Fields: carval, cdrval, tagval.
+  -- | A list (@LISTSXP@).
   List      :: (R.IsPairList b, c :∈ ['R.Symbol, 'R.Nil])
-            => SEXP s a
-            -> SEXP s b
-            -> SEXP s c
+            => SEXP s a -- ^ CAR
+            -> SEXP s b -- ^ CDR (usually a 'List' or 'Nil')
+            -> SEXP s c -- ^ TAG (a 'Symbol' or 'Nil')
             -> HExp s 'R.List
-  -- Fields: frame, enclos, hashtab.
+  -- | An environment (@ENVSXP@).
   Env       :: (R.IsPairList a, b :∈ ['R.Env, 'R.Nil], c :∈ ['R.Vector, 'R.Nil])
-            => SEXP s a
-            -> SEXP s b
-            -> SEXP s c
+            => SEXP s a -- ^ the frame: a tagged pairlist with tag the symbol and CAR the bound value
+            -> SEXP s b -- ^ the enclosing environment
+            -> SEXP s c -- ^ the hash table
             -> HExp s 'R.Env
-  -- Fields: formals, body, env.
+  -- | A closure (@CLOSXP@).
   Closure   :: (R.IsPairList a)
-            => SEXP s a
-            -> SEXP s b
-            -> SEXP s 'R.Env
+            => SEXP s a -- ^ formals (a pairlist)
+            -> SEXP s b -- ^ the body
+            -> SEXP s 'R.Env -- ^ the environment
             -> HExp s 'R.Closure
-  -- Fields: value, expr, env.
-  -- Once an promise has been evaluated, the environment is set to NULL.
+  -- | A promise (@PROMSXP@).
   Promise   :: (R.IsExpression b, c :∈ ['R.Env, 'R.Nil])
-            => SEXP s a
-            -> SEXP s b
-            -> SEXP s c
+            => SEXP s a -- ^ the value
+            -> SEXP s b -- ^ the expression
+            -> SEXP s c -- ^ the environment. Once the promise has been
+                        -- evaluated, the environment is set to NULL.
             -> HExp s 'R.Promise
   -- Derived types. These types don't have their own 'struct' declaration in
   -- <Rinternals.h>.
-  -- Fields: function, args.
+  -- | Language objects (@LANGSXP@) are calls (including formulae and so on).
+  -- Internally they are pairlists with first element a reference to the
+  -- function to be called with remaining elements the actual arguments for
+  -- the call (and with the tags if present giving the specified argument
+  -- names). Although this is not enforced, many places in the R code assume
+  -- that the pairlist is of length one or more, often without checking.
   Lang      :: (R.IsExpression a, R.IsPairList b)
-            => SEXP s a
-            -> SEXP s b
+            => SEXP s a -- ^ CAR: the function (perhaps via a symbol or language object)
+            -> SEXP s b -- ^ CDR: the argument list with tags for named arguments
             -> HExp s 'R.Lang
-  -- Fields: offset.
+  -- | A special (built-in) function call (@SPECIALSXP@).
   Special   :: {-# UNPACK #-} !Int32
+              -- ^ An integer giving the offset into the table of
+              -- primitives/@.Internal@s.
             -> HExp s 'R.Special
-  -- Fields: offset.
+  -- | A @BUILTINSXP@. This is similar to 'Special', except the arguments to a 'Builtin'
+  -- are always evaluated.
   Builtin   :: {-# UNPACK #-} !Int32
+              -- ^ An integer giving the offset into the table of
+              -- primitives/@.Internal@s.
             -> HExp s 'R.Builtin
+  -- | An internal character string (@CHARSXP@).
   Char      :: {-# UNPACK #-} !(Vector.Vector 'R.Char Word8)
             -> HExp s 'R.Char
+  -- | A logical vector (@LGLSXP@).
   Logical   :: {-# UNPACK #-} !(Vector.Vector 'R.Logical R.Logical)
             -> HExp s 'R.Logical
+  -- | An integer vector (@INTSXP@).
   Int       :: {-# UNPACK #-} !(Vector.Vector 'R.Int Int32)
             -> HExp s 'R.Int
+  -- | A numeric vector (@REALSXP@).
   Real      :: {-# UNPACK #-} !(Vector.Vector 'R.Real Double)
             -> HExp s 'R.Real
+  -- | A complex vector (@CPLXSXP@).
   Complex   :: {-# UNPACK #-} !(Vector.Vector 'R.Complex (Complex Double))
             -> HExp s 'R.Complex
+  -- | A character vector (@STRSXP@).
   String    :: {-# UNPACK #-} !(Vector.Vector 'R.String (SEXP V 'R.Char))
             -> HExp s 'R.String
-  -- Fields: pairlist of promises.
+  -- | A special type of @LISTSXP@ for the value bound to a @...@ symbol
   DotDotDot :: (R.IsPairList a)
-            => SEXP s a
+            => SEXP s a -- ^ a pairlist of promises
             -> HExp s 'R.List
-  -- Fields: truelength, content.
-  Vector    :: {-# UNPACK #-} !Int32
+  -- | A list/generic vector (@VECSXP@).
+  Vector    :: {-# UNPACK #-} !Int32 -- ^ true length
             -> {-# UNPACK #-} !(Vector.Vector 'R.Vector (SomeSEXP V))
             -> HExp s 'R.Vector
-  -- Fields: truelength, content.
-  Expr      :: {-# UNPACK #-} !Int32
+  -- | An expression vector (@EXPRSXP@).
+  Expr      :: {-# UNPACK #-} !Int32 -- ^ true length
             -> {-# UNPACK #-} !(Vector.Vector 'R.Expr (SomeSEXP V))
             -> HExp s 'R.Expr
+  -- | A ‘byte-code’ object generated by R (@BCODESXP@).
   Bytecode  :: HExp s 'R.Bytecode -- TODO
-  -- Fields: pointer, protectionValue, tagval
-  ExtPtr    :: Ptr ()
-            -> SEXP s b
-            -> SEXP s 'R.Symbol
+  -- | An external pointer (@EXTPTRSXP@)
+  ExtPtr    :: Ptr () -- ^ the pointer
+            -> SEXP s b -- ^ the protection value (an R object which if alive protects this object)
+            -> SEXP s 'R.Symbol -- ^ a tag
             -> HExp s 'R.ExtPtr
-  -- Fields: key, value, finalizer, next.
+  -- | A weak reference (@WEAKREFSXP@).
   WeakRef   :: ( a :∈ ['R.Env, 'R.ExtPtr, 'R.Nil]
                , c :∈ ['R.Closure, 'R.Builtin, 'R.Special, 'R.Nil]
                , d :∈ ['R.WeakRef, 'R.Nil] )
-            => SEXP s a
-            -> SEXP s b
-            -> SEXP s c
-            -> SEXP s d
+            => SEXP s a -- ^ the key
+            -> SEXP s b -- ^ the value
+            -> SEXP s c -- ^ the finalizer
+            -> SEXP s d -- ^ the next entry in the weak references list
             -> HExp s 'R.WeakRef
+  -- | A raw vector (@RAWSXP@).
   Raw       :: {-# UNPACK #-} !(Vector.Vector 'R.Raw Word8)
             -> HExp s 'R.Raw
-  -- Fields: tagval.
-  S4        :: SEXP s a
+  -- | An S4 class which does not consist solely of a simple type such as an atomic vector or function (@S4SXP@).
+  S4        :: SEXP s a -- ^ the tag
             -> HExp s 'R.S4
 
 -- 'Im a hack
