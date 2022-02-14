@@ -23,17 +23,17 @@ The central and most general mechanism by which this is done is
 a script with holes in it that stand in for as of yet undetermined
 portions. An example quasiquote in Haskell of an R snippet is:
 
-```Haskell
+~~~ haskell
 [r| function(x) x + 1 ]
-```
+~~~
 
 This quasiquote is *ground*, in that does not contain any holes
 (called *antiquotes*), unlike the below quasiquote:
 
-```Haskell
+~~~ haskell
 let y = mkSEXP 1
 in [r| function(x) x + y_hs ]
-```
+~~~
 
 Unlike all other symbols, any symbol with a `_hs` suffix is by
 convention interpreted as a reference to a Haskell variable defined

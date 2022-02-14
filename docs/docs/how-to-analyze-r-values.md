@@ -16,9 +16,9 @@ pattern matched, provided a *view function* constructing a *view* of
 any given R value as an algebraic datatype. `inline-r` provides one
 such view function (in the `Language.R.HExp` module):
 
-```Haskell
+~~~ haskell
 hexp :: SEXP s a -> HExp a
-```
+~~~
 
 The `HExp` datatype is a *view type* for `SEXP`. Matching on a value
 of type `HExp a` is an alternative to using accessor functions to gain
@@ -31,21 +31,21 @@ performance.
 
 We have for example that:
 
-```Haskell
+~~~ haskell
 hexp H.nilValue == Nil
 hexp (mkSEXP ([2, 3] :: [Double])) == Real (fromList ([2, 3] :: [Double]))
-```
+~~~
 
 Where `H.nilValue` is the result of evaluating `[r| NULL |]`
 
 Using a language extension known as `ViewPatterns`, we can use `hexp`
 to examine an expression to any depth rather compactly. For instance:
 
-```Haskell
-f (hexp -> Real xs) = …
-f (hexp -> Lang rator (hexp -> List rand1 (hexp -> List rand2 _ _) _) = …
-f (hexp -> Closure args body@(hexp -> Lang _ _) env) = …
-```
+~~~ haskell
+f (hexp -> Real xs) = _
+f (hexp -> Lang rator (hexp -> List rand1 (hexp -> List rand2 _ _) _) = _
+f (hexp -> Closure args body@(hexp -> Lang _ _) env) = _
+~~~
 
 ### R values and side effects
 
@@ -95,24 +95,24 @@ function `f(x)` will alter the *value* of x, because all side-effects
 of functions act on *copies* of `x` (the formal parameter of the
 function doesn't share a reference). For example:
 
-```R
+~~~ r
 > x <- c(1,2,3)
 > f <- function(y) y[1] <- 42
 > f(x)
 > x
 [1] 1 2 3
-```
+~~~
 
 Furthermore, in R, closures capture copies of their environment, so
 that even the following preserves the value of `x`:
 
-```R
+~~~ r
 > x <- c(1,2,3)
 > f <- function() x[1] <- 42
 > f()
 > x
 [1] 1 2 3
-```
+~~~
 
 The upshot is that due to its value semantics, R effectively limits
 the scope of any mutation effects to the lexical scope of the
@@ -123,11 +123,11 @@ Conversely, evaluating any `SEXP` in a pure context in Haskell is
 *unsafe* in the presence of mutation of the global environment. For
 example,
 
-```Haskell
+~~~ haskell
 f :: SEXP s a -> (R s SomeSEXP,HExp a)
 f x = let h = hexp x
          in ([r| x_hs <- 'hello' |], h)
-```
+~~~
 
 The value of the expression `snd (f x)` depends on whether it is evaluated
 before or after evaluating the monadic computation `fst (f x)`.
@@ -154,12 +154,12 @@ However, we need a notion broader still. Equality on two values of
 uniform type is too restrictive for `HExp`, which is a GADT. Consider
 symbols, which can be viewed using the `Symbol` constructor:
 
-```Haskell
+~~~ haskell
 Symbol :: SEXP s (R.Vector Word8)
        -> SEXP s a
        -> Maybe (SEXP s b)
        -> HExp R.Symbol
-```
+~~~
 
 The second field in a symbol is its "value", which can be of any form,
 *a priori* unknown. Therefore, when comparing two symbols recursively,
@@ -171,11 +171,11 @@ want to be also be able to compare values that are not in fact equal.
 For this, we need a slightly generalized notion of equality, called
 *heterogeneous equality*:
 
-```Haskell
+~~~ haskell
 -- | Heterogeneous equality.
 (===) :: TestEquality f => f a -> f b -> Bool
 x === y = isJust $ testEquality x y
-```
+~~~
 
 The `TestEquality` class
 [comes from `base`](https://downloads.haskell.org/~ghc/latest/docs/html/libraries/base-4.8.1.0/Data-Type-Equality.html).

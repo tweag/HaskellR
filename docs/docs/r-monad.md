@@ -6,18 +6,18 @@ The R monad
 
 All expressions like
 
-```
+~~~
 [r| ... |]   :: MonadR m => m (SEXP s b)
 H.print sexp :: MonadR m => m ()
 H.eval sexp  :: MonadR m => m (SEXP s b)
-```
+~~~
 
 are computations in a monad instantiating `MonadR`.
 
-```Haskell
+~~~ haskell
 class (Applicative m, MonadIO m) => MonadR m where
   io :: IO a -> m a
-```
+~~~
 
 These monads ensure that:
 
@@ -37,12 +37,12 @@ instead use the `R` monad, for better static guarantees. Functions are
 provided in the `Language.R.Instance` module to initialize R and to
 run `R` computations in the `IO` monad:
 
-```Haskell
+~~~ haskell
 withEmbeddedR :: Config -> IO a -> IO a
 runRegion     :: (forall s . R s a) -> IO a
 io            :: IO a -> R s a
 unsafeRToIO   :: R s a -> IO a
-```
+~~~
 
 The `IO` monad is used in interactive sessions as a mere convenience.
 It allows evaluating expressions without the need to wrap every

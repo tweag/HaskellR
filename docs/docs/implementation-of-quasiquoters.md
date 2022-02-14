@@ -25,10 +25,10 @@ its value will be shared for the lifetime of the program.
 For example, `[r| 1 + 1 |]` expands to something morally equivalent
 to the following:
 
-```Haskell
+~~~ haskell
 let sx = unsafePerformIO (parse "function(){ 1 + 1 }")
 in eval (apply sx [])
-```
+~~~
 
 Use the `-ddump-simpl` GHC option to see what a quasiquotation truly
 expands to.

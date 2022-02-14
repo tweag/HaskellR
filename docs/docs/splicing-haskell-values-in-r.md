@@ -28,11 +28,11 @@ needed. To splice a value, its type needs to be an instance of the
 `H.Literal` class which defines conversion functions between Haskell
 and R values.
 
-```Haskell
+~~~ haskell
 class Literal a b | a -> b where
   mkSEXP   ::      a -> SEXP s b
   fromSEXP :: SEXP s c ->      a
-```
+~~~
 
 See the [Haddock API documentation][stackage-inline-r] of the
 `Language.R.Literal` for a list of predefined instances.

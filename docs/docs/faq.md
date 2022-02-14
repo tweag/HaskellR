@@ -12,9 +12,9 @@ code in a worker thread as a form of isolation, rather than on the
 main thread. This leads to errors like the following when evaluating
 code in GHCi:
 
-```
+~~~
 Error: C stack usage 140730332267004 is too close to the limit
-```
+~~~
 
 The fix is to turn off GHCi sandboxing, by passing the
 `-fno-ghci-sandbox` when invoking GHCi. This forces GHCi to evaluate
@@ -31,9 +31,9 @@ exist previously just create it.
 For instance, something like the following to compile `inline-r` and
 friends in GHCi fails:
 
-```
+~~~
 $ stack repl
-```
+~~~
 
 This is a known issue with GHC, tracked as
 [Trac ticket #10458][trac-10458].
@@ -47,20 +47,20 @@ some versions of this linker has a [bug][ld-pie-bug] preventing the
 linker from handling relocations properly. You might be seeing linker
 errors like the following:
 
-```
+~~~
 /usr/bin/ld: .stack-work/dist/x86_64-linux/Cabal-1.18.1.5/build/IHaskell/Display/InlineR.dyn_o: relocation R_X86_64_PC32 against symbol `ihaskellzminlinezmrzm0zi1zi0zi0_IHaskellziDisplayziInlineR_rprint5_closure' can not be used when making a shared object; recompile with -fPIC
     /usr/bin/ld: final link failed: Bad value
     collect2: error: ld returned 1 exit status
-```
+~~~
 
 The fix is to either upgrade your linker, or better yet, switch to the
 gold linker. On Ubuntu, you can do this with:
 
-```
+~~~
 # update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.gold" 20
 # update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.bfd" 10
 # update-alternatives --config ld
-```
+~~~
 
 Stackage LTS Docker images use the `ld.gold` linker by default for
 this reason, so aren't affected by the bug.
@@ -80,7 +80,7 @@ many objects protected by inline-r. This happens when you write
 recursive functions in a single resource region. You can solve it
 by adding an explicit subregion, as in
 
-```
+~~~
 function = R.runRegion $ do
   let xs = [1..10000000] :: [Double]
   Fold.foldM
@@ -88,7 +88,7 @@ function = R.runRegion $ do
 {- 1 -} (\acc _ -> io $ runRegion $ fmap (fromSEXP . R.cast R.SReal) [r| 1 |])
         (return (0::Double))
         return) xs
-```
+~~~
 
 In `{- 1 -}` we are creating a nested region so all temporary values from
 that region will be unprotected on exit from the region.

@@ -49,24 +49,24 @@ function `f(x)` will alter the *value* of x, because all side-effects
 of functions act on *copies* of `x` (the formal parameter of the
 function doesn't share a reference). For example:
 
-```R
+~~~ r
 > x <- c(1,2,3)
 > f <- function(y) y[1] <- 42
 > f(x)
 > x
 [1] 1 2 3
-```
+~~~
 
 Furthermore, in R, closures capture copies of their environment, so
 that even the following preserves the value of `x`:
 
-```R
+~~~ r
 > x <- c(1,2,3)
 > f <- function() x[1] <- 42
 > f()
 > x
 [1] 1 2 3
-```
+~~~
 
 The upshot is that due to its value semantics, R effectively limits
 the scope of any mutation effects to the lexical scope of the
@@ -77,11 +77,11 @@ Conversely, evaluating any `SEXP` in a pure context in Haskell is
 *unsafe* in the presence of mutation of the global environment. For
 example,
 
-```Haskell
+~~~ haskell
 f :: SEXP s a -> (R s SomeSEXP,HExp a)
 f x = let h = hexp x
          in ([r| x_hs <- 'hello' |], h)
-```
+~~~
 
 The value of the expression `snd (f x)` depends on whether it is evaluated
 before or after evaluating the monadic computation `fst (f x)`.

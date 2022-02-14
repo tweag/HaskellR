@@ -20,13 +20,13 @@ algebraic datatypes can be pattern matched.
 a (generalized) algebraic datatype. A simplified definition of `HExp`
 would go along the lines of:
 
-```Haskell
+~~~ Haskell
 data HExp
-  = Nil                                           -- NILSXP
-  | Symbol { ... }                                -- SYMSXP
-  | Real { ... }                                  -- REALSXP
+  = Nil               -- NILSXP
+  | Symbol { ... }    -- SYMSXP
+  | Real { ... }      -- REALSXP
   | ...
-```
+~~~
 
 We define one constructor for each value of the `SEXPTYPE` enumeration
 in `<RInternals.h>`.
@@ -37,9 +37,9 @@ not use `HExp` as the universe of R expressions, merely as a *view*.
 We introduce the following *view function* to *locally* convert to
 a `HExp`, given a `SEXP` from R.
 
-```Haskell
+~~~ haskell
 hexp :: SEXP s -> HExp
-```
+~~~
 
 The fact that this conversion is local is crucial for good performance
 of the translated code. It means that conversion happens at each use
@@ -63,9 +63,9 @@ on the Haskell side and passed to R.
 
 We also define an inverse of the view function:
 
-```Haskell
+~~~ haskell
 unhexp :: HExp -> SEXP
-```
+~~~
 
 A form indexed native view of expresions
 ----------------------------------------
@@ -96,7 +96,7 @@ side of the branch. For example, in the body of a branch with pattern
 `Real x`, the type checker can refine the type of the scrutinee to
 `SEXP s R.Real`. In `inline-r`, `HExp` is defined as follows:
 
-```Haskell
+~~~ haskell
 data HExp s (a :: SEXPTYPE) where
   Nil       :: HExp R.Nil
   -- Fields: pname, value, internal.
@@ -108,7 +108,7 @@ data HExp s (a :: SEXPTYPE) where
             -> HExp R.Int
   Real      :: {-# UNPACK #-} !(Vector.Vector R.Real Double)
   ...
-```
+~~~
 
 See the Haddock generated documentation for the `Language.R.HExp`
 module for the full definition.

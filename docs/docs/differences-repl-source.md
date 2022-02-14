@@ -33,7 +33,7 @@ handle R initialization and configuration explicitly in compiled
 programs, while `H --interactive` takes care of this for us. Here is
 a template small program using the `inline-r` library:
 
-```Haskell
+~~~ haskell
 {-# LANGUAGE QuasiQuotes #-}
 module Main where
 
@@ -54,4 +54,4 @@ main = do
     putStrLn "Name?"
     name <- getLine
     R.withEmbeddedR R.defaultConfig $ R.runRegion $ hello name
-```
+~~~

@@ -42,9 +42,9 @@ protected (i.e. pinned in memory) within the region. Once the action
 returns, all allocated R values are marked as deallocatable garbage
 all at once.
 
-```Haskell
+~~~ haskell
 runRegion :: (forall s . R s a) -> IO a
-```
+~~~
 
 Automatic memory management
 ---------------------------
@@ -58,9 +58,9 @@ provides a mechanism to attach finalizers to R values. This mechanism
 piggybacks Haskell's GC to notify R's GC when it is safe to deallocate
 a value.
 
-```Haskell
+~~~ haskell
 automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
-```
+~~~
 
 In this way, values may be deallocated far earlier than reaching the
 end of a region: As soon as Haskell's GC recognizes a value to no
@@ -71,11 +71,11 @@ region `G` (a type synonym for `GlobalRegion`).
 
 For example:
 
-```Haskell
+~~~ haskell
 do x <- [r| 1:1000 |]
    y <- [r| 2 |]
    return $ automatic [r| x_hs * y_hs |]
-```
+~~~
 
 Automatic values can be mixed freely with other values.
 
@@ -85,11 +85,11 @@ Diagnosing memory problems
 A good way to stress test whether R values are being protected
 adequately is to turn on `gctorture`:
 
-```Haskell
+~~~ haskell
 main = withEmbeddedR $ do
     [r| gctorture2(1, 0, TRUE) |]
     ...
-```
+~~~
 
 This instructs R to run a GC sweep at every allocation, hence making
 it much more likely to detect inadequately protected objects. It is
