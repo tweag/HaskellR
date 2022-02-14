@@ -1,9 +1,7 @@
 ---
+title: Internal Structures
 id: internal-structures
 ---
-
-Internal Structures
-===================
 
 A native view of expressions
 ----------------------------

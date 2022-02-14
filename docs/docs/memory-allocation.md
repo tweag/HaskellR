@@ -1,9 +1,7 @@
 ---
+title: Memory allocation
 id: memory-allocation
 ---
-
-Memory allocation
-=================
 
 H allocates memory in two separate heaps, managed by two separate
 garbage collectors: the R garbage collector and the one that is part

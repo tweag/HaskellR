@@ -1,8 +1,7 @@
 ---
+title: Differences when using H from compiled Haskell modules
 id: differences-repl-source
 ---
-
-# Differences when using H from compiled Haskell modules
 
 There are two ways to use `inline-r`. The simplest is at an
 interactive prompt, such as H or IHaskell, for interacting with R in

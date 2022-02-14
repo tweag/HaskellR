@@ -1,9 +1,7 @@
 ---
+title: Architectural overview
 id: architectural-overview
 ---
-
-Architectural overview
-======================
 
 The core of HaskellR is a library called `inline-r`. Interactive
 environments such as H and IHaskell are built on top of this core

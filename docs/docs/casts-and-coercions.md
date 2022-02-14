@@ -1,7 +1,7 @@
 ---
+title: Casts and coercions
 id: casts-and-coercions
 ---
-## Casts and coercions
 
 Type indexing `SEXP`'s makes it possible to precisely characterize the
 set of values that a function can accept as argument or return as

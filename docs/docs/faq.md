@@ -1,8 +1,8 @@
 ---
+title: The HaskellR FAQ
 id: faq
 ---
 
-# The HaskellR FAQ
 
 #### Why do I get a stack limit error when using GHCi or Jupyter and how can I fix it?
 

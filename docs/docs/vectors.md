@@ -1,8 +1,7 @@
 ---
+title: Vectors
 id: vectors
 ---
-
-## Vectors
 
 Most data items in R are vectors, e.g. integers, reals, characters,
 etc. `inline-r` supports constructing and manipulating R vectors

@@ -1,8 +1,7 @@
 ---
+title: Implementation of quasiquoters
 id: implementation-of-quasiquoters
 ---
-Implementation of quasiquoters
-==============================
 
 Given an R expression, represented as a `String`, a quasiquote expands
 to a function whose body is the given expression, and the arguments

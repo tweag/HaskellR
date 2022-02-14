@@ -1,9 +1,7 @@
 ---
+title: Managing memory
 id: managing-memory
 ---
-
-Managing memory
-===============
 
 One tricky aspect of bridging two languages with automatic memory
 management such as R and Haskell is that we must be careful that the

@@ -1,7 +1,7 @@
 ---
+title: Splicing Haskell values in R
 id: splicing-haskell-values-in-r
 ---
-## Splicing Haskell values in R
 
 Haskell values can be used in R code given to quasiquoters. When
 a Haskell value is bound to a name in the lexical scope surrounding

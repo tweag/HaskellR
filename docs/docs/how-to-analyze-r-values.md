@@ -1,8 +1,7 @@
 ---
+title: How to analyze R values in Haskell
 id: how-to-analyze-r-values
 ---
-
-# How to analyze R values in Haskell
 
 ## Pattern matching on views
 

@@ -1,8 +1,7 @@
 ---
+title: R values and side effects
 id: r-values-and-side-effects
 ---
-
-### R values and side effects
 
 As explained previously, values of type `SEXP s a` are in fact pointers
 to structures stored on the R heap, an area of memory managed by the

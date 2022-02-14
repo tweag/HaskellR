@@ -1,8 +1,7 @@
 ---
+title: The R monad
 id: r-monad
 ---
-The R monad
-===========
 
 All expressions like
 

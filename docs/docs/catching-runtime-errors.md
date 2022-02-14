@@ -1,9 +1,7 @@
 ---
+title: Catching runtime errors
 id: catching-runtime-errors
 ---
-
-Catching runtime errors
-=======================
 
 Evaluating R expressions may result in runtime errors. All errors are
 wrapped in the `Foreign.R.Error.RError` exception that carries the

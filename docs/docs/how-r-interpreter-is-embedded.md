@@ -1,8 +1,7 @@
 ---
+title: How the R interpreter is embedded
 id: how-r-interpreter-is-embedded
 ---
-
-## How the R interpreter is embedded
 
 We embed an instance of the R interpreter using R's C API, documented
 in the [Writing R extensions][R-exts] document. R only allows at most
