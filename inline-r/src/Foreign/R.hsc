@@ -301,16 +301,16 @@ writeVector (unsexp -> a) (fromIntegral -> n) (unsexp -> b) = sexp <$>
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-symbolPrintName :: SEXP s 'R.Symbol -> IO (SEXP s a)
-symbolPrintName (unsexp -> s) = sexp <$> [C.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
+symbolPrintName :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
+symbolPrintName (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
 
 -- | Read value from symbol.
-symbolValue :: SEXP s 'R.Symbol -> IO (SEXP s a)
-symbolValue (unsexp -> s) = sexp <$> [C.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
+symbolValue :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
+symbolValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
 
 -- | Read internal value from symbol.
-symbolInternal :: SEXP s 'R.Symbol -> IO (SEXP s a)
-symbolInternal (unsexp -> s) = sexp <$> [C.exp| SEXP { INTERNAL( $(SEXP s)) }|]
+symbolInternal :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
+symbolInternal (unsexp -> s) = somesexp <$> [C.exp| SEXP { INTERNAL( $(SEXP s)) }|]
 
 --------------------------------------------------------------------------------
 -- Value contruction                                                          --
