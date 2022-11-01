@@ -141,7 +141,7 @@ module Foreign.R
   -- | Should not be used in user code. These exports are only needed for
   -- binding generation tools.
   , SEXPREC
-  , SEXP0
+  , SEXP0(..)
   , sexp
   , unsexp
   , release
@@ -169,7 +169,7 @@ import Data.Typeable (Typeable)
 #endif
 import Foreign (Ptr, castPtr)
 import Foreign.C
-import Foreign.R.Context (rCtx, SEXP0, SEXPREC)
+import Foreign.R.Context (rCtx, SEXP0(..), SEXPREC)
 import qualified Language.C.Inline as C
 import Prelude hiding (asTypeOf, length)
 

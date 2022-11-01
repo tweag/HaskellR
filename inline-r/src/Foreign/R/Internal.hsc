@@ -13,7 +13,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -25,10 +24,9 @@
 module Foreign.R.Internal where
 
 import Control.Memory.Region
-import {-# SOURCE #-} Language.R.HExp (HExp)
 import Foreign.R.Type
 import Foreign.R.Type as R
-import Foreign.R.Context (SEXP0)
+import Foreign.R.Context (SEXP0(..))
 
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
@@ -53,7 +51,7 @@ import Prelude hiding (asTypeOf, length)
 
 -- | The basic type of all R expressions, classified by the form of the
 -- expression, and the memory region in which it has been allocated.
-newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
+newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: SEXP0 }
   deriving ( Eq
            , Ord
            , Storable
@@ -70,11 +68,11 @@ instance NFData (SEXP s a) where
 
 -- | Add a type index to the pointer.
 sexp :: SEXP0 -> SEXP s a
-sexp = SEXP . castPtr
+sexp = SEXP
 
 -- | Remove the type index from the pointer.
 unsexp :: SEXP s a -> SEXP0
-unsexp = castPtr . unSEXP
+unsexp = unSEXP
 
 -- | Like 'sexp' but for 'SomeSEXP'.
 somesexp :: SEXP0 -> SomeSEXP s
@@ -182,7 +180,7 @@ asTypeOf s s' = typeOf s' `unsafeCast` s
 -- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
 -- any dynamic check at runtime.
 unsafeCoerce :: SEXP s a -> SEXP s b
-unsafeCoerce = sexp . castPtr . unsexp
+unsafeCoerce = sexp . unsexp
 
 --------------------------------------------------------------------------------
 -- Vector accessor functions                                                  --
@@ -295,7 +293,7 @@ getAttribute a b = sexp $ cgetAttrib (unsexp a) (unsexp b)
 
 -- | Set the attribute list.
 setAttributes :: SEXP s a -> SEXP s b -> IO ()
-setAttributes s v = csetAttrib (unsexp s) (castPtr $ unsexp v)
+setAttributes s v = csetAttrib (unsexp s) (unsexp v)
 
 foreign import ccall unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
 foreign import ccall unsafe "Rinternals.h SET_ATTRIB" csetAttrib :: SEXP0 -> SEXP0 -> IO ()

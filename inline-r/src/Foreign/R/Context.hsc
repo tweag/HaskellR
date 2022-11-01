@@ -1,6 +1,8 @@
+{-# LANGUAGE CApiFFI #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE CApiFFI           #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 -- |
 -- Copyright: 2018 (C) Tweag I/O Limited.
 --
@@ -8,7 +10,7 @@
 module Foreign.R.Context
   ( rCtx
   , SEXPREC
-  , SEXP0
+  , SEXP0(..)
   , Logical(..)
   ) where
 
@@ -23,9 +25,19 @@ import Internal.Error
 
 #include <Rinternals.h>
 
-data {-# CTYPE  "SEXPREC" #-} SEXPREC
+data SEXPREC
 
-type SEXP0 = Ptr SEXPREC
+newtype {-# CTYPE "SEXP" #-} SEXP0 = SEXP0 { unSEXP0 :: Ptr SEXPREC }
+  deriving ( Eq
+           , Ord
+           , Storable
+#if __GLASGOW_HASKELL__ < 710
+           , Typeable
+#endif
+           )
+
+instance Show SEXP0 where
+  show (SEXP0 ptr) = show ptr
 
 -- | R uses three-valued logic.
 data {-# CTYPE "Logical" #-} Logical = FALSE
@@ -54,6 +66,6 @@ rCtx :: Context
 rCtx = mempty { ctxTypesTable = Map.fromList tytabs }
   where
     tytabs =
-      [ (TypeName "SEXP", [t| Ptr SEXPREC |])
+      [ (TypeName "SEXP", [t| SEXP0 |])
       , (TypeName "Rcomplex", [t| Complex Double |])
       ]

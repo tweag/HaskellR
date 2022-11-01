@@ -264,7 +264,7 @@ import Data.Vector.SEXP.Base
 import Data.Vector.SEXP.Mutable (MVector)
 import qualified Data.Vector.SEXP.Mutable as Mutable
 import qualified Data.Vector.SEXP.Mutable.Internal as Mutable
-import Foreign.R ( SEXP(..) )
+import Foreign.R ( SEXP(..), SEXP0(..) )
 import qualified Foreign.R as R
 import Foreign.R.Type ( SEXPTYPE(Char) )
 
@@ -326,21 +326,21 @@ import Prelude
   )
 import qualified Prelude
 
-newtype ForeignSEXP (ty::SEXPTYPE) = ForeignSEXP (ForeignPtr ())
+newtype ForeignSEXP (ty::SEXPTYPE) = ForeignSEXP (ForeignPtr R.SEXPREC)
 
 -- | Create a 'ForeignSEXP' from 'SEXP'.
 foreignSEXP :: PrimMonad m => SEXP s ty -> m (ForeignSEXP ty)
-foreignSEXP sx@(SEXP ptr) =
+foreignSEXP sx@(SEXP (SEXP0 ptr)) =
     unsafePrimToPrim $ mask_ $ do
       R.preserveObject sx
-      ForeignSEXP <$> GHC.newConcForeignPtr (castPtr ptr) (R.releaseObject sx)
+      ForeignSEXP <$> GHC.newConcForeignPtr ptr (R.releaseObject sx)
 
 withForeignSEXP
   :: ForeignSEXP ty
   -> (SEXP V ty -> IO r)
   -> IO r
 withForeignSEXP (ForeignSEXP fptr) f =
-    withForeignPtr fptr $ \ptr -> f (SEXP (castPtr ptr))
+    withForeignPtr fptr $ \ptr -> f (SEXP (SEXP0 ptr))
 
 -- | Immutable vectors. The second type paramater is a phantom parameter
 -- reflecting at the type level the tag of the vector when viewed as a 'SEXP'.
@@ -447,7 +447,7 @@ toSEXP s = phony $ \p -> runST $ do
 -- copying. The immutable vector must not be used after this operation.
 unsafeToSEXP :: SVECTOR ty a => Vector ty a -> SEXP s ty
 unsafeToSEXP (Vector (ForeignSEXP fsx) _ _) = unsafePerformIO $ -- XXX
-  withForeignPtr fsx $ return . R.sexp . castPtr
+  withForeignPtr fsx $ return . R.sexp . SEXP0
 
 -- | /O(n)/ Convert a character vector into a 'String'.
 toString :: Vector 'Char Word8 -> String
