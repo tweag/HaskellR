@@ -191,7 +191,8 @@ data HExp :: * -> SEXPTYPE -> * where
   Raw       :: {-# UNPACK #-} !(Vector.Vector 'R.Raw Word8)
             -> HExp s 'R.Raw
   -- | An S4 class which does not consist solely of a simple type such as an atomic vector or function (@S4SXP@).
-  S4        :: SEXP s a -- ^ the tag
+  S4        :: (a :∈ ['R.Symbol, 'R.Nil])
+            => SEXP s a -- ^ the tag
             -> HExp s 'R.S4
 
 -- 'Im a hack
