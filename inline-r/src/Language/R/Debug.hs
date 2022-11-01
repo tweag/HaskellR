@@ -51,8 +51,6 @@ instance ToJSON SEXPInfo where
       , "debug" .= R.infoDebug x
       , "trace" .= R.infoTrace x
       , "spare" .= R.infoSpare x
-      , "gcgen" .= R.infoGcGen x
-      , "gccls" .= R.infoGcCls x
       ]
 
 instance ToJSON a => ToJSON (Complex a) where

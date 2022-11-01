@@ -246,8 +246,6 @@ data SEXPInfo = SEXPInfo
       , infoDebug :: Bool        -- ^ Debug marker.
       , infoTrace :: Bool        -- ^ Trace marker.
       , infoSpare :: Bool        -- ^ Alignment (not in use).
-      , infoGcGen :: Int         -- ^ GC Generation.
-      , infoGcCls :: Int         -- ^ GC Class of node.
       } deriving ( Show )
 
 -- | Extract the header from the given 'SEXP'.
@@ -262,8 +260,6 @@ peekInfo ts =
       <*> ((/=0)              <$> cRDEBUG s)
       <*> ((/=0)              <$> cRTRACE s)
       <*> ((/=0)              <$> cRSTEP s)
-      <*> (fromIntegral       <$> cGCGEN s)
-      <*> (fromIntegral       <$> cGCCLS s)
   where
     s = unsexp ts
 
@@ -276,8 +272,6 @@ foreign import capi unsafe "MARK" cMARK :: SEXP0 -> IO CInt
 foreign import capi unsafe "RDEBUG" cRDEBUG :: SEXP0 -> IO CInt
 foreign import capi unsafe "RTRACE" cRTRACE :: SEXP0 -> IO CInt
 foreign import capi unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
-foreign import capi unsafe "missing_r.h GCGEN" cGCGEN :: SEXP0 -> IO CInt
-foreign import capi unsafe "missing_r.h GCCLS" cGCCLS :: SEXP0 -> IO CInt
 
 -------------------------------------------------------------------------------
 -- Attribute header                                                          --
