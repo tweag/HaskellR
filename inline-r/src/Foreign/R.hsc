@@ -102,7 +102,6 @@ module Foreign.R
   , raw
   , string
   , unsafeSEXPToVectorPtr
-  , unsafeVectorPtrToSEXP
   , readVector
   , writeVector
     -- * Evaluation

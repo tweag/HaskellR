@@ -195,10 +195,6 @@ length s = fromIntegral <$>
 unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
 unsafeSEXPToVectorPtr s = (unsexp s) `plusPtr` #{size SEXPREC_ALIGN}
 
--- | Inverse of 'vectorPtr'.
-unsafeVectorPtrToSEXP :: Ptr a -> SomeSEXP s
-unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (- #{size SEXPREC_ALIGN})
-
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
