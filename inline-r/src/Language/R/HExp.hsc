@@ -44,22 +44,19 @@ module Language.R.HExp
   ( HExp(..)
   , (===)
   , hexp
-  , unhexp
   , vector
   ) where
 
 import Control.Applicative
 import Control.Memory.Region (V)
-import Control.Monad.R.Class
 import qualified Foreign.R      as R
-import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, withProtected)
+import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE)
 import Foreign.R.Constraints
 import Internal.Error
-import qualified Language.R.Globals as H
 
 import qualified Data.Vector.SEXP as Vector
 
-import Control.Monad ((<=<), guard, void)
+import Control.Monad (guard, void)
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Int (Int32)
 import Data.Word (Word8)
@@ -68,7 +65,6 @@ import Data.Maybe (isJust)
 import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
 import GHC.Ptr (Ptr(..))
 import Foreign.Storable
-import Foreign.C -- for hsc2hs
 import Foreign (castPtr)
 import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
@@ -305,13 +301,6 @@ instance TestEquality (HExp s) where
       return Refl
   testEquality _ _ = Nothing
 
-instance Storable (HExp s a) where
-  sizeOf _ = #{size SEXPREC}
-  alignment _ = #{alignment SEXPREC}
-  poke = pokeHExp
-  peek = peekHExp . R.SEXP
-  {-# INLINE peek #-}
-
 {-# INLINE peekHExp #-}
 peekHExp :: SEXP s a -> IO (HExp s a)
 peekHExp s = do
@@ -390,111 +379,11 @@ peekHExp s = do
         S4        <$> (R.sexp <$> #{peek SEXPREC, u.listsxp.tagval} sptr)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
 
-pokeHExp :: Ptr (HExp s a) -> HExp s a -> IO ()
-pokeHExp s h = do
-    case h of
-         Nil -> return ()
-         Symbol pname value internal -> do
-           #{poke SEXPREC, u.symsxp.pname} s (R.unsexp pname)
-           #{poke SEXPREC, u.symsxp.value} s (R.unsexp value)
-           #{poke SEXPREC, u.symsxp.internal} s (R.unsexp internal)
-         List carval cdrval tagval -> do
-           #{poke SEXPREC, u.listsxp.carval} s (R.unsexp carval)
-           #{poke SEXPREC, u.listsxp.cdrval} s (R.unsexp cdrval)
-           #{poke SEXPREC, u.listsxp.tagval} s (R.unsexp tagval)
-         Env frame enclos hashtab -> do
-           #{poke SEXPREC, u.envsxp.frame} s (R.unsexp frame)
-           #{poke SEXPREC, u.envsxp.enclos} s (R.unsexp enclos)
-           #{poke SEXPREC, u.envsxp.hashtab} s (R.unsexp hashtab)
-         Closure formals body env -> do
-           #{poke SEXPREC, u.closxp.formals} s (R.unsexp formals)
-           #{poke SEXPREC, u.closxp.body} s (R.unsexp body)
-           #{poke SEXPREC, u.closxp.env} s (R.unsexp env)
-         Promise value expr env -> do
-           #{poke SEXPREC, u.promsxp.value} s (R.unsexp value)
-           #{poke SEXPREC, u.promsxp.expr} s (R.unsexp expr)
-           #{poke SEXPREC, u.promsxp.env} s (R.unsexp env)
-         Lang carval cdrval -> do
-           #{poke SEXPREC, u.listsxp.carval} s (R.unsexp carval)
-           #{poke SEXPREC, u.listsxp.cdrval} s (R.unsexp cdrval)
-         Special offset -> do
-           #{poke SEXPREC, u.primsxp.offset} s (fromIntegral offset :: CInt)
-         Builtin offset -> do
-           #{poke SEXPREC, u.primsxp.offset} s (fromIntegral offset :: CInt)
-         Char _vc        -> unimplemented "pokeHExp"
-         Logical  _vt    -> unimplemented "pokeHExp"
-         Int  _vt        -> unimplemented "pokeHExp"
-         Real _vt        -> unimplemented "pokeHExp"
-         String _vt      -> unimplemented "pokeHExp"
-         Complex _vt     -> unimplemented "pokeHExp"
-         Vector _v _     -> unimplemented "pokeHExp"
-         Bytecode        -> unimplemented "pokeHExp"
-         ExtPtr _ _ _    -> unimplemented "pokeHExp"
-         WeakRef _ _ _ _ -> unimplemented "pokeHExp"
-         Raw     _       -> unimplemented "pokeHExp"
-         S4      _       -> unimplemented "pokeHExp"
-         DotDotDot _     -> unimplemented "pokeHExp"
-         Expr _ _        -> unimplemented "pokeHExp"
-
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
 hexp :: SEXP s a -> HExp s a
-hexp = unsafeInlineIO . peek . R.unSEXP
+hexp = unsafeInlineIO . peekHExp
 {-# INLINE hexp #-}
-
--- | Inverse hexp view to the real structure, note that for scalar types
--- hexp will allocate new SEXP, and @unhexp . hexp@ is not an identity function.
--- however for vector types it will return original SEXP.
-unhexp :: MonadR m => HExp (Region m) a -> m (SEXP (Region m) a)
-unhexp   Nil = return $ R.release H.nilValue
-unhexp s@(Symbol{}) = io $
-  withProtected (R.allocSEXP R.SSymbol)
-                (\x -> poke (R.unSEXP x) s >> return x)
-unhexp (List carval cdrval tagval) = acquire <=< io $ do
-  rc <- R.protect carval
-  rd <- R.protect cdrval
-  rt <- R.protect tagval
-  z  <- R.cons rc rd
-  #{poke SEXPREC, u.listsxp.tagval} (R.unsexp z) (R.unsexp rt)
-  R.unprotect 3
-  return z
-unhexp (Lang carval cdrval) = acquire <=< io $ do
-    carval' <- R.protect carval
-    cdrval' <- R.protect cdrval
-    x <- R.allocSEXP R.SLang
-    R.setCar x (R.release carval')
-    R.setCdr x (R.release cdrval')
-    R.unprotect 2
-    return x
-unhexp s@(Env{})     = io $
-    withProtected (R.allocSEXP R.SEnv)
-                  (\x -> poke (R.unSEXP x) s >> return x)
-unhexp s@(Closure{}) = io $
-    withProtected (R.allocSEXP R.SClosure)
-                  (\x -> poke (R.unSEXP x) s >> return x)
-unhexp s@(Special{}) = io $
-    withProtected (R.allocSEXP R.SSpecial)
-                  (\x -> poke (R.unSEXP x) s >> return x)
-unhexp s@(Builtin{}) = io $
-    withProtected (R.allocSEXP R.SBuiltin)
-                  (\x -> poke (R.unSEXP x) s >> return x)
-unhexp s@(Promise{}) = io $
-    withProtected (R.allocSEXP R.SPromise)
-                  (\x -> poke (R.unSEXP x) s >> return x)
-unhexp  (Bytecode{}) = unimplemented "unhexp"
-unhexp (Real vt)     = return $ Vector.unsafeToSEXP vt
-unhexp (Logical vt)  = return $ Vector.unsafeToSEXP vt
-unhexp (Int vt)      = return $ Vector.unsafeToSEXP vt
-unhexp (Complex vt)  = return $ Vector.unsafeToSEXP vt
-unhexp (Vector _ vt) = return $ Vector.unsafeToSEXP vt
-unhexp (Char vt)     = return $ Vector.unsafeToSEXP vt
-unhexp (String vt)   = return $ Vector.unsafeToSEXP vt
-unhexp (Raw vt)      = return $ Vector.unsafeToSEXP vt
-unhexp S4{}          = unimplemented "unhexp"
-unhexp (Expr _ vt)   = return $ Vector.unsafeToSEXP vt
-unhexp WeakRef{}     = error "unhexp does not support WeakRef, use Foreign.R.mkWeakRef instead."
-unhexp DotDotDot{}   = unimplemented "unhexp"
-unhexp ExtPtr{}      = unimplemented "unhexp"
 
 -- | Project the vector out of 'SEXP's.
 vector :: R.IsVector a => SEXP s a -> Vector.Vector a (Vector.ElemRep V a)
