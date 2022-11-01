@@ -135,17 +135,12 @@ data HExp :: * -> SEXPTYPE -> * where
             => SEXP s a -- ^ CAR: the function (perhaps via a symbol or language object)
             -> SEXP s b -- ^ CDR: the argument list with tags for named arguments
             -> HExp s 'R.Lang
-  -- | A special (built-in) function call (@SPECIALSXP@).
-  Special   :: {-# UNPACK #-} !Int32
-              -- ^ An integer giving the offset into the table of
-              -- primitives/@.Internal@s.
-            -> HExp s 'R.Special
+  -- | A special (built-in) function call (@SPECIALSXP@). It carries an offset
+  -- into the table of primitives but for our purposes is opaque.
+  Special   :: HExp s 'R.Special
   -- | A @BUILTINSXP@. This is similar to 'Special', except the arguments to a 'Builtin'
   -- are always evaluated.
-  Builtin   :: {-# UNPACK #-} !Int32
-              -- ^ An integer giving the offset into the table of
-              -- primitives/@.Internal@s.
-            -> HExp s 'R.Builtin
+  Builtin   :: HExp s 'R.Builtin
   -- | An internal character string (@CHARSXP@).
   Char      :: {-# UNPACK #-} !(Vector.Vector 'R.Char Word8)
             -> HExp s 'R.Char
@@ -247,12 +242,10 @@ instance TestEquality (HExp s) where
       void $ testEquality (E carval1) (E carval2)
       void $ testEquality (E cdrval1) (E cdrval2)
       return Refl
-  testEquality (Special offset1) (Special offset2) = do
-      guard $ offset1 == offset2
-      return Refl
-  testEquality (Builtin offset1) (Builtin offset2) = do
-      guard $ offset1 == offset2
-      return Refl
+  -- Not comparable
+  testEquality Special Special = Nothing
+  -- Not comparable
+  testEquality Builtin Builtin = Nothing
   testEquality (Char vec1) (Char vec2) = do
       guard $ vec1 == vec2
       return Refl
@@ -343,16 +336,14 @@ peekHExp s = do
       R.Lang      -> coerce $
         Lang      <$> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.listsxp.carval} sptr)
                   <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.listsxp.cdrval} sptr)
-      R.Special   -> coerce $
-        Special   <$> (fromIntegral <$> (#{peek SEXPREC, u.primsxp.offset} sptr :: IO CInt))
-      R.Builtin   -> coerce $
-        Builtin   <$> (fromIntegral <$> (#{peek SEXPREC, u.primsxp.offset} sptr :: IO CInt))
       R.Char      -> unsafeCoerce $ Char    (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.Logical   -> unsafeCoerce $ Logical (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.Int       -> unsafeCoerce $ Int     (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.Real      -> unsafeCoerce $ Real    (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.Complex   -> unsafeCoerce $ Complex (Vector.unsafeFromSEXP (unsafeCoerce s))
       R.String    -> unsafeCoerce $ String  (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.Special   -> coerce $ return Special
+      R.Builtin   -> coerce $ return Builtin
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Vector    -> coerce $
         Vector    <$> (fromIntegral <$> (#{peek VECTOR_SEXPREC, vecsxp.truelength} sptr :: IO CInt))

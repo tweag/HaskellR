@@ -88,8 +88,8 @@ instance ToJSON (SEXP s a) where
                  , "value" .= if R.unsexp j == R.unsexp h then "loop" else toJSON j
                  , "internal" .= k
                  ]
-      go (hexp -> Special i) = object ["index" .= i]
-      go (hexp -> Builtin i) = object ["index" .= i]
+      go (hexp -> Special) = object ["index" .= A.String "unknown"]
+      go (hexp -> Builtin) = object ["index" .= A.String "unknown"]
       go (hexp -> Char v) = A.String (T.pack (Vector.toString v))
       go (hexp -> Int v) = A.Array (vector v)
       go (hexp -> Real v) = A.Array (vector v)
