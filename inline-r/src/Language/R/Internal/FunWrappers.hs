@@ -8,7 +8,7 @@
 
 module Language.R.Internal.FunWrappers where
 
-import Foreign.R (SEXP0)
+import Foreign.R (SEXP0(..))
 import Language.R.Internal.FunWrappers.TH
 import Foreign ( FunPtr )
 

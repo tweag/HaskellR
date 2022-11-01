@@ -4,7 +4,6 @@
 -- Low-level bindings to core R datatypes and functions which depend on
 -- computing offsets of C struct field. We use hsc2hs for this purpose.
 
-{-# LANGUAGE CApiFFI #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
@@ -14,7 +13,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -26,10 +24,9 @@
 module Foreign.R.Internal where
 
 import Control.Memory.Region
-import {-# SOURCE #-} Language.R.HExp (HExp)
 import Foreign.R.Type
 import Foreign.R.Type as R
-import Foreign.R.Context (SEXP0)
+import Foreign.R.Context (SEXP0(..))
 
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
@@ -38,14 +35,9 @@ import Data.Singletons (fromSing)
 #if __GLASGOW_HASKELL__ < 710
 import Data.Typeable (Typeable)
 #endif
-import Foreign (Ptr, castPtr, plusPtr, Storable(..))
+import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
-
-#define USE_RINTERNALS
-#include <R.h>
-#include <Rinternals.h>
-#include "missing_r.h"
 
 
 --------------------------------------------------------------------------------
@@ -54,7 +46,7 @@ import Prelude hiding (asTypeOf, length)
 
 -- | The basic type of all R expressions, classified by the form of the
 -- expression, and the memory region in which it has been allocated.
-newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: Ptr (HExp s a) }
+newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: SEXP0 }
   deriving ( Eq
            , Ord
            , Storable
@@ -71,11 +63,11 @@ instance NFData (SEXP s a) where
 
 -- | Add a type index to the pointer.
 sexp :: SEXP0 -> SEXP s a
-sexp = SEXP . castPtr
+sexp = SEXP
 
 -- | Remove the type index from the pointer.
 unsexp :: SEXP s a -> SEXP0
-unsexp = castPtr . unSEXP
+unsexp = unSEXP
 
 -- | Like 'sexp' but for 'SomeSEXP'.
 somesexp :: SEXP0 -> SomeSEXP s
@@ -125,29 +117,13 @@ cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 cIntFromEnum :: Enum a => a -> CInt
 cIntFromEnum = cIntConv . fromEnum
 
---------------------------------------------------------------------------------
--- Generic accessor functions                                                 --
---------------------------------------------------------------------------------
-
 -- | Return the \"type\" tag (aka the form tag) of the given 'SEXP'. This
 -- function is pure because the type of an object does not normally change over
 -- the lifetime of the object.
 typeOf :: SEXP s a -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cIntToEnum <$> cTYPEOF (unsexp s)
 
-foreign import capi unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
-
--- | Set CAR field of object, when object is viewed as a cons cell.
-setCar :: SEXP s a -> SEXP s b -> IO ()
-setCar s s' = #{poke SEXPREC, u.listsxp.carval} (unsexp s) (castPtr $ unsexp s')
-
--- | Set CDR field of object, when object is viewed as a cons cell.
-setCdr :: SEXP s a -> SEXP s b -> IO ()
-setCdr s s' = #{poke SEXPREC, u.listsxp.cdrval} (unsexp s) (castPtr $ unsexp s')
-
--- | Set TAG field of object, when object is viewed as a cons cell.
-setTag :: SEXP s a -> SEXP s b -> IO ()
-setTag s s' = #{poke SEXPREC, u.listsxp.tagval} (unsexp s) (castPtr $ unsexp s')
+foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 
 --------------------------------------------------------------------------------
 -- Coercion functions                                                         --
@@ -183,24 +159,7 @@ asTypeOf s s' = typeOf s' `unsafeCast` s
 -- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
 -- any dynamic check at runtime.
 unsafeCoerce :: SEXP s a -> SEXP s b
-unsafeCoerce = sexp . castPtr . unsexp
-
---------------------------------------------------------------------------------
--- Vector accessor functions                                                  --
---------------------------------------------------------------------------------
-
--- | Length of the vector.
-length :: R.IsVector a => SEXP s a -> IO Int
-length s = fromIntegral <$>
-             (#{peek VECTOR_SEXPREC, vecsxp.length} (unsexp s) :: IO CInt)
-
--- | Extract the data pointer from a vector.
-unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
-unsafeSEXPToVectorPtr s = (unsexp s) `plusPtr` #{size SEXPREC_ALIGN}
-
--- | Inverse of 'vectorPtr'.
-unsafeVectorPtrToSEXP :: Ptr a -> SomeSEXP s
-unsafeVectorPtrToSEXP s = SomeSEXP $ sexp $ s `plusPtr` (- #{size SEXPREC_ALIGN})
+unsafeCoerce = sexp . unsexp
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
@@ -246,8 +205,6 @@ data SEXPInfo = SEXPInfo
       , infoDebug :: Bool        -- ^ Debug marker.
       , infoTrace :: Bool        -- ^ Trace marker.
       , infoSpare :: Bool        -- ^ Alignment (not in use).
-      , infoGcGen :: Int         -- ^ GC Generation.
-      , infoGcCls :: Int         -- ^ GC Class of node.
       } deriving ( Show )
 
 -- | Extract the header from the given 'SEXP'.
@@ -262,54 +219,18 @@ peekInfo ts =
       <*> ((/=0)              <$> cRDEBUG s)
       <*> ((/=0)              <$> cRTRACE s)
       <*> ((/=0)              <$> cRSTEP s)
-      <*> (fromIntegral       <$> cGCGEN s)
-      <*> (fromIntegral       <$> cGCCLS s)
   where
     s = unsexp ts
 
 -- These accessors are necessary because hsc2hs cannot determine the offset of
 -- C struct bit-fields. https://ghc.haskell.org/trac/ghc/ticket/12149
-foreign import capi unsafe "OBJECT" cOBJECT :: SEXP0 -> IO CInt
-foreign import capi unsafe "NAMED" cNAMED :: SEXP0 -> IO CInt
-foreign import capi unsafe "LEVELS" cLEVELS :: SEXP0 -> IO CInt
-foreign import capi unsafe "MARK" cMARK :: SEXP0 -> IO CInt
-foreign import capi unsafe "RDEBUG" cRDEBUG :: SEXP0 -> IO CInt
-foreign import capi unsafe "RTRACE" cRTRACE :: SEXP0 -> IO CInt
-foreign import capi unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
-foreign import capi unsafe "missing_r.h GCGEN" cGCGEN :: SEXP0 -> IO CInt
-foreign import capi unsafe "missing_r.h GCCLS" cGCCLS :: SEXP0 -> IO CInt
-
--- | Write a new header.
-pokeInfo :: SEXP s a -> SEXPInfo -> IO ()
-pokeInfo (unsexp -> s) i = do
-    cSET_TYPEOF s (fromIntegral.fromEnum $ infoType i)
-    cSET_OBJECT s (if infoObj  i then 1 else 0)
-    cSET_NAMED s (fromIntegral $ infoNamed i)
-    cSETLEVELS s (fromIntegral $ infoGp i)
-    cSET_MARK s (if infoMark i  then 1 else 0)
-    cSET_RDEBUG s (if infoDebug i then 1 else 0)
-    cSET_RTRACE s (if infoTrace i then 1 else 0)
-    cSET_RSTEP s (if infoSpare i then 1 else 0)
-    cSET_GCGEN s (fromIntegral $ infoGcGen i)
-    cSET_GCCLS s (fromIntegral $ infoGcCls i)
-
-foreign import capi unsafe "SET_TYPEOF" cSET_TYPEOF :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_OBJECT" cSET_OBJECT :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_NAMED" cSET_NAMED :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SETLEVELS" cSETLEVELS :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_MARK" cSET_MARK :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_RDEBUG" cSET_RDEBUG :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_RTRACE" cSET_RTRACE :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_RSTEP" cSET_RSTEP :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "missing_r.h SET_GCGEN" cSET_GCGEN :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "missing_r.h SET_GCCLS" cSET_GCCLS :: SEXP0 -> CInt -> IO ()
-
--- | Set the GC mark.
-mark :: Bool -> SEXP s a -> IO ()
-mark b ts = cSET_MARK (unsexp ts) (if b then 1 else 0)
-
-named :: Int -> SEXP s a -> IO ()
-named v ts = cSET_NAMED (unsexp ts) (fromIntegral v)
+foreign import ccall unsafe "OBJECT" cOBJECT :: SEXP0 -> IO CInt
+foreign import ccall unsafe "NAMED" cNAMED :: SEXP0 -> IO CInt
+foreign import ccall unsafe "LEVELS" cLEVELS :: SEXP0 -> IO CInt
+foreign import ccall unsafe "MARK" cMARK :: SEXP0 -> IO CInt
+foreign import ccall unsafe "RDEBUG" cRDEBUG :: SEXP0 -> IO CInt
+foreign import ccall unsafe "RTRACE" cRTRACE :: SEXP0 -> IO CInt
+foreign import ccall unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
 
 -------------------------------------------------------------------------------
 -- Attribute header                                                          --
@@ -334,9 +255,9 @@ getAttribute a b = sexp $ cgetAttrib (unsexp a) (unsexp b)
 
 -- | Set the attribute list.
 setAttributes :: SEXP s a -> SEXP s b -> IO ()
-setAttributes s v = csetAttrib (unsexp s) (castPtr $ unsexp v)
+setAttributes s v = csetAttrib (unsexp s) (unsexp v)
 
-foreign import capi unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
-foreign import capi unsafe "Rinternals.h SET_ATTRIB" csetAttrib :: SEXP0 -> SEXP0 -> IO ()
-foreign import capi unsafe "Rinternals.h Rf_getAttrib" cgetAttrib :: SEXP0 -> SEXP0 -> SEXP0
-foreign import capi unsafe "Rinternals.h Rf_isS4" cisS4 :: SEXP0 -> Int
+foreign import ccall unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
+foreign import ccall unsafe "Rinternals.h SET_ATTRIB" csetAttrib :: SEXP0 -> SEXP0 -> IO ()
+foreign import ccall unsafe "Rinternals.h Rf_getAttrib" cgetAttrib :: SEXP0 -> SEXP0 -> SEXP0
+foreign import ccall unsafe "Rinternals.h Rf_isS4" cisS4 :: SEXP0 -> Int

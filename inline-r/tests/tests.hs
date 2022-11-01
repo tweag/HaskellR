@@ -83,7 +83,7 @@ tests torture = testGroup "Unit tests"
       R.SomeSEXP key  <- [r| new.env() |]
       R.SomeSEXP val  <- [r| new.env() |]
       True <- return $ R.typeOf val == R.Env
-      n    <- unhexp Nil
+      n    <- io $ R.release <$> peek R.nilValue
       rf   <- io $ R.mkWeakRef key val n True
       True <- case hexp rf of
                 WeakRef a b c _ -> do

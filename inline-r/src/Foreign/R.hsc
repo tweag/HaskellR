@@ -102,7 +102,6 @@ module Foreign.R
   , raw
   , string
   , unsafeSEXPToVectorPtr
-  , unsafeVectorPtrToSEXP
   , readVector
   , writeVector
     -- * Evaluation
@@ -136,15 +135,12 @@ module Foreign.R
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
-  , pokeInfo
-  , mark
-  , named
   -- * Internal types and functions
   --
   -- | Should not be used in user code. These exports are only needed for
   -- binding generation tools.
   , SEXPREC
-  , SEXP0
+  , SEXP0(..)
   , sexp
   , unsexp
   , release
@@ -172,11 +168,10 @@ import Data.Typeable (Typeable)
 #endif
 import Foreign (Ptr, castPtr)
 import Foreign.C
-import Foreign.R.Context (rCtx, SEXP0, SEXPREC)
+import Foreign.R.Context (rCtx, SEXP0(..), SEXPREC)
 import qualified Language.C.Inline as C
 import Prelude hiding (asTypeOf, length)
 
-#define USE_RINTERNALS
 #include <Rinternals.h>
 
 C.context (C.baseCtx <> rCtx)
@@ -192,13 +187,24 @@ C.include "<stdint.h>"
 car :: SEXP s a -> IO (SomeSEXP s)
 car (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
 
+-- | Set the CAR value and return it.
+setCar :: SEXP s a -> SEXP s b -> IO (SEXP s b)
+setCar (unsexp -> s) (unsexp -> s') = sexp <$> [C.exp| SEXP { SETCAR( $(SEXP s), $(SEXP s') ) } |]
+
 -- | read CDR object
 cdr :: SEXP s a -> IO (SomeSEXP s)
 cdr (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
 
+-- | Set the CDR value and return it.
+setCdr :: SEXP s a -> SEXP s b -> IO (SEXP s b)
+setCdr (unsexp -> s) (unsexp -> s') = sexp <$> [C.exp| SEXP { SETCDR( $(SEXP s), $(SEXP s') ) } |]
+
 -- | read object`s Tag
 tag :: SEXP s a -> IO (SomeSEXP s)
 tag (unsexp -> s) = somesexp <$> [C.exp| SEXP { TAG( $(SEXP s) ) } |]
+
+setTag :: SEXP s a -> SEXP s b -> IO ()
+setTag (unsexp -> s) (unsexp -> s') = [C.exp| void { SET_TAG( $(SEXP s), $(SEXP s') ) } |]
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
@@ -251,6 +257,10 @@ promiseValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRVALUE( $(SEXP s) )}|]
 -- Vector accessor functions                                                  --
 --------------------------------------------------------------------------------
 
+-- | Length of the vector.
+length :: R.IsVector a => SEXP s a -> IO CInt
+length (unsexp -> s) = [C.exp| int { LENGTH( $(SEXP s) ) }|]
+
 -- | Read True Length vector field.
 trueLength :: R.IsVector a => SEXP s a -> IO CInt
 trueLength (unsexp -> s) = [C.exp| int { TRUELENGTH( $(SEXP s) ) }|]
@@ -299,21 +309,26 @@ writeVector :: R.IsGenericVector a => SEXP s a -> Int -> SEXP s b -> IO (SEXP s 
 writeVector (unsexp -> a) (fromIntegral -> n) (unsexp -> b) = sexp <$>
   [C.exp| SEXP { SET_VECTOR_ELT($(SEXP a),$(int n), $(SEXP b)) } |]
 
+-- | Extract the data pointer from a vector.
+unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
+unsafeSEXPToVectorPtr (unsexp -> s) =
+  [C.pure| void * { DATAPTR( $(SEXP s) ) } |]
+
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
 --------------------------------------------------------------------------------
 
 -- | Read a name from symbol.
-symbolPrintName :: SEXP s 'R.Symbol -> IO (SEXP s a)
-symbolPrintName (unsexp -> s) = sexp <$> [C.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
+symbolPrintName :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
+symbolPrintName (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
 
 -- | Read value from symbol.
-symbolValue :: SEXP s 'R.Symbol -> IO (SEXP s a)
-symbolValue (unsexp -> s) = sexp <$> [C.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
+symbolValue :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
+symbolValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
 
 -- | Read internal value from symbol.
-symbolInternal :: SEXP s 'R.Symbol -> IO (SEXP s a)
-symbolInternal (unsexp -> s) = sexp <$> [C.exp| SEXP { INTERNAL( $(SEXP s)) }|]
+symbolInternal :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
+symbolInternal (unsexp -> s) = somesexp <$> [C.exp| SEXP { INTERNAL( $(SEXP s)) }|]
 
 --------------------------------------------------------------------------------
 -- Value contruction                                                          --

@@ -54,7 +54,7 @@ import           Language.R.Internal.FunWrappers.TH
 import Data.Singletons ( Sing, SingI, fromSing, sing )
 
 import Control.DeepSeq ( NFData )
-import Control.Monad ( void, zipWithM_ )
+import Control.Monad ( void, zipWithM_, (<=<) )
 import Data.Int (Int32)
 import qualified Data.ByteString.Unsafe as B
 import Data.Complex (Complex)
@@ -185,11 +185,10 @@ toPairList ((k, SomeSEXP v):kvs) = do
     -- garbage collected.
     tag <- io $ withCString k R.install
     toPairList kvs >>= \case
-      SomeSEXP cdr@(hexp -> Nil) ->
-        fmap SomeSEXP $ unhexp $ List v cdr (R.unsafeRelease tag)
-      SomeSEXP cdr@(hexp -> List _ _ _) ->
-        fmap SomeSEXP $ unhexp $ List v cdr (R.unsafeRelease tag)
-      _ -> impossible "toPairList"
+      SomeSEXP cdr -> acquireSome <=< io $ do
+        l <- R.cons v cdr
+        R.setTag l (R.unsafeRelease tag)
+        return (SomeSEXP l)
 
 -- | Create an association list from a pairlist. R Pairlists are nil-terminated
 -- chains of nested cons cells, as in LISP.
