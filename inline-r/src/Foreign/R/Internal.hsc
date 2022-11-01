@@ -35,7 +35,7 @@ import Data.Singletons (fromSing)
 #if __GLASGOW_HASKELL__ < 710
 import Data.Typeable (Typeable)
 #endif
-import Foreign (Ptr, castPtr, plusPtr, Storable(..))
+import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
@@ -190,10 +190,6 @@ unsafeCoerce = sexp . unsexp
 length :: R.IsVector a => SEXP s a -> IO Int
 length s = fromIntegral <$>
              (#{peek VECTOR_SEXPREC, vecsxp.length} (unsexp s) :: IO CInt)
-
--- | Extract the data pointer from a vector.
-unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
-unsafeSEXPToVectorPtr s = (unsexp s) `plusPtr` #{size SEXPREC_ALIGN}
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --

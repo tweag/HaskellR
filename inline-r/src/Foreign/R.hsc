@@ -295,6 +295,11 @@ writeVector :: R.IsGenericVector a => SEXP s a -> Int -> SEXP s b -> IO (SEXP s 
 writeVector (unsexp -> a) (fromIntegral -> n) (unsexp -> b) = sexp <$>
   [C.exp| SEXP { SET_VECTOR_ELT($(SEXP a),$(int n), $(SEXP b)) } |]
 
+-- | Extract the data pointer from a vector.
+unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
+unsafeSEXPToVectorPtr (unsexp -> s) =
+  [C.pure| void * { DATAPTR( $(SEXP s) ) } |]
+
 --------------------------------------------------------------------------------
 -- Symbol accessor functions                                                  --
 --------------------------------------------------------------------------------
