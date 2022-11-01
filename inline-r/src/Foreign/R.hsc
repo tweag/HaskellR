@@ -172,7 +172,6 @@ import Foreign.R.Context (rCtx, SEXP0(..), SEXPREC)
 import qualified Language.C.Inline as C
 import Prelude hiding (asTypeOf, length)
 
-#define USE_RINTERNALS
 #include <Rinternals.h>
 
 C.context (C.baseCtx <> rCtx)

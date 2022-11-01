@@ -70,7 +70,6 @@ import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
 import Prelude
 
-#define USE_RINTERNALS
 #include <R.h>
 #include <Rinternals.h>
 
