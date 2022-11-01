@@ -296,9 +296,9 @@ instance TestEquality (HExp s) where
   testEquality _ _ = Nothing
 
 {-# INLINE peekHExp #-}
-peekHExp :: SEXP s a -> IO (HExp s a)
+peekHExp :: forall s a. SEXP s a -> IO (HExp s a)
 peekHExp s = do
-    let coerce :: IO (HExp s a) -> IO (HExp s b)
+    let coerce :: IO (HExp s b) -> IO (HExp s c)
         coerce = unsafeCoerce
 
         -- (:∈) constraints are impossible to respect in 'peekHExp', because
@@ -307,56 +307,60 @@ peekHExp s = do
         -- fields actually always contain fields of form ANYSXP. This has no
         -- operational significance - it's only a way to bypass what's
         -- impossible to prove.
-        coerceAny :: SEXP s a -> SEXP s 'R.Any -- '
+        coerceAny :: SEXP s b -> SEXP s 'R.Any -- '
         coerceAny = R.unsafeCoerce
 
-        sptr = R.unsexp s
+        coerceAnySome :: SomeSEXP s -> SEXP s 'R.Any -- '
+        coerceAnySome (SomeSEXP s1) = coerceAny s1
+
+        su :: forall b. SEXP s b
+        su = R.unsafeCoerce s
 
     case R.typeOf s of
       R.Nil       -> coerce $ return Nil
       R.Symbol    -> coerce $
-        Symbol    <$> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.symsxp.pname} sptr)
-                  <*> (R.sexp <$> #{peek SEXPREC, u.symsxp.value} sptr)
-                  <*> (R.sexp <$> #{peek SEXPREC, u.symsxp.internal} sptr)
+        Symbol    <$> (coerceAnySome <$> R.symbolPrintName su)
+                  <*> (coerceAnySome <$> R.symbolValue su)
+                  <*> (coerceAnySome <$> R.symbolInternal su)
       R.List      -> coerce $
-        List      <$> (R.sexp <$> #{peek SEXPREC, u.listsxp.carval} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.listsxp.cdrval} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.listsxp.tagval} sptr)
+        List      <$> (coerceAnySome <$> R.car su)
+                  <*> (coerceAnySome <$> R.cdr su)
+                  <*> (coerceAnySome <$> R.tag su)
       R.Env       -> coerce $
-        Env       <$> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.envsxp.frame} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.envsxp.enclos} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.envsxp.hashtab} sptr)
+        Env       <$> (coerceAny <$> R.envFrame su)
+                  <*> (coerceAny <$> R.envEnclosing su)
+                  <*> (coerceAny <$> R.envHashtab su)
       R.Closure   -> coerce $
-        Closure   <$> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.closxp.formals} sptr)
-                  <*> (R.sexp <$> #{peek SEXPREC, u.closxp.body} sptr)
-                  <*> (R.sexp <$> #{peek SEXPREC, u.closxp.env} sptr)
+        Closure   <$> (coerceAny <$> R.closureFormals su)
+                  <*> (coerceAnySome <$> R.closureBody su)
+                  <*> R.closureEnv su
       R.Promise   -> coerce $
-        Promise   <$> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.promsxp.value} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.promsxp.expr} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.promsxp.env} sptr)
+        Promise   <$> (coerceAnySome <$> R.promiseValue su)
+                  <*> (coerceAnySome <$> R.promiseCode su)
+                  <*> (coerceAnySome <$> R.promiseEnv su)
       R.Lang      -> coerce $
-        Lang      <$> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.listsxp.carval} sptr)
-                  <*> (coerceAny <$> R.sexp <$> #{peek SEXPREC, u.listsxp.cdrval} sptr)
-      R.Char      -> unsafeCoerce $ Char    (Vector.unsafeFromSEXP (unsafeCoerce s))
-      R.Logical   -> unsafeCoerce $ Logical (Vector.unsafeFromSEXP (unsafeCoerce s))
-      R.Int       -> unsafeCoerce $ Int     (Vector.unsafeFromSEXP (unsafeCoerce s))
-      R.Real      -> unsafeCoerce $ Real    (Vector.unsafeFromSEXP (unsafeCoerce s))
-      R.Complex   -> unsafeCoerce $ Complex (Vector.unsafeFromSEXP (unsafeCoerce s))
-      R.String    -> unsafeCoerce $ String  (Vector.unsafeFromSEXP (unsafeCoerce s))
+        Lang      <$> (coerceAnySome <$> R.car su)
+                  <*> (coerceAnySome <$> R.cdr su)
       R.Special   -> coerce $ return Special
       R.Builtin   -> coerce $ return Builtin
+      R.Char      -> unsafeCoerce $ Char    (Vector.unsafeFromSEXP su)
+      R.Logical   -> unsafeCoerce $ Logical (Vector.unsafeFromSEXP su)
+      R.Int       -> unsafeCoerce $ Int     (Vector.unsafeFromSEXP su)
+      R.Real      -> unsafeCoerce $ Real    (Vector.unsafeFromSEXP su)
+      R.Complex   -> unsafeCoerce $ Complex (Vector.unsafeFromSEXP su)
+      R.String    -> unsafeCoerce $ String  (Vector.unsafeFromSEXP su)
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Vector    -> coerce $
-        Vector    <$> (fromIntegral <$> (#{peek VECTOR_SEXPREC, vecsxp.truelength} sptr :: IO CInt))
-                  <*> pure (Vector.unsafeFromSEXP (unsafeCoerce s))
+        Vector    <$> (fromIntegral <$> R.trueLength (coerceAny su))
+                  <*> pure (Vector.unsafeFromSEXP su)
       R.Expr      -> coerce $
-        Expr      <$> (fromIntegral <$> (#{peek VECTOR_SEXPREC, vecsxp.truelength} sptr :: IO CInt))
-                  <*> pure (Vector.unsafeFromSEXP (unsafeCoerce s))
+        Expr      <$> (fromIntegral <$> R.trueLength (coerceAny su))
+                  <*> pure (Vector.unsafeFromSEXP su)
       R.Bytecode  -> coerce $ return Bytecode
       R.ExtPtr    -> coerce $
-        ExtPtr    <$> (castPtr <$> #{peek SEXPREC, u.listsxp.carval} sptr)
-                  <*> (R.sexp <$> #{peek SEXPREC, u.listsxp.cdrval} sptr)
-                  <*> (R.sexp <$> #{peek SEXPREC, u.listsxp.tagval} sptr)
+        ExtPtr    <$> ((\(R.SomeSEXP (R.SEXP (R.SEXP0 ptr))) -> castPtr ptr) <$> R.car s)
+                  <*> (coerceAnySome <$> R.cdr s)
+                  <*> (coerceAnySome <$> R.tag s)
       R.WeakRef   -> coerce $
         WeakRef   <$> (coerceAny <$> R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 0)
@@ -366,9 +370,9 @@ peekHExp s = do
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
                   <*> (coerceAny <$> R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
-      R.Raw       -> unsafeCoerce $ Raw (Vector.unsafeFromSEXP (unsafeCoerce s))
+      R.Raw       -> unsafeCoerce $ Raw (Vector.unsafeFromSEXP su)
       R.S4        -> coerce $
-        S4        <$> (R.sexp <$> #{peek SEXPREC, u.listsxp.tagval} sptr)
+        S4        <$> (coerceAnySome <$> R.tag su)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
