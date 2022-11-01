@@ -4,7 +4,6 @@
 -- Low-level bindings to core R datatypes and functions which depend on
 -- computing offsets of C struct field. We use hsc2hs for this purpose.
 
-{-# LANGUAGE CApiFFI #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
@@ -135,7 +134,6 @@ cIntFromEnum = cIntConv . fromEnum
 typeOf :: SEXP s a -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cIntToEnum <$> cTYPEOF (unsexp s)
 
-foreign import capi unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 
 -- | Set CAR field of object, when object is viewed as a cons cell.
 setCar :: SEXP s a -> SEXP s b -> IO ()
@@ -148,6 +146,7 @@ setCdr s s' = #{poke SEXPREC, u.listsxp.cdrval} (unsexp s) (castPtr $ unsexp s')
 -- | Set TAG field of object, when object is viewed as a cons cell.
 setTag :: SEXP s a -> SEXP s b -> IO ()
 setTag s s' = #{poke SEXPREC, u.listsxp.tagval} (unsexp s) (castPtr $ unsexp s')
+foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 
 --------------------------------------------------------------------------------
 -- Coercion functions                                                         --
@@ -265,13 +264,13 @@ peekInfo ts =
 
 -- These accessors are necessary because hsc2hs cannot determine the offset of
 -- C struct bit-fields. https://ghc.haskell.org/trac/ghc/ticket/12149
-foreign import capi unsafe "OBJECT" cOBJECT :: SEXP0 -> IO CInt
-foreign import capi unsafe "NAMED" cNAMED :: SEXP0 -> IO CInt
-foreign import capi unsafe "LEVELS" cLEVELS :: SEXP0 -> IO CInt
-foreign import capi unsafe "MARK" cMARK :: SEXP0 -> IO CInt
-foreign import capi unsafe "RDEBUG" cRDEBUG :: SEXP0 -> IO CInt
-foreign import capi unsafe "RTRACE" cRTRACE :: SEXP0 -> IO CInt
-foreign import capi unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
+foreign import ccall unsafe "OBJECT" cOBJECT :: SEXP0 -> IO CInt
+foreign import ccall unsafe "NAMED" cNAMED :: SEXP0 -> IO CInt
+foreign import ccall unsafe "LEVELS" cLEVELS :: SEXP0 -> IO CInt
+foreign import ccall unsafe "MARK" cMARK :: SEXP0 -> IO CInt
+foreign import ccall unsafe "RDEBUG" cRDEBUG :: SEXP0 -> IO CInt
+foreign import ccall unsafe "RTRACE" cRTRACE :: SEXP0 -> IO CInt
+foreign import ccall unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
 
 -------------------------------------------------------------------------------
 -- Attribute header                                                          --
@@ -298,7 +297,7 @@ getAttribute a b = sexp $ cgetAttrib (unsexp a) (unsexp b)
 setAttributes :: SEXP s a -> SEXP s b -> IO ()
 setAttributes s v = csetAttrib (unsexp s) (castPtr $ unsexp v)
 
-foreign import capi unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
-foreign import capi unsafe "Rinternals.h SET_ATTRIB" csetAttrib :: SEXP0 -> SEXP0 -> IO ()
-foreign import capi unsafe "Rinternals.h Rf_getAttrib" cgetAttrib :: SEXP0 -> SEXP0 -> SEXP0
-foreign import capi unsafe "Rinternals.h Rf_isS4" cisS4 :: SEXP0 -> Int
+foreign import ccall unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
+foreign import ccall unsafe "Rinternals.h SET_ATTRIB" csetAttrib :: SEXP0 -> SEXP0 -> IO ()
+foreign import ccall unsafe "Rinternals.h Rf_getAttrib" cgetAttrib :: SEXP0 -> SEXP0 -> SEXP0
+foreign import ccall unsafe "Rinternals.h Rf_isS4" cisS4 :: SEXP0 -> Int
