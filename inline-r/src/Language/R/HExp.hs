@@ -70,10 +70,6 @@ import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
 import Prelude
 
-#include <R.h>
-#include <Rinternals.h>
-
-#let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 -- Use explicit UNPACK pragmas rather than -funbox-strict-fields in order to get
 -- warnings if a field is not unpacked when we expect it to.

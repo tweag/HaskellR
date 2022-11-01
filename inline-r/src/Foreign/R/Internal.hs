@@ -39,10 +39,6 @@ import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
-#include <R.h>
-#include <Rinternals.h>
-#include "missing_r.h"
-
 
 --------------------------------------------------------------------------------
 -- R data structures                                                          --
