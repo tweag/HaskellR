@@ -136,9 +136,6 @@ module Foreign.R
     -- * Low level info header access
   , SEXPInfo(..)
   , peekInfo
-  , pokeInfo
-  , mark
-  , named
   -- * Internal types and functions
   --
   -- | Should not be used in user code. These exports are only needed for

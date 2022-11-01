@@ -279,38 +279,6 @@ foreign import capi unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
 foreign import capi unsafe "missing_r.h GCGEN" cGCGEN :: SEXP0 -> IO CInt
 foreign import capi unsafe "missing_r.h GCCLS" cGCCLS :: SEXP0 -> IO CInt
 
--- | Write a new header.
-pokeInfo :: SEXP s a -> SEXPInfo -> IO ()
-pokeInfo (unsexp -> s) i = do
-    cSET_TYPEOF s (fromIntegral.fromEnum $ infoType i)
-    cSET_OBJECT s (if infoObj  i then 1 else 0)
-    cSET_NAMED s (fromIntegral $ infoNamed i)
-    cSETLEVELS s (fromIntegral $ infoGp i)
-    cSET_MARK s (if infoMark i  then 1 else 0)
-    cSET_RDEBUG s (if infoDebug i then 1 else 0)
-    cSET_RTRACE s (if infoTrace i then 1 else 0)
-    cSET_RSTEP s (if infoSpare i then 1 else 0)
-    cSET_GCGEN s (fromIntegral $ infoGcGen i)
-    cSET_GCCLS s (fromIntegral $ infoGcCls i)
-
-foreign import capi unsafe "SET_TYPEOF" cSET_TYPEOF :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_OBJECT" cSET_OBJECT :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_NAMED" cSET_NAMED :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SETLEVELS" cSETLEVELS :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_MARK" cSET_MARK :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_RDEBUG" cSET_RDEBUG :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_RTRACE" cSET_RTRACE :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "SET_RSTEP" cSET_RSTEP :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "missing_r.h SET_GCGEN" cSET_GCGEN :: SEXP0 -> CInt -> IO ()
-foreign import capi unsafe "missing_r.h SET_GCCLS" cSET_GCCLS :: SEXP0 -> CInt -> IO ()
-
--- | Set the GC mark.
-mark :: Bool -> SEXP s a -> IO ()
-mark b ts = cSET_MARK (unsexp ts) (if b then 1 else 0)
-
-named :: Int -> SEXP s a -> IO ()
-named v ts = cSET_NAMED (unsexp ts) (fromIntegral v)
-
 -------------------------------------------------------------------------------
 -- Attribute header                                                          --
 -------------------------------------------------------------------------------
