@@ -188,13 +188,24 @@ C.include "<stdint.h>"
 car :: SEXP s a -> IO (SomeSEXP s)
 car (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
 
+-- | Set the CAR value and return it.
+setCar :: SEXP s a -> SEXP s b -> IO (SEXP s b)
+setCar (unsexp -> s) (unsexp -> s') = sexp <$> [C.exp| SEXP { SETCAR( $(SEXP s), $(SEXP s') ) } |]
+
 -- | read CDR object
 cdr :: SEXP s a -> IO (SomeSEXP s)
 cdr (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
 
+-- | Set the CDR value and return it.
+setCdr :: SEXP s a -> SEXP s b -> IO (SEXP s b)
+setCdr (unsexp -> s) (unsexp -> s') = sexp <$> [C.exp| SEXP { SETCDR( $(SEXP s), $(SEXP s') ) } |]
+
 -- | read object`s Tag
 tag :: SEXP s a -> IO (SomeSEXP s)
 tag (unsexp -> s) = somesexp <$> [C.exp| SEXP { TAG( $(SEXP s) ) } |]
+
+setTag :: SEXP s a -> SEXP s b -> IO ()
+setTag (unsexp -> s) (unsexp -> s') = [C.exp| void { SET_TAG( $(SEXP s), $(SEXP s') ) } |]
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
@@ -246,6 +257,10 @@ promiseValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRVALUE( $(SEXP s) )}|]
 --------------------------------------------------------------------------------
 -- Vector accessor functions                                                  --
 --------------------------------------------------------------------------------
+
+-- | Length of the vector.
+length :: R.IsVector a => SEXP s a -> IO CInt
+length (unsexp -> s) = [C.exp| int { LENGTH( $(SEXP s) ) }|]
 
 -- | Read True Length vector field.
 trueLength :: R.IsVector a => SEXP s a -> IO CInt

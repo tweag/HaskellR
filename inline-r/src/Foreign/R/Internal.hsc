@@ -122,28 +122,12 @@ cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 cIntFromEnum :: Enum a => a -> CInt
 cIntFromEnum = cIntConv . fromEnum
 
---------------------------------------------------------------------------------
--- Generic accessor functions                                                 --
---------------------------------------------------------------------------------
-
 -- | Return the \"type\" tag (aka the form tag) of the given 'SEXP'. This
 -- function is pure because the type of an object does not normally change over
 -- the lifetime of the object.
 typeOf :: SEXP s a -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cIntToEnum <$> cTYPEOF (unsexp s)
 
-
--- | Set CAR field of object, when object is viewed as a cons cell.
-setCar :: SEXP s a -> SEXP s b -> IO ()
-setCar s s' = #{poke SEXPREC, u.listsxp.carval} (unsexp s) (castPtr $ unsexp s')
-
--- | Set CDR field of object, when object is viewed as a cons cell.
-setCdr :: SEXP s a -> SEXP s b -> IO ()
-setCdr s s' = #{poke SEXPREC, u.listsxp.cdrval} (unsexp s) (castPtr $ unsexp s')
-
--- | Set TAG field of object, when object is viewed as a cons cell.
-setTag :: SEXP s a -> SEXP s b -> IO ()
-setTag s s' = #{poke SEXPREC, u.listsxp.tagval} (unsexp s) (castPtr $ unsexp s')
 foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 
 --------------------------------------------------------------------------------
@@ -181,15 +165,6 @@ asTypeOf s s' = typeOf s' `unsafeCast` s
 -- any dynamic check at runtime.
 unsafeCoerce :: SEXP s a -> SEXP s b
 unsafeCoerce = sexp . unsexp
-
---------------------------------------------------------------------------------
--- Vector accessor functions                                                  --
---------------------------------------------------------------------------------
-
--- | Length of the vector.
-length :: R.IsVector a => SEXP s a -> IO Int
-length s = fromIntegral <$>
-             (#{peek VECTOR_SEXPREC, vecsxp.length} (unsexp s) :: IO CInt)
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
