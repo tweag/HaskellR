@@ -110,7 +110,7 @@ library
         th-lift >=0.6 && <0.9,
         th-orphans >=0.8 && <0.14,
         transformers >=0.3 && <0.6,
-        vector >=0.10 && <0.13
+        vector >=0.10 && <0.14
 
     if !os(windows)
         exposed-modules:
@@ -167,7 +167,7 @@ test-suite tests
         tasty-quickcheck >=0.4.1 && <0.11,
         temporary >=1.2 && <1.4,
         text >=0.11 && <2.1,
-        vector >=0.12.3.1 && <0.13
+        vector >=0.12.3.1 && <0.14
 
     if !os(windows)
         build-depends: unix >=2.5 && <2.8
@@ -232,5 +232,5 @@ benchmark bench-hexp
         base >=4.6 && <5,
         criterion >=0.8 && <1.7,
         primitive >=0.5 && <0.8,
-        vector >=0.10 && <0.13,
+        vector >=0.10 && <0.14,
         singletons >=2.7 && <3.1

@@ -35,4 +35,4 @@ executable H
         pretty >=1.1 && <1.2,
         process >=1.2 && <1.7,
         temporary >=1.2.0.3 && <1.4,
-        vector >=0.10 && <0.13
+        vector >=0.10 && <0.14
