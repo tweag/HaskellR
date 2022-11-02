@@ -65,6 +65,6 @@ executable RelaxWithNM
     build-depends:
         inline-r,
         base >=4.6 && <5,
-        deepseq >=1.4.5.0 && <1.5,
+        deepseq >=1.4.4.0 && <1.5,
         integration >=0.2.1 && <0.3,
         temporary >=1.2.0.3 && <1.4

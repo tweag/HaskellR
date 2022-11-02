@@ -238,4 +238,4 @@ benchmark bench-hexp
         criterion >=0.8 && <1.7,
         primitive >=0.5 && <0.8,
         vector >=0.10 && <0.13,
-        singletons >=3.0.1 && <3.1
+        singletons >=2.7 && <3.1
