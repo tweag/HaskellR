@@ -26,7 +26,7 @@ jobs:
         uses: haskell/actions/setup@v2
         with:
           ghc-version: ${{ matrix.ghc }}
-          cabal: latest
+          cabal-version: latest
 
       - name: Setup caching
         uses: actions/cache@v3
@@ -42,7 +42,7 @@ jobs:
           cabal install cabal-plan
 
       - name: Install system dependencies
-        run: sudo apt-get install --no-install-recommends r-base-dev
+        run: sudo apt-get install --no-install-recommends r-base-dev libzmq5-dev
 
       - name: Show build plan
         run: |
