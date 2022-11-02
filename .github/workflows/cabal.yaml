@@ -1,0 +1,58 @@
+name: Haskell CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on:
+      - ubuntu-latest
+
+    strategy:
+      matrix:
+        ghc:
+          - '8.10'
+          - '9.0'
+          - '9.2'
+          - '9.4'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Haskell
+        id: setup-haskell
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal: latest
+
+      - name: Setup caching
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.setup-haskell.outputs.cabal-store }}
+          key: ${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - name: Install cabal-plan
+        run: |
+          cd $(mktemp -d)
+          cabal install cabal-plan
+
+      - name: Install system dependencies
+        run: apt-get install --no-install-recommends r-base-dev
+
+      - name: Show build plan
+        run: |
+          cabal build all --dry-run
+          cabal-plan
+
+      - name: Build dependencies
+        run: cabal build all --only-dependencies
+
+      - name: Build
+        run: cabal build all
+
+      - name: Test
+        run: cabal test all
