@@ -1,0 +1,7 @@
+packages:
+  examples
+  H
+  IHaskell
+  inline-r
+
+test-show-details: direct
