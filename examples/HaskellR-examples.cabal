@@ -1,63 +1,70 @@
-name:                HaskellR-examples
-version:             0.1.0.0
-license:             AllRightsReserved
-copyright:           Copyright (c) 2013-2015 Amgen, Inc.
-                     Copyright (c) 2015 Tweag I/O Limited.
-build-type:          Simple
-Category:            FFI
-Synopsis:            Examples bundled with the HaskellR project
-description:         This package is part of the HaskellR project.
-cabal-version:       >=1.10
+cabal-version:      >=1.10
+name:               HaskellR-examples
+version:            0.1.0.0
+license:            AllRightsReserved
+copyright:
+    Copyright (c) 2013-2015 Amgen, Inc.
+    Copyright (c) 2015 Tweag I/O Limited.
+
+synopsis:           Examples bundled with the HaskellR project
+description:        This package is part of the HaskellR project.
+category:           FFI
+build-type:         Simple
 extra-source-files:
-  nls/nls.H
-  nls2/nls2.H
+    nls/nls.H
+    nls2/nls2.H
 
 source-repository head
-  type:     git
-  location: git://github.com/tweag/HaskellR.git
-  subdir: examples
+    type:     git
+    location: git://github.com/tweag/HaskellR.git
+    subdir:   examples
 
 executable fft
-  main-is:          Main.hs
-  hs-source-dirs:   fft
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+    main-is:          Main.hs
+    hs-source-dirs:   fft
+    default-language: Haskell2010
+    ghc-options:      -Wall -threaded
+    build-depends:
+        inline-r,
+        base >=4.6 && <5
 
 executable fib
-  main-is:          Main.hs
-  hs-source-dirs:   fib
-  other-modules:    Fib
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+    main-is:          Main.hs
+    hs-source-dirs:   fib
+    other-modules:    Fib
+    default-language: Haskell2010
+    ghc-options:      -Wall -threaded
+    build-depends:
+        inline-r,
+        base >=4.6 && <5
 
 executable nls
-  main-is:          Main.hs
-  hs-source-dirs:   nls
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-                    , mwc-random >= 0.12
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+    main-is:          Main.hs
+    hs-source-dirs:   nls
+    default-language: Haskell2010
+    ghc-options:      -Wall -threaded
+    build-depends:
+        inline-r,
+        base >=4.6 && <5,
+        mwc-random >=0.12 && <0.16
 
 executable nls2
-  main-is:          Main.hs
-  hs-source-dirs:   nls2
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-                    , mwc-random >= 0.12
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+    main-is:          Main.hs
+    hs-source-dirs:   nls2
+    default-language: Haskell2010
+    ghc-options:      -Wall -threaded
+    build-depends:
+        inline-r,
+        base >=4.6 && <5,
+        mwc-random >=0.12 && <0.16
 
 executable RelaxWithNM
-  main-is:           RelaxWithNM.hs
-  build-depends:       inline-r
-                     , base >= 4.6 && < 5
-                     , deepseq
-                     , integration
-                     , temporary >= 1.2.0.3
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+    main-is:          RelaxWithNM.hs
+    default-language: Haskell2010
+    ghc-options:      -Wall -threaded
+    build-depends:
+        inline-r,
+        base >=4.6 && <5,
+        deepseq >=1.4.5.0 && <1.5,
+        integration >=0.2.1 && <0.3,
+        temporary >=1.2.0.3 && <1.4
