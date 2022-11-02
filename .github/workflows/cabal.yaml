@@ -40,6 +40,7 @@ jobs:
         run: |
           cd $(mktemp -d)
           cabal install cabal-plan
+          echo "$HOME/.cabal/bin" >> $GITHUB_PATH
 
       - name: Install system dependencies
         run: sudo apt-get install --no-install-recommends r-base-dev libzmq5-dev
