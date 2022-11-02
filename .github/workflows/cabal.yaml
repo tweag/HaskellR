@@ -10,6 +10,7 @@ jobs:
       - ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         ghc:
           - '8.10'
@@ -41,7 +42,7 @@ jobs:
           cabal install cabal-plan
 
       - name: Install system dependencies
-        run: apt-get install --no-install-recommends r-base-dev
+        run: sudo apt-get install --no-install-recommends r-base-dev
 
       - name: Show build plan
         run: |
