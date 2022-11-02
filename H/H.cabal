@@ -28,7 +28,7 @@ executable H
     ghc-options:      -Wall -threaded
     build-depends:
         base >=4.6 && <5,
-        bytestring >=0.10 && <0.11,
+        bytestring >=0.10 && <0.12,
         cmdargs >=0.10.5 && <0.11,
         file-embed >=0.0.7 && <0.1,
         inline-r >=0.9 && <0.11,

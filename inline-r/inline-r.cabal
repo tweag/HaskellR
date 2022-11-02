@@ -91,7 +91,7 @@ library
     build-depends:
         base >=4.7 && <5,
         aeson >=0.6 && <2.2,
-        bytestring >=0.10 && <0.11,
+        bytestring >=0.10 && <0.11 || >=0.11.3.1 && <0.12,
         containers >=0.5 && <0.7,
         data-default-class >=0.1.2.0 && <0.2,
         deepseq >=1.3 && <1.5,
@@ -103,7 +103,7 @@ library
         process >=1.2 && <1.7,
         reflection >=2 && <2.2,
         setenv >=0.1.1 && <0.2,
-        template-haskell >=2.8 && <2.18,
+        template-haskell >=2.8 && <2.18 || >=2.18.0.0 && <2.19,
         temporary >=1.2 && <1.4,
         text >=0.11 && <1.3,
         th-lift >=0.6 && <0.9,
@@ -122,12 +122,13 @@ library
     else
         build-depends: inline-c >=0.6 && <0.10
 
-    if impl(ghc < 9)
-        build-depends: singletons >= 2.7 && <3
+    if impl(ghc <9)
+        build-depends: singletons >=2.7 && <3
+
     else
         build-depends:
-            singletons >=3,
-            singletons-th >=3
+            singletons >=3 && <3.1,
+            singletons-th >=3 && <3.2
 
     if os(windows)
         extra-libraries: R
@@ -154,7 +155,7 @@ test-suite tests
     build-depends:
         inline-r,
         base >=4.6 && <5,
-        bytestring >=0.10 && <0.11,
+        bytestring >=0.10 && <0.12,
         directory >=1.2 && <1.4,
         filepath >=1.3 && <1.5,
         heredoc >=0.2 && <0.3,
@@ -206,7 +207,7 @@ test-suite test-shootout
         silently >=1.2 && <1.3,
         tasty >=0.3 && <1.5,
         tasty-hunit >=0.4.1 && <0.11,
-        template-haskell >=2.8 && <2.18
+        template-haskell >=2.8 && <2.19
 
     if os(windows)
         buildable: False
@@ -223,7 +224,7 @@ benchmark bench-qq
         criterion >=0.8 && <1.7,
         filepath >=1.3 && <1.5,
         process >=1.2 && <1.7,
-        template-haskell >=2.8 && <2.18
+        template-haskell >=2.8 && <2.19
 
 benchmark bench-hexp
     type:             exitcode-stdio-1.0
@@ -237,4 +238,4 @@ benchmark bench-hexp
         criterion >=0.8 && <1.7,
         primitive >=0.5 && <0.8,
         vector >=0.10 && <0.13,
-        singletons >=3.0.2 && <3.1
+        singletons >=3.0.1 && <3.1
