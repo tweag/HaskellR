@@ -9,11 +9,6 @@ packages:
 extra-deps:
 - ihaskell-blaze-0.3.0.1
 
-docker:
-  # Disabled by default. Use --docker on command line to enable.
-  enable: false
-  repo: tweag/haskellr:latest
-
 nix:
   shell-file: ./shell.nix
   path: ["nixpkgs=./nixpkgs.nix"]
