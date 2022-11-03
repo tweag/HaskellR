@@ -18,7 +18,7 @@ jobs:
       - uses: actions/cache@v1
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}
+          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
           restore-keys: |
             ${{ runner.os }}-stack-
       - name: Build
@@ -47,9 +47,9 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/*.nix')}}
+          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
           restore-keys: |
-            ${{ runner.os }}-stack-
+            ${{ steps.stack-snapshot.outputs.dir }}
       - name: Build
         run: |
           stack --nix build
