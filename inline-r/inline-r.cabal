@@ -89,8 +89,6 @@ library
                      , process >= 1.2
                      , reflection >= 2
                      , setenv >= 0.1.1
-                     , singletons >= 3
-                     , singletons-th >= 3
                      , template-haskell >= 2.8
                      , temporary >= 1.2
                      , text >= 0.11
@@ -104,6 +102,12 @@ library
   else
     build-depends:
       inline-c >=0.6
+  if impl(ghc <9)
+      build-depends: singletons >=2.7 && <3
+  else
+      build-depends:
+          singletons >=3 && <3.1,
+          singletons-th >=3 && <3.2
   hs-source-dirs:      src
   includes:            cbits/missing_r.h
   c-sources:           cbits/missing_r.c
