@@ -51,6 +51,7 @@ library
                        Foreign.R.Constraints
                        Foreign.R.Context
                        Foreign.R.Embedded
+                       Foreign.R.Encoding
                        Foreign.R.Error
                        Foreign.R.Internal
                        Foreign.R.Parse
