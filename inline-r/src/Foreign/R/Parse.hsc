@@ -9,9 +9,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-#if __GLASGOW_HASKELL__ >= 710
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-#endif
 
 #include <Rinternals.h>
 #include <R_ext/Parse.h>

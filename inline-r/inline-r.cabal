@@ -125,7 +125,10 @@ library
     pkgconfig-depends: libR >= 3.0
   -- XXX -fcontext-stack=32 required on GHC >= 7.8 to allow foreign
   -- export function -wrappers of high arities.
-  ghc-options:         -Wall -freduction-depth=32
+  ghc-options:         -freduction-depth=32
+  --- We don't use ticks for promoted constructors, because we use
+  --- promoted constructors heavily and because they confuse hsc2hs.
+  ghc-options:         -Wall -fno-warn-unticked-promoted-constructors
 
 test-suite tests
   main-is:             tests.hs

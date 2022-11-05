@@ -17,10 +17,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-#if __GLASGOW_HASKELL__ >= 710
--- We don't use ticks in this module, because they confuse hsc2hs.
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-#endif
 module Foreign.R.Internal where
 
 import Control.Memory.Region
