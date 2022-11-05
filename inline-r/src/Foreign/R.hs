@@ -15,7 +15,6 @@
 --
 -- This module is intended to be imported qualified.
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}

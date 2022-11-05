@@ -4,7 +4,6 @@
 -- Low-level bindings to core R datatypes and functions which depend on
 -- computing offsets of C struct field. We use hsc2hs for this purpose.
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}

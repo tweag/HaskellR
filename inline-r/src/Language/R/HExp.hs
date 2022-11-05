@@ -26,7 +26,6 @@
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
