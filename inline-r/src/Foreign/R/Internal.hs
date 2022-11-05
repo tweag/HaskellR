@@ -7,9 +7,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE DeriveDataTypeable #-}
-#endif
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -28,9 +25,6 @@ import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Singletons (fromSing)
-#if __GLASGOW_HASKELL__ < 710
-import Data.Typeable (Typeable)
-#endif
 import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
@@ -46,9 +40,6 @@ newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: SEXP0 }
   deriving ( Eq
            , Ord
            , Storable
-#if __GLASGOW_HASKELL__ < 710
-           , Typeable
-#endif
            )
 
 instance Show (SEXP s a) where

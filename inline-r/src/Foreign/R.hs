@@ -18,9 +18,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-#if __GLASGOW_HASKELL__ < 710
 {-# LANGUAGE DeriveDataTypeable #-}
-#endif
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -152,9 +150,6 @@ module Foreign.R
   ) where
 
 import Control.Memory.Region
-#if __GLASGOW_HASKELL__ < 804
-import Data.Monoid ((<>))
-#endif
 import Foreign.R.Internal
 import Foreign.R.Type
 import Foreign.R.Type as R
@@ -163,9 +158,6 @@ import Control.Applicative
 import Control.Exception (bracket)
 import Data.Complex
 import Data.Int (Int32)
-#if __GLASGOW_HASKELL__ < 710
-import Data.Typeable (Typeable)
-#endif
 import Foreign (Ptr, castPtr)
 import Foreign.C
 import Foreign.R.Context (rCtx, SEXP0(..), SEXPREC)

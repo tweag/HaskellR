@@ -31,9 +31,6 @@ newtype {-# CTYPE "SEXP" #-} SEXP0 = SEXP0 { unSEXP0 :: Ptr SEXPREC }
   deriving ( Eq
            , Ord
            , Storable
-#if __GLASGOW_HASKELL__ < 710
-           , Typeable
-#endif
            )
 
 instance Show SEXP0 where

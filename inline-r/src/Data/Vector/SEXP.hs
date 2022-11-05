@@ -301,9 +301,7 @@ import Foreign.Marshal.Array ( copyArray )
 import qualified GHC.Foreign as GHC
 import qualified GHC.ForeignPtr as GHC
 import GHC.IO.Encoding.UTF8
-#if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
-#endif
 import System.IO.Unsafe
 
 import Prelude
@@ -403,13 +401,11 @@ instance (Reifies t (AcquireIO s), SVECTOR ty a) => G.Vector (W t ty) a where
   {-# INLINE elemseq #-}
   elemseq _ = seq
 
-#if __GLASGOW_HASKELL__ >= 708
 instance SVECTOR ty a => Exts.IsList (Vector ty a) where
   type Item (Vector ty a) = a
   fromList = fromList
   fromListN = fromListN
   toList = toList
-#endif
 
 -- | Return Pointer of the first element of the vector storage.
 unsafeToPtr :: Storable a => Vector ty a -> Ptr a
