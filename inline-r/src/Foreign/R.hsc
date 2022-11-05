@@ -13,6 +13,11 @@
 -- /negative/ position should be /universally/ quantified and unknown types in
 -- /positive/ position should be /existentially/ quantified).
 --
+-- Bindings to R functions that allocate or are blocking use safe ccall's, so
+-- garbage collection of the Haskell heap can happen concurrently. See the
+-- <https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/ffi.html#foreign-imports-and-multi-threading
+-- GHC User's Guide> for more.
+--
 -- This module is intended to be imported qualified.
 
 {-# LANGUAGE CPP #-}
@@ -170,6 +175,8 @@ import Foreign (Ptr, castPtr)
 import Foreign.C
 import Foreign.R.Context (rCtx, SEXP0(..), SEXPREC)
 import qualified Language.C.Inline as C
+-- Use unsafe only for non-blocking, non-allocating functions.
+import qualified Language.C.Inline.Unsafe as CU
 import Prelude hiding (asTypeOf, length)
 
 #include <Rinternals.h>
@@ -185,41 +192,41 @@ C.include "<stdint.h>"
 
 -- | read CAR object value
 car :: SEXP s a -> IO (SomeSEXP s)
-car (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
+car (unsexp -> s) = somesexp <$> [CU.exp| SEXP { CAR( $(SEXP s) ) } |]
 
 -- | Set the CAR value and return it.
 setCar :: SEXP s a -> SEXP s b -> IO (SEXP s b)
-setCar (unsexp -> s) (unsexp -> s') = sexp <$> [C.exp| SEXP { SETCAR( $(SEXP s), $(SEXP s') ) } |]
+setCar (unsexp -> s) (unsexp -> s') = sexp <$> [CU.exp| SEXP { SETCAR( $(SEXP s), $(SEXP s') ) } |]
 
 -- | read CDR object
 cdr :: SEXP s a -> IO (SomeSEXP s)
-cdr (unsexp -> s) = somesexp <$> [C.exp| SEXP { CAR( $(SEXP s) ) } |]
+cdr (unsexp -> s) = somesexp <$> [CU.exp| SEXP { CAR( $(SEXP s) ) } |]
 
 -- | Set the CDR value and return it.
 setCdr :: SEXP s a -> SEXP s b -> IO (SEXP s b)
-setCdr (unsexp -> s) (unsexp -> s') = sexp <$> [C.exp| SEXP { SETCDR( $(SEXP s), $(SEXP s') ) } |]
+setCdr (unsexp -> s) (unsexp -> s') = sexp <$> [CU.exp| SEXP { SETCDR( $(SEXP s), $(SEXP s') ) } |]
 
 -- | read object`s Tag
 tag :: SEXP s a -> IO (SomeSEXP s)
-tag (unsexp -> s) = somesexp <$> [C.exp| SEXP { TAG( $(SEXP s) ) } |]
+tag (unsexp -> s) = somesexp <$> [CU.exp| SEXP { TAG( $(SEXP s) ) } |]
 
 setTag :: SEXP s a -> SEXP s b -> IO ()
-setTag (unsexp -> s) (unsexp -> s') = [C.exp| void { SET_TAG( $(SEXP s), $(SEXP s') ) } |]
+setTag (unsexp -> s) (unsexp -> s') = [CU.exp| void { SET_TAG( $(SEXP s), $(SEXP s') ) } |]
 
 --------------------------------------------------------------------------------
 -- Environment functions                                                      --
 --------------------------------------------------------------------------------
 
 envFrame :: (SEXP s 'R.Env) -> IO (SEXP s R.PairList)
-envFrame (unsexp -> s) = sexp <$> [C.exp| SEXP { FRAME( $(SEXP s) ) } |]
+envFrame (unsexp -> s) = sexp <$> [CU.exp| SEXP { FRAME( $(SEXP s) ) } |]
 
 -- | Enclosing environment.
 envEnclosing :: SEXP s 'R.Env -> IO (SEXP s 'R.Env)
-envEnclosing (unsexp -> s) = sexp <$> [C.exp| SEXP { ENCLOS( $(SEXP s) ) } |]
+envEnclosing (unsexp -> s) = sexp <$> [CU.exp| SEXP { ENCLOS( $(SEXP s) ) } |]
 
 -- | Hash table associated with the environment, used for faster name lookups.
 envHashtab :: SEXP s 'R.Env -> IO (SEXP s 'R.Vector)
-envHashtab (unsexp -> s) = sexp <$> [C.exp| SEXP { HASHTAB( $(SEXP s) ) } |]
+envHashtab (unsexp -> s) = sexp <$> [CU.exp| SEXP { HASHTAB( $(SEXP s) ) } |]
 
 --------------------------------------------------------------------------------
 -- Closure functions                                                          --
@@ -227,15 +234,15 @@ envHashtab (unsexp -> s) = sexp <$> [C.exp| SEXP { HASHTAB( $(SEXP s) ) } |]
 
 -- | Closure formals (aka the actual arguments).
 closureFormals :: SEXP s 'R.Closure -> IO (SEXP s R.PairList)
-closureFormals (unsexp -> s) = sexp <$> [C.exp| SEXP { FORMALS( $(SEXP s) ) }|]
+closureFormals (unsexp -> s) = sexp <$> [CU.exp| SEXP { FORMALS( $(SEXP s) ) }|]
 
 -- | The code of the closure.
 closureBody :: SEXP s 'R.Closure -> IO (SomeSEXP s)
-closureBody (unsexp -> s) = somesexp <$> [C.exp| SEXP { BODY( $(SEXP s) ) } |]
+closureBody (unsexp -> s) = somesexp <$> [CU.exp| SEXP { BODY( $(SEXP s) ) } |]
 
 -- | The environment of the closure.
 closureEnv :: SEXP s 'R.Closure -> IO (SEXP s 'R.Env)
-closureEnv (unsexp -> s) = sexp <$> [C.exp| SEXP { CLOENV( $(SEXP s) ) }|]
+closureEnv (unsexp -> s) = sexp <$> [CU.exp| SEXP { CLOENV( $(SEXP s) ) }|]
 
 --------------------------------------------------------------------------------
 -- Promise functions                                                          --
@@ -243,15 +250,15 @@ closureEnv (unsexp -> s) = sexp <$> [C.exp| SEXP { CLOENV( $(SEXP s) ) }|]
 
 -- | The code of a promise.
 promiseCode :: SEXP s 'R.Promise -> IO (SomeSEXP s)
-promiseCode (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRCODE( $(SEXP s) )}|]
+promiseCode (unsexp -> s) = somesexp <$> [CU.exp| SEXP { PRCODE( $(SEXP s) )}|]
 
 -- | The environment in which to evaluate the promise.
 promiseEnv :: SEXP s 'R.Promise -> IO (SomeSEXP s)
-promiseEnv (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRENV( $(SEXP s) )}|]
+promiseEnv (unsexp -> s) = somesexp <$> [CU.exp| SEXP { PRENV( $(SEXP s) )}|]
 
 -- | The value of the promise, if it has already been forced.
 promiseValue :: SEXP s 'R.Promise -> IO (SomeSEXP s)
-promiseValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRVALUE( $(SEXP s) )}|]
+promiseValue (unsexp -> s) = somesexp <$> [CU.exp| SEXP { PRVALUE( $(SEXP s) )}|]
 
 --------------------------------------------------------------------------------
 -- Vector accessor functions                                                  --
@@ -259,47 +266,47 @@ promiseValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRVALUE( $(SEXP s) )}|]
 
 -- | Length of the vector.
 length :: R.IsVector a => SEXP s a -> IO CInt
-length (unsexp -> s) = [C.exp| int { LENGTH( $(SEXP s) ) }|]
+length (unsexp -> s) = [CU.exp| int { LENGTH( $(SEXP s) ) }|]
 
 -- | Read True Length vector field.
 trueLength :: R.IsVector a => SEXP s a -> IO CInt
-trueLength (unsexp -> s) = [C.exp| int { TRUELENGTH( $(SEXP s) ) }|]
+trueLength (unsexp -> s) = [CU.exp| int { TRUELENGTH( $(SEXP s) ) }|]
 
 -- | Read character vector data
 char :: SEXP s 'R.Char -> IO CString
-char (unsexp -> s) = castPtr <$> [C.exp| const char* { CHAR($(SEXP s))}|]
+char (unsexp -> s) = castPtr <$> [CU.exp| const char* { CHAR($(SEXP s))}|]
 -- XXX: check if we really need Word8 here, maybe some better handling of
 -- encoding
 
 -- | Read real vector data.
 real :: SEXP s 'R.Real -> IO (Ptr Double)
-real (unsexp -> s) = castPtr <$> [C.exp| double* { REAL( $(SEXP s)) }|]
+real (unsexp -> s) = castPtr <$> [CU.exp| double* { REAL( $(SEXP s)) }|]
 
 -- | Read integer vector data.
 integer :: SEXP s 'R.Int -> IO (Ptr Int32)
-integer (unsexp -> s) = [C.exp| int32_t* { INTEGER( $(SEXP s) )}|]
+integer (unsexp -> s) = [CU.exp| int32_t* { INTEGER( $(SEXP s) )}|]
 
 -- | Read raw data.
 raw :: SEXP s 'R.Raw -> IO (Ptr CChar)
-raw (unsexp -> s) = [C.exp| char* { RAW($(SEXP s)) } |]
+raw (unsexp -> s) = [CU.exp| char* { RAW($(SEXP s)) } |]
 
 -- | Read logical vector data.
 logical :: SEXP s 'R.Logical -> IO (Ptr R.Logical)
 logical (unsexp -> s) = castPtr <$>
-  [C.exp| int* { LOGICAL($(SEXP s)) } |]
+  [CU.exp| int* { LOGICAL($(SEXP s)) } |]
 
 -- | Read complex vector data.
 complex :: SEXP s 'R.Complex -> IO (Ptr (Complex Double))
-complex (unsexp -> s) = [C.exp| Rcomplex* { COMPLEX($(SEXP s)) }|]
+complex (unsexp -> s) = [CU.exp| Rcomplex* { COMPLEX($(SEXP s)) }|]
 
 -- | Read string vector data.
 string :: SEXP s 'R.String -> IO (Ptr (SEXP s 'R.Char))
 string (unsexp -> s) = castPtr <$>
-  [C.exp| SEXP* { STRING_PTR($(SEXP s)) }|]
+  [CU.exp| SEXP* { STRING_PTR($(SEXP s)) }|]
 
 readVector :: R.IsGenericVector a => SEXP s a -> Int -> IO (SomeSEXP s)
 readVector (unsexp -> s) (fromIntegral -> n) = somesexp <$>
-  [C.exp| SEXP { VECTOR_ELT( $(SEXP s), $(int n) ) } |]
+  [CU.exp| SEXP { VECTOR_ELT( $(SEXP s), $(int n) ) } |]
 
 indexVector :: IsGenericVector a => SEXP s a -> Int -> IO (SomeSEXP s)
 {-# DEPRECATED indexVector "Use readVector instead." #-}
@@ -307,7 +314,7 @@ indexVector = readVector
 
 writeVector :: R.IsGenericVector a => SEXP s a -> Int -> SEXP s b -> IO (SEXP s a)
 writeVector (unsexp -> a) (fromIntegral -> n) (unsexp -> b) = sexp <$>
-  [C.exp| SEXP { SET_VECTOR_ELT($(SEXP a),$(int n), $(SEXP b)) } |]
+  [CU.exp| SEXP { SET_VECTOR_ELT($(SEXP a),$(int n), $(SEXP b)) } |]
 
 -- | Extract the data pointer from a vector.
 unsafeSEXPToVectorPtr :: SEXP s a -> Ptr ()
@@ -320,15 +327,15 @@ unsafeSEXPToVectorPtr (unsexp -> s) =
 
 -- | Read a name from symbol.
 symbolPrintName :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
-symbolPrintName (unsexp -> s) = somesexp <$> [C.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
+symbolPrintName (unsexp -> s) = somesexp <$> [CU.exp| SEXP { PRINTNAME( $(SEXP s)) } |]
 
 -- | Read value from symbol.
 symbolValue :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
-symbolValue (unsexp -> s) = somesexp <$> [C.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
+symbolValue (unsexp -> s) = somesexp <$> [CU.exp| SEXP { SYMVALUE( $(SEXP s)) } |]
 
 -- | Read internal value from symbol.
 symbolInternal :: SEXP s 'R.Symbol -> IO (SomeSEXP s)
-symbolInternal (unsexp -> s) = somesexp <$> [C.exp| SEXP { INTERNAL( $(SEXP s)) }|]
+symbolInternal (unsexp -> s) = somesexp <$> [CU.exp| SEXP { INTERNAL( $(SEXP s)) }|]
 
 --------------------------------------------------------------------------------
 -- Value contruction                                                          --
@@ -404,17 +411,17 @@ printValue (unsexp -> s) =
 -- functions directly but use 'Language.R.withProtected' instead.
 protect :: SEXP s a -> IO (SEXP G a)
 protect (unsexp -> s) = sexp <$> 
-  [C.exp| SEXP { Rf_protect($(SEXP s)) }|]
+  [CU.exp| SEXP { Rf_protect($(SEXP s)) }|]
 
 -- | @unprotect n@ unprotects the last @n@ objects that were protected.
 unprotect :: Int -> IO ()
 unprotect (fromIntegral -> i) =
-  [C.exp| void { Rf_unprotect($(int i)) } |]
+  [CU.exp| void { Rf_unprotect($(int i)) } |]
 
 -- | Unprotect a specific object, referred to by pointer.
 unprotectPtr :: SEXP G a -> IO ()
 unprotectPtr (unsexp -> s) =
-  [C.exp| void { Rf_unprotect_ptr($(SEXP s)) }|]
+  [CU.exp| void { Rf_unprotect_ptr($(SEXP s)) }|]
 
 -- | Invoke an R garbage collector sweep.
 gc :: IO ()
@@ -423,12 +430,12 @@ gc = [C.exp| void { R_gc() }|]
 -- | Preserve an object accross GCs.
 preserveObject :: SEXP s a -> IO ()
 preserveObject (unsexp -> s) =
-  [C.exp| void { R_PreserveObject( $(SEXP s) )} |]
+  [CU.exp| void { R_PreserveObject( $(SEXP s) )} |]
 
 -- | Allow GC to remove an preserved object.
 releaseObject :: SEXP s a -> IO ()
 releaseObject (unsexp -> s) =
-  [C.exp| void { R_ReleaseObject( $(SEXP s) )} |]
+  [CU.exp| void { R_ReleaseObject( $(SEXP s) )} |]
 
 --------------------------------------------------------------------------------
 -- Evaluation                                                                 --
@@ -467,12 +474,12 @@ lang3 (unsexp -> f) (unsexp -> x) (unsexp -> y) = sexp <$>
 -- | Find a function by name.
 findFun :: SEXP s a -> SEXP s 'R.Env -> IO (SomeSEXP s)
 findFun (unsexp -> a) (unsexp -> env) = somesexp <$>
-  [C.exp| SEXP { Rf_findFun($(SEXP a), $(SEXP env)) }|]
+  [CU.exp| SEXP { Rf_findFun($(SEXP a), $(SEXP env)) }|]
 
 -- | Find a variable by name.
 findVar :: SEXP s a -> SEXP s 'R.Env -> IO (SEXP s 'R.Symbol)
 findVar (unsexp -> a) (unsexp -> env) = sexp <$>
-  [C.exp| SEXP {Rf_findVar($(SEXP a), $(SEXP env))}|]
+  [CU.exp| SEXP {Rf_findVar($(SEXP a), $(SEXP env))}|]
 
 mkWeakRef :: SEXP s a -> SEXP s b -> SEXP s c -> Bool -> IO (SEXP V 'R.WeakRef)
 mkWeakRef (unsexp -> a) (unsexp -> b) (unsexp -> c) (cIntFromEnum -> t) = sexp <$>
