@@ -77,7 +77,7 @@ library
                        Control.Monad.R.Internal
                        Data.Vector.SEXP.Mutable.Internal
                        Internal.Error
-  build-depends:       base >= 4.7 && < 5
+  build-depends:       base >= 4.11 && < 5
                      , aeson >= 0.6
                      , bytestring >= 0.10
                      , containers >= 0.5
