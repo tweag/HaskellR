@@ -15,14 +15,25 @@ jobs:
       fail-fast: false
 
       matrix:
-        experimental: [false]
-        ghc:
-          - '8.10'
-          - '9.0'
-          - '9.2'
         include:
-          - ghc: 9.4
-            experimental: true
+          - experimental: false
+            project-file: ./cabal.project
+            ghc: 8.10.7
+          - experimental: false
+            project-file: ./cabal.project
+            ghc: 9.0.2
+          - experimental: true
+            project-file: ./cabal.project
+            ghc: 9.4.2
+          - experimental: false
+            project-file: ./cabal.project.lts-18
+            ghc: 8.10.7
+          - experimental: false
+            project-file: ./cabal.project.lts-19
+            ghc: 9.0.2
+          - experimental: false
+            project-file: ./cabal.project.nightly-2022-01-23
+            ghc: 9.0.2
 
     steps:
       - uses: actions/checkout@v2
@@ -53,14 +64,14 @@ jobs:
 
       - name: Show build plan
         run: |
-          cabal build all --dry-run
+          cabal build all --project-file ${{ matrix.project-file }} --dry-run
           cabal-plan
 
       - name: Build dependencies
-        run: cabal build all --only-dependencies
+        run: cabal build all --project-file ${{ matrix.project-file }} --only-dependencies
 
       - name: Build
-        run: cabal build all
+        run: cabal build all --project-file ${{ matrix.project-file }}
 
       - name: Test
-        run: cabal test all
+        run: cabal test all --project-file ${{ matrix.project-file }}

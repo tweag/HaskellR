@@ -1,0 +1,9 @@
+packages:
+  examples
+  H
+  IHaskell
+  inline-r
+
+test-show-details: direct
+
+import: https://www.stackage.org/nightly-2022-01-23/cabal.config

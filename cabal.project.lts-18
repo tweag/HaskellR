@@ -1,0 +1,9 @@
+packages:
+  examples
+  H
+  IHaskell
+  inline-r
+
+test-show-details: direct
+
+import: https://www.stackage.org/lts-18.28/cabal.config
