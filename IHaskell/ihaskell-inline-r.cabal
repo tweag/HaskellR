@@ -1,37 +1,37 @@
-cabal-version:      >=1.10
-name:               ihaskell-inline-r
-version:            0.1.1.1
-license:            BSD3
-license-file:       LICENSE
-copyright:          Copyright (c) 2015, Tweag I/O Limited.
-maintainer:         Alexander Vershilov <alexander.vershilov@tweag.io>
-author:             Mathieu Boespflug, Alexander Vershilov
-homepage:           https://tweag.github.io/HaskellR/
-synopsis:           Embed R quasiquotes and plots in IHaskell notebooks.
-description:        Embed R quasiquotes and plots in IHaskell notebooks.
-category:           Development
-build-type:         Simple
-extra-source-files: ChangeLog.markdown
-
-source-repository head
-    type:     git
-    location: https://github.com/tweag/HaskellR.git
-    subdir:   IHaskell
+name:                ihaskell-inline-r
+version:             0.1.1.1
+synopsis:            Embed R quasiquotes and plots in IHaskell notebooks.
+description:         Embed R quasiquotes and plots in IHaskell notebooks.
+homepage:            https://tweag.github.io/HaskellR/
+license:             BSD3
+license-file:        LICENSE
+author:              Mathieu Boespflug, Alexander Vershilov
+maintainer:          Alexander Vershilov <alexander.vershilov@tweag.io>
+copyright:           Copyright (c) 2015, Tweag I/O Limited.
+category:            Development
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  ChangeLog.markdown
 
 library
-    exposed-modules:  IHaskell.Display.InlineR
-    hs-source-dirs:   src
-    default-language: Haskell2010
-    other-extensions: TemplateHaskell QuasiQuotes
-    ghc-options:      -Wall
-    build-depends:
-        base >=4.7 && <5,
-        inline-r >=0.6.0.1,
-        ihaskell >=0.10.3.0 && <0.11,
-        ihaskell-blaze >=0.3.0.1 && <0.4,
-        filepath >=1.4.2.1 && <1.5,
-        blaze-html >=0.9.1.2 && <0.10,
-        bytestring >=0.10.12.0 && <0.12,
-        base64-bytestring >=1.2.1.0 && <1.3,
-        template-haskell >=2.16.0.0 && <2.19,
-        temporary >=1.2 && <1.4
+  exposed-modules:     IHaskell.Display.InlineR
+  build-depends:       base >=4.7 && <5
+                      ,inline-r >=0.6.0.1 && <1.11
+                      ,ihaskell >=0.10.3.0 && <0.11
+                      ,ihaskell-blaze >=0.3.0.1 && <0.4
+                      ,filepath >=1.4.2.1 && <1.5
+                      ,blaze-html >=0.9.1.2 && <0.10
+                      ,bytestring >=0.10.12.0 && <0.12
+                      ,base64-bytestring >=1.2.1.0 && <1.3
+                      ,template-haskell >=2.16.0.0 && <2.19
+                      ,temporary >=1.2 && <1.4
+  other-extensions:    TemplateHaskell
+                       QuasiQuotes
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+source-repository head
+  type: git
+  location: https://github.com/tweag/HaskellR.git
+  subdir: IHaskell
