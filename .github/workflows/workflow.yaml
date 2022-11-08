@@ -14,11 +14,12 @@ jobs:
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         run: |
+          stack path --snapshot-install-root
           echo "::set-output name=dir::$(stack path --snapshot-install-root)"
       - uses: actions/cache@v1
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}
+          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
           restore-keys: |
             ${{ runner.os }}-stack-
       - name: Build
@@ -27,10 +28,11 @@ jobs:
             --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
             --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
   test:
-    name: Build & Test - ${{ matrix.os }}
+    name: Build & Test - ${{ matrix.os }} - ${{ matrix.stack_yaml }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -43,13 +45,17 @@ jobs:
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         run: |
+          # XXX Workaround
+          # https://github.com/commercialhaskell/stack/issues/5028.
+          [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
+          stack --nix path --snapshot-install-root
           echo "::set-output name=dir::$(stack --nix path --snapshot-install-root)"
       - uses: actions/cache@v2
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/*.nix')}}
+          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
           restore-keys: |
-            ${{ runner.os }}-stack-
+            ${{ steps.stack-snapshot.outputs.dir }}
       - name: Build
         run: |
           stack --nix build
