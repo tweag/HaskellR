@@ -11,9 +11,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
-#if __GLASGOW_HASKELL__ >= 710
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-#endif
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 
 -- |

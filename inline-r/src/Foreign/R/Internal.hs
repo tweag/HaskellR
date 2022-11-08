@@ -4,12 +4,8 @@
 -- Low-level bindings to core R datatypes and functions which depend on
 -- computing offsets of C struct field. We use hsc2hs for this purpose.
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE DeriveDataTypeable #-}
-#endif
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -17,10 +13,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-#if __GLASGOW_HASKELL__ >= 710
--- We don't use ticks in this module, because they confuse hsc2hs.
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-#endif
 module Foreign.R.Internal where
 
 import Control.Memory.Region
@@ -32,9 +24,6 @@ import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Singletons (fromSing)
-#if __GLASGOW_HASKELL__ < 710
-import Data.Typeable (Typeable)
-#endif
 import Foreign (Ptr, castPtr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
@@ -50,9 +39,6 @@ newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: SEXP0 }
   deriving ( Eq
            , Ord
            , Storable
-#if __GLASGOW_HASKELL__ < 710
-           , Typeable
-#endif
            )
 
 instance Show (SEXP s a) where

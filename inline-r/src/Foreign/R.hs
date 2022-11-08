@@ -20,12 +20,9 @@
 --
 -- This module is intended to be imported qualified.
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-#if __GLASGOW_HASKELL__ < 710
 {-# LANGUAGE DeriveDataTypeable #-}
-#endif
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -157,9 +154,6 @@ module Foreign.R
   ) where
 
 import Control.Memory.Region
-#if __GLASGOW_HASKELL__ < 804
-import Data.Monoid ((<>))
-#endif
 import Foreign.R.Internal
 import Foreign.R.Type
 import Foreign.R.Type as R
@@ -168,18 +162,14 @@ import Control.Applicative
 import Control.Exception (bracket)
 import Data.Complex
 import Data.Int (Int32)
-#if __GLASGOW_HASKELL__ < 710
-import Data.Typeable (Typeable)
-#endif
 import Foreign (Ptr, castPtr)
 import Foreign.C
 import Foreign.R.Context (rCtx, SEXP0(..), SEXPREC)
+import Foreign.R.Encoding
 import qualified Language.C.Inline as C
 -- Use unsafe only for non-blocking, non-allocating functions.
 import qualified Language.C.Inline.Unsafe as CU
 import Prelude hiding (asTypeOf, length)
-
-#include <Rinternals.h>
 
 C.context (C.baseCtx <> rCtx)
 C.include "<Rinternals.h>"
@@ -484,36 +474,6 @@ findVar (unsexp -> a) (unsexp -> env) = sexp <$>
 mkWeakRef :: SEXP s a -> SEXP s b -> SEXP s c -> Bool -> IO (SEXP V 'R.WeakRef)
 mkWeakRef (unsexp -> a) (unsexp -> b) (unsexp -> c) (cIntFromEnum -> t) = sexp <$>
   [C.exp| SEXP {R_MakeWeakRef($(SEXP a), $(SEXP b), $(SEXP c), $(int t))}|]
-
--------------------------------------------------------------------------------
--- Encoding                                                                  --
--------------------------------------------------------------------------------
-
--- | Content encoding.
-data CEType
-  = CE_Native
-  | CE_UTF8
-  | CE_Latin1
-  | CE_Bytes
-  | CE_Symbol
-  | CE_Any
-  deriving (Eq, Show)
-
-instance Enum CEType where
-  fromEnum CE_Native = #const CE_NATIVE
-  fromEnum CE_UTF8   = #const CE_UTF8
-  fromEnum CE_Latin1 = #const CE_LATIN1
-  fromEnum CE_Bytes  = #const CE_BYTES
-  fromEnum CE_Symbol = #const CE_SYMBOL
-  fromEnum CE_Any    = #const CE_ANY
-  toEnum i = case i of
-    (#const CE_NATIVE) -> CE_Native
-    (#const CE_UTF8)   -> CE_UTF8
-    (#const CE_LATIN1) -> CE_Latin1
-    (#const CE_BYTES)  -> CE_Bytes
-    (#const CE_SYMBOL) -> CE_Symbol
-    (#const CE_ANY)    -> CE_Any
-    _ -> error "CEType.fromEnum: unknown tag"
 
 -- | Perform an action with resource while protecting it from the garbage
 -- collection. This function is a safer alternative to 'R.protect' and
