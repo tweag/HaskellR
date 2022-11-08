@@ -47,7 +47,7 @@ jobs:
         run: |
           # XXX Workaround
           # https://github.com/commercialhaskell/stack/issues/5028.
-          mv ${{ matrix.stack_yaml }} stack.yaml || true
+          [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
           stack --nix path --snapshot-install-root
           echo "::set-output name=dir::$(stack --nix path --snapshot-install-root)"
       - uses: actions/cache@v2
