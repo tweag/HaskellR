@@ -27,9 +27,6 @@ build the API documentation. You can do all of that at once with
 $ stack build --test --haddock --bench
 ```
 
-Optionally, pass in the `--docker` flag to all commands if you wish to
-develop inside a Docker container for more reproducible builds.
-
 Optionally, pass in the `--nix` flag to all commands if you have the
 [Nix][nix] package manager installed. Nix can populate a *local* build
 environment including all necessary system dependencies without
