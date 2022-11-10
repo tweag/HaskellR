@@ -19,26 +19,9 @@ All documentation is available on the
 
 ## Developing HaskellR
 
-If you wish to work on HaskellR itself or any of its constituent
-packages, you'll need
-[stack](https://github.com/commercialhaskell/stack). Once installed,
-check out the official source repository using
-
-```
-# Equivalent to git clone https://github.com/tweag/HaskellR
-$ hub clone tweag/HaskellR
-```
-
-Then, you can build all the packages in the project using
-
-```
-$ stack setup
-$ stack build
-```
-
-See the [stack documentation][stack-docs] for further information on
-how to run tests, benchmarks, or build the API documentation. You can
-do all of that at once with
+This project uses Stack. See the [stack documentation][stack-docs] for
+further information on how to build, run tests and benchmarks, or
+build the API documentation. You can do all of that at once with
 
 ```
 $ stack build --test --haddock --bench
