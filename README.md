@@ -36,10 +36,9 @@ $ stack setup
 $ stack build
 ```
 
-See the
-[stack documentation](https://github.com/commercialhaskell/stack/wiki)
-for further information on how to run tests, benchmarks, or build the
-API documentation. You can do all of that at once with
+See the [stack documentation][stack-docs] for further information on
+how to run tests, benchmarks, or build the API documentation. You can
+do all of that at once with
 
 ```
 $ stack build --test --haddock --bench
@@ -55,6 +54,7 @@ touching your global filesystem. Use it as a cross-platform
 alternative to Docker.
 
 [nix]: http://nixos.org/nix
+[stack-docs]: https://docs.haskellstack.org/en/stable/GUIDE/
 
 ## License
 
