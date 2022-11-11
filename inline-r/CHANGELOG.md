@@ -1,5 +1,17 @@
 # Change Log
 
+## 1.0.0 - 2022-11-11
+* Support for R >= 4.2.
+* Support for GHC 9 and GHC 9.2.
+* Breaking change: remove `unhexp`, `pokeInfo`, `mark` and `named`.
+* Breaking change: `HExp` no longer has a `Storable` instance.
+* Breaking change: some fields of SEXPInfo have been removed.
+* Breaking change: `Special` and `Primitive` constructors of `HExp` no
+  longer carry any information. R-4.2 makes these forms completely
+  opaque.
+* Process quasiquotes using an instance of the R interpreter in
+  a separate process. This improves support on macOS.
+
 ## 0.10.5 - 2020-11-16
 * Support aeson >= 2
 
