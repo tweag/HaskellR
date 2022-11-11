@@ -34,7 +34,7 @@ extra-source-files:   CHANGELOG.md
                       tests/shootout/fannkuchredux.R
                       tests/R/fib.R
                       tests/R/fib-benchmark.R
-                      R/collectAntis.R
+                      ./R/collectAntis.R
 extra-tmp-files:     inline-r.buildinfo
 
 source-repository head
