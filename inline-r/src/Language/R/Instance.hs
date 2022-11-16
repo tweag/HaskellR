@@ -196,6 +196,10 @@ populateEnv = do
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
 
+    ml <- lookupEnv "R_LIBS_SITE"
+    when (ml == Nothing) $
+      setEnv "R_LIBS_SITE" =<< fmap (head .  lines) (readProcess "R" ["-e","cat(.libPaths(),sep=\":\")","--quiet","--slave"] "")
+
 -- | A static address that survives GHCi reloadings which indicates
 -- whether R has been initialized.
 foreign import ccall "missing_r.h &isRInitialized" isRInitializedPtr :: Ptr CInt
