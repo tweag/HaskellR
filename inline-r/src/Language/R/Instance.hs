@@ -189,7 +189,8 @@ instance Monoid Config where
 defaultConfig :: Config
 defaultConfig = Config (Last Nothing) ["--vanilla", "--silent"] (Last (Just False))
 
--- | Populate environment with @R_HOME@ variable if it does not exist.
+-- | Populate environment with @R_HOME@ variable if it does not exist and
+-- @R_LIBS@ variable if it doesn't exist either.
 populateEnv :: IO ()
 populateEnv = do
     mh <- lookupEnv "R_HOME"
