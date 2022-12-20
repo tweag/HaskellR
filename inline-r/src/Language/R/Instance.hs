@@ -189,12 +189,17 @@ instance Monoid Config where
 defaultConfig :: Config
 defaultConfig = Config (Last Nothing) ["--vanilla", "--silent"] (Last (Just False))
 
--- | Populate environment with @R_HOME@ variable if it does not exist.
+-- | Populate environment with @R_HOME@ variable if it does not exist and
+-- @R_LIBS@ variable if it doesn't exist either.
 populateEnv :: IO ()
 populateEnv = do
     mh <- lookupEnv "R_HOME"
     when (mh == Nothing) $
       setEnv "R_HOME" =<< fmap (head . lines) (readProcess "R" ["-e","cat(R.home())","--quiet","--slave"] "")
+
+    ml <- lookupEnv "R_LIBS"
+    when (ml == Nothing) $
+      setEnv "R_LIBS" =<< fmap (head .  lines) (readProcess "R" ["-e","cat(.libPaths(),sep=if (.Platform$OS.type == \"unix\") \":\" else \";\")","--quiet","--slave"] "")
 
 -- | A static address that survives GHCi reloadings which indicates
 -- whether R has been initialized.
