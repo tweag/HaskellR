@@ -115,7 +115,6 @@ library
   other-extensions:
     CPP
     ForeignFunctionInterface
-  build-tools: hsc2hs
   if os(windows)
     extra-libraries: R
   else
