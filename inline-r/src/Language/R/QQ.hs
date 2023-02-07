@@ -54,6 +54,7 @@ import qualified System.IO.Temp as Temp
 import System.Process
 import System.IO
 import System.Exit
+import Debug.Trace
 
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
@@ -108,6 +109,13 @@ antiSuffix = "_hs"
 chop :: String -> String
 chop name = take (length name - length antiSuffix) name
 
+-- | Map backwards slashes to forward slashes.
+fixwinslash :: String -> String
+fixwinslash str = let
+  repl '\\' = '/'
+  repl c = c
+  in map repl str
+     
 -- | Find all occurences of antiquotations.
 --
 -- This function works by parsing the user's R code in a separate
@@ -134,7 +142,13 @@ collectAntis input = do
       -- Note: --slave was recently renamed to --no-echo. --slave still works
       -- but is no longer documented. Using the old option name for now just
       -- in case the user have an older (pre-2020) version of R.
-      "input_file <- \"" ++ input_file ++ "\"\n" ++
+      --                              
+      -- Change backslashes to forward slashes in tempFile names 
+      -- under Windows. Windows is tolerant of this Unixification, but 
+      -- Unix systems (and R) are less tolerant of naked backslashes 
+      -- outside of valid escape sequences. For example, 
+      -- str <- "C:\Users\joe" is invalid in R.
+      fixwinslash  $ "input_file <- \"" ++ input_file ++ "\"\n" ++
         [Heredoc.there|R/collectAntis.R|]
     return $ case code of
       ExitSuccess -> Right $ words stdout
