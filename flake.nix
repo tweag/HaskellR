@@ -1,60 +1,46 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/release-22.11";
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
   description = "A flake for HaskellR, its website, and its examples";
 
   outputs = {
     self,
-    nixpkgs,
     flake-utils,
   }:
     flake-utils.lib.eachDefaultSystem (
       system: let
-        pkgs = import nixpkgs {
+        pkgs = import ./nixpkgs.nix {
           inherit system;
-          config.allowUnfree = true;
         };
 
-        HaskellR-site = pkgs.stdenv.mkDerivation (
-          let
-            name = "HaskellR-site";
-            src = ./docs;
-            inherit (pkgs.rubyPackages) github-pages jekyll;
-          in {
-            inherit name src;
-            buildInputs = [github-pages jekyll];
-            # Use RUBYOPT=-Ku to force UTF-8 encoding.
-            buildPhase = ''
-              RUBYOPT=-Ku ${github-pages}/bin/github-pages build
+        inherit (pkgs) alejandra callPackage writeShellScriptBin;
+        inherit (pkgs.lib) getExe;
+        inherit (pkgs.rubyPackages) jekyll;
+        inherit (pkgs.stdenv) shell;
+
+        HaskellR-site = callPackage ./docs {};
+        HaskellR-site-serve = {
+          type = "app";
+          program = let
+            name = "HaskellR-site-serve";
+            script = ''
+              #!${shell}
+              ${getExe jekyll} serve \
+                --baseurl "/HaskellR" \
+                --source ${HaskellR-site}/share/_site \
+                "$@"
             '';
-            installPhase = ''
-              # Copy the site to the output.
-              mkdir -p $out/share
-              cp -r _site $out/share/_site
-            '';
-          }
-        );
+          in
+            getExe (writeShellScriptBin name script);
+        };
       in {
         packages = {
           inherit HaskellR-site;
         };
-        apps.HaskellR-site-serve = {
-          type = "app";
-          program = let
-            inherit (pkgs) writeShellScriptBin;
-            inherit (pkgs.stdenv) shell;
-            inherit (pkgs.rubyPackages) jekyll;
-            name = "HaskellR-site-serve";
-          in
-            (writeShellScriptBin name ''
-              #!${shell}
-              ${jekyll}/bin/jekyll serve --baseurl "" --source ${HaskellR-site}/share/_site "$@"
-            '')
-            .outPath
-            + "/bin/${name}";
+        apps = {
+          inherit HaskellR-site-serve;
         };
-        formatter = pkgs.alejandra;
+        formatter = alejandra;
       }
     );
 }
