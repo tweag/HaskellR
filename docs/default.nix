@@ -1,11 +1,12 @@
+# Can be built with:
+#   nix-build -E 'with import <nixpkgs> {}; callPackage ./default.nix {}'
 {
-  pkgs ? import ../nixpkgs.nix {},
-  mkDerivation ? pkgs.stdenv.mkDerivation,
-  rubyPackages ? pkgs.rubyPackages,
+  stdenv,
+  rubyPackages,
 }: let
   inherit (rubyPackages) github-pages jekyll;
 in
-  mkDerivation {
+  stdenv.mkDerivation {
     name = "HaskellR-site";
     src = ./.;
     buildInputs = [github-pages jekyll];
