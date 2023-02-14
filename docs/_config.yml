@@ -1,5 +1,4 @@
----
-name: HaskellR
+title: HaskellR
 description: The full power of R in Haskell.
 url: https://tweag.github.io
 baseurl: /HaskellR
@@ -19,4 +18,3 @@ defaults:
 sass:
   style: compressed
   sass_dir: _css
----
