@@ -1,44 +1,23 @@
 {
   pkgs ? import ./nixpkgs.nix {},
-  stdenv ? pkgs.stdenv,
-  buildStackProject ? pkgs.haskell.lib.buildStackProject,
-  ghc ? pkgs.haskell.compiler.ghc8107,
-  R ? pkgs.R,
-  zeromq ? pkgs.zeromq,
-  zlib ? pkgs.zlib,
-  ipython ? pkgs.python3Packages.ipython,
-  jupyter_client ? pkgs.python3Packages.jupyter_client,
-  notebook ? pkgs.python3Packages.notebook,
+  mkShell ? pkgs.mkShell,
+  callPackage ? pkgs.callPackage,
+  pkg-config ? pkgs.pkg-config,
+  ghc ? pkgs.haskellPackages.ghc,
+  cabal-install ? pkgs.haskellPackages.cabal-install,
+  stack ? pkgs.haskellPackages.stack,
 }: let
-  # Uncomment the line below to build HaskellR against a version of R with
-  # the --enable-strict-barrier configure flag enabled for better memory
-  # diagnostics.
-  # R = pkgs.R.override { enableStrictBarrier = true; };
-  # XXX Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
-  libHack =
-    if stdenv.isDarwin
-    then {
-      DYLD_LIBRARY_PATH = ["${R}/lib/R/lib"];
-    }
-    else {
-      LD_LIBRARY_PATH = ["${R}/lib/R"];
-    };
+  HaskellR = callPackage ./default.nix {};
 in
-  buildStackProject ({
-      name = "HaskellR";
-      inherit ghc;
-      buildInputs = [
-        R
-
-        # Libraries
-        zeromq
-        zlib
-
-        # Python packages
-        ipython
-        jupyter_client
-        notebook
+  # Can be used to build HaskellR packages with `nix-shell` followed by:
+  # stack --nix-pure build --stack-yaml <stack file>
+  mkShell {
+    buildInputs =
+      HaskellR.buildInputs
+      ++ [
+        HaskellR.ghc
+        cabal-install
+        stack
+        pkg-config
       ];
-      LANG = "en_US.UTF-8";
-    }
-    // libHack)
+  }
