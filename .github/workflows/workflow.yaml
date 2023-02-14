@@ -6,17 +6,17 @@ jobs:
     name: Build - Windows
     runs-on: windows-latest
     steps:
-      - name: Install dependencies
-        run: |
-          choco install -y haskell-stack
-          choco install -y r --version 4.0.0
-      - uses: actions/checkout@v1
+      - name: Install stack
+        uses: haskell/actions/setup@v2
+      - name: Install R
+        run: choco install -y r --version 4.0.0
+      - uses: actions/checkout@v3
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         run: |
           stack path --snapshot-install-root
           echo "::set-output name=dir::$(stack path --snapshot-install-root)"
-      - uses: actions/cache@v1
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
           key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
@@ -35,13 +35,13 @@ jobs:
         stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v15
+      - name: Install nix
+        uses: cachix/install-nix-action@v19
         with:
           nix_path: nixpkgs=./nixpkgs.nix
-      - name: Install Stack
-        run: |
-          nix-env -f. -iA nixpkgs.stack
+      - name: Install stack
+        uses: haskell/actions/setup@v2
+      - uses: actions/checkout@v3
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         run: |
@@ -50,16 +50,14 @@ jobs:
           [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
           stack --nix path --snapshot-install-root
           echo "::set-output name=dir::$(stack --nix path --snapshot-install-root)"
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
           key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
           restore-keys: |
             ${{ steps.stack-snapshot.outputs.dir }}
       - name: Build
-        run: |
-          stack --nix build
+        run: stack --nix build
       - name: Test
         if: ${{ runner.os == 'Linux' }}
-        run: |
-          stack --nix test
+        run: stack --nix test
