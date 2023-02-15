@@ -1,0 +1,49 @@
+name: Unix CI
+on: [push]
+
+jobs:
+  test:
+    name: Build & Test - ${{ matrix.os }} - ${{ matrix.stack_yaml }}
+    strategy:
+      matrix:
+        stack_yaml: [stack.yaml, stack-lts-19.yaml, stack-lts-18.yaml]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install nix
+        uses: cachix/install-nix-action@v19
+        with:
+          nix_path: nixpkgs=./nixpkgs.nix
+
+      - name: Install stack
+        uses: haskell/actions/setup@v2
+        with:
+          # Install stack, but not GHC.
+          enable-stack: true
+          ghc-version: ""
+
+      - name: Set handy STACK_CMD environment variable
+        run: echo "STACK_CMD=stack --stack-yaml ${{ matrix.stack_yaml }} --nix" >> $GITHUB_ENV
+
+      - name: Clone source
+        uses: actions/checkout@v3
+
+      - name: Get Stack snapshot install directory
+        id: stack-snapshot
+        run: |
+          STACK_SNAPSHOT_INSTALL_ROOT=$($STACK_CMD path --snapshot-install-root)
+          echo "::set-output name=dir::$STACK_SNAPSHOT_INSTALL_ROOT"
+
+      - name: Set up cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.stack-snapshot.outputs.dir }}
+          key: ${{ runner.os }}-${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.stack-snapshot.outputs.dir }}-
+
+      - name: Build
+        run: $STACK_CMD build
+
+      - name: Test
+        run: $STACK_CMD test
