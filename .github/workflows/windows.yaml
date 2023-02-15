@@ -23,7 +23,7 @@ jobs:
         run: choco install -y r --version ${{ matrix.r_version }}
 
       - name: Set handy STACK_CMD environment variable
-        run: echo "STACK_CMD=stack --stack-yaml ${{ matrix.stack_yaml }}" >> $GITHUB_ENV
+        run: echo "STACK_CMD=stack --stack-yaml ${{ matrix.stack_yaml }}" >> $env:GITHUB_ENV
 
       - name: Clone source
         uses: actions/checkout@v3
@@ -31,7 +31,7 @@ jobs:
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         run: |
-          STACK_SNAPSHOT_INSTALL_ROOT=$($STACK_CMD path --snapshot-install-root)
+          $env:STACK_SNAPSHOT_INSTALL_ROOT = $($env:STACK_CMD path --snapshot-install-root)
           echo "::set-output name=dir::$STACK_SNAPSHOT_INSTALL_ROOT"
 
       - name: Set up cache
