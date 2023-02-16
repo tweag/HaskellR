@@ -30,9 +30,7 @@ jobs:
 
       - name: Get Stack snapshot install directory
         id: stack-snapshot
-        run: |
-          $env:STACK_SNAPSHOT_INSTALL_ROOT = $($env:STACK_CMD path --snapshot-install-root)
-          echo "::set-output name=dir::$STACK_SNAPSHOT_INSTALL_ROOT"
+        run: echo "dir=$( ${{ env.STACK_CMD }} --snapshot-install-root )" >> $GITHUB_OUTPUT
 
       - name: Set up cache
         uses: actions/cache@v3
@@ -44,6 +42,6 @@ jobs:
 
       - name: Build
         run: |
-          $STACK_CMD build inline-r H `
+          ${{ env.STACK_CMD }} build inline-r H `
             --extra-lib-dirs="C:/Program files/R/R-${{ matrix.r_version }}/bin/x64" `
             --extra-include-dirs="C:/Program files/R/R-${{ matrix.r_version }}/include"

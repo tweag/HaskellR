@@ -30,9 +30,7 @@ jobs:
 
       - name: Get Stack snapshot install directory
         id: stack-snapshot
-        run: |
-          STACK_SNAPSHOT_INSTALL_ROOT=$($STACK_CMD path --snapshot-install-root)
-          echo "::set-output name=dir::$STACK_SNAPSHOT_INSTALL_ROOT"
+        run: echo "dir=$( ${{ env.STACK_CMD }} --snapshot-install-root )" >> $GITHUB_OUTPUT
 
       - name: Set up cache
         uses: actions/cache@v3
@@ -43,10 +41,10 @@ jobs:
             ${{ runner.os }}-${{ steps.stack-snapshot.outputs.dir }}-
 
       - name: Build
-        run: $STACK_CMD build
+        run: ${{ env.STACK_CMD }} build
 
       # TODO: Tests fail on macOS with:
       #   Error: C stack usage  17556324012760 is too close to the limit
       - name: Test
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: $STACK_CMD test
+        run: ${{ env.STACK_CMD }} test
