@@ -11,4 +11,4 @@ extra-deps:
 
 nix:
   shell-file: ./shell.nix
-  path: ["nixpkgs=./nixpkgs.nix"]
+  path: ["nixpkgs=./nix/nixpkgs.nix"]

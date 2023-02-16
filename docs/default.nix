@@ -1,5 +1,5 @@
 # Can be built with:
-#   nix-build -E 'with import <nixpkgs> {}; callPackage ./default.nix {}'
+#   nix-build -E 'with import ../nix/nixpkgs.nix {}; callPackage ./default.nix {}'
 {
   stdenv,
   rubyPackages,

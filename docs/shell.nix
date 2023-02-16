@@ -1,5 +1,5 @@
 {
-  pkgs ? import ../nixpkgs.nix {},
+  pkgs ? import ../nix/nixpkgs.nix {},
   mkShell ? pkgs.mkShell,
   callPackage ? pkgs.callPackage,
 }:

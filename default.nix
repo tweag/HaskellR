@@ -1,5 +1,5 @@
 # Can be built with:
-#   nix-build --no-sandbox -E 'with import <nixpkgs> {}; callPackage ./default.nix {}'
+#   nix-build --no-sandbox -E 'with import ./nix/nixpkgs.nix {}; callPackage ./default.nix {}'
 {
   stdenv,
   haskell,

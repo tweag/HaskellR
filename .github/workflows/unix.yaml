@@ -13,7 +13,7 @@ jobs:
       - name: Install nix
         uses: cachix/install-nix-action@v19
         with:
-          nix_path: nixpkgs=./nixpkgs.nix
+          nix_path: nixpkgs=./nix/nixpkgs.nix
 
       - name: Install stack
         uses: haskell/actions/setup@v2
@@ -30,7 +30,7 @@ jobs:
 
       - name: Get Stack snapshot install directory
         id: stack-snapshot
-        run: echo "dir=$( ${{ env.STACK_CMD }} --snapshot-install-root )" >> $GITHUB_OUTPUT
+        run: echo "dir=$( ${{ env.STACK_CMD }} path --snapshot-install-root )" >> $GITHUB_OUTPUT
 
       - name: Set up cache
         uses: actions/cache@v3

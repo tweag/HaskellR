@@ -30,7 +30,7 @@ jobs:
 
       - name: Get Stack snapshot install directory
         id: stack-snapshot
-        run: echo "dir=$( ${{ env.STACK_CMD }} --snapshot-install-root )" >> $GITHUB_OUTPUT
+        run: echo "dir=$( ${{ env.STACK_CMD }} path --snapshot-install-root )" >> $env:GITHUB_OUTPUT
 
       - name: Set up cache
         uses: actions/cache@v3
