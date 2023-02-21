@@ -2,7 +2,6 @@
 /dist-newstyle/
 .cabal-sandbox
 cabal.sandbox.config
-stack.yaml.lock
 .stack-work
 *.wixobj
 *.msi

@@ -1,4 +1,4 @@
-resolver: lts-20.4
+resolver: lts-20.11
 
 packages:
 - examples

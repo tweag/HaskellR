@@ -1,4 +1,4 @@
-{pkgs ? import ./nixpkgs.nix { }, ghc ? pkgs.haskell.compiler.ghc8104}:
+{pkgs ? import ./nixpkgs.nix { }, ghc ? pkgs.haskell.compiler.ghc8107}:
 
 with pkgs;
 
