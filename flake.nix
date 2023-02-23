@@ -29,7 +29,7 @@
             pkgs.lib.getExe (pkgs.writeShellScriptBin name script);
         };
       in {
-        overlay = pkgs.lib.composeManyExtensions pkgs.overlays;
+        overlays.default = pkgs.lib.composeManyExtensions pkgs.overlays;
         packages = {
           inherit HaskellR-site;
           inherit (pkgs.haskellPackages) inline-r H IHaskell HaskellR-examples;

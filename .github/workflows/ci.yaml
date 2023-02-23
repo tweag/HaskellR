@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  - push
+  # - pull_request
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  stack:
+    name: ${{ matrix.os }} - ${{ matrix.stack_yaml }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each runner comes with Stack and R so we don't need to install them.
+        # They are generally the latest release of each and serve as a canary.
+        # Ubuntu: https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
+        # macOS: https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
+        # Windows: https://github.com/actions/runner-images/blob/main/images/win/Windows2022-Readme.md
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        stack_yaml: [stack.yaml, stack-lts-19.yaml, stack-lts-18.yaml]
+    steps:
+      - name: Print Stack version
+        run: stack --version
+
+      - name: Print R version
+        run: R --version
+
+      - name: Clone the source
+        uses: actions/checkout@v3
+
+      - name: Install Nix on Unix-like runners
+        if: ${{ matrix.os != 'windows-latest' }}
+        uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=./nix/nixpkgs.nix
+
+      - name: Install Cachix on Unix-like runners
+        if: ${{ matrix.os != 'windows-latest' }}
+        uses: cachix/cachix-action@v12
+        with:
+          name: tweag-haskellr
+          authToken: ${{ secrets.CACHIX_TWEAG_HASKELLR_AUTH_TOKEN }}
+          cachixArgs: --compression-method zstd --compression-level 16
+
+      - name: Set STACK_CMD environment variable
+        run: echo "STACK_CMD=stack --stack-yaml ${{ matrix.stack_yaml }}" >> $GITHUB_ENV
+
+      - name: STACK_CMD uses Nix on Unix-like runners
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: echo "STACK_CMD=${{ env.STACK_CMD }} --nix" >> $GITHUB_ENV
+
+      - name: STACK_CMD includes R directories on Windows runners
+        if: ${{ matrix.os == 'windows-latest' }}
+        # On Windows, the R binary is in a directory like C:\Program Files\R\R-4.1.0\bin\x64\R.
+        # exe, so we need to use dirname twice to get the R directory.
+        run: |
+          R_EXECUTABLE=$(which R)
+          R_BIN_ARCH_DIR=$(dirname "$R_EXECUTABLE")
+          R_BIN_DIR=$(dirname "$R_BIN_ARCH_DIR")
+          R_DIR=$(dirname "$R_BIN_DIR")
+          echo "STACK_CMD=${{ env.STACK_CMD }} --extra-lib-dirs=\"$R_BIN_ARCH_DIR\" --extra-include-dirs=\"$R_DIR/include\"" >> $GITHUB_ENV
+
+      - name: Set up stack cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            /c/Users/runneradmin/AppData/Roaming/stack
+            /c/Users/runneradmin/AppData/Local/Programs/stack
+            ~/.stack
+          key: |
+            ${{format(
+              '{0}-{1}-{2}-{3}',
+              matrix.os,
+              'GHA_RUNNER_R',
+              hashFiles('**/stack*.lock'),
+              hashFiles('**/*.cabal')
+            )}}
+
+      - name: Setup
+        run: ${{ env.STACK_CMD }} setup
+
+      - name: Build only inline-r and H on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: ${{ env.STACK_CMD }} build inline-r H
+
+      - name: Build everything on Unix-like runners
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: ${{ env.STACK_CMD }} build
+
+      - name: Test everything on Linux runners
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: ${{ env.STACK_CMD }} test
+
+  flake:
+    name: flake - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Clone the source
+        uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=./nix/nixpkgs.nix
+
+      - name: Install Cachix
+        uses: cachix/cachix-action@v12
+        with:
+          name: tweag-haskellr
+          authToken: ${{ secrets.CACHIX_TWEAG_HASKELLR_AUTH_TOKEN }}
+          cachixArgs: --compression-method zstd --compression-level 16
+
+      - name: Build inline-r
+        run: nix build -L .#inline-r --verbose
+
+      - name: Build H
+        run: nix build -L .#H --verbose
+
+      - name: Build IHaskell
+        run: nix build -L .#IHaskell --verbose
+
+      - name: Build HaskellR-examples
+        run: nix build -L .#HaskellR-examples --verbose

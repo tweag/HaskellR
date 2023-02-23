@@ -45,4 +45,4 @@
   };
   derivations = builtins.listToAttrs (builtins.map mapper combinations);
 in
-lib.trace (builtins.toJSON derivations)  derivations
+lib.trace (builtins.toJSON derivations) derivations
