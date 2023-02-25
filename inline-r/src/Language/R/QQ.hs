@@ -54,7 +54,6 @@ import qualified System.IO.Temp as Temp
 import System.Process
 import System.IO
 import System.Exit
-import Debug.Trace
 
 -------------------------------------------------------------------------------
 -- Compile time Quasi-Quoter                                                 --
@@ -140,7 +139,7 @@ collectAntis input = do
   Temp.withSystemTempFile "inline-r-.R" $ \input_file input_fh -> do
     hPutStr input_fh input
     hClose input_fh
-    (code, stdout, stderr) <- readProcessWithExitCode "R" ["--slave"] $
+    (code, stdout, stderr) <- readProcessWithExitCode "R" ["--slave"]
       -- Note: --slave was recently renamed to --no-echo. --slave still works
       -- but is no longer documented. Using the old option name for now just
       -- in case the user have an older (pre-2020) version of R.
