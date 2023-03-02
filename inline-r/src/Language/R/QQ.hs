@@ -108,6 +108,15 @@ antiSuffix = "_hs"
 chop :: String -> String
 chop name = take (length name - length antiSuffix) name
 
+-- | Map backwards slashes to forward slashes.
+#ifdef mingw32_HOST_OS
+fixwinslash :: String -> String
+fixwinslash str = let
+  repl '\\' = '/'
+  repl c = c
+  in map repl str
+#endif
+
 -- | Find all occurences of antiquotations.
 --
 -- This function works by parsing the user's R code in a separate
@@ -130,11 +139,21 @@ collectAntis input = do
   Temp.withSystemTempFile "inline-r-.R" $ \input_file input_fh -> do
     hPutStr input_fh input
     hClose input_fh
-    (code, stdout, stderr) <- readProcessWithExitCode "R" ["--slave"] $
+    (code, stdout, stderr) <- readProcessWithExitCode "R" ["--slave"]
       -- Note: --slave was recently renamed to --no-echo. --slave still works
       -- but is no longer documented. Using the old option name for now just
       -- in case the user have an older (pre-2020) version of R.
-      "input_file <- \"" ++ input_file ++ "\"\n" ++
+      --                              
+      -- Change backslashes to forward slashes in tempFile names 
+      -- under Windows. Windows is tolerant of this Unixification, but 
+      -- Unix systems (and R) are less tolerant of naked backslashes 
+      -- outside of valid escape sequences. For example, 
+      -- str <- "C:\Users\joe" is invalid in R.
+#ifdef mingw32_HOST_OS
+      $ "input_file <- \"" ++ (fixwinslash input_file) ++ "\"\n" ++
+#else
+      $ "input_file <- \"" ++ input_file ++ "\"\n" ++
+#endif
         [Heredoc.there|R/collectAntis.R|]
     return $ case code of
       ExitSuccess -> Right $ words stdout
