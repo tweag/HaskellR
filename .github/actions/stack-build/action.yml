@@ -1,0 +1,88 @@
+name: Stack Build
+description: Builds the project with Stack
+inputs:
+  stack-yaml:
+    description: Path to the stack.yaml file to use
+    required: true
+    default: stack.yaml
+  enable-nix:
+    description: Whether to use Nix
+    required: false
+    default: "false"
+  include-r-dirs:
+    description: Whether to include R directories in stack build
+    required: false
+    default: "false"
+  build-targets:
+    description: Targets to build
+    required: false
+    default: ""
+  test-targets:
+    description: Targets to test
+    required: false
+    default: ""
+  do-test:
+    description: Whether to run tests
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Print Stack version
+      shell: bash
+      run: stack --version
+
+    - name: Print R version
+      shell: bash
+      run: R --version
+
+    - name: Set STACK_CMD environment variable
+      shell: bash
+      run: echo "STACK_CMD=stack --stack-yaml ${{ inputs.stack-yaml }}" >> $GITHUB_ENV
+
+    - name: STACK_CMD uses Nix
+      if: ${{ inputs.enable-nix != 'false' }}
+      shell: bash
+      run: echo "STACK_CMD=${{ env.STACK_CMD }} --nix" >> $GITHUB_ENV
+
+    - name: STACK_CMD includes R directories on Windows runners
+      if: ${{ inputs.include-r-dirs != 'false' }}
+      shell: bash
+      # On Windows, the R binary is in a directory like C:\Program Files\R\R-4.1.0\bin\x64\R.
+      # exe, so we need to use dirname twice to get the R directory.
+      run: |
+        R_EXECUTABLE=$(which R)
+        R_BIN_ARCH_DIR=$(dirname "$R_EXECUTABLE")
+        R_BIN_DIR=$(dirname "$R_BIN_ARCH_DIR")
+        R_DIR=$(dirname "$R_BIN_DIR")
+        echo "STACK_CMD=${{ env.STACK_CMD }} --extra-lib-dirs=\"$R_BIN_ARCH_DIR\" --extra-include-dirs=\"$R_DIR/include\"" >> $GITHUB_ENV
+
+    # The version of R isn't included because it shouldn't massively affect caching.
+    - name: Set up stack cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          /c/Users/runneradmin/AppData/Roaming/stack
+          /c/Users/runneradmin/AppData/Local/Programs/stack
+          ~/.stack
+        key: |
+          ${{format(
+            '{0}-{1}-{2}-{3}',
+            runner.os,
+            runner.arch,
+            hashFiles('**/stack*.lock'),
+            hashFiles('**/*.cabal')
+          )}}
+
+    - name: Setup
+      shell: bash
+      run: ${{ env.STACK_CMD }} setup
+
+    - name: Build ${{ inputs.build-targets }}
+      shell: bash
+      run: ${{ env.STACK_CMD }} build ${{ inputs.build-targets }}
+
+    - name: Test ${{ inputs.test-targets }}
+      if: ${{ inputs.do-test != 'false' }}
+      shell: bash
+      run: ${{ env.STACK_CMD }} test ${{ inputs.test-targets }}
