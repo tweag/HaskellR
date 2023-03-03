@@ -40,5 +40,4 @@ haskell.lib.buildStackProject ({
     rEnv
   ];
   LANG = "en_US.UTF-8";
-  LD_LIBRARY_PATH = [ "${R}/lib/R/" ];
 } // libHack)
