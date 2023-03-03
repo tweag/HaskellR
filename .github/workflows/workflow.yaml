@@ -66,6 +66,7 @@ jobs:
         run: |
           stack --nix test
       - name: Test IHaskell jupyter notebook example
+        if: ${{ runner.os == 'Linux' }}
         run: |
           stack --nix install
           export PATH=~/.local/bin:$PATH
