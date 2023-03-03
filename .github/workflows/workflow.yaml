@@ -65,3 +65,9 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           stack --nix test
+      - name: Test IHaskell jupyter notebook example
+        run: |
+          stack --nix install
+          export PATH=~/.local/bin:$PATH
+          stack --nix exec -- ihaskell install
+          stack --nix exec -- jupyter nbconvert --to notebook --execute --inplace ./IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
