@@ -1,4 +1,4 @@
-{pkgs ? import ./nixpkgs.nix { }, ghc ? pkgs.haskell.compiler.ghc8107}:
+{ pkgs ? import ./nixpkgs.nix { }, ghc ? pkgs.haskell.compiler.ghc8107 }:
 
 with pkgs;
 
@@ -10,24 +10,34 @@ let
   # R = pkgs.R.override { enableStrictBarrier = true; };
 
   # XXX Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
-  libHack = if stdenv.isDarwin then {
-      DYLD_LIBRARY_PATH = ["${R}/lib/R/lib"];
-    } else {
-      LD_LIBRARY_PATH = ["${R}/lib/R"];
-    };
+  libHack =
+    if stdenv.isDarwin
+    then { DYLD_LIBRARY_PATH = [ "${R}/lib/R/lib" ]; }
+    else { LD_LIBRARY_PATH = [ "${R}/lib/R" ]; }
+  ;
+
+  python3Env = python3.withPackages (ps: with ps; [
+    ipython
+    jupyter_client
+    notebook
+  ]);
+
+  rEnv = rWrapper.override {
+    packages = with rPackages; [
+      # ggplot2 is required for ./IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+      ggplot2
+    ];
+  };
 in
 
 haskell.lib.buildStackProject ({
   name = "HaskellR";
   inherit ghc;
-  buildInputs =
-    [ python3Packages.ipython
-      python3Packages.jupyter_client
-      python3Packages.notebook
-      R
-      zeromq
-      zlib
-    ];
+  buildInputs = [
+    zeromq
+    zlib
+    python3Env
+    rEnv
+  ];
   LANG = "en_US.UTF-8";
-  LD_LIBRARY_PATH = ["${R}/lib/R/"];
 } // libHack)
