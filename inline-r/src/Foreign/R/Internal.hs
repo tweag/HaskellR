@@ -55,12 +55,17 @@ sexp = SEXP
 unsexp :: SEXP s -> SEXP0
 unsexp = unSEXP
 
+-- LERegion is used only because LH is confused by (<=)
+type LERegion t s = t <= s
+
+{-@ release :: LERegion t s => a:SEXP s -> TSEXP t (typeOf a) @-}
 -- | Release object into another region. Releasing is safe so long as the target
 -- region is "smaller" than the source region, in the sense of
 -- '(Control.Memory.Region.<=)'.
 release :: (t <= s) => SEXP s -> SEXP t
 release = unsafeRelease
 
+{-@ assume unsafeRelease :: a:SEXP s -> TSEXP r (Foreign.R.Internal.typeOf a) @-}
 unsafeRelease :: SEXP s -> SEXP r
 unsafeRelease = sexp . unsexp
 
@@ -85,6 +90,15 @@ typeOf :: SEXP s -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cIntToEnum <$> cTYPEOF (unsexp s)
 
 {-@ type TSEXP s T = {v:SEXP s | typeOf v == T} @-}
+
+{-@ assume checkSEXPTYPE :: t:SEXPTYPE -> SEXP s -> TSEXP s t @-}
+{-@ ignore checkSEXPTYPE @-}
+checkSEXPTYPE :: SEXPTYPE -> SEXP s -> SEXP s
+checkSEXPTYPE ty s
+  | ty == typeOf s = s
+  | otherwise =
+    error $ "checkType: Dynamic type cast failed. Expected: " ++ show ty ++
+            ". Actual: " ++ show (typeOf s) ++ "."
 
 foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 
@@ -175,12 +189,12 @@ foreign import ccall unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
 isS4 :: SEXP s -> Bool
 isS4 s = (>0) $ cisS4 (unsexp s)
 
-{-@ assume getAttributes :: SEXP s -> IO (TSEXP s List) @-}
+{-@ assume getAttributes :: SEXP s -> IO (TSEXP s Foreign.R.Type.List) @-}
 -- | Get the attribute list from the given object.
 getAttributes :: SEXP s -> IO (SEXP s)
 getAttributes s = sexp <$> cAttrib (unsexp s)
 
-{-@ assume getAttribute :: SEXP s -> TSEXP s2 Char -> SEXP s @-}
+{-@ assume getAttribute :: SEXP s -> TSEXP s2 Foreign.R.Type.SChar -> SEXP s @-}
 -- | Get attribute with the given name.
 getAttribute :: SEXP s  -- ^ Value
              -> SEXP s2 -- ^ Attribute name
@@ -188,7 +202,7 @@ getAttribute :: SEXP s  -- ^ Value
 getAttribute a b = sexp $ cgetAttrib (unsexp a) (unsexp b)
 
 
-{-@ assume setAttributes :: SEXP s -> TSEXP s List -> IO () @-}
+{-@ assume setAttributes :: SEXP s -> TSEXP s Foreign.R.Type.List -> IO () @-}
 -- | Set the attribute list.
 setAttributes :: SEXP s -> SEXP s -> IO ()
 setAttributes s v = csetAttrib (unsexp s) (unsexp v)

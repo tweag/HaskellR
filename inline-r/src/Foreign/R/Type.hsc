@@ -81,15 +81,15 @@ data SEXPTYPE
     | Lang
     | Special
     | Builtin
-    | Char
+    | SChar
     | Logical
-    | Int
+    | SInt
     | Real
-    | Complex
-    | String
+    | SComplex
+    | SString
     | DotDotDot
     | Any
-    | Vector
+    | SVector
     | Expr
     | Bytecode
     | ExtPtr
@@ -111,15 +111,15 @@ instance Enum SEXPTYPE where
   fromEnum Lang       = #const LANGSXP
   fromEnum Special    = #const SPECIALSXP
   fromEnum Builtin    = #const BUILTINSXP
-  fromEnum Char       = #const CHARSXP
+  fromEnum SChar       = #const CHARSXP
   fromEnum Logical    = #const LGLSXP
-  fromEnum Int        = #const INTSXP
+  fromEnum SInt        = #const INTSXP
   fromEnum Real       = #const REALSXP
-  fromEnum Complex    = #const CPLXSXP
-  fromEnum String     = #const STRSXP
+  fromEnum SComplex    = #const CPLXSXP
+  fromEnum SString     = #const STRSXP
   fromEnum DotDotDot  = #const DOTSXP
   fromEnum Any        = #const ANYSXP
-  fromEnum Vector     = #const VECSXP
+  fromEnum SVector     = #const VECSXP
   fromEnum Expr       = #const EXPRSXP
   fromEnum Bytecode   = #const BCODESXP
   fromEnum ExtPtr     = #const EXTPTRSXP
@@ -139,15 +139,15 @@ instance Enum SEXPTYPE where
   toEnum (#const LANGSXP)    = Lang
   toEnum (#const SPECIALSXP) = Special
   toEnum (#const BUILTINSXP) = Builtin
-  toEnum (#const CHARSXP)    = Char
+  toEnum (#const CHARSXP)    = SChar
   toEnum (#const LGLSXP)     = Logical
-  toEnum (#const INTSXP)     = Int
+  toEnum (#const INTSXP)     = SInt
   toEnum (#const REALSXP)    = Real
-  toEnum (#const CPLXSXP)    = Complex
-  toEnum (#const STRSXP)     = String
+  toEnum (#const CPLXSXP)    = SComplex
+  toEnum (#const STRSXP)     = SString
   toEnum (#const DOTSXP)     = DotDotDot
   toEnum (#const ANYSXP)     = Any
-  toEnum (#const VECSXP)     = Vector
+  toEnum (#const VECSXP)     = SVector
   toEnum (#const EXPRSXP)    = Expr
   toEnum (#const BCODESXP)   = Bytecode
   toEnum (#const EXTPTRSXP)  = ExtPtr
@@ -169,13 +169,13 @@ genSingletons [''SEXPTYPE]
 type PairList = List
 
 -- Use a macro to avoid having to define append at the type level.
-#let VECTOR_FORMS = " 'Char \
+#let VECTOR_FORMS = " 'SChar \
                    ': 'Logical \
-                   ': 'Int \
+                   ': 'SInt \
                    ': 'Real \
-                   ': 'Complex \
-                   ': 'String \
-                   ': 'Vector \
+                   ': 'SComplex \
+                   ': 'SString \
+                   ': 'SVector \
                    ': 'Expr \
                    ': 'WeakRef \
                    ': 'Raw"
@@ -186,7 +186,7 @@ type IsVector (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': '[])
 
 -- | Non-atomic vector forms. See @src\/main\/memory.c:SET_VECTOR_ELT@ in the
 -- R source distribution.
-type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [Vector, Expr, WeakRef])
+type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [SVector, Expr, WeakRef])
 
 -- | @IsList a@ holds iff R's @is.list()@ returns @TRUE@.
 type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': List ': '[])

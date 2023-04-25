@@ -10,15 +10,15 @@ data SEXPTYPE
     | Lang
     | Special
     | Builtin
-    | Char
+    | SChar
     | Logical
-    | Int
+    | SInt
     | Real
-    | Complex
-    | String
+    | SComplex
+    | SString
     | DotDotDot
     | Any
-    | Vector
+    | SVector
     | Expr
     | Bytecode
     | ExtPtr
