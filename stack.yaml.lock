@@ -11,6 +11,34 @@ packages:
       size: 223
   original:
     hackage: ihaskell-blaze-0.3.0.1
+- completed:
+    hackage: liquidhaskell-0.9.12.2.1@sha256:9cc35c4179aad5b660cde4b76ad87a020b545bf96792c58fcf7cc1a389365e74,3507
+    pantry-tree:
+      sha256: 53cd2f9e69e0b0cd6af123fab46b692a314a7516010108a3ff59f315fac92b4d
+      size: 3435
+  original:
+    hackage: liquidhaskell-0.9.12.2.1
+- completed:
+    hackage: liquidhaskell-boot-0.9.12.2.1@sha256:4d5eba2bb7fead5255baa073219fd24215c11a198a7f41d88e36db2946b51d4c,10251
+    pantry-tree:
+      sha256: 1308840f9df2f379b742a4ca2998437f7eb638c0a2dbb61022271164aabe93d3
+      size: 7990
+  original:
+    hackage: liquidhaskell-boot-0.9.12.2.1
+- completed:
+    hackage: liquid-fixpoint-0.9.6.3.5@sha256:23795aecd4985a450a312e1c9df49f953d606ff632def2e2190c32549acff03d,9583
+    pantry-tree:
+      sha256: 71c2138ca0d4ad0a72bd63dd1635cc42f19a1b3cd53acebc5c1d48f3c89320d4
+      size: 15656
+  original:
+    hackage: liquid-fixpoint-0.9.6.3.5
+- completed:
+    hackage: liquid-prelude-0.9.12.2.1@sha256:23e07a98074d2c8073d3fd04139382c9c142bfd97d7cb48e6795940cad7c086c,1465
+    pantry-tree:
+      sha256: 12e4f06aec222ec8a820738a1d4eaa318563316f917e2d8699ffc0cdb29d7018
+      size: 882
+  original:
+    hackage: liquid-prelude-0.9.12.2.1
 snapshots:
 - completed:
     sha256: 7aa4408bfb439dce23ccb56810769c0da44083d88fe8eb45a0371d8eab4bad61

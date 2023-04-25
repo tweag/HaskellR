@@ -44,6 +44,7 @@ haskell.lib.buildStackProject {
     cabal-install
     python3Env
     rEnv
+    pkgs.z3
     zeromq
     zlib
     pkgs.libsodium
