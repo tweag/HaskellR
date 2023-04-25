@@ -13,18 +13,18 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 module Foreign.R.Internal where
 
 import Control.Memory.Region
 import Foreign.R.Type
-import Foreign.R.Type as R
 import Foreign.R.Context (SEXP0(..))
 
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Control.Monad.Primitive ( unsafeInlineIO )
 import Data.Singletons (fromSing)
-import Foreign (Ptr, castPtr, Storable(..))
+import Foreign (Ptr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
 
@@ -33,63 +33,36 @@ import Prelude hiding (asTypeOf, length)
 -- R data structures                                                          --
 --------------------------------------------------------------------------------
 
--- | The basic type of all R expressions, classified by the form of the
--- expression, and the memory region in which it has been allocated.
-newtype SEXP s (a :: SEXPTYPE) = SEXP { unSEXP :: SEXP0 }
+-- | The basic type of all R expressions, classified by the
+-- memory region in which it has been allocated.
+newtype SEXP s = SEXP { unSEXP :: SEXP0 }
   deriving ( Eq
            , Ord
            , Storable
            )
 
-instance Show (SEXP s a) where
+instance Show (SEXP s) where
   show (SEXP ptr) = show ptr
 
-instance NFData (SEXP s a) where
+instance NFData (SEXP s) where
   rnf = (`seq` ())
 
 -- | Add a type index to the pointer.
-sexp :: SEXP0 -> SEXP s a
+sexp :: SEXP0 -> SEXP s
 sexp = SEXP
 
 -- | Remove the type index from the pointer.
-unsexp :: SEXP s a -> SEXP0
+unsexp :: SEXP s -> SEXP0
 unsexp = unSEXP
-
--- | Like 'sexp' but for 'SomeSEXP'.
-somesexp :: SEXP0 -> SomeSEXP s
-somesexp = SomeSEXP . sexp
 
 -- | Release object into another region. Releasing is safe so long as the target
 -- region is "smaller" than the source region, in the sense of
 -- '(Control.Memory.Region.<=)'.
-release :: (t <= s) => SEXP s a -> SEXP t a
+release :: (t <= s) => SEXP s -> SEXP t
 release = unsafeRelease
 
-unsafeRelease :: SEXP s a -> SEXP r a
+unsafeRelease :: SEXP s -> SEXP r
 unsafeRelease = sexp . unsexp
-
-unsafeReleaseSome :: SomeSEXP s -> SomeSEXP g
-unsafeReleaseSome (SomeSEXP x) = SomeSEXP (unsafeRelease x)
-
--- | A 'SEXP' of unknown form.
-data SomeSEXP s = forall a. SomeSEXP {-# UNPACK #-} !(SEXP s a)
-
-instance Show (SomeSEXP s) where
-  show s = unSomeSEXP s show
-
-instance Storable (SomeSEXP s) where
-  sizeOf _ = sizeOf (undefined :: SEXP s a)
-  alignment _ = alignment (undefined :: SEXP s a)
-  peek ptr = SomeSEXP <$> peek (castPtr ptr)
-  poke ptr (SomeSEXP s) = poke (castPtr ptr) s
-
-instance NFData (SomeSEXP s) where
-  rnf = (`seq` ())
-
--- | Deconstruct a 'SomeSEXP'. Takes a continuation since otherwise the
--- existentially quantified variable hidden inside 'SomeSEXP' would escape.
-unSomeSEXP :: SomeSEXP s -> (forall a. SEXP s a -> r) -> r
-unSomeSEXP (SomeSEXP s) k = k s
 
 cIntConv :: (Integral a, Integral b) => a -> b
 cIntConv = fromIntegral
@@ -103,49 +76,17 @@ cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 cIntFromEnum :: Enum a => a -> CInt
 cIntFromEnum = cIntConv . fromEnum
 
+{-@ measure Foreign.R.Internal.typeOf :: SEXP s -> SEXPTYPE @-}
+{-@ assume typeOf :: a:SEXP s -> {v:SEXPTYPE | v == Foreign.R.Internal.typeOf a} @-}
 -- | Return the \"type\" tag (aka the form tag) of the given 'SEXP'. This
 -- function is pure because the type of an object does not normally change over
 -- the lifetime of the object.
-typeOf :: SEXP s a -> SEXPTYPE
+typeOf :: SEXP s -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cIntToEnum <$> cTYPEOF (unsexp s)
 
+{-@ type TSEXP s T = {v:SEXP s | typeOf v == T} @-}
+
 foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
-
---------------------------------------------------------------------------------
--- Coercion functions                                                         --
---------------------------------------------------------------------------------
-
--- $cast-coerce
---
--- /Coercions/ have no runtime cost, but are completely unsafe. Use with
--- caution, only when you know that a 'SEXP' is of the target type. /Casts/ are
--- safer, but introduce a runtime type check. The difference between the two is
--- akin to the difference between a C-style typecasts and C++-style
--- @dynamic_cast@'s.
-
-unsafeCast :: SEXPTYPE -> SomeSEXP s -> SEXP s b
-unsafeCast ty (SomeSEXP s)
-  | ty == typeOf s = unsafeCoerce s
-  | otherwise =
-    error $ "cast: Dynamic type cast failed. Expected: " ++ show ty ++
-            ". Actual: " ++ show (typeOf s) ++ "."
-
--- | Cast the type of a 'SEXP' into another type. This function is partial: at
--- runtime, an error is raised if the source form tag does not match the target
--- form tag.
-cast :: SSEXPTYPE a -> SomeSEXP s -> SEXP s a
-cast ty s = unsafeCast (fromSing ty) s
-
--- | Cast form of first argument to that of the second argument.
-asTypeOf :: SomeSEXP s -> SEXP s a -> SEXP s a
-asTypeOf s s' = typeOf s' `unsafeCast` s
-
--- | Unsafe coercion from one form to another. This is unsafe, in the sense that
--- using this function improperly could cause code to crash in unpredictable
--- ways. Contrary to 'cast', it has no runtime cost since it does not introduce
--- any dynamic check at runtime.
-unsafeCoerce :: SEXP s a -> SEXP s b
-unsafeCoerce = sexp . unsexp
 
 --------------------------------------------------------------------------------
 -- Global variables                                                           --
@@ -153,23 +94,29 @@ unsafeCoerce = sexp . unsexp
 
 foreign import ccall "&R_Interactive" isRInteractive :: Ptr CInt
 
+{-@ nilValue :: Ptr (TSEXP G Nil) @-}
 -- | Global nil value. Constant throughout the lifetime of the R instance.
-foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G R.Nil)
+foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G)
 
+{-@ unboundValue :: Ptr (TSEXP G Symbol) @-}
 -- | Unbound marker. Constant throughout the lifetime of the R instance.
-foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G R.Symbol)
+foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G)
 
+{-@ missingArg :: Ptr (TSEXP G Symbol) @-}
 -- | Missing argument marker. Constant throughout the lifetime of the R instance.
-foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G R.Symbol)
+foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G)
 
+{-@ baseEnv :: Ptr (TSEXP G Env) @-}
 -- | The base environment.
-foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G R.Env)
+foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G)
 
+{-@ emptyEnv :: Ptr (TSEXP G Env) @-}
 -- | The empty environment.
-foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G R.Env)
+foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G)
 
+{-@ globalEnv :: Ptr (TSEXP G Env) @-}
 -- | Global environment.
-foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G R.Env)
+foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G)
 
 -- | Signal handler switch
 foreign import ccall "&R_SignalHandlers" signalHandlers :: Ptr CInt
@@ -194,7 +141,7 @@ data SEXPInfo = SEXPInfo
       } deriving ( Show )
 
 -- | Extract the header from the given 'SEXP'.
-peekInfo :: SEXP s a -> IO SEXPInfo
+peekInfo :: SEXP s -> IO SEXPInfo
 peekInfo ts =
     SEXPInfo
       <$> (toEnum.fromIntegral <$> cTYPEOF s)
@@ -225,22 +172,25 @@ foreign import ccall unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
 -- | Check if object is an S4 object.
 --
 -- This is a function call so it will be more precise than using 'typeOf'.
-isS4 :: SEXP s ty -> Bool
+isS4 :: SEXP s -> Bool
 isS4 s = (>0) $ cisS4 (unsexp s)
 
+{-@ assume getAttributes :: SEXP s -> IO (TSEXP s List) @-}
 -- | Get the attribute list from the given object.
-getAttributes :: SEXP s a -> IO (SEXP s b)
+getAttributes :: SEXP s -> IO (SEXP s)
 getAttributes s = sexp <$> cAttrib (unsexp s)
 
+{-@ assume getAttribute :: SEXP s -> TSEXP s2 Char -> SEXP s @-}
 -- | Get attribute with the given name.
-getAttribute :: SEXP s  a -- ^ Value
-             -> SEXP s2 b -- ^ Attribute name
-             -> SEXP s  c
+getAttribute :: SEXP s  -- ^ Value
+             -> SEXP s2 -- ^ Attribute name
+             -> SEXP s
 getAttribute a b = sexp $ cgetAttrib (unsexp a) (unsexp b)
 
 
+{-@ assume setAttributes :: SEXP s -> TSEXP s List -> IO () @-}
 -- | Set the attribute list.
-setAttributes :: SEXP s a -> SEXP s b -> IO ()
+setAttributes :: SEXP s -> SEXP s -> IO ()
 setAttributes s v = csetAttrib (unsexp s) (unsexp v)
 
 foreign import ccall unsafe "Rinternals.h ATTRIB" cAttrib :: SEXP0 -> IO SEXP0
