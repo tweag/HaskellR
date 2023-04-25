@@ -72,7 +72,7 @@ library
 --    Data.Vector.SEXP
 --    Data.Vector.SEXP.Base
 --    Data.Vector.SEXP.Mutable
---    Foreign.R
+    Foreign.R
     Foreign.R.Constraints
     Foreign.R.Context
     Foreign.R.Embedded

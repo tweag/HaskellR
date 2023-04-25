@@ -55,12 +55,17 @@ sexp = SEXP
 unsexp :: SEXP s -> SEXP0
 unsexp = unSEXP
 
+-- LERegion is used only because LH is confused by (<=)
+type LERegion t s = t <= s
+
+{-@ release :: LERegion t s => a:SEXP s -> TSEXP t (typeOf a) @-}
 -- | Release object into another region. Releasing is safe so long as the target
 -- region is "smaller" than the source region, in the sense of
 -- '(Control.Memory.Region.<=)'.
 release :: (t <= s) => SEXP s -> SEXP t
 release = unsafeRelease
 
+{-@ assume unsafeRelease :: a:SEXP s -> TSEXP r (typeOf a) @-}
 unsafeRelease :: SEXP s -> SEXP r
 unsafeRelease = sexp . unsexp
 
@@ -76,8 +81,7 @@ cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 cIntFromEnum :: Enum a => a -> CInt
 cIntFromEnum = cIntConv . fromEnum
 
-{-@ measure Foreign.R.Internal.typeOf :: SEXP s -> SEXPTYPE @-}
-{-@ assume typeOf :: a:SEXP s -> {v:SEXPTYPE | v == Foreign.R.Internal.typeOf a} @-}
+{-@ opaque-reflect typeOf @-}
 -- | Return the \"type\" tag (aka the form tag) of the given 'SEXP'. This
 -- function is pure because the type of an object does not normally change over
 -- the lifetime of the object.
@@ -85,6 +89,15 @@ typeOf :: SEXP s -> SEXPTYPE
 typeOf s = unsafeInlineIO $ cIntToEnum <$> cTYPEOF (unsexp s)
 
 {-@ type TSEXP s T = {v:SEXP s | typeOf v == T} @-}
+
+{-@ assume checkSEXPTYPE :: t:SEXPTYPE -> SEXP s -> TSEXP s t @-}
+{-@ ignore checkSEXPTYPE @-}
+checkSEXPTYPE :: SEXPTYPE -> SEXP s -> SEXP s
+checkSEXPTYPE ty s
+  | ty == typeOf s = s
+  | otherwise =
+    error $ "checkType: Dynamic type cast failed. Expected: " ++ show ty ++
+            ". Actual: " ++ show (typeOf s) ++ "."
 
 foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 
