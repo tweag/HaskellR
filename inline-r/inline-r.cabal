@@ -47,40 +47,40 @@ source-repository head
 library
   exposed-modules:
     Control.Memory.Region
-    Data.Vector.SEXP
-    Data.Vector.SEXP.Base
-    Data.Vector.SEXP.Mutable
-    Foreign.R
+--    Data.Vector.SEXP
+--    Data.Vector.SEXP.Base
+--    Data.Vector.SEXP.Mutable
+--    Foreign.R
     Foreign.R.Constraints
     Foreign.R.Context
     Foreign.R.Embedded
     Foreign.R.Encoding
     Foreign.R.Error
     Foreign.R.Internal
-    Foreign.R.Parse
+--    Foreign.R.Parse
     Foreign.R.Type
-    H.Prelude
-    H.Prelude.Interactive
-    Language.R
-    Language.R.Debug
-    Language.R.GC
-    Language.R.Globals
-    Language.R.HExp
-    Language.R.Instance
-    Language.R.Internal
-    Language.R.Internal.FunWrappers
-    Language.R.Internal.FunWrappers.TH
-    Language.R.Literal
-    Language.R.Matcher
-    Language.R.QQ
+--    H.Prelude
+--    H.Prelude.Interactive
+--    Language.R
+--    Language.R.Debug
+--    Language.R.GC
+--    Language.R.Globals
+--    Language.R.HExp
+--    Language.R.Instance
+--    Language.R.Internal
+--    Language.R.Internal.FunWrappers
+--    Language.R.Internal.FunWrappers.TH
+--    Language.R.Literal
+--    Language.R.Matcher
+--    Language.R.QQ
   if !os(windows)
     exposed-modules:
-      Foreign.R.EventLoop
-      Language.R.Event
+--      Foreign.R.EventLoop
+--      Language.R.Event
   other-modules:
-    Control.Monad.R.Class
-    Control.Monad.R.Internal
-    Data.Vector.SEXP.Mutable.Internal
+--    Control.Monad.R.Class
+--    Control.Monad.R.Internal
+--    Data.Vector.SEXP.Mutable.Internal
     Internal.Error
   build-depends:
     base >=4.7 && <5,
