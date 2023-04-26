@@ -23,7 +23,6 @@ import Foreign.R.Context (SEXP0(..))
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Control.Monad.Primitive ( unsafeInlineIO )
-import Data.Singletons (fromSing)
 import Foreign (Ptr, Storable(..))
 import Foreign.C
 import Prelude hiding (asTypeOf, length)
@@ -74,9 +73,6 @@ cIntConv = fromIntegral
 
 cIntToEnum :: Enum a => CInt -> a
 cIntToEnum = toEnum . cIntConv
-
-cUIntFromSingEnum :: SSEXPTYPE a -> CUInt
-cUIntFromSingEnum = cIntConv . fromEnum . fromSing
 
 cIntFromEnum :: Enum a => a -> CInt
 cIntFromEnum = cIntConv . fromEnum

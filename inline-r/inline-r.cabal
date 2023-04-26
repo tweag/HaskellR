@@ -119,16 +119,16 @@ library
 --    process >=1.2 && <1.7,
 --    reflection >=2 && <2.2,
 --    setenv >=0.1.1 && <0.2,
-    template-haskell >=2.8 && <2.24,
+--    template-haskell >=2.8 && <2.24,
 --    temporary >=1.2 && <1.4,
 --    text >=0.11 && <2.2,
 --    vector >=0.10 && <0.14,
   if impl(ghc <9)
-    build-depends:
-      singletons >=2.7 && <3,
+--    build-depends:
+--      singletons >=2.7 && <3,
   else
     build-depends:
-      singletons >=3 && <3.1,
+--      singletons >=3 && <3.1,
       singletons-th >=3 && <3.6,
   hs-source-dirs: src
   includes: cbits/missing_r.h
