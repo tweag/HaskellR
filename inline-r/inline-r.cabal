@@ -78,7 +78,7 @@ library
       Foreign.R.EventLoop
 --      Language.R.Event
   other-modules:
---    Control.Monad.R.Class
+    Control.Monad.R.Class
 --    Control.Monad.R.Internal
 --    Data.Vector.SEXP.Mutable.Internal
     Internal.Error
