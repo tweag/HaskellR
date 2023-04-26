@@ -17,7 +17,6 @@ module Foreign.R.Parse
   , ParseStatus(..)
   ) where
 
-import Foreign.R.Constraints
 import qualified Foreign.R as R
 
 import Foreign
@@ -53,12 +52,11 @@ instance Enum ParseStatus where
 
 -- TODO: use ParseStatus or write a wrapper for parseVector.
 parseVector
-  :: (In a [R.Nil, R.String])
-  => R.SEXP s R.String
+  :: R.SEXP s
   -> Int
   -> Ptr CInt
-  -> R.SEXP s a
-  -> IO (R.SEXP s R.Expr)
+  -> R.SEXP s
+  -> IO (R.SEXP s)
 parseVector (R.unsexp -> s) (fromIntegral -> cnt) reti (R.unsexp -> input) =
   R.sexp <$> c_parseVector s cnt reti input
  
