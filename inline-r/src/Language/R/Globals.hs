@@ -8,6 +8,7 @@
 -- of some of them may change over time (e.g. the global environment).
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 
 module Language.R.Globals
   ( baseEnv
@@ -37,13 +38,19 @@ import Foreign
     , peek
     , poke
     )
-import Foreign.C.Types (CInt)
+import Foreign.C (CInt)
 import Foreign.R (SEXP)
-import qualified Foreign.R as R
+import Foreign.R.Type (SEXPTYPE(..)) -- needed for LH annotations
 #ifndef mingw32_HOST_OS
 import qualified Foreign.R.EventLoop as R
 #endif
 import System.IO.Unsafe (unsafePerformIO)
+
+_ = Nil
+
+-- Turn off complaints about peek and poke preconditions
+{-@ assume peek :: Ptr a -> IO a @-}
+{-@ assume poke :: Ptr a -> a -> IO () @-}
 
 -- $ghci-bug
 -- The main reason to have all R constants referenced with a StablePtr
@@ -55,13 +62,29 @@ import System.IO.Unsafe (unsafePerformIO)
 --
 -- Upstream ticket: <https://ghc.haskell.org/trac/ghc/ticket/8549#ticket>
 
+{-@
 type RVariables =
-    ( Ptr (SEXP G 'R.Env)
-    , Ptr (SEXP G 'R.Env)
-    , Ptr (SEXP G 'R.Env)
-    , Ptr (SEXP G 'R.Nil)
-    , Ptr (SEXP G 'R.Symbol)
-    , Ptr (SEXP G 'R.Symbol)
+    ( Ptr (TSEXP G Env)
+    , Ptr (TSEXP G Env)
+    , Ptr (TSEXP G Env)
+    , Ptr (TSEXP G Nil)
+    , Ptr (TSEXP G Symbol)
+    , Ptr (TSEXP G Symbol)
+    , Ptr CInt
+    , Ptr CInt
+#ifndef mingw32_HOST_OS
+    , Ptr (Ptr R.InputHandler)
+#endif
+    )
+@-}
+
+type RVariables =
+    ( Ptr (SEXP G)
+    , Ptr (SEXP G)
+    , Ptr (SEXP G)
+    , Ptr (SEXP G)
+    , Ptr (SEXP G)
+    , Ptr (SEXP G)
     , Ptr CInt
     , Ptr CInt
 #ifndef mingw32_HOST_OS
@@ -73,6 +96,7 @@ type RVariables =
 -- addresses accesible after reloading in GHCi.
 foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
 
+{-@ assume pokeRVariables :: RVariables -> IO () @-}
 pokeRVariables :: RVariables -> IO ()
 pokeRVariables = poke rVariables <=< newStablePtr
 
@@ -89,29 +113,35 @@ pokeRVariables = poke rVariables <=< newStablePtr
 #endif
  ) = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
+{-@ assume unboundValue :: TSEXP G Symbol @-}
 -- | Special value to which all symbols unbound in the current environment
 -- resolve to.
-unboundValue :: SEXP G 'R.Symbol
+unboundValue :: SEXP G
 unboundValue = unsafePerformIO $ peek unboundValuePtr
 
+{-@ assume nilValue :: TSEXP G Nil @-}
 -- | R's @NULL@ value.
-nilValue :: SEXP G 'R.Nil
+nilValue :: SEXP G
 nilValue = unsafePerformIO $ peek nilValuePtr
 
+{-@ assume missingArg :: TSEXP G Symbol @-}
 -- | Value substituted for all missing actual arguments of a function call.
-missingArg :: SEXP G 'R.Symbol
+missingArg :: SEXP G
 missingArg = unsafePerformIO $ peek missingArgPtr
 
+{-@ assume baseEnv :: TSEXP G Env @-}
 -- | The base environment.
-baseEnv :: SEXP G 'R.Env
+baseEnv :: SEXP G
 baseEnv = unsafePerformIO $ peek baseEnvPtr
 
+{-@ assume emptyEnv :: TSEXP G Env @-}
 -- | The empty environment.
-emptyEnv :: SEXP G 'R.Env
+emptyEnv :: SEXP G
 emptyEnv = unsafePerformIO $ peek emptyEnvPtr
 
+{-@ assume globalEnv :: TSEXP G Env @-}
 -- | The global environment.
-globalEnv :: SEXP G 'R.Env
+globalEnv :: SEXP G
 globalEnv = unsafePerformIO $ peek globalEnvPtr
 
 #ifndef mingw32_HOST_OS

@@ -86,7 +86,7 @@ library
 --    Language.R
 --    Language.R.Debug
 --    Language.R.GC
---    Language.R.Globals
+    Language.R.Globals
 --    Language.R.HExp
 --    Language.R.Instance
 --    Language.R.Internal
@@ -97,7 +97,7 @@ library
 --    Language.R.QQ
   if !os(windows)
     exposed-modules:
---      Foreign.R.EventLoop
+      Foreign.R.EventLoop
 --      Language.R.Event
   other-modules:
 --    Control.Monad.R.Class
