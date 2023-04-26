@@ -1,14 +1,6 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveLift #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE GADTs #-}
-#if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE StandaloneKindSignatures #-}
-#endif
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
@@ -24,17 +16,9 @@
 -- c2hs for discharging the boilerplate around 'SEXPTYPE'. This is because
 -- 'SEXPTYPE' is nearly but not quite a true enumeration and c2hs has trouble
 -- dealing with that.
---
--- This module also defines a singleton version of 'SEXPTYPE', called
--- 'SSEXPTYPE'. This is actually a family of types, one for each possible
--- 'SEXPTYPE'. Singleton types are a way of emulating dependent types in
--- a language that does not have true dependent type. They are useful in
--- functions whose result type depends on the value of one of its arguments. See
--- e.g. 'Foreign.R.allocVector'.
 
 module Foreign.R.Type
   ( SEXPTYPE(..)
-  , SSEXPTYPE(..)
   , Sing
   , Logical(..)
   , PairList
@@ -51,8 +35,6 @@ module Foreign.R.Type
 
 import Foreign.R.Constraints
 import Internal.Error
-
-import qualified Language.Haskell.TH.Syntax as Hs
 
 import Data.Singletons.TH
 
@@ -101,7 +83,7 @@ data SEXPTYPE
     | New
     | Free
     | Fun
-    deriving (Eq, Ord, Show, Hs.Lift)
+    deriving (Eq, Ord, Show)
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -187,8 +169,6 @@ instance Enum ParseStatus where
     (#const PARSE_ERROR)      -> PARSE_ERROR
     (#const PARSE_EOF)        -> PARSE_EOF
     _ -> error "ParseStatus.fromEnum: can't mach value"
-
-genSingletons [''SEXPTYPE]
 
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
