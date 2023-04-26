@@ -38,6 +38,7 @@ module Foreign.R.Type
   , Sing
   , Logical(..)
   , PairList
+  , ParseStatus(..)
   , IsVector
   , IsGenericVector
   , IsList
@@ -46,6 +47,7 @@ module Foreign.R.Type
   ) where
 
 #include <Rinternals.h>
+#include <R_ext/Parse.h>
 
 import Foreign.R.Constraints
 import Internal.Error
@@ -161,6 +163,30 @@ instance Enum SEXPTYPE where
 
 instance NFData SEXPTYPE where
   rnf = (`seq` ())
+
+-- | The return code of a call to 'parseVector', indicating whether the parser
+-- failed or succeeded.
+data ParseStatus
+  = PARSE_NULL
+  | PARSE_OK
+  | PARSE_INCOMPLETE
+  | PARSE_ERROR
+  | PARSE_EOF
+  deriving (Eq, Show)
+
+instance Enum ParseStatus where
+  fromEnum PARSE_NULL       = #const PARSE_NULL
+  fromEnum PARSE_OK         = #const PARSE_OK
+  fromEnum PARSE_INCOMPLETE = #const PARSE_INCOMPLETE
+  fromEnum PARSE_ERROR      = #const PARSE_ERROR
+  fromEnum PARSE_EOF        = #const PARSE_EOF
+  toEnum i = case i of
+    (#const PARSE_NULL)       -> PARSE_NULL
+    (#const PARSE_OK)         -> PARSE_OK
+    (#const PARSE_INCOMPLETE) -> PARSE_INCOMPLETE
+    (#const PARSE_ERROR)      -> PARSE_ERROR
+    (#const PARSE_EOF)        -> PARSE_EOF
+    _ -> error "ParseStatus.fromEnum: can't mach value"
 
 genSingletons [''SEXPTYPE]
 
