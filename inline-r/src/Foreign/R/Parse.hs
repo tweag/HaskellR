@@ -8,17 +8,30 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 
 module Foreign.R.Parse
   ( parseVector
   , ParseStatus(..)
   ) where
 
+import Control.Memory.Region -- only needed to help name resolution in LH
 import Foreign.R.Type (ParseStatus(..))
 import qualified Foreign.R as R
 
 import Foreign
 import Foreign.C
+
+_ = undefined :: Control.Memory.Region.V
+
+{-@
+assume parseVector
+  :: TSEXP s Foreign.R.Type.SString
+  -> Int
+  -> Ptr CInt
+  -> {b:R.SEXP s | typeOf b == Nil || typeOf b == Foreign.R.Type.SString}
+  -> IO (TSEXP s Foreign.R.Type.Expr)
+@-}
 
 -- | @parseVector text num status source@ parses the input string into an AST.
 -- @source@, if provided, names the origin of @text@ (e.g. a filename). @num@
