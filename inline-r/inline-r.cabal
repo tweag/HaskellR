@@ -79,7 +79,7 @@ library
     Foreign.R.Encoding
     Foreign.R.Error
     Foreign.R.Internal
---    Foreign.R.Parse
+    Foreign.R.Parse
     Foreign.R.Type
 --    H.Prelude
 --    H.Prelude.Interactive
