@@ -63,7 +63,7 @@ library
 --    H.Prelude.Interactive
 --    Language.R
 --    Language.R.Debug
---    Language.R.GC
+    Language.R.GC
     Language.R.Globals
 --    Language.R.HExp
 --    Language.R.Instance

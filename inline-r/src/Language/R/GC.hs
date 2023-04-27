@@ -17,18 +17,25 @@
 -- discipline, at a performance cost. In particular, collections of many small,
 -- short-lived objects are best managed using regions.
 
+{-# LANGUAGE GADTs #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 module Language.R.GC
   ( automatic
-  , automaticSome
   ) where
 
+import Foreign.C -- only needed to help name resolution in LH
+import Control.Monad.Primitive -- only needed to help name resolution in LH
 import Control.Memory.Region
 import Control.Monad.R.Class
 import Control.Exception
-import Foreign.R (SomeSEXP(..))
 import qualified Foreign.R as R
 import System.Mem.Weak (addFinalizer)
 
+-- Helps LH name resolution. Otherwise ~ isn't found.
+_f :: a ~ b => a -> b -> CString -> m (PrimState m)
+_f = undefined
+
+{-@ automatic :: MonadR m => a:SEXP s -> m (TSEXP G (typeOf a)) @-}
 -- | Declare memory management for this value to be automatic. That is, the
 -- memory associated with it may be freed as soon as the garbage collector
 -- notices that it is safe to do so.
@@ -38,19 +45,10 @@ import System.Mem.Weak (addFinalizer)
 -- value can never be observed. Indeed, it is a mere "optimization" to
 -- deallocate the value sooner - it would still be semantically correct to never
 -- deallocate it at all.
-automatic :: MonadR m => R.SEXP s a -> m (R.SEXP G a)
+automatic :: MonadR m => R.SEXP s -> m (R.SEXP G)
 automatic s = io $ mask_ $ do
     R.preserveObject s'
     s' `addFinalizer` (R.releaseObject (R.unsafeRelease s'))
     return s'
-  where
-    s' = R.unsafeRelease s
-
--- | 'automatic' for 'SomeSEXP'.
-automaticSome :: MonadR m => R.SomeSEXP s -> m (R.SomeSEXP G)
-automaticSome (SomeSEXP s) = io  $ mask_ $ do
-    R.preserveObject s'
-    s' `addFinalizer` (R.releaseObject s')
-    return $ SomeSEXP s'
   where
     s' = R.unsafeRelease s
