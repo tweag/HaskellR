@@ -37,6 +37,7 @@ module Language.R.Instance
   , finalize
   ) where
 
+import           Control.Monad ((<=<), unless, when, zipWithM_)
 import           Control.Monad.Primitive (PrimMonad(..))
 import           Control.Monad.R.Class
 import           Control.Monad.ST.Unsafe (unsafeSTToIO)
