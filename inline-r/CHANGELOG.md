@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.1 - 2023-05-22
+* Populate `R_LIBS` environment variable when starting R (#393)
+* Map backslashes to forwardslashes in temp file names under Windows (#399)
+* Relax upper bounds for GHC 9.6
+* Fix imports for compatibility with mtl-2.3 (#414)
+
 ## 1.0.0 - 2022-11-11
 * Support for R >= 4.2.
 * Support for GHC 9 and GHC 9.2.
