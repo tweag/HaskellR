@@ -1,6 +1,6 @@
 cabal-version: 2.2
 name: inline-r
-version: 1.0.0
+version: 1.0.1
 license: BSD-3-Clause
 license-file: LICENSE
 author: Mathieu Boespflug, Facundo Dominguez, Alexander Vershilov
