@@ -26,6 +26,10 @@ let
     packages = with rPackages; [
       # ggplot2 is required for ./IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
       ggplot2
+      optimx
+      Rcpp
+      signal
+      tuneR
     ];
   };
 in

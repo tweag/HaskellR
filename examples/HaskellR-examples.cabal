@@ -61,3 +61,20 @@ executable RelaxWithNM
                      , temporary >= 1.2.0.3 && <1.4
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
+
+executable tutorial
+  main-is:           tutorial.hs
+  hs-source-dirs:    tutorial
+  build-depends:       inline-r
+                     , mathlist >= 0.2.0.0 && < 0.3.0.0
+		     , matrix, binary, data-binary-ieee754, bytestring
+                     , base >= 4.6 && < 5
+  default-language:    Haskell2010
+
+executable lifting
+  main-is:           lifting.hs
+  hs-source-dirs:    tutorial
+  build-depends:       inline-r
+  		     , transformers
+                     , base >= 4.6 && < 5
+  default-language:    Haskell2010
