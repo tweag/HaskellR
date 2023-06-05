@@ -11,6 +11,13 @@ packages:
       size: 223
   original:
     hackage: ihaskell-blaze-0.3.0.1
+- completed:
+    hackage: mathlist-0.2.0.0@sha256:3959b318a2f39969724d90818ff038c1d03435db817e3850bb0bbcfda37f2a22,1323
+    pantry-tree:
+      sha256: 3e96ddf87b4e28a30b25be47cc2d7ee22304157ed557728453725cfe59c5e384
+      size: 388
+  original:
+    hackage: mathlist-0.2.0.0
 snapshots:
 - completed:
     sha256: adbc602422dde10cc330175da7de8609e70afc41449a7e2d6e8b1827aa0e5008
