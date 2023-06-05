@@ -482,22 +482,22 @@ readrds = do
     , "R code to save data...\n"
     , "[r| z = as.complex(1:5) + 0.5i"
     , "    x = as.double(1:5)"
-    , "    saveRDS(z, \"complex.rds\")"
-    , "    saveRDS(x, \"double.rds\") |]"
+    , "    saveRDS(z, \"data/complex.rds\")"
+    , "    saveRDS(x, \"data/double.rds\") |]"
     ]
   [r| z = as.complex(1:5) + 0.5i
       x = as.double(1:5)    
-      saveRDS(z, "complex.rds")
-      saveRDS(x, "double.rds") |]
+      saveRDS(z, "data/complex.rds")
+      saveRDS(x, "data/double.rds") |]
   putStrLn $ unlines
     [ "\nRead data into Haskell lists and print...\n"
-    , "x::[Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS(\"double.rds\") |]"
-    , "z::[Complex Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS(\"complex.rds\") |]"
+    , "x::[Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS(\"data/double.rds\") |]"
+    , "z::[Complex Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS(\"data/complex.rds\") |]"
     , "putStrLn $ \"x = \" ++ show x"
     , "putStrLn $ \"z = \" ++ show z\n"
     ]
-  x::[Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS("double.rds") |]
-  z::[Complex Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS("complex.rds") |]
+  x::[Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS("data/double.rds") |]
+  z::[Complex Double] <- R.runRegion $ R.dynSEXP <$> [r| readRDS("data/complex.rds") |]
   putStrLn $ "x = " ++ show x
   putStrLn $ "z = " ++ show z
     
@@ -508,23 +508,23 @@ readbin = do
     , "then read it as a Haskell list. R code...\n"
     , "[r| z = as.complex(1:5) + 0.5i"
     , "    x = as.double(1:5)"
-    , "    writeBin(z, \"complex.bin\")"
-    , "    writeBin(x, \"double.bin\") |]"
+    , "    writeBin(z, \"data/complex.bin\")"
+    , "    writeBin(x, \"data/double.bin\") |]"
     ]
   [r| z = as.complex(1:5) + 0.5i
       x = as.double(1:5)    
-      writeBin(z, "complex.bin")
-      writeBin(x, "double.bin") |]
+      writeBin(z, "data/complex.bin")
+      writeBin(x, "data/double.bin") |]
   putStrLn $ unlines
     [ "\nHaskell code...\n"
-    , "doubles <- readDoubles \"double.bin\""    
-    , "complex <- readComplexDoubles \"complex.bin\""
+    , "doubles <- readDoubles \"data/double.bin\""    
+    , "complex <- readComplexDoubles \"data/complex.bin\""
     , "putStrLn $ \"x = \" ++ show doubles"
     , "putStrLn $ \"z = \" ++ show complex"
     ]
-  doubles <- readDoubles "double.bin"
+  doubles <- readDoubles "data/double.bin"
   putStrLn $ "x = " ++ show doubles
-  complex <- readComplexDoubles "complex.bin"
+  complex <- readComplexDoubles "data/complex.bin"
   putStrLn $ "z = " ++ show complex
   
 -- Rcpp must be added to the list of R packages required in
@@ -650,7 +650,7 @@ fmiq = do
       mindemod <- min(demod)
       demod <- demod/max(maxdemod,-mindemod) ## normalize
       w <- Wave(demod, samp.rate=fs, bit=32, pcm=FALSE)
-      writeWave(w,'tutorial.wav') |]
+      writeWave(w,'data/tutorial.wav') |]
   return ()
   
 gaussian :: IO ()

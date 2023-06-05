@@ -2,24 +2,27 @@
 module Main where
 {-
 
-This file illustrates the recommended way (as far as I can tell from
-the HaskellR documentation) to interact with R, either interactively
-or in batch mode. In contrast, tutorial.hs makes heavy use of the IO
-monad to keep the code simple, but with fewer type safety guarantees.
+This file extends an example found on the HaskellR documenttaion page:
+https://tweag.github.io/HaskellR/docs/differences-repl-source.html,
+an example where Language.R.Instance.Interactive is not used (like
+it is in H or Jupyter). It is suggested that in .hs files, the R
+monad should be used instead of the IO monad. This provides stronger
+static guarantees than the IO monad does.
 
-The main difference is that all examples in tutorial.hs have the
-same type, IO (), whereas the recommendation is to use the type
-R s () instead, and use liftIO to lift IO functions as needed. There
-is no lifting in tutorial.hs.
+In contrast, tutorial.hs makes heavy use of the IO
+monad to keep the code simple, and to permit easier IO, without
+the need for lifting.
+
+Here the type 'R s ()' is used in place of 'IO ()'. The latter is
+an instance of MonadIO, so liftIO can be used for user interaction
+if needed.
 
 For a batch program that does not need to interact with the user,
 runRegion should be used once, after withEmbeddedR.
 
 For an interactive program, each subtask/function should be in
-a runRegion block to be sure it is fully evaluated (Haskell is lazy).
-
-Note that H and the Jupyter kernel are interactive interfaces, and
-they make heavy use of the IO monad like tutorial.hs does.
+a runRegion block to be sure it is fully evaluated (no unevaluated
+thunks).
 
 The function p defined below is used instead of the interactive
 function I.p in tutorial.hs, and the function phelp is a lifted
@@ -56,6 +59,7 @@ phelp = liftIO . putStrLn . unlines :: [String] -> R s ()
 example1 :: String -> R s ()
 example1 txt = do
   phelp [txt]
+  liftIO $ putStrLn "Plotting sine and cosine."
   p =<< [r| plot(0:200/20, sin(0:200/20),
            xlab='t',ylab='signal',type='l',col='blue',
            main="Orig. signal blue, Hilbert transform red")
@@ -95,8 +99,8 @@ showItem (k,s) = (show k)++": "++s
 -- does not work here, because the case
 -- Just (a,b) -> R.runRegion do b
 -- leads to a type mismatch: type variable 's' in R s () would
--- escape its scope? Another complication here is that the
--- examples do not all have the same signature.
+-- escape its scope. Another complication here is that the
+-- examples need not have the same signature.
 exampleProcessor :: IO ()
 exampleProcessor = do
   putStrLn ""
