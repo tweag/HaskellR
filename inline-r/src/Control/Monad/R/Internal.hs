@@ -1,6 +1,7 @@
 -- |
 -- Copyright: (C) 2016 Tweag I/O Limited.
 
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -12,9 +13,15 @@ import Control.Monad.R.Class
 import Data.Proxy (Proxy(..))
 import Data.Reflection (Reifies, reify)
 import Foreign.R (SEXP)
+import Foreign.R.Context   -- XXX: Needed to help LH name resolution
+import Foreign.R.Internal  -- XXX: Needed to help LH name resolution
 
-newtype AcquireIO s = AcquireIO (forall ty. SEXP V ty -> IO (SEXP s ty))
+{-@ type AcquireIO s = forall <p :: SEXP s -> Bool > . (SEXP V)<p> -> IO ((SEXP s)<p>) @-}
+type AcquireIO s = SEXP V -> IO (SEXP s)
 
+-- XXX: It is not possible to give a specification to withAcquire.
+--      Apparently the constraints of the nested function can't be expressed in
+--      specs.
 withAcquire
   :: forall m r.
      (MonadR m)
@@ -22,4 +29,4 @@ withAcquire
   -> m r
 withAcquire f = do
     cxt <- getExecContext
-    reify (AcquireIO (\sx -> unsafeRunWithExecContext (acquire sx) cxt)) f
+    reify (\sx -> unsafeRunWithExecContext (acquire sx) cxt) f
