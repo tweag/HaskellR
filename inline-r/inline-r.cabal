@@ -79,23 +79,23 @@ library
     Internal.Error
   build-depends:
     base >=4.7 && <5,
-    aeson >=0.6 && <2.2,
-    bytestring >=0.10 && <0.12,
-    containers >=0.5 && <0.7,
+    aeson >=0.6 && <2.3,
+    bytestring >=0.10 && <0.13,
+    containers >=0.5 && <0.8,
     data-default-class >=0.1.2.0 && <0.2,
-    deepseq >=1.3 && <1.5,
+    deepseq >=1.3 && <1.6,
     exceptions >=0.6 && <1.1,
     heredoc >=0.2 && <0.3,
     inline-c >=0.6 && <0.10,
     mtl >=2.1 && <2.4,
     pretty >=1.1 && <1.2,
-    primitive >=0.5 && <0.9,
+    primitive >=0.5 && <0.10,
     process >=1.2 && <1.7,
     reflection >=2 && <2.2,
     setenv >=0.1.1 && <0.2,
-    template-haskell >=2.8 && <2.21,
+    template-haskell >=2.8 && <2.22,
     temporary >=1.2 && <1.4,
-    text >=0.11 && <2.1,
+    text >=0.11 && <2.2,
     th-lift >=0.6 && <0.9,
     th-orphans >=0.8 && <0.14,
     transformers >=0.3 && <0.7,
@@ -106,7 +106,7 @@ library
   else
     build-depends:
       singletons >=3 && <3.1,
-      singletons-th >=3 && <3.3,
+      singletons-th >=3 && <3.4,
   hs-source-dirs: src
   includes: cbits/missing_r.h
   c-sources: cbits/missing_r.c
@@ -132,27 +132,30 @@ test-suite tests
   type: exitcode-stdio-1.0
   build-depends:
     inline-r,
-    base >=4.6 && <5,
-    bytestring >=0.10 && <0.12,
+    -- bounds inherited from library
+    base,
+    bytestring,
+    heredoc,
+    mtl,
+    process,
+    temporary,
+    text,
+    -- additional packages
     directory >=1.2 && <1.4,
     filepath >=1.3 && <1.5,
-    heredoc >=0.2 && <0.3,
     ieee754 >=0.7 && <0.9,
-    mtl >=2.0 && <2.4,
-    process >=1.2 && <1.7,
     quickcheck-assertions >=0.1.1 && <0.4,
     singletons >=0.10 && <3.1,
     strict >=0.3.2 && <0.6,
-    tasty >=0.11 && <1.5,
+    tasty >=0.11 && <1.6,
     tasty-expected-failure >=0.11 && <0.13,
     tasty-golden >=2.3 && <2.4,
     tasty-hunit >=0.4.1 && <0.11,
     tasty-quickcheck >=0.4.1 && <0.11,
-    temporary >=1.2 && <1.4,
-    text >=0.11 && <2.1,
+    -- different bounds than library
     vector >=0.12.3.1 && <0.14,
   if !os(windows)
-    build-depends: unix >=2.5 && <2.9,
+    build-depends: unix
   other-modules:
     Test.GC
     Test.FunPtr
@@ -170,12 +173,14 @@ test-suite test-qq
   type: exitcode-stdio-1.0
   build-depends:
     inline-r,
-    base >=4.6 && <5,
-    mtl >=2.0 && <2.4,
-    process >=1.2 && <1.7,
-    tasty-hunit >=0.4.1 && <0.11,
+    -- bounds inherited from library
+    base,
+    mtl,
+    process,
+    text,
+    -- additional packages
     singletons >=0.9 && <3.1,
-    text >=0.11 && <2.1,
+    tasty-hunit >=0.4.1 && <0.11,
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
   default-language: Haskell2010
@@ -186,13 +191,15 @@ test-suite test-shootout
   other-modules: Test.Scripts
   build-depends:
     inline-r,
-    base >=4.6 && <5,
+    -- bounds inherited from library
+    base,
+    process,
+    template-haskell,
+    -- additional packages
     filepath >=1.3 && <1.5,
-    process >=1.2 && <1.7,
     silently >=1.2 && <1.3,
-    tasty >=0.3 && <1.5,
+    tasty >=0.3 && <1.6,
     tasty-hunit >=0.4.1 && <0.11,
-    template-haskell >=2.8 && <2.21,
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
   default-language: Haskell2010
@@ -204,8 +211,8 @@ test-suite test-env1
   type: exitcode-stdio-1.0
   build-depends:
     inline-r,
-    base >=4.6 && <5,
-    tasty >=0.3 && <1.5,
+    base,
+    tasty >=0.3 && <1.6,
     tasty-hunit >=0.4.1 && <0.11,
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
@@ -216,8 +223,8 @@ test-suite test-env2
   type: exitcode-stdio-1.0
   build-depends:
     inline-r,
-    base >=4.6 && <5,
-    tasty >=0.3 && <1.5,
+    base,
+    tasty >=0.3 && <1.6,
     tasty-hunit >=0.4.1 && <0.11,
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
@@ -228,11 +235,11 @@ benchmark bench-qq
   type: exitcode-stdio-1.0
   build-depends:
     inline-r,
-    base >=4.6 && <5,
+    base,
     criterion >=0.8 && <1.7,
     filepath >=1.3 && <1.5,
-    process >=1.2 && <1.7,
-    template-haskell >=2.8 && <2.21,
+    process,
+    template-haskell,
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
   default-language: Haskell2010
@@ -242,10 +249,10 @@ benchmark bench-hexp
   type: exitcode-stdio-1.0
   build-depends:
     inline-r,
-    base >=4.6 && <5,
+    base,
     criterion >=0.8 && <1.7,
-    primitive >=0.5 && <0.9,
-    vector >=0.10 && <0.14,
+    primitive,
+    vector,
     singletons >=2.7 && <3.1,
   ghc-options: -Wall -threaded
   hs-source-dirs: tests

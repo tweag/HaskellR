@@ -13,7 +13,7 @@ packages:
     hackage: ihaskell-blaze-0.3.0.1
 snapshots:
 - completed:
-    sha256: 0580a03f247573451c0a676673e0c2b474e0d42f78d4a93c4cd10eb32f2cb911
-    size: 698107
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2023/11/10.yaml
-  original: nightly-2023-11-10
+    sha256: 5a59b2a405b3aba3c00188453be172b85893cab8ebc352b1ef58b0eae5d248a2
+    size: 650475
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/26.yaml
+  original: lts-20.26

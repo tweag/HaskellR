@@ -34,7 +34,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml]
+        stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml, stack-lts-20.yaml, stack-lts-21.yaml]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

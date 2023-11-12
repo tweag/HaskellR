@@ -1,4 +1,4 @@
-resolver: nightly-2023-11-10
+resolver: lts-21.19
 
 packages:
 - examples
@@ -7,7 +7,10 @@ packages:
 - inline-r
 
 extra-deps:
+- ghc-parser-0.2.6.0
+- ihaskell-0.11.0.0
 - ihaskell-blaze-0.3.0.1
+- ipython-kernel-0.11.0.0
 
 nix:
   shell-file: ./shell.nix
