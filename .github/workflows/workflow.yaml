@@ -12,18 +12,18 @@ jobs:
         run: |
           choco install -y haskell-stack
           choco install -y r --version 4.0.0
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         run: |
-          stack path --snapshot-install-root
-          echo "::set-output name=dir::$(stack path --snapshot-install-root)"
-      - uses: actions/cache@v1
+          dir="$(stack path --snapshot-install-root)"
+          echo "${dir}"
+          echo "dir=${dir}" > "${GITHUB_OUTPUT}"
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
-          restore-keys: |
-            ${{ runner.os }}-stack-
+          key:          ${{ runner.os }}-stack--${{ hashFiles('**/*.cabal') }}
+          restore-keys: ${{ runner.os }}-stack-
       - name: Build
         run: |
           stack build inline-r H `
@@ -37,7 +37,7 @@ jobs:
         stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v15
         with:
           nix_path: nixpkgs=./nixpkgs.nix
@@ -49,15 +49,15 @@ jobs:
         run: |
           # XXX Workaround
           # https://github.com/commercialhaskell/stack/issues/5028.
-          [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
-          stack --nix path --snapshot-install-root
-          echo "::set-output name=dir::$(stack --nix path --snapshot-install-root)"
-      - uses: actions/cache@v2
+          [ "${{ matrix.stack_yaml }}" == "stack.yaml" ] || mv "${{ matrix.stack_yaml }}" stack.yaml
+          dir="$(stack --nix path --snapshot-install-root)"
+          echo "${dir}"
+          echo "dir=${dir}" > "${GITHUB_OUTPUT}"
+      - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
-          restore-keys: |
-            ${{ steps.stack-snapshot.outputs.dir }}
+          key:          ${{ runner.os }}-stack--${{ hashFiles('**/*.cabal') }}
+          restore-keys: ${{ runner.os }}-stack-
       - name: Build
         run: |
           stack --nix build
