@@ -32,7 +32,6 @@ extra-source-files:
   tests/R/fib.R
   tests/R/fib-benchmark.R
   ./R/collectAntis.R
-extra-tmp-files: inline-r.buildinfo
 
 flag liquidhaskell
   description: enable validation with Liquid Haskell
