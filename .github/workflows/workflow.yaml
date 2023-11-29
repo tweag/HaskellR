@@ -15,9 +15,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Get Stack snapshot install directory
         id: stack-snapshot
+        # NOTE: `stack path` must run at least once prior to caching to ensure the directory
+        # exists and is populated.
         run: |
           stack path --snapshot-install-root
-          echo "::set-output name=dir::$(stack path --snapshot-install-root)"
+          echo "dir=$(stack path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
       - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
@@ -46,12 +48,14 @@ jobs:
           nix-env -f. -iA nixpkgs.stack
       - name: Get Stack snapshot install directory
         id: stack-snapshot
+        # NOTE: `stack path` must run at least once prior to caching to ensure the directory
+        # exists and is populated.
+        # NOTE: The renaming of the stack.yaml file is a workaround for
+        # https://github.com/commercialhaskell/stack/issues/5028.
         run: |
-          # XXX Workaround
-          # https://github.com/commercialhaskell/stack/issues/5028.
           [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
           stack --nix path --snapshot-install-root
-          echo "::set-output name=dir::$(stack --nix path --snapshot-install-root)"
+          echo "dir=$(stack --nix path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
       - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
