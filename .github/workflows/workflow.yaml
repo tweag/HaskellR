@@ -19,7 +19,7 @@ jobs:
         # exists and is populated.
         run: |
           stack path --snapshot-install-root
-          echo "dir=$(stack path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
+          "dir=$(stack path --snapshot-install-root)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
