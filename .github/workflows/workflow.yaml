@@ -33,6 +33,7 @@ jobs:
   test:
     name: Build & Test - ${{ matrix.os }} - ${{ matrix.stack_yaml }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml]
