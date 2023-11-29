@@ -23,9 +23,8 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
-          restore-keys: |
-            ${{ runner.os }}-stack-
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
+          restore-keys: ${{ runner.os }}-stack-
       - name: Build
         run: |
           stack build inline-r H `
@@ -59,9 +58,8 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ steps.stack-snapshot.outputs.dir }}-${{ hashFiles('**/*.cabal') }}
-          restore-keys: |
-            ${{ steps.stack-snapshot.outputs.dir }}
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
+          restore-keys: ${{ runner.os }}-stack-
       - name: Build
         run: |
           stack --nix build
