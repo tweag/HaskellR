@@ -47,7 +47,7 @@ source-repository head
 library
   exposed-modules:
     Control.Memory.Region
---    Data.Vector.SEXP
+    Data.Vector.SEXP
     Data.Vector.SEXP.Base
     Data.Vector.SEXP.Mutable
     Foreign.R

@@ -18,6 +18,7 @@
 -- Note that since 'unstream' relies on slicing operations, it will still be an
 -- O(N) operation but it will copy vector data twice (instead of once).
 
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
@@ -32,16 +33,19 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
+{-@ LIQUID "--exact-data-cons" @-}
+{-@ LIQUID "--prune-unsorted" @-}
 module Data.Vector.SEXP
   ( Vector(..)
   , Mutable.MVector(..)
   , ElemRep
-  , VECTOR
-  , SVECTOR
+  , VSEXPTYPE(..)
   , Data.Vector.SEXP.fromSEXP
   , unsafeFromSEXP
   , Data.Vector.SEXP.toSEXP
   , unsafeToSEXP
+  , vtypeOf
+  , vstypeOf
   -- * Accessors
   -- ** Length information
   , length
@@ -266,7 +270,6 @@ import qualified Data.Vector.SEXP.Mutable as Mutable
 import qualified Data.Vector.SEXP.Mutable.Internal as Mutable
 import Foreign.R ( SEXP(..), SEXP0(..) )
 import qualified Foreign.R as R
-import Foreign.R.Type ( SEXPTYPE(Char) )
 
 import Control.Monad.ST (ST, runST)
 import Data.Int
@@ -296,12 +299,13 @@ import Control.Monad.Primitive ( PrimMonad, unsafeInlineIO, unsafePrimToPrim )
 import qualified Control.DeepSeq as DeepSeq
 import Data.Word ( Word8 )
 import Foreign ( Storable, Ptr, castPtr, peekElemOff )
+import Foreign.C.String -- XXX: Needed for LH name resolution
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
 import Foreign.Marshal.Array ( copyArray )
 import qualified GHC.Foreign as GHC
 import qualified GHC.ForeignPtr as GHC
 import GHC.IO.Encoding.UTF8
-import qualified GHC.Exts as Exts
+import Internal.Error (violation)
 import System.IO.Unsafe
 
 import Prelude
@@ -324,56 +328,62 @@ import Prelude
   )
 import qualified Prelude
 
-newtype ForeignSEXP (ty::SEXPTYPE) = ForeignSEXP (ForeignPtr R.SEXPREC)
+newtype ForeignSEXP = ForeignSEXP (ForeignPtr R.SEXPREC)
+
+{-@ measure Data.Vector.SEXP.ftypeOf :: ForeignSEXP -> R.SEXPTYPE @-}
 
 -- | Create a 'ForeignSEXP' from 'SEXP'.
-foreignSEXP :: PrimMonad m => SEXP s ty -> m (ForeignSEXP ty)
+{-@ assume foreignSEXP :: s:SEXP s -> m {v:ForeignSEXP | Data.Vector.SEXP.ftypeOf v == typeOf s} @-}
+foreignSEXP :: PrimMonad m => SEXP s -> m ForeignSEXP
 foreignSEXP sx@(SEXP (SEXP0 ptr)) =
     unsafePrimToPrim $ mask_ $ do
       R.preserveObject sx
       ForeignSEXP <$> GHC.newConcForeignPtr ptr (R.releaseObject sx)
 
-withForeignSEXP
-  :: ForeignSEXP ty
-  -> (SEXP V ty -> IO r)
-  -> IO r
+{-@ assume withForeignSEXP :: f:ForeignSEXP -> (TSEXP V (Data.Vector.SEXP.ftypeOf f) -> IO r) -> IO r @-}
+withForeignSEXP :: ForeignSEXP -> (SEXP V -> IO r) -> IO r
 withForeignSEXP (ForeignSEXP fptr) f =
     withForeignPtr fptr $ \ptr -> f (SEXP (SEXP0 ptr))
 
--- | Immutable vectors. The second type paramater is a phantom parameter
--- reflecting at the type level the tag of the vector when viewed as a 'SEXP'.
--- The tag of the vector and the representation type are related via 'ElemRep'.
-data Vector (ty :: SEXPTYPE) a = Vector
-  { vectorBase   :: {-# UNPACK #-} !(ForeignSEXP ty)
+{-@ measure Data.Vector.SEXP.vtypeOf :: Vector a -> R.SEXPTYPE @-}
+{-@ type TVector a T = {v:Vector a | Data.Vector.SEXP.vtypeOf v == T} @-}
+
+-- | Immutable vectors.
+data Vector a = Vector
+  { vectorBase   :: {-# UNPACK #-} !ForeignSEXP
   , vectorOffset :: {-# UNPACK #-} !Int32
   , vectorLength :: {-# UNPACK #-} !Int32
   }
 
-instance (Eq a, SVECTOR ty a) => Eq (Vector ty a) where
+{-@ assume vtypeOf :: v:Vector a -> {t:R.SEXPTYPE | Data.Vector.SEXP.vtypeOf v == t} @-}
+vtypeOf :: Vector a -> R.SEXPTYPE
+vtypeOf v = unsafeInlineIO $ withForeignSEXP (vectorBase v) $ pure . R.typeOf
+
+instance (Eq a, Storable a) => Eq (Vector a) where
   a == b = toList a == toList b
 
-instance (Show a, SVECTOR ty a)  => Show (Vector ty a) where
+instance (Show a, Storable a)  => Show (Vector a) where
   show v = "fromList " Prelude.++ showList (toList v) ""
 
 -- | Internal wrapper type for reflection. First type parameter is the reified
 -- type to reflect.
-newtype W t ty a = W { unW :: Vector ty a }
+newtype W t a = W { unW :: Vector a }
 
-withW :: proxy t -> Vector ty a -> W t ty a
+withW :: proxy t -> Vector a -> W t a
 withW _ v = W v
 
-proxyFW :: (W t ty a -> r) -> Vector ty a -> p t -> r
+proxyFW :: (W t a -> r) -> Vector a -> p t -> r
 proxyFW f v p = f (withW p v)
 
-proxyFW2 :: (W t tya a -> W t tyb b -> r) -> Vector tya a -> Vector tyb b -> p t -> r
+proxyFW2 :: (W t a -> W t b -> r) -> Vector a -> Vector b -> p t -> r
 proxyFW2 f v1 v2 p = f (withW p v1) (withW p v2)
 
-proxyW :: W t ty a -> p t -> Vector ty a
+proxyW :: W t a -> p t -> Vector a
 proxyW v _ = unW v
 
-type instance G.Mutable (W t ty) = Mutable.W t ty
+type instance G.Mutable (W t) = Mutable.W t
 
-instance (Reifies t (AcquireIO s), SVECTOR ty a) => G.Vector (W t ty) a where
+instance (Reifies t (AcquireIO s, IO R.SEXPTYPE), Storable a) => G.Vector (W t) a where
   {-# INLINE basicUnsafeFreeze #-}
   basicUnsafeFreeze (Mutable.unW -> Mutable.MVector sx off len) = do
       fp <- foreignSEXP sx
@@ -384,7 +394,7 @@ instance (Reifies t (AcquireIO s), SVECTOR ty a) => G.Vector (W t ty) a where
          sx' <- acquireIO (R.release ptr)
          return $ Mutable.withW p $ Mutable.MVector (R.unsafeRelease sx') off len
     where
-      AcquireIO acquireIO = reflect (Proxy :: Proxy t)
+      (acquireIO, _) = reflect (Proxy :: Proxy t)
       p = Proxy :: Proxy t
   basicLength (unW -> Vector _ _ len) = fromIntegral len
   {-# INLINE basicUnsafeSlice #-}
@@ -401,21 +411,27 @@ instance (Reifies t (AcquireIO s), SVECTOR ty a) => G.Vector (W t ty) a where
   {-# INLINE elemseq #-}
   elemseq _ = seq
 
-instance SVECTOR ty a => Exts.IsList (Vector ty a) where
-  type Item (Vector ty a) = a
-  fromList = fromList
-  fromListN = fromListN
-  toList = toList
+-- TODO: how to disable LH on a class instance?
+-- instance Storable a => Exts.IsList (Vector a) where
+--   type Item (Vector a) = a
+  -- TODO: How to disable LH so it doesn't complain of these methods calling error
+  -- fromList = Prelude.error "cannot convert list to vector without an explicit runtime type"
+  -- fromListN = Prelude.error "cannot convert list to vector without an explicit runtime type"
+  -- fromList = fromList
+  -- fromListN = fromListN
+--  toList = toList
 
 -- | Return Pointer of the first element of the vector storage.
-unsafeToPtr :: Storable a => Vector ty a -> Ptr a
+unsafeToPtr :: Storable a => Vector a -> Ptr a
 {-# INLINE unsafeToPtr #-}
 unsafeToPtr (Vector fp off len) = unsafeInlineIO $ withForeignSEXP fp $ \sx ->
     return $ Mutable.unsafeToPtr $ Mutable.MVector sx off len
 
 -- | /O(n)/ Create an immutable vector from a 'SEXP'. Because 'SEXP's are
 -- mutable, this function yields an immutable /copy/ of the 'SEXP'.
-fromSEXP :: (SVECTOR ty a) => SEXP s ty -> Vector ty a
+{-@ assume fromSEXP :: {s:SEXP s | isVectorType (typeOf s)} -> {v:Vector a | Data.Vector.SEXP.vtypeOf v == typeOf s} @-}
+{-@ ignore fromSEXP @-}
+fromSEXP :: Storable a => SEXP s -> Vector a
 fromSEXP s = phony $ \p -> runST $ do
   w <- run (proxyFW G.clone (unsafeFromSEXP s) p)
   v <- G.unsafeFreeze w
@@ -424,16 +440,19 @@ fromSEXP s = phony $ \p -> runST $ do
 -- | /O(1)/ Unsafe convert a mutable 'SEXP' to an immutable vector without
 -- copying. The mutable vector must not be used after this operation, lest one
 -- runs the risk of breaking referential transparency.
-unsafeFromSEXP :: SVECTOR ty a
-               => SEXP s ty
-               -> Vector ty a
+{-@ assume unsafeFromSEXP :: {s:SEXP s | isVectorType (typeOf s)} -> {v:Vector a | Data.Vector.SEXP.vtypeOf v == typeOf s} @-}
+unsafeFromSEXP :: Storable a
+               => SEXP s
+               -> Vector a
 unsafeFromSEXP s = unsafeInlineIO $ do
   sxp <- foreignSEXP s
   l <- R.length s
   return $ Vector sxp 0 (fromIntegral l)
 
 -- | /O(n)/ Yield a (mutable) copy of the vector as a 'SEXP'.
-toSEXP :: SVECTOR ty a => Vector ty a -> SEXP s ty
+
+{-@ assume toSEXP :: v:Vector a -> {s:SEXP s | typeOf s == Data.Vector.SEXP.vtypeOf v} @-}
+toSEXP :: Storable a => Vector a -> SEXP s
 toSEXP s = phony $ \p -> runST $ do
   w <- run (proxyFW G.clone s p)
   v <- G.unsafeFreeze w
@@ -441,18 +460,23 @@ toSEXP s = phony $ \p -> runST $ do
 
 -- | /O(1)/ Unsafely convert an immutable vector to a (mutable) 'SEXP' without
 -- copying. The immutable vector must not be used after this operation.
-unsafeToSEXP :: SVECTOR ty a => Vector ty a -> SEXP s ty
+{-@ assume unsafeToSEXP :: v:Vector a -> {s:SEXP s | typeOf s == Data.Vector.SEXP.vtypeOf v} @-}
+unsafeToSEXP :: Storable a => Vector a -> SEXP s
 unsafeToSEXP (Vector (ForeignSEXP fsx) _ _) = unsafePerformIO $ -- XXX
   withForeignPtr fsx $ return . R.sexp . SEXP0
 
 -- | /O(n)/ Convert a character vector into a 'String'.
-toString :: Vector 'Char Word8 -> String
+{-@ assume toString :: TVector Word8 Foreign.R.Type.SChar -> String @-}
+{-@ ignore toString @-}
+toString :: Vector Word8 -> String
 toString v = unsafeInlineIO $
   GHC.peekCStringLen utf8 ( castPtr $ unsafeToPtr v
                           , fromIntegral $ vectorLength v)
 
 -- | /O(n)/ Convert a character vector into a strict 'ByteString'.
-toByteString :: Vector 'Char Word8 -> ByteString
+{-@ assume toByteString :: TVector Word8 Foreign.R.Type.SChar -> ByteString @-}
+{-@ ignore toByteString @-}
+toByteString :: Vector Word8 -> ByteString
 toByteString v = unsafeInlineIO $
    B.packCStringLen ( castPtr $ unsafeToPtr v
                     , fromIntegral $ vectorLength v)
@@ -461,12 +485,14 @@ toByteString v = unsafeInlineIO $
 -- outside of the function. Any change to bytestring will be
 -- reflected in the source vector, thus breaking referencial
 -- transparancy.
-unsafeWithByteString :: DeepSeq.NFData a => Vector 'Char Word8 -> (ByteString -> IO a) -> a
+{-@ assume unsafeWithByteString :: TVector Word8 Foreign.R.Type.SChar -> (ByteString -> IO a) -> a @-}
+{-@ ignore unsafeWithByteString @-}
+unsafeWithByteString :: DeepSeq.NFData a => Vector Word8 -> (ByteString -> IO a) -> a
 unsafeWithByteString v f = unsafeInlineIO $ do
    x <- B.unsafePackCStringLen (castPtr $ unsafeToPtr v
                                ,fromIntegral $ vectorLength v)
    w <- DeepSeq.force <$> f x
-   evaluate w 
+   evaluate w
 
 ------------------------------------------------------------------------
 -- Vector API
@@ -477,12 +503,12 @@ unsafeWithByteString v f = unsafeInlineIO $ do
 ------------------------------------------------------------------------
 
 -- | /O(1)/ Yield the length of the vector.
-length :: SVECTOR ty a => Vector ty a -> Int
+length :: Storable a => Vector a -> Int
 {-# INLINE length #-}
 length v = phony $ proxyFW G.length v
 
 -- | /O(1)/ Test whether a vector if empty
-null :: SVECTOR ty a => Vector ty a -> Bool
+null :: Storable a => Vector a -> Bool
 {-# INLINE null #-}
 null v = phony $ proxyFW G.null v
 
@@ -491,37 +517,37 @@ null v = phony $ proxyFW G.null v
 ------------------------------------------------------------------------
 
 -- | O(1) Indexing
-(!) :: SVECTOR ty a => Vector ty a -> Int -> a
+(!) :: Storable a => Vector a -> Int -> a
 {-# INLINE (!) #-}
 (!) v i = phony $ proxyFW (G.! i) v
 
 -- | O(1) Safe indexing
-(!?) :: SVECTOR ty a => Vector ty a -> Int -> Maybe a
+(!?) :: Storable a => Vector a -> Int -> Maybe a
 {-# INLINE (!?) #-}
 (!?) v i = phony $ proxyFW (G.!? i) v
 
 -- | /O(1)/ First element
-head :: SVECTOR ty a => Vector ty a -> a
+head :: Storable a => Vector a -> a
 {-# INLINE head #-}
 head v = phony $ proxyFW G.head v
 
 -- | /O(1)/ Last element
-last :: SVECTOR ty a => Vector ty a -> a
+last :: Storable a => Vector a -> a
 {-# INLINE last #-}
 last v = phony $ proxyFW G.last v
 
 -- | /O(1)/ Unsafe indexing without bounds checking
-unsafeIndex :: SVECTOR ty a => Vector ty a -> Int -> a
+unsafeIndex :: Storable a => Vector a -> Int -> a
 {-# INLINE unsafeIndex #-}
 unsafeIndex v i = phony $ proxyFW (`G.unsafeIndex` i) v
 
 -- | /O(1)/ First element without checking if the vector is empty
-unsafeHead :: SVECTOR ty a => Vector ty a -> a
+unsafeHead :: Storable a => Vector a -> a
 {-# INLINE unsafeHead #-}
 unsafeHead v = phony $ proxyFW G.unsafeHead v
 
 -- | /O(1)/ Last element without checking if the vector is empty
-unsafeLast :: SVECTOR ty a => Vector ty a -> a
+unsafeLast :: Storable a => Vector a -> a
 {-# INLINE unsafeLast #-}
 unsafeLast v = phony $ proxyFW G.unsafeLast v
 
@@ -548,37 +574,37 @@ unsafeLast v = phony $ proxyFW G.unsafeLast v
 -- Here, no references to @v@ are retained because indexing (but /not/ the
 -- elements) is evaluated eagerly.
 --
-indexM :: (SVECTOR ty a, Monad m) => Vector ty a -> Int -> m a
+indexM :: (Storable a, Monad m) => Vector a -> Int -> m a
 {-# INLINE indexM #-}
 indexM v i = phony $ proxyFW (`G.indexM` i) v
 
 -- | /O(1)/ First element of a vector in a monad. See 'indexM' for an
 -- explanation of why this is useful.
-headM :: (SVECTOR ty a, Monad m) => Vector ty a -> m a
+headM :: (Storable a, Monad m) => Vector a -> m a
 {-# INLINE headM #-}
 headM v = phony $ proxyFW G.headM v
 
 -- | /O(1)/ Last element of a vector in a monad. See 'indexM' for an
 -- explanation of why this is useful.
-lastM :: (SVECTOR ty a, Monad m) => Vector ty a -> m a
+lastM :: (Storable a, Monad m) => Vector a -> m a
 {-# INLINE lastM #-}
 lastM v = phony $ proxyFW G.lastM v
 
 -- | /O(1)/ Indexing in a monad without bounds checks. See 'indexM' for an
 -- explanation of why this is useful.
-unsafeIndexM :: (SVECTOR ty a, Monad m) => Vector ty a -> Int -> m a
+unsafeIndexM :: (Storable a, Monad m) => Vector a -> Int -> m a
 {-# INLINE unsafeIndexM #-}
 unsafeIndexM v = phony $ proxyFW G.unsafeIndexM v
 
 -- | /O(1)/ First element in a monad without checking for empty vectors.
 -- See 'indexM' for an explanation of why this is useful.
-unsafeHeadM :: (SVECTOR ty a, Monad m) => Vector ty a -> m a
+unsafeHeadM :: (Storable a, Monad m) => Vector a -> m a
 {-# INLINE unsafeHeadM #-}
 unsafeHeadM v = phony $ proxyFW G.unsafeHeadM v
 
 -- | /O(1)/ Last element in a monad without checking for empty vectors.
 -- See 'indexM' for an explanation of why this is useful.
-unsafeLastM :: (SVECTOR ty a, Monad m) => Vector ty a -> m a
+unsafeLastM :: (Storable a, Monad m) => Vector a -> m a
 {-# INLINE unsafeLastM #-}
 unsafeLastM v = phony $ proxyFW G.unsafeLastM v
 
@@ -588,34 +614,39 @@ unsafeLastM v = phony $ proxyFW G.unsafeLastM v
 
 -- | /O(N)/ Yield a slice of the vector with copying it. The vector must
 -- contain at least @i+n@ elements.
-slice :: SVECTOR ty a
+{-@ assume slice :: Int -> Int -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+slice :: Storable a
       => Int   -- ^ @i@ starting index
       -> Int   -- ^ @n@ length
-      -> Vector ty a
-      -> Vector ty a
+      -> Vector a
+      -> Vector a
 {-# INLINE slice #-}
 slice i n v = phony $ unW . proxyFW (G.slice i n) v
 
 -- | /O(N)/ Yield all but the last element, this operation will copy an array.
 -- The vector may not be empty.
-init :: SVECTOR ty a => Vector ty a -> Vector ty a
+{-@ assume init :: v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+init :: Storable a => Vector a -> Vector a
 {-# INLINE init #-}
 init v = phony $ unW . proxyFW G.init v
 
 -- | /O(N)/ Copy all but the first element. The vector may not be empty.
-tail :: SVECTOR ty a => Vector ty a -> Vector ty a
+{-@ assume tail :: v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+tail :: Storable a => Vector a -> Vector a
 {-# INLINE tail #-}
 tail v = phony $ unW . proxyFW G.tail v
 
 -- | /O(N)/ Yield at the first @n@ elements with copying. The vector may
 -- contain less than @n@ elements in which case it is returned unchanged.
-take :: SVECTOR ty a => Int -> Vector ty a -> Vector ty a
+{-@ assume take :: Int -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+take :: Storable a => Int -> Vector a -> Vector a
 {-# INLINE take #-}
 take i v = phony $ unW . proxyFW (G.take i) v
 
 -- | /O(N)/ Yield all but the first @n@ elements with copying. The vector may
 -- contain less than @n@ elements in which case an empty vector is returned.
-drop :: SVECTOR ty a => Int -> Vector ty a -> Vector ty a
+{-@ assume drop :: Int -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+drop :: Storable a => Int -> Vector a -> Vector a
 {-# INLINE drop #-}
 drop i v = phony $ unW . proxyFW (G.drop i) v
 
@@ -623,40 +654,46 @@ drop i v = phony $ unW . proxyFW (G.drop i) v
 --
 -- Note that @'splitAt' n v@ is equivalent to @('take' n v, 'drop' n v)@
 -- but slightly more efficient.
+{-@ assume splitAt :: Int -> v:Vector a -> (TVector a (Data.Vector.SEXP.vtypeOf v), TVector a (Data.Vector.SEXP.vtypeOf v)) @-}
 {-# INLINE splitAt #-}
-splitAt :: SVECTOR ty a => Int -> Vector ty a -> (Vector ty a, Vector ty a)
+splitAt :: Storable a => Int -> Vector a -> (Vector a, Vector a)
 splitAt i v = phony $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.splitAt i) v
 
 -- | /O(N)/ Yield a slice of the vector with copying. The vector must
 -- contain at least @i+n@ elements but this is not checked.
-unsafeSlice :: SVECTOR ty a => Int   -- ^ @i@ starting index
+{-@ assume unsafeSlice :: Int -> Int -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+unsafeSlice :: Storable a => Int   -- ^ @i@ starting index
                        -> Int   -- ^ @n@ length
-                       -> Vector ty a
-                       -> Vector ty a
+                       -> Vector a
+                       -> Vector a
 {-# INLINE unsafeSlice #-}
 unsafeSlice i j v = phony $ unW . proxyFW (G.unsafeSlice i j) v
 
 -- | /O(N)/ Yield all but the last element with copying. The vector may not
 -- be empty but this is not checked.
-unsafeInit :: SVECTOR ty a => Vector ty a -> Vector ty a
+{-@ assume unsafeInit :: v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+unsafeInit :: Storable a => Vector a -> Vector a
 {-# INLINE unsafeInit #-}
 unsafeInit v = phony $ unW . proxyFW G.unsafeInit v
 
 -- | /O(N)/ Yield all but the first element with copying. The vector may not
 -- be empty but this is not checked.
-unsafeTail :: SVECTOR ty a => Vector ty a -> Vector ty a
+{-@ assume unsafeTail :: v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+unsafeTail :: Storable a => Vector a -> Vector a
 {-# INLINE unsafeTail #-}
 unsafeTail v = phony $ unW . proxyFW G.unsafeTail v
 
 -- | /O(N)/ Yield the first @n@ elements with copying. The vector must
 -- contain at least @n@ elements but this is not checked.
-unsafeTake :: SVECTOR ty a => Int -> Vector ty a -> Vector ty a
+{-@ assume unsafeTake :: Int -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+unsafeTake :: Storable a => Int -> Vector a -> Vector a
 {-# INLINE unsafeTake #-}
 unsafeTake i v = phony $ unW . proxyFW (G.unsafeTake i) v
 
 -- | /O(N)/ Yield all but the first @n@ elements with copying. The vector
 -- must contain at least @n@ elements but this is not checked.
-unsafeDrop :: SVECTOR ty a => Int -> Vector ty a -> Vector ty a
+{-@ assume unsafeDrop :: Int -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+unsafeDrop :: Storable a => Int -> Vector a -> Vector a
 {-# INLINE unsafeDrop #-}
 unsafeDrop i v = phony $ unW . proxyFW (G.unsafeDrop i) v
 
@@ -664,30 +701,35 @@ unsafeDrop i v = phony $ unW . proxyFW (G.unsafeDrop i) v
 -- --------------
 
 -- | /O(1)/ Empty vector
-empty :: SVECTOR ty a => Vector ty a
+{-@ assume empty :: x:VSEXPTYPE s a -> TVector a (vstypeOf x) @-}
+empty :: Storable a => VSEXPTYPE s a -> Vector a
 {-# INLINE empty #-}
-empty = phony $ proxyW G.empty
+empty t = phonyvtype t $ proxyW G.empty
 
 -- | /O(1)/ Vector with exactly one element
-singleton :: SVECTOR ty a => a -> Vector ty a
+{-@ assume singleton :: x:VSEXPTYPE s a -> a -> TVector a (vstypeOf x) @-}
+singleton :: Storable a => VSEXPTYPE s a -> a -> Vector a
 {-# INLINE singleton #-}
-singleton a = phony $ proxyW (G.singleton a)
+singleton t a = phonyvtype t $ proxyW (G.singleton a)
 
 -- | /O(n)/ Vector of the given length with the same value in each position
-replicate :: SVECTOR ty a => Int -> a -> Vector ty a
+{-@ assume replicate :: x:VSEXPTYPE s a -> Int -> a -> TVector a (vstypeOf x) @-}
+replicate :: Storable a => VSEXPTYPE s a -> Int -> a -> Vector a
 {-# INLINE replicate #-}
-replicate i v = phony $ proxyW (G.replicate i v)
+replicate t i v = phonyvtype t $ proxyW (G.replicate i v)
 
 -- | /O(n)/ Construct a vector of the given length by applying the function to
 -- each index
-generate :: SVECTOR ty a => Int -> (Int -> a) -> Vector ty a
+{-@ assume generate :: x:VSEXPTYPE s a -> Int -> (Int -> a) -> TVector a (vstypeOf x) @-}
+generate :: Storable a => VSEXPTYPE s a -> Int -> (Int -> a) -> Vector a
 {-# INLINE generate #-}
-generate i f = phony $ proxyW (G.generate i f)
+generate t i f = phonyvtype t $ proxyW (G.generate i f)
 
 -- | /O(n)/ Apply function n times to value. Zeroth element is original value.
-iterateN :: SVECTOR ty a => Int -> (a -> a) -> a -> Vector ty a
+{-@ assume iterateN :: x:VSEXPTYPE s a -> Int -> (a -> a) -> a -> TVector a (vstypeOf x) @-}
+iterateN :: Storable a => VSEXPTYPE s a -> Int -> (a -> a) -> a -> Vector a
 {-# INLINE iterateN #-}
-iterateN i f a = phony $ proxyW (G.iterateN i f a)
+iterateN t i f a = phonyvtype t $ proxyW (G.iterateN i f a)
 
 -- Unfolding
 -- ---------
@@ -697,27 +739,30 @@ iterateN i f a = phony $ proxyW (G.iterateN i f a)
 --
 -- > unfoldr (\n -> if n == 0 then Nothing else Just (n,n-1)) 10
 -- >  = <10,9,8,7,6,5,4,3,2,1>
-unfoldr :: SVECTOR ty a => (b -> Maybe (a, b)) -> b -> Vector ty a
+{-@ assume unfoldr :: x:VSEXPTYPE s a -> (b -> Maybe (a, b)) -> b -> TVector a (vstypeOf x) @-}
+unfoldr :: Storable a => VSEXPTYPE s a -> (b -> Maybe (a, b)) -> b -> Vector a
 {-# INLINE unfoldr #-}
-unfoldr g a = phony $ proxyW (G.unfoldr g a)
+unfoldr t g a = phonyvtype t $ proxyW (G.unfoldr g a)
 
 -- | /O(n)/ Construct a vector with at most @n@ by repeatedly applying the
 -- generator function to the a seed. The generator function yields 'Just' the
 -- next element and the new seed or 'Nothing' if there are no more elements.
 --
 -- > unfoldrN 3 (\n -> Just (n,n-1)) 10 = <10,9,8>
-unfoldrN :: SVECTOR ty a => Int -> (b -> Maybe (a, b)) -> b -> Vector ty a
+{-@ assume unfoldrN :: x:VSEXPTYPE s a -> Int -> (b -> Maybe (a, b)) -> b -> TVector a (vstypeOf x) @-}
+unfoldrN :: Storable a => VSEXPTYPE s a -> Int -> (b -> Maybe (a, b)) -> b -> Vector a
 {-# INLINE unfoldrN #-}
-unfoldrN n g a = phony $ proxyW (G.unfoldrN n g a)
+unfoldrN t n g a = phonyvtype t $ proxyW (G.unfoldrN n g a)
 
 -- | /O(n)/ Construct a vector with @n@ elements by repeatedly applying the
 -- generator function to the already constructed part of the vector.
 --
 -- > constructN 3 f = let a = f <> ; b = f <a> ; c = f <a,b> in f <a,b,c>
 --
-constructN :: SVECTOR ty a => Int -> (Vector ty a -> a) -> Vector ty a
+{-@ assume constructN :: x:VSEXPTYPE s a -> Int -> (TVector a (vstypeOf x) -> a) -> TVector a (vstypeOf x) @-}
+constructN :: Storable a => VSEXPTYPE s a -> Int -> (Vector a -> a) -> Vector a
 {-# INLINE constructN #-}
-constructN n g = phony $ proxyW (G.constructN n (g.unW))
+constructN t n g = phonyvtype t $ proxyW (G.constructN n (g.unW))
 
 -- | /O(n)/ Construct a vector with @n@ elements from right to left by
 -- repeatedly applying the generator function to the already constructed part
@@ -725,9 +770,10 @@ constructN n g = phony $ proxyW (G.constructN n (g.unW))
 --
 -- > constructrN 3 f = let a = f <> ; b = f<a> ; c = f <b,a> in f <c,b,a>
 --
-constructrN :: SVECTOR ty a => Int -> (Vector ty a -> a) -> Vector ty a
+{-@ assume constructrN :: x:VSEXPTYPE s a -> Int -> (TVector a (vstypeOf x) -> a) -> TVector a (vstypeOf x) @-}
+constructrN :: Storable a => VSEXPTYPE s a -> Int -> (Vector a -> a) -> Vector a
 {-# INLINE constructrN #-}
-constructrN n g = phony $ proxyW (G.constructrN n (g.unW))
+constructrN t n g = phonyvtype t $ proxyW (G.constructrN n (g.unW))
 
 -- Enumeration
 -- -----------
@@ -736,82 +782,93 @@ constructrN n g = phony $ proxyW (G.constructrN n (g.unW))
 -- etc. This operation is usually more efficient than 'enumFromTo'.
 --
 -- > enumFromN 5 3 = <5,6,7>
-enumFromN :: (SVECTOR ty a, Num a) => a -> Int -> Vector ty a
+{-@ assume enumFromN :: x:VSEXPTYPE s a -> a -> Int -> TVector a (vstypeOf x) @-}
+enumFromN :: (Storable a, Num a) => VSEXPTYPE s a -> a -> Int -> Vector a
 {-# INLINE enumFromN #-}
-enumFromN a i = phony $ proxyW (G.enumFromN a i)
+enumFromN t a i = phonyvtype t $ proxyW (G.enumFromN a i)
 
 -- | /O(n)/ Yield a vector of the given length containing the values @x@, @x+y@,
 -- @x+y+y@ etc. This operations is usually more efficient than 'enumFromThenTo'.
 --
 -- > enumFromStepN 1 0.1 5 = <1,1.1,1.2,1.3,1.4>
-enumFromStepN :: (SVECTOR ty a, Num a) => a -> a -> Int -> Vector ty a
+{-@ assume enumFromStepN :: x:VSEXPTYPE s a -> a -> a -> Int -> TVector a (vstypeOf x) @-}
+enumFromStepN :: (Storable a, Num a) => VSEXPTYPE s a -> a -> a -> Int -> Vector a
 {-# INLINE enumFromStepN #-}
-enumFromStepN f t s = phony $ proxyW (G.enumFromStepN f t s)
+enumFromStepN vt f t s = phonyvtype vt $ proxyW (G.enumFromStepN f t s)
 
 -- | /O(n)/ Enumerate values from @x@ to @y@.
 --
 -- /WARNING:/ This operation can be very inefficient. If at all possible, use
 -- 'enumFromN' instead.
-enumFromTo :: (SVECTOR ty a, Enum a) => a -> a -> Vector ty a
+{-@ assume enumFromTo :: x:VSEXPTYPE s a -> a -> a -> TVector a (vstypeOf x) @-}
+enumFromTo :: (Storable a, Enum a) => VSEXPTYPE s a -> a -> a -> Vector a
 {-# INLINE enumFromTo #-}
-enumFromTo f t = phony $ proxyW (G.enumFromTo f t)
+enumFromTo vt f t = phonyvtype vt $ proxyW (G.enumFromTo f t)
 
 -- | /O(n)/ Enumerate values from @x@ to @y@ with a specific step @z@.
 --
 -- /WARNING:/ This operation can be very inefficient. If at all possible, use
 -- 'enumFromStepN' instead.
-enumFromThenTo :: (SVECTOR ty a, Enum a) => a -> a -> a -> Vector ty a
+{-@ assume enumFromThenTo :: x:VSEXPTYPE s a -> a -> a -> a -> TVector a (vstypeOf x) @-}
+enumFromThenTo :: (Storable a, Enum a) => VSEXPTYPE s a -> a -> a -> a -> Vector a
 {-# INLINE enumFromThenTo #-}
-enumFromThenTo f t s = phony $ proxyW (G.enumFromThenTo f t s)
+enumFromThenTo vt f t s = phonyvtype vt $ proxyW (G.enumFromThenTo f t s)
 
 -- Concatenation
 -- -------------
 
 -- | /O(n)/ Prepend an element
-cons :: SVECTOR ty a => a -> Vector ty a -> Vector ty a
+{-@ assume cons :: a -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+cons :: Storable a => a -> Vector a -> Vector a
 {-# INLINE cons #-}
 cons a v = phony $ unW . proxyFW (G.cons a) v
 
 -- | /O(n)/ Append an element
-snoc :: SVECTOR ty a => Vector ty a -> a -> Vector ty a
+{-@ assume snoc :: v:Vector a -> a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+snoc :: Storable a => Vector a -> a -> Vector a
 {-# INLINE snoc #-}
 snoc v a = phony $ unW . proxyFW (`G.snoc` a) v
 
 infixr 5 ++
 -- | /O(m+n)/ Concatenate two vectors
-(++) :: SVECTOR ty a => Vector ty a -> Vector ty a -> Vector ty a
+{-@ assume (++) :: x:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf x) -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+(++) :: Storable a => Vector a -> Vector a -> Vector a
 {-# INLINE (++) #-}
 v1 ++ v2 = phony $ unW . proxyFW2 (G.++) v1 v2
 
 -- | /O(n)/ Concatenate all vectors in the list
-concat :: SVECTOR ty a => [Vector ty a] -> Vector ty a
+{-@ assume concat :: x:VSEXPTYPE s a -> [TVector a (vstypeOf x)] -> TVector a (vstypeOf x) @-}
+concat :: Storable a => VSEXPTYPE s a -> [Vector a] -> Vector a
 {-# INLINE concat #-}
-concat vs = phony $ \p -> unW $ G.concat $ Prelude.map (withW p) vs
+concat t vs = phonyvtype t $ \p -> unW $ G.concat $ Prelude.map (withW p) vs
 
 -- Monadic initialisation
 -- ----------------------
 
 -- | /O(n)/ Execute the monadic action the given number of times and store the
 -- results in a vector.
-replicateM :: (Monad m, SVECTOR ty a) => Int -> m a -> m (Vector ty a)
+{-@ assume replicateM :: x:VSEXPTYPE s a -> Int -> m a -> m (TVector a (vstypeOf x)) @-}
+replicateM :: (Monad m, Storable a) => VSEXPTYPE s a -> Int -> m a -> m (Vector a)
 {-# INLINE replicateM #-}
-replicateM n f = phony $ \p -> (\v -> proxyW v p) <$> G.replicateM n f
+replicateM t n f = phonyvtype t $ \p -> (\v -> proxyW v p) <$> G.replicateM n f
 
 -- | /O(n)/ Construct a vector of the given length by applying the monadic
 -- action to each index
-generateM :: (Monad m, SVECTOR ty a) => Int -> (Int -> m a) -> m (Vector ty a)
+{-@ assume generateM :: x:VSEXPTYPE s a -> Int -> (Int -> m a) -> m (TVector a (vstypeOf x)) @-}
+generateM :: (Monad m, Storable a) => VSEXPTYPE s a -> Int -> (Int -> m a) -> m (Vector a)
 {-# INLINE generateM #-}
-generateM n f = phony $ \p -> (\v -> proxyW v p) <$> G.generateM n f
+generateM t n f = phonyvtype t $ \p -> (\v -> proxyW v p) <$> G.generateM n f
 
 -- | Execute the monadic action and freeze the resulting vector.
 --
 -- @
 -- create (do { v \<- new 2; write v 0 \'a\'; write v 1 \'b\'; return v }) = \<'a','b'\>
 -- @
-create :: SVECTOR ty a => (forall r. ST r (MVector r ty a)) -> Vector ty a
+{-@ assume create :: x:VSEXPTYPE s a -> (forall r. GHC.ST.ST r (TMVector r a (vstypeOf x))) -> TVector a (vstypeOf x) @-}
+create :: Storable a => VSEXPTYPE s a -> (forall r. ST r (MVector r a)) -> Vector a
 {-# INLINE create #-}
 -- NOTE: eta-expanded due to http://hackage.haskell.org/trac/ghc/ticket/4120
-create f = phony $ \p -> unW $ G.create (Mutable.withW p <$> f)
+create t f = phonyvtype t $ \p -> unW $ G.create (Mutable.withW p <$> f)
 
 -- Restricting memory usage
 -- ------------------------
@@ -826,7 +883,9 @@ create f = phony $ \p -> unW $ G.create (Mutable.withW p <$> f)
 -- Here, the slice retains a reference to the huge vector. Forcing it creates
 -- a copy of just the elements that belong to the slice and allows the huge
 -- vector to be garbage collected.
-force :: SVECTOR ty a => Vector ty a -> Vector ty a
+
+{-@ assume force :: x:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+force :: Storable a => Vector a -> Vector a
 {-# INLINE force #-}
 force v = phony $ unW . proxyFW G.force v
 
@@ -838,10 +897,11 @@ force v = phony $ unW . proxyFW G.force v
 --
 -- > <5,9,2,7> // [(2,1),(0,3),(2,8)] = <3,9,8,7>
 --
-(//) :: SVECTOR ty a
-     => Vector ty a   -- ^ initial vector (of length @m@)
+{-@ assume (//) :: x:Vector a -> [(Int, a)] -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+(//) :: Storable a
+     => Vector a   -- ^ initial vector (of length @m@)
      -> [(Int, a)]      -- ^ list of index/value pairs (of length @n@)
-     -> Vector ty a
+     -> Vector a
 {-# INLINE (//) #-}
 (//) v l = phony $ unW . proxyFW (G.// l) v
 
@@ -862,7 +922,8 @@ update_ = G.update_
 -}
 
 -- | Same as ('//') but without bounds checking.
-unsafeUpd :: SVECTOR ty a => Vector ty a -> [(Int, a)] -> Vector ty a
+{-@ assume unsafeUpd :: x:Vector a -> [(Int, a)] -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+unsafeUpd :: Storable a => Vector a -> [(Int, a)] -> Vector a
 {-# INLINE unsafeUpd #-}
 unsafeUpd v l = phony $ unW . proxyFW (`G.unsafeUpd` l) v
 
@@ -880,11 +941,12 @@ unsafeUpdate_ = G.unsafeUpdate_
 -- @a@ at position @i@ by @f a b@.
 --
 -- > accum (+) <5,9,2> [(2,4),(1,6),(0,3),(1,7)] = <5+3, 9+6+7, 2+4>
-accum :: SVECTOR ty a
+{-@ assume accum :: (a -> b -> a) -> x:Vector a -> [(Int,b)] -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+accum :: Storable a
       => (a -> b -> a) -- ^ accumulating function @f@
-      -> Vector ty a      -- ^ initial vector (of length @m@)
+      -> Vector a      -- ^ initial vector (of length @m@)
       -> [(Int,b)]     -- ^ list of index/value pairs (of length @n@)
-      -> Vector ty a
+      -> Vector a
 {-# INLINE accum #-}
 accum f v l = phony $ unW . proxyFW (\w -> G.accum f w l) v
 
@@ -907,7 +969,8 @@ accumulate_ = G.accumulate_
 -}
 
 -- | Same as 'accum' but without bounds checking.
-unsafeAccum :: SVECTOR ty a => (a -> b -> a) -> Vector ty a -> [(Int,b)] -> Vector ty a
+{-@ assume unsafeAccum :: (a -> b -> a) -> x:Vector a -> [(Int,b)] -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+unsafeAccum :: Storable a => (a -> b -> a) -> Vector a -> [(Int,b)] -> Vector a
 {-# INLINE unsafeAccum #-}
 unsafeAccum f v l = phony $ unW . proxyFW (\w -> G.unsafeAccum f w l) v
 
@@ -923,7 +986,8 @@ unsafeAccumulate_ = G.unsafeAccumulate_
 -- ------------
 
 -- | /O(n)/ Reverse a vector
-reverse :: SVECTOR ty a => Vector ty a -> Vector ty a
+{-@ assume reverse :: x:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf x) @-}
+reverse :: Storable a => Vector a -> Vector a
 {-# INLINE reverse #-}
 reverse v = phony $ unW . proxyFW G.reverse v
 
@@ -965,24 +1029,27 @@ modify p = G.modify p
 -- -------
 
 -- | /O(n)/ Map a function over a vector
-map :: (SVECTOR ty a, SVECTOR ty b) => (a -> b) -> Vector ty a -> Vector ty b
+{-@ assume map :: (a -> b) -> x:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf x) @-}
+map :: (Storable a, Storable b) => (a -> b) -> Vector a -> Vector b
 {-# INLINE map #-}
 map f v = phony $ unW . proxyFW (G.map f) v
 
 -- | /O(n)/ Apply a function to every element of a Vector ty and its index
-imap :: (SVECTOR ty a, SVECTOR ty b) => (Int -> a -> b) -> Vector ty a -> Vector ty b
+{-@ assume imap :: (Int -> a -> b) -> x:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf x) @-}
+imap :: (Storable a, Storable b) => (Int -> a -> b) -> Vector a -> Vector b
 {-# INLINE imap #-}
 imap f v = phony $ unW . proxyFW (G.imap f) v
 
-
 -- | Map a function over a Vector ty and concatenate the results.
-concatMap :: (SVECTOR tya a, SVECTOR tyb b)
-          => (a -> Vector tyb b)
-          -> Vector tya a
-          -> Vector tyb b
+{-@ assume concatMap :: x:VSEXPTYPE s b -> (a -> TVector b (vstypeOf x)) -> Vector a -> TVector b (vstypeOf x) @-}
+concatMap :: (Storable a, Storable b)
+          => VSEXPTYPE s b
+          -> (a -> Vector b)
+          -> Vector a
+          -> Vector b
 {-# INLINE concatMap #-}
 #if MIN_VERSION_vector(0,11,0)
-concatMap f v = phony $ \p ->
+concatMap t f v = phonyvtype t $ \p ->
     let v' = G.stream (withW p v)
     in proxyW (G.unstream $ Bundle.fromStream (Stream.concatMap (sElems . G.stream . withW p . f) (sElems v')) Unknown) p
 #else
@@ -1000,25 +1067,29 @@ concatMap f v =
 
 -- | /O(n)/ Apply the monadic action to all elements of the vector, yielding a
 -- vector of results
-mapM :: (Monad m, SVECTOR ty a, SVECTOR ty b) => (a -> m b) -> Vector ty a -> m (Vector ty b)
+{-@ assume mapM :: (a -> m b) -> x:Vector a -> m (TVector b (Data.Vector.SEXP.vtypeOf x)) @-}
+mapM :: (Monad m, Storable a, Storable b) => (a -> m b) -> Vector a -> m (Vector b)
 {-# INLINE mapM #-}
 mapM f v = phony $ \p -> unW <$> proxyFW (G.mapM f) v p
 
 -- | /O(n)/ Apply the monadic action to all elements of a Vector ty and ignore the
 -- results
-mapM_ :: (Monad m, SVECTOR ty a) => (a -> m b) -> Vector ty a -> m ()
+{-@ mapM_ :: (a -> m b) -> Vector a -> m () @-}
+mapM_ :: (Monad m, Storable a) => (a -> m b) -> Vector a -> m ()
 {-# INLINE mapM_ #-}
 mapM_ f v = phony $ proxyFW (G.mapM_ f) v
 
 -- | /O(n)/ Apply the monadic action to all elements of the vector, yielding a
 -- vector of results. Equvalent to @flip 'mapM'@.
-forM :: (Monad m, SVECTOR ty a, SVECTOR ty b) => Vector ty a -> (a -> m b) -> m (Vector ty b)
+{-@ assume forM :: x:Vector a -> (a -> m b) -> m (TVector b (Data.Vector.SEXP.vtypeOf x)) @-}
+forM :: (Monad m, Storable a, Storable b) => Vector a -> (a -> m b) -> m (Vector b)
 {-# INLINE forM #-}
 forM v f = phony $ \p -> unW <$> proxyFW (`G.forM` f) v p
 
 -- | /O(n)/ Apply the monadic action to all elements of a Vector ty and ignore the
 -- results. Equivalent to @flip 'mapM_'@.
-forM_ :: (Monad m, SVECTOR ty a) => Vector ty a -> (a -> m b) -> m ()
+{-@ assume forM_ :: Vector a -> (a -> m b) -> m () @-}
+forM_ :: (Monad m, Storable a) => Vector a -> (a -> m b) -> m ()
 {-# INLINE forM_ #-}
 forM_ v f = phony $ proxyFW (`G.forM_` f) v
 
@@ -1030,42 +1101,57 @@ smallest = List.foldl1' smaller
 #endif
 
 -- | /O(min(m,n))/ Zip two vectors with the given function.
-zipWith :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c)
-        => (a -> b -> c) -> Vector tya a -> Vector tyb b -> Vector tyc c
+{-@
+assume zipWith
+  :: x:VSEXPTYPE s c -> (a -> b -> c) -> Vector a -> Vector b -> TVector c (vstypeOf x)
+@-}
+zipWith :: (Storable a, Storable b, Storable c)
+        => VSEXPTYPE s c -> (a -> b -> c) -> Vector a -> Vector b -> Vector c
 {-# INLINE zipWith #-}
 #if MIN_VERSION_vector(0,11,0)
-zipWith f xs ys = phony $ \p ->
+zipWith t f xs ys = phonyvtype t $ \p ->
     let xs' = G.stream (withW p xs)
         ys' = G.stream (withW p ys)
         sz  = smaller (sSize xs') (sSize ys')
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith f (sElems xs') (sElems ys')) sz) p
 #else
-zipWith f xs ys = phony $ \p ->
+zipWith t f xs ys = phonyvtype t $ \p ->
    proxyW (G.unstream (Stream.zipWith f (G.stream (withW p xs)) (G.stream (withW p ys)))) p
 #endif
 
 -- | Zip three vectors with the given function.
-zipWith3 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d)
-         => (a -> b -> c -> d) -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d
+{-@
+assume zipWith3
+  :: x:VSEXPTYPE s d -> (a -> b -> c -> d) -> Vector a -> Vector b -> Vector c -> TVector d (vstypeOf x)
+@-}
+zipWith3 :: (Storable a, Storable b, Storable c, Storable d)
+         => VSEXPTYPE s d -> (a -> b -> c -> d) -> Vector a -> Vector b -> Vector c -> Vector d
 {-# INLINE zipWith3 #-}
 #if MIN_VERSION_vector(0,11,0)
-zipWith3 f as bs cs = phony $ \p ->
+zipWith3 t f as bs cs = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
         sz  = smallest [sSize as', sSize bs', sSize cs']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith3 f (sElems as') (sElems bs') (sElems cs')) sz) p
 #else
-zipWith3 f as bs cs = phony $ \p ->
+zipWith3 t f as bs cs = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith3 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)))) p
 #endif
 
-zipWith4 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d, SVECTOR tye e)
-         => (a -> b -> c -> d -> e)
-         -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d -> Vector tye e
+{-@
+assume zipWith4
+  :: x:VSEXPTYPE s e
+  -> (a -> b -> c -> d -> e)
+  -> Vector a -> Vector b -> Vector c -> Vector d -> TVector e (vstypeOf x)
+@-}
+zipWith4 :: (Storable a, Storable b, Storable c, Storable d, Storable e)
+         => VSEXPTYPE s e
+         -> (a -> b -> c -> d -> e)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
 {-# INLINE zipWith4 #-}
 #if MIN_VERSION_vector(0,11,0)
-zipWith4 f as bs cs ds = phony $ \p ->
+zipWith4 t f as bs cs ds = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
@@ -1073,18 +1159,25 @@ zipWith4 f as bs cs ds = phony $ \p ->
         sz  = smallest [sSize as', sSize bs', sSize cs', sSize ds']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith4 f (sElems as') (sElems bs') (sElems cs') (sElems ds')) sz) p
 #else
-zipWith4 f as bs cs ds = phony $ \p ->
+zipWith4 t f as bs cs ds = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith4 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)))) p
 #endif
 
-zipWith5 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d, SVECTOR tye e,
-             SVECTOR tyf f)
-         => (a -> b -> c -> d -> e -> f)
-         -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d -> Vector tye e
-         -> Vector tyf f
+{-@
+assume zipWith5 :: x:VSEXPTYPE s f
+         -> (a -> b -> c -> d -> e -> f)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> TVector f (vstypeOf x)
+@-}
+zipWith5 :: (Storable a, Storable b, Storable c, Storable d, Storable e,
+             Storable f)
+         => VSEXPTYPE s f
+         -> (a -> b -> c -> d -> e -> f)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> Vector f
 {-# INLINE zipWith5 #-}
 #if MIN_VERSION_vector(0,11,0)
-zipWith5 f as bs cs ds es = phony $ \p ->
+zipWith5 t f as bs cs ds es = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
@@ -1093,18 +1186,25 @@ zipWith5 f as bs cs ds es = phony $ \p ->
         sz  = smallest [sSize as', sSize bs', sSize cs', sSize ds', sSize es']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith5 f (sElems as') (sElems bs') (sElems cs') (sElems ds') (sElems es')) sz) p
 #else
-zipWith5 f as bs cs ds es = phony $ \p ->
+zipWith5 t f as bs cs ds es = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith5 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)))) p
 #endif
 
-zipWith6 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d, SVECTOR tye e,
-             SVECTOR tyf f, SVECTOR tyg g)
-         => (a -> b -> c -> d -> e -> f -> g)
-         -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d -> Vector tye e
-         -> Vector tyf f -> Vector tyg g
+{-@
+assume zipWith6 :: x:VSEXPTYPE s g
+         -> (a -> b -> c -> d -> e -> f -> g)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> Vector f -> TVector g (vstypeOf x)
+@-}
+zipWith6 :: (Storable a, Storable b, Storable c, Storable d, Storable e,
+             Storable f, Storable g)
+         => VSEXPTYPE s g
+         -> (a -> b -> c -> d -> e -> f -> g)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> Vector f -> Vector g
 {-# INLINE zipWith6 #-}
 #if MIN_VERSION_vector(0,11,0)
-zipWith6 f as bs cs ds es fs = phony $ \p ->
+zipWith6 t f as bs cs ds es fs = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
@@ -1114,49 +1214,65 @@ zipWith6 f as bs cs ds es fs = phony $ \p ->
         sz  = smallest [sSize as', sSize bs', sSize cs', sSize ds', sSize es', sSize fs']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith6 f (sElems as') (sElems bs') (sElems cs') (sElems ds') (sElems es') (sElems fs')) sz) p
 #else
-zipWith6 f as bs cs ds es fs = phony $ \p ->
+zipWith6 t f as bs cs ds es fs = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith6 f (G.stream (withW p as)) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)) (G.stream (withW p fs)))) p
 #endif
 
 -- | /O(min(m,n))/ Zip two vectors with a function that also takes the
 -- elements' indices.
-izipWith :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c)
-         => (Int -> a -> b -> c) -> Vector tya a -> Vector tyb b -> Vector tyc c
+{-@
+assume izipWith
+  :: x:VSEXPTYPE s c -> (Int -> a -> b -> c) -> Vector a -> Vector b -> TVector c (vstypeOf x)
+@-}
+izipWith :: (Storable a, Storable b, Storable c)
+         => VSEXPTYPE s c -> (Int -> a -> b -> c) -> Vector a -> Vector b -> Vector c
 {-# INLINE izipWith #-}
 #if MIN_VERSION_vector(0,11,0)
-izipWith f as bs = phony $ \p ->
+izipWith t f as bs = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         sz  = smaller (sSize as') (sSize bs')
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith (uncurry f) (Stream.indexed (sElems as')) (sElems bs')) sz) p
 #else
-izipWith f as bs = phony $ \p ->
+izipWith t f as bs = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)))) p
 #endif
 
 -- | Zip three vectors and their indices with the given function.
-izipWith3 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d)
-          => (Int -> a -> b -> c -> d)
-          -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d
+{-@
+assume izipWith3
+  :: x:VSEXPTYPE s d -> (Int -> a -> b -> c -> d) -> Vector a -> Vector b -> Vector c -> TVector d (vstypeOf x)
+@-}
+izipWith3 :: (Storable a, Storable b, Storable c, Storable d)
+          => VSEXPTYPE s d
+          -> (Int -> a -> b -> c -> d)
+          -> Vector a -> Vector b -> Vector c -> Vector d
 {-# INLINE izipWith3 #-}
 #if MIN_VERSION_vector(0,11,0)
-izipWith3 f as bs cs = phony $ \p ->
+izipWith3 t f as bs cs = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
         sz  = smallest [sSize as', sSize bs', sSize cs']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith3 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs')) sz) p
 #else
-izipWith3 f as bs cs = phony $ \p ->
+izipWith3 t f as bs cs = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith3 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)))) p
 #endif
 
-izipWith4 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d, SVECTOR tye e)
-          => (Int -> a -> b -> c -> d -> e)
-          -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d -> Vector tye e
+{-@
+assume izipWith4
+  :: x:VSEXPTYPE s e
+  -> (Int -> a -> b -> c -> d -> e)
+  -> Vector a -> Vector b -> Vector c -> Vector d -> TVector e (vstypeOf x)
+@-}
+izipWith4 :: (Storable a, Storable b, Storable c, Storable d, Storable e)
+         => VSEXPTYPE s e
+         -> (Int -> a -> b -> c -> d -> e)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
 {-# INLINE izipWith4 #-}
 #if MIN_VERSION_vector(0,11,0)
-izipWith4 f as bs cs ds = phony $ \p ->
+izipWith4 t f as bs cs ds = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
@@ -1164,18 +1280,25 @@ izipWith4 f as bs cs ds = phony $ \p ->
         sz  = smallest [ sSize as', sSize bs', sSize cs', sSize ds']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith4 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs') (sElems ds')) sz) p
 #else
-izipWith4 f as bs cs ds = phony $ \p ->
+izipWith4 t f as bs cs ds = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith4 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)))) p
 #endif
 
-izipWith5 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d, SVECTOR tye e,
-              SVECTOR tyf f)
-          => (Int -> a -> b -> c -> d -> e -> f)
-          -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d -> Vector tye e
-          -> Vector tyf f
+{-@
+assume izipWith5 :: x:VSEXPTYPE s f
+         -> (Int -> a -> b -> c -> d -> e -> f)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> TVector f (vstypeOf x)
+@-}
+izipWith5 :: (Storable a, Storable b, Storable c, Storable d, Storable e,
+             Storable f)
+         => VSEXPTYPE s f
+         -> (Int -> a -> b -> c -> d -> e -> f)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> Vector f
 {-# INLINE izipWith5 #-}
 #if MIN_VERSION_vector(0,11,0)
-izipWith5 f as bs cs ds es = phony $ \p ->
+izipWith5 t f as bs cs ds es = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
@@ -1184,18 +1307,25 @@ izipWith5 f as bs cs ds es = phony $ \p ->
         sz  = smallest [ sSize as', sSize bs', sSize cs', sSize ds', sSize es']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith5 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs') (sElems ds') (sElems es')) sz) p
 #else
-izipWith5 f as bs cs ds es = phony $ \p ->
+izipWith5 t f as bs cs ds es = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith5 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)))) p
 #endif
 
-izipWith6 :: (SVECTOR tya a, SVECTOR tyb b, SVECTOR tyc c, SVECTOR tyd d, SVECTOR tye e,
-              SVECTOR tyf f, SVECTOR tyg g)
-          => (Int -> a -> b -> c -> d -> e -> f -> g)
-          -> Vector tya a -> Vector tyb b -> Vector tyc c -> Vector tyd d -> Vector tye e
-          -> Vector tyf f -> Vector tyg g
+{-@
+assume izipWith6 :: x:VSEXPTYPE s g
+         -> (Int -> a -> b -> c -> d -> e -> f -> g)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> Vector f -> TVector g (vstypeOf x)
+@-}
+izipWith6 :: (Storable a, Storable b, Storable c, Storable d, Storable e,
+             Storable f, Storable g)
+         => VSEXPTYPE s g
+         -> (Int -> a -> b -> c -> d -> e -> f -> g)
+         -> Vector a -> Vector b -> Vector c -> Vector d -> Vector e
+         -> Vector f -> Vector g
 {-# INLINE izipWith6 #-}
 #if MIN_VERSION_vector(0,11,0)
-izipWith6 f as bs cs ds es fs = phony $ \p ->
+izipWith6 t f as bs cs ds es fs = phonyvtype t $ \p ->
     let as' = G.stream (withW p as)
         bs' = G.stream (withW p bs)
         cs' = G.stream (withW p cs)
@@ -1205,7 +1335,7 @@ izipWith6 f as bs cs ds es fs = phony $ \p ->
         sz  = smallest [ sSize as', sSize bs', sSize cs', sSize ds', sSize es', sSize fs']
     in proxyW (G.unstream $ Bundle.fromStream (Stream.zipWith6 (uncurry f) (Stream.indexed (sElems as')) (sElems bs') (sElems cs') (sElems ds') (sElems es') (sElems fs')) sz) p
 #else
-izipWith6 f as bs cs ds es fs = phony $ \p ->
+izipWith6 t f as bs cs ds es fs = phonyvtype t $ \p ->
   proxyW (G.unstream (Stream.zipWith6 (uncurry f) (Stream.indexed (G.stream (withW p as))) (G.stream (withW p bs)) (G.stream (withW p cs)) (G.stream (withW p ds)) (G.stream (withW p es)) (G.stream (withW p fs)))) p
 #endif
 
@@ -1215,21 +1345,30 @@ izipWith6 f as bs cs ds es fs = phony $ \p ->
 
 -- | /O(min(m,n))/ Zip the two vectors with the monadic action and yield a
 -- vector of results
-zipWithM :: (MonadR m, VECTOR (Region m) tya a, VECTOR (Region m) tyb b, VECTOR (Region m) tyc c, ElemRep V tya ~ a, ElemRep V tyb ~ b, ElemRep V tyc ~ c)
-         => (a -> b -> m c)
-         -> Vector tya a
-         -> Vector tyb b
-         -> m (Vector tyc c)
+{-@
+assume zipWithM :: (MonadR m, Storable a, Storable b, Storable c)
+         => x:VSEXPTYPE s c
+         -> (a -> b -> m c)
+         -> Vector a
+         -> Vector b
+         -> m (TVector c (vstypeOf x))
+@-}
+zipWithM :: (MonadR m, Storable a, Storable b, Storable c)
+         => VSEXPTYPE s c
+         -> (a -> b -> m c)
+         -> Vector a
+         -> Vector b
+         -> m (Vector c)
 {-# INLINE zipWithM #-}
 #if MIN_VERSION_vector(0,11,0)
-zipWithM f xs ys = phony $ \p ->
+zipWithM t f xs ys = phonyvtype t $ \p ->
     let xs' = lift $ G.stream (withW p xs)
         ys' = lift $ G.stream (withW p ys)
         sz  = smaller (sSize xs') (sSize ys')
     in proxyW <$> Prelude.fmap G.unstream (Bundle.unsafeFromList sz <$> Stream.toList (Stream.zipWithM f (sElems xs') (sElems ys')))
               <*> pure p
 #else
-zipWithM f xs ys = phony $ \p ->
+zipWithM t f xs ys = phonyvtype t $ \p ->
     proxyW <$>
     unstreamM (Stream.zipWithM f (G.stream (withW p xs)) (G.stream (withW p ys))) <*>
     return p
@@ -1240,13 +1379,12 @@ zipWithM f xs ys = phony $ \p ->
         return $ G.unstream $ Stream.unsafeFromList (MStream.size s) zs
 #endif
 
-
 -- | /O(min(m,n))/ Zip the two vectors with the monadic action and ignore the
 -- results
-zipWithM_ :: (Monad m, SVECTOR tya a, SVECTOR tyb b)
+zipWithM_ :: (Monad m, Storable a, Storable b)
           => (a -> b -> m c)
-          -> Vector tya a
-          -> Vector tyb b
+          -> Vector a
+          -> Vector b
           -> m ()
 {-# INLINE zipWithM_ #-}
 #if MIN_VERSION_vector(0,11,0)
@@ -1263,61 +1401,70 @@ zipWithM_ f xs ys = phony $ \p ->
 -- ---------
 
 -- | /O(n)/ Drop elements that do not satisfy the predicate
-filter :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Vector ty a
+{-@ assume filter :: Storable a => (a -> Bool) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+filter :: Storable a => (a -> Bool) -> Vector a -> Vector a
 {-# INLINE filter #-}
-filter f v = phony $ unW . proxyFW (G.filter f) v
+filter f v = phonyt (vtypeOf v) $ unW . proxyFW (G.filter f) v
 
 -- | /O(n)/ Drop elements that do not satisfy the predicate which is applied to
 -- values and their indices
-ifilter :: SVECTOR ty a => (Int -> a -> Bool) -> Vector ty a -> Vector ty a
+{-@ assume ifilter :: Storable a => (Int -> a -> Bool) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+ifilter :: Storable a => (Int -> a -> Bool) -> Vector a -> Vector a
 {-# INLINE ifilter #-}
-ifilter f v = phony $ unW . proxyFW (G.ifilter f) v
+ifilter f v = phonyt (vtypeOf v) $ unW . proxyFW (G.ifilter f) v
 
 -- | /O(n)/ Drop elements that do not satisfy the monadic predicate
-filterM :: (Monad m, SVECTOR ty a) => (a -> m Bool) -> Vector ty a -> m (Vector ty a)
+{-@ assume filterM :: (a -> m Bool) -> v:Vector a -> m (TVector a (Data.Vector.SEXP.vtypeOf v)) @-}
+filterM :: (Monad m, Storable a) => (a -> m Bool) -> Vector a -> m (Vector a)
 {-# INLINE filterM #-}
-filterM f v = phony $ \p -> unW <$> proxyFW (G.filterM f) v p
+filterM f v = phonyt (vtypeOf v) $ \p -> unW <$> proxyFW (G.filterM f) v p
 
 -- | /O(n)/ Yield the longest prefix of elements satisfying the predicate
 -- with copying.
-takeWhile :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Vector ty a
+{-@ assume takeWhile :: (a -> Bool) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+takeWhile :: Storable a => (a -> Bool) -> Vector a -> Vector a
 {-# INLINE takeWhile #-}
 takeWhile f v = phony $ unW . proxyFW (G.takeWhile f) v
 
 -- | /O(n)/ Drop the longest prefix of elements that satisfy the predicate
 -- with copying.
-dropWhile :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Vector ty a
+{-@ assume dropWhile :: (a -> Bool) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+dropWhile :: Storable a => (a -> Bool) -> Vector a -> Vector a
 {-# INLINE dropWhile #-}
 dropWhile f v = phony $ unW . proxyFW (G.dropWhile f) v
 
--- Parititioning
+-- Partitioning
 -- -------------
 
 -- | /O(n)/ Split the vector in two parts, the first one containing those
 -- elements that satisfy the predicate and the second one those that don't. The
 -- relative order of the elements is preserved at the cost of a sometimes
 -- reduced performance compared to 'unstablePartition'.
-partition :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> (Vector ty a, Vector ty a)
+{-@ assume partition :: (a -> Bool) -> v:Vector a -> (TVector a (Data.Vector.SEXP.vtypeOf v), TVector a (Data.Vector.SEXP.vtypeOf v)) @-}
+partition :: Storable a => (a -> Bool) -> Vector a -> (Vector a, Vector a)
 {-# INLINE partition #-}
-partition f v = phony $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.partition f) v
+partition f v = phonyt (vtypeOf v) $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.partition f) v
 
 -- | /O(n)/ Split the vector in two parts, the first one containing those
 -- elements that satisfy the predicate and the second one those that don't.
 -- The order of the elements is not preserved but the operation is often
 -- faster than 'partition'.
-unstablePartition :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> (Vector ty a, Vector ty a)
+{-@ assume unstablePartition :: (a -> Bool) -> v:Vector a -> (TVector a (Data.Vector.SEXP.vtypeOf v), TVector a (Data.Vector.SEXP.vtypeOf v)) @-}
+unstablePartition :: Storable a => (a -> Bool) -> Vector a -> (Vector a, Vector a)
 {-# INLINE unstablePartition #-}
 unstablePartition f v = phony $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.unstablePartition f) v
 
 -- | /O(n)/ Split the vector into the longest prefix of elements that satisfy
 -- the predicate and the rest with copying.
-span :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> (Vector ty a, Vector ty a)
+{-@ assume span :: (a -> Bool) -> v:Vector a -> (TVector a (Data.Vector.SEXP.vtypeOf v), TVector a (Data.Vector.SEXP.vtypeOf v)) @-}
+span :: Storable a => (a -> Bool) -> Vector a -> (Vector a, Vector a)
 {-# INLINE span #-}
 span f v = phony $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.span f) v
 
 -- | /O(n)/ Split the vector into the longest prefix of elements that do not
 -- satisfy the predicate and the rest with copying.
-break :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> (Vector ty a, Vector ty a)
+{-@ assume break :: (a -> Bool) -> v:Vector a -> (TVector a (Data.Vector.SEXP.vtypeOf v), TVector a (Data.Vector.SEXP.vtypeOf v)) @-}
+break :: Storable a => (a -> Bool) -> Vector a -> (Vector a, Vector a)
 {-# INLINE break #-}
 break f v = phony $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.break f) v
 
@@ -1326,25 +1473,25 @@ break f v = phony $ (\(a,b) -> (unW a, unW b)) . proxyFW (G.break f) v
 
 infix 4 `elem`
 -- | /O(n)/ Check if the vector contains an element
-elem :: (SVECTOR ty a, Eq a) => a -> Vector ty a -> Bool
+elem :: (Storable a, Eq a) => a -> Vector a -> Bool
 {-# INLINE elem #-}
 elem a v = phony $ proxyFW (G.elem a) v
 
 infix 4 `notElem`
 -- | /O(n)/ Check if the vector does not contain an element (inverse of 'elem')
-notElem :: (SVECTOR ty a, Eq a) => a -> Vector ty a -> Bool
+notElem :: (Storable a, Eq a) => a -> Vector a -> Bool
 {-# INLINE notElem #-}
 notElem a v = phony $ proxyFW (G.notElem a) v
 
 -- | /O(n)/ Yield 'Just' the first element matching the predicate or 'Nothing'
 -- if no such element exists.
-find :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Maybe a
+find :: Storable a => (a -> Bool) -> Vector a -> Maybe a
 {-# INLINE find #-}
 find f v = phony $ proxyFW (G.find f) v
 
 -- | /O(n)/ Yield 'Just' the index of the first element matching the predicate
 -- or 'Nothing' if no such element exists.
-findIndex :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Maybe Int
+findIndex :: Storable a => (a -> Bool) -> Vector a -> Maybe Int
 {-# INLINE findIndex #-}
 findIndex f v = phony $ proxyFW (G.findIndex f) v
 
@@ -1359,7 +1506,7 @@ findIndices f v = phony $ proxyFW (G.findIndices f) v
 -- | /O(n)/ Yield 'Just' the index of the first occurence of the given element or
 -- 'Nothing' if the vector does not contain the element. This is a specialised
 -- version of 'findIndex'.
-elemIndex :: (SVECTOR ty a, Eq a) => a -> Vector ty a -> Maybe Int
+elemIndex :: (Storable a, Eq a) => a -> Vector a -> Maybe Int
 {-# INLINE elemIndex #-}
 elemIndex a v = phony $ proxyFW (G.elemIndex a) v
 
@@ -1375,78 +1522,77 @@ elemIndices s v = phony $ unW . proxyFW (G.elemIndices s) v
 -- -------
 
 -- | /O(n)/ Left fold
-foldl :: SVECTOR ty b => (a -> b -> a) -> a -> Vector ty b -> a
+foldl :: Storable b => (a -> b -> a) -> a -> Vector b -> a
 {-# INLINE foldl #-}
 foldl f s v = phony $ proxyFW (G.foldl f s) v
 
 -- | /O(n)/ Left fold on non-empty vectors
-foldl1 :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> a
+foldl1 :: Storable a => (a -> a -> a) -> Vector a -> a
 {-# INLINE foldl1 #-}
 foldl1 f v = phony $ proxyFW (G.foldl1 f) v
 
 -- | /O(n)/ Left fold with strict accumulator
-foldl' :: SVECTOR ty b => (a -> b -> a) -> a -> Vector ty b -> a
+foldl' :: Storable b => (a -> b -> a) -> a -> Vector b -> a
 {-# INLINE foldl' #-}
 foldl' f s v = phony $ proxyFW (G.foldl' f s) v
 
 -- | /O(n)/ Left fold on non-empty vectors with strict accumulator
-foldl1' :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> a
+foldl1' :: Storable a => (a -> a -> a) -> Vector a -> a
 {-# INLINE foldl1' #-}
 foldl1' f v  = phony $ proxyFW (G.foldl1' f) v
 
 -- | /O(n)/ Right fold
-foldr :: SVECTOR ty a => (a -> b -> b) -> b -> Vector ty a -> b
+foldr :: Storable a => (a -> b -> b) -> b -> Vector a -> b
 {-# INLINE foldr #-}
 foldr f s v = phony $ proxyFW (G.foldr f s) v
 
 -- | /O(n)/ Right fold on non-empty vectors
-foldr1 :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> a
+foldr1 :: Storable a => (a -> a -> a) -> Vector a -> a
 {-# INLINE foldr1 #-}
 foldr1 f v = phony $ proxyFW (G.foldr1 f) v
 
 -- | /O(n)/ Right fold with a strict accumulator
-foldr' :: SVECTOR ty a => (a -> b -> b) -> b -> Vector ty a -> b
+foldr' :: Storable a => (a -> b -> b) -> b -> Vector a -> b
 {-# INLINE foldr' #-}
 foldr' f s v = phony $ proxyFW (G.foldr' f s) v
 
 -- | /O(n)/ Right fold on non-empty vectors with strict accumulator
-foldr1' :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> a
+foldr1' :: Storable a => (a -> a -> a) -> Vector a -> a
 {-# INLINE foldr1' #-}
 foldr1' f v = phony $ proxyFW (G.foldr1' f) v
 
 -- | /O(n)/ Left fold (function applied to each element and its index)
-ifoldl :: SVECTOR ty b => (a -> Int -> b -> a) -> a -> Vector ty b -> a
+ifoldl :: Storable b => (a -> Int -> b -> a) -> a -> Vector b -> a
 {-# INLINE ifoldl #-}
 ifoldl f s v = phony $ proxyFW (G.ifoldl f s) v
 
 -- | /O(n)/ Left fold with strict accumulator (function applied to each element
 -- and its index)
-ifoldl' :: SVECTOR ty b => (a -> Int -> b -> a) -> a -> Vector ty b -> a
+ifoldl' :: Storable b => (a -> Int -> b -> a) -> a -> Vector b -> a
 {-# INLINE ifoldl' #-}
 ifoldl' f s  v = phony $ proxyFW (G.ifoldl' f s) v
 
 -- | /O(n)/ Right fold (function applied to each element and its index)
-ifoldr :: SVECTOR ty a => (Int -> a -> b -> b) -> b -> Vector ty a -> b
+ifoldr :: Storable a => (Int -> a -> b -> b) -> b -> Vector a -> b
 {-# INLINE ifoldr #-}
 ifoldr f s v = phony $ proxyFW (G.ifoldr f s) v
 
 -- | /O(n)/ Right fold with strict accumulator (function applied to each
 -- element and its index)
-ifoldr' :: SVECTOR ty a => (Int -> a -> b -> b) -> b -> Vector ty a -> b
+ifoldr' :: Storable a => (Int -> a -> b -> b) -> b -> Vector a -> b
 {-# INLINE ifoldr' #-}
 ifoldr' f s v = phony $ proxyFW (G.ifoldr' f s) v
 
 -- Specialised folds
 -- -----------------
 
-
 -- | /O(n)/ Check if all elements satisfy the predicate.
-all :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Bool
+all :: Storable a => (a -> Bool) -> Vector a -> Bool
 {-# INLINE all #-}
 all f v = phony $ \p -> G.all f (withW p v)
 
 -- | /O(n)/ Check if any element satisfies the predicate.
-any :: SVECTOR ty a => (a -> Bool) -> Vector ty a -> Bool
+any :: Storable a => (a -> Bool) -> Vector a -> Bool
 {-# INLINE any #-}
 any f v = phony $ \p -> G.any f (withW p v)
 
@@ -1461,60 +1607,60 @@ any f v = phony $ \p -> G.any f (withW p v)
 -- or v = phony $ \p -> G.or (withW p v)
 
 -- | /O(n)/ Compute the sum of the elements
-sum :: (SVECTOR ty a, Num a) => Vector ty a -> a
+sum :: (Storable a, Num a) => Vector a -> a
 {-# INLINE sum #-}
 sum v = phony $ proxyFW G.sum v
 
 -- | /O(n)/ Compute the produce of the elements
-product :: (SVECTOR ty a, Num a) => Vector ty a -> a
+product :: (Storable a, Num a) => Vector a -> a
 {-# INLINE product #-}
 product v = phony $ proxyFW G.product v
 
 -- | /O(n)/ Yield the maximum element of the vector. The vector may not be
 -- empty.
-maximum :: (SVECTOR ty a, Ord a) => Vector ty a -> a
+maximum :: (Storable a, Ord a) => Vector a -> a
 {-# INLINE maximum #-}
 maximum v = phony $ proxyFW G.maximum v
 
 -- | /O(n)/ Yield the maximum element of the Vector ty according to the given
 -- comparison function. The vector may not be empty.
-maximumBy :: SVECTOR ty a => (a -> a -> Ordering) -> Vector ty a -> a
+maximumBy :: Storable a => (a -> a -> Ordering) -> Vector a -> a
 {-# INLINE maximumBy #-}
 maximumBy f v = phony $ proxyFW (G.maximumBy f) v
 
 -- | /O(n)/ Yield the minimum element of the vector. The vector may not be
 -- empty.
-minimum :: (SVECTOR ty a, Ord a) => Vector ty a -> a
+minimum :: (Storable a, Ord a) => Vector a -> a
 {-# INLINE minimum #-}
 minimum v = phony $ proxyFW G.minimum v
 
 -- | /O(n)/ Yield the minimum element of the Vector ty according to the given
 -- comparison function. The vector may not be empty.
-minimumBy :: SVECTOR ty a => (a -> a -> Ordering) -> Vector ty a -> a
+minimumBy :: Storable a => (a -> a -> Ordering) -> Vector a -> a
 {-# INLINE minimumBy #-}
 minimumBy f v = phony $ proxyFW (G.minimumBy f) v
 
 -- | /O(n)/ Yield the index of the maximum element of the vector. The vector
 -- may not be empty.
-maxIndex :: (SVECTOR ty a, Ord a) => Vector ty a -> Int
+maxIndex :: (Storable a, Ord a) => Vector a -> Int
 {-# INLINE maxIndex #-}
 maxIndex v = phony $ proxyFW G.maxIndex v
 
 -- | /O(n)/ Yield the index of the maximum element of the Vector ty according to
 -- the given comparison function. The vector may not be empty.
-maxIndexBy :: SVECTOR ty a => (a -> a -> Ordering) -> Vector ty a -> Int
+maxIndexBy :: Storable a => (a -> a -> Ordering) -> Vector a -> Int
 {-# INLINE maxIndexBy #-}
 maxIndexBy f v = phony $ proxyFW (G.maxIndexBy f) v
 
 -- | /O(n)/ Yield the index of the minimum element of the vector. The vector
 -- may not be empty.
-minIndex :: (SVECTOR ty a, Ord a) => Vector ty a -> Int
+minIndex :: (Storable a, Ord a) => Vector a -> Int
 {-# INLINE minIndex #-}
 minIndex v = phony $ proxyFW G.minIndex v
 
 -- | /O(n)/ Yield the index of the minimum element of the Vector ty according to
 -- the given comparison function. The vector may not be empty.
-minIndexBy :: SVECTOR ty a => (a -> a -> Ordering) -> Vector ty a -> Int
+minIndexBy :: Storable a => (a -> a -> Ordering) -> Vector a -> Int
 {-# INLINE minIndexBy #-}
 minIndexBy f v = phony $ proxyFW (G.minIndexBy f) v
 
@@ -1522,43 +1668,43 @@ minIndexBy f v = phony $ proxyFW (G.minIndexBy f) v
 -- -------------
 
 -- | /O(n)/ Monadic fold
-foldM :: (Monad m, SVECTOR ty b) => (a -> b -> m a) -> a -> Vector ty b -> m a
+foldM :: (Monad m, Storable b) => (a -> b -> m a) -> a -> Vector b -> m a
 {-# INLINE foldM #-}
 foldM f s v = phony $ proxyFW (G.foldM f s) v
 
 -- | /O(n)/ Monadic fold over non-empty vectors
-fold1M :: (Monad m, SVECTOR ty a) => (a -> a -> m a) -> Vector ty a -> m a
+fold1M :: (Monad m, Storable a) => (a -> a -> m a) -> Vector a -> m a
 {-# INLINE fold1M #-}
 fold1M f v = phony $ proxyFW (G.fold1M f) v
 
 -- | /O(n)/ Monadic fold with strict accumulator
-foldM' :: (Monad m, SVECTOR ty b) => (a -> b -> m a) -> a -> Vector ty b -> m a
+foldM' :: (Monad m, Storable b) => (a -> b -> m a) -> a -> Vector b -> m a
 {-# INLINE foldM' #-}
 foldM' f s v = phony $ proxyFW (G.foldM' f s) v
 
 -- | /O(n)/ Monadic fold over non-empty vectors with strict accumulator
-fold1M' :: (Monad m, SVECTOR ty a) => (a -> a -> m a) -> Vector ty a -> m a
+fold1M' :: (Monad m, Storable a) => (a -> a -> m a) -> Vector a -> m a
 {-# INLINE fold1M' #-}
 fold1M' f v = phony $ proxyFW (G.fold1M' f) v
 
 -- | /O(n)/ Monadic fold that discards the result
-foldM_ :: (Monad m, SVECTOR ty b) => (a -> b -> m a) -> a -> Vector ty b -> m ()
+foldM_ :: (Monad m, Storable b) => (a -> b -> m a) -> a -> Vector b -> m ()
 {-# INLINE foldM_ #-}
 foldM_ f s v = phony $ proxyFW (G.foldM_ f s) v
 
 -- | /O(n)/ Monadic fold over non-empty vectors that discards the result
-fold1M_ :: (Monad m, SVECTOR ty a) => (a -> a -> m a) -> Vector ty a -> m ()
+fold1M_ :: (Monad m, Storable a) => (a -> a -> m a) -> Vector a -> m ()
 {-# INLINE fold1M_ #-}
 fold1M_ f v = phony $ proxyFW (G.fold1M_ f) v
 
 -- | /O(n)/ Monadic fold with strict accumulator that discards the result
-foldM'_ :: (Monad m, SVECTOR ty b) => (a -> b -> m a) -> a -> Vector ty b -> m ()
+foldM'_ :: (Monad m, Storable b) => (a -> b -> m a) -> a -> Vector b -> m ()
 {-# INLINE foldM'_ #-}
 foldM'_ f s v = phony $ proxyFW (G.foldM'_ f s) v
 
 -- | /O(n)/ Monadic fold over non-empty vectors with strict accumulator
 -- that discards the result
-fold1M'_ :: (Monad m, SVECTOR ty a) => (a -> a -> m a) -> Vector ty a -> m ()
+fold1M'_ :: (Monad m, Storable a) => (a -> a -> m a) -> Vector a -> m ()
 {-# INLINE fold1M'_ #-}
 fold1M'_ f v = phony $ proxyFW (G.fold1M'_ f) v
 
@@ -1573,14 +1719,16 @@ fold1M'_ f v = phony $ proxyFW (G.fold1M'_ f) v
 --
 -- Example: @prescanl (+) 0 \<1,2,3,4\> = \<0,1,3,6\>@
 --
-prescanl :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
+{-@ assume prescanl :: (a -> b -> a) -> a -> v:Vector b -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+prescanl :: (Storable a, Storable b) => (a -> b -> a) -> a -> Vector b -> Vector a
 {-# INLINE prescanl #-}
-prescanl f s v = phony $ unW . proxyFW (G.prescanl f s) v
+prescanl f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.prescanl f s) v
 
 -- | /O(n)/ Prescan with strict accumulator
-prescanl' :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
+{-@ assume prescanl' :: (a -> b -> a) -> a -> v:Vector b -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+prescanl' :: (Storable a, Storable b) => (a -> b -> a) -> a -> Vector b -> Vector a
 {-# INLINE prescanl' #-}
-prescanl' f s v = phony $ unW . proxyFW (G.prescanl' f s) v
+prescanl' f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.prescanl' f s) v
 
 -- | /O(n)/ Scan
 --
@@ -1590,14 +1738,16 @@ prescanl' f s v = phony $ unW . proxyFW (G.prescanl' f s) v
 --
 -- Example: @postscanl (+) 0 \<1,2,3,4\> = \<1,3,6,10\>@
 --
-postscanl :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
+{-@ assume postscanl :: (a -> b -> a) -> a -> v:Vector b -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+postscanl :: (Storable a, Storable b) => (a -> b -> a) -> a -> Vector b -> Vector a
 {-# INLINE postscanl #-}
-postscanl f s v = phony $ unW . proxyFW (G.postscanl f s) v
+postscanl f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.postscanl f s) v
 
 -- | /O(n)/ Scan with strict accumulator
-postscanl' :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
+{-@ assume postscanl' :: (a -> b -> a) -> a -> v:Vector b -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+postscanl' :: (Storable a, Storable b) => (a -> b -> a) -> a -> Vector b -> Vector a
 {-# INLINE postscanl' #-}
-postscanl' f s v = phony $ unW . proxyFW (G.postscanl' f s) v
+postscanl' f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.postscanl' f s) v
 
 -- | /O(n)/ Haskell-style scan
 --
@@ -1607,14 +1757,16 @@ postscanl' f s v = phony $ unW . proxyFW (G.postscanl' f s) v
 --
 -- Example: @scanl (+) 0 \<1,2,3,4\> = \<0,1,3,6,10\>@
 --
-scanl :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
+{-@ assume scanl :: (a -> b -> a) -> a -> v:Vector b -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+scanl :: (Storable a, Storable b) => (a -> b -> a) -> a -> Vector b -> Vector a
 {-# INLINE scanl #-}
-scanl f s v = phony $ unW . proxyFW (G.scanl f s) v
+scanl f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanl f s) v
 
 -- | /O(n)/ Haskell-style scan with strict accumulator
-scanl' :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> a) -> a -> Vector ty b -> Vector ty a
+{-@ assume scanl' :: (a -> b -> a) -> a -> v:Vector b -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+scanl' :: (Storable a, Storable b) => (a -> b -> a) -> a -> Vector b -> Vector a
 {-# INLINE scanl' #-}
-scanl' f s v = phony $ unW . proxyFW (G.scanl' f s) v
+scanl' f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanl' f s) v
 
 -- | /O(n)/ Scan over a non-empty vector
 --
@@ -1622,14 +1774,16 @@ scanl' f s v = phony $ unW . proxyFW (G.scanl' f s) v
 -- >   where y1 = x1
 -- >         yi = f y(i-1) xi
 --
-scanl1 :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> Vector ty a
+{-@ assume scanl1 :: (a -> a -> a) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+scanl1 :: Storable a => (a -> a -> a) -> Vector a -> Vector a
 {-# INLINE scanl1 #-}
-scanl1 f v = phony $ unW . proxyFW (G.scanl1 f) v
+scanl1 f v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanl1 f) v
 
 -- | /O(n)/ Scan over a non-empty vector with a strict accumulator
-scanl1' :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> Vector ty a
+{-@ assume scanl1' :: (a -> a -> a) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+scanl1' :: Storable a => (a -> a -> a) -> Vector a -> Vector a
 {-# INLINE scanl1' #-}
-scanl1' f v = phony $ unW . proxyFW (G.scanl1' f) v
+scanl1' f v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanl1' f) v
 
 -- | /O(n)/ Right-to-left prescan
 --
@@ -1637,67 +1791,76 @@ scanl1' f v = phony $ unW . proxyFW (G.scanl1' f) v
 -- prescanr f z = 'reverse' . 'prescanl' (flip f) z . 'reverse'
 -- @
 --
-prescanr :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> b) -> b -> Vector ty a -> Vector ty b
+{-@ assume prescanr :: (a -> b -> b) -> b -> v:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf v) @-}
+prescanr :: (Storable a, Storable b) => (a -> b -> b) -> b -> Vector a -> Vector b
 {-# INLINE prescanr #-}
-prescanr f s v = phony $ unW . proxyFW (G.prescanr f s) v
+prescanr f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.prescanr f s) v
 
 -- | /O(n)/ Right-to-left prescan with strict accumulator
-prescanr' :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> b) -> b -> Vector ty a -> Vector ty b
+{-@ assume prescanr' :: (a -> b -> b) -> b -> v:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf v) @-}
+prescanr' :: (Storable a, Storable b) => (a -> b -> b) -> b -> Vector a -> Vector b
 {-# INLINE prescanr' #-}
-prescanr' f s v = phony $ unW . proxyFW (G.prescanr' f s) v
+prescanr' f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.prescanr' f s) v
 
 -- | /O(n)/ Right-to-left scan
-postscanr :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> b) -> b -> Vector ty a -> Vector ty b
+{-@ assume postscanr :: (a -> b -> b) -> b -> v:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf v) @-}
+postscanr :: (Storable a, Storable b) => (a -> b -> b) -> b -> Vector a -> Vector b
 {-# INLINE postscanr #-}
-postscanr f s v = phony $ unW . proxyFW (G.postscanr f s) v
+postscanr f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.postscanr f s) v
 
 -- | /O(n)/ Right-to-left scan with strict accumulator
-postscanr' :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> b) -> b -> Vector ty a -> Vector ty b
+{-@ assume postscanr' :: (a -> b -> b) -> b -> v:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf v) @-}
+postscanr' :: (Storable a, Storable b) => (a -> b -> b) -> b -> Vector a -> Vector b
 {-# INLINE postscanr' #-}
-postscanr' f s v = phony $ unW . proxyFW (G.postscanr' f s) v
+postscanr' f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.postscanr' f s) v
 
 -- | /O(n)/ Right-to-left Haskell-style scan
-scanr :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> b) -> b -> Vector ty a -> Vector ty b
+{-@ assume scanr :: (a -> b -> b) -> b -> v:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf v) @-}
+scanr :: (Storable a, Storable b) => (a -> b -> b) -> b -> Vector a -> Vector b
 {-# INLINE scanr #-}
-scanr f s v = phony $ unW . proxyFW (G.scanr f s) v
+scanr f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanr f s) v
 
 -- | /O(n)/ Right-to-left Haskell-style scan with strict accumulator
-scanr' :: (SVECTOR ty a, SVECTOR ty b) => (a -> b -> b) -> b -> Vector ty a -> Vector ty b
+{-@ assume scanr' :: (a -> b -> b) -> b -> v:Vector a -> TVector b (Data.Vector.SEXP.vtypeOf v) @-}
+scanr' :: (Storable a, Storable b) => (a -> b -> b) -> b -> Vector a -> Vector b
 {-# INLINE scanr' #-}
-scanr' f s v = phony $ unW . proxyFW (G.scanr' f s) v
+scanr' f s v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanr' f s) v
 
 -- | /O(n)/ Right-to-left scan over a non-empty vector
-scanr1 :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> Vector ty a
+{-@ assume scanr1 :: (a -> a -> a) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+scanr1 :: Storable a => (a -> a -> a) -> Vector a -> Vector a
 {-# INLINE scanr1 #-}
-scanr1 f v = phony $ unW . proxyFW (G.scanr1 f) v
+scanr1 f v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanr1 f) v
 
 -- | /O(n)/ Right-to-left scan over a non-empty vector with a strict
 -- accumulator
-scanr1' :: SVECTOR ty a => (a -> a -> a) -> Vector ty a -> Vector ty a
+{-@ assume scanr1' :: (a -> a -> a) -> v:Vector a -> TVector a (Data.Vector.SEXP.vtypeOf v) @-}
+scanr1' :: Storable a => (a -> a -> a) -> Vector a -> Vector a
 {-# INLINE scanr1' #-}
-scanr1' f v = phony $ unW . proxyFW (G.scanr1' f) v
+scanr1' f v = phonyt (vtypeOf v) $ unW . proxyFW (G.scanr1' f) v
 
 -- Conversions - Lists
 -- ------------------------
 
 -- | /O(n)/ Convert a vector to a list
-toList :: SVECTOR ty a => Vector ty a -> [a]
+toList :: Storable a => Vector a -> [a]
 {-# INLINE toList #-}
 toList v = phony $ proxyFW G.toList v
 
 -- | /O(n)/ Convert a list to a vector
-fromList :: forall ty a . SVECTOR ty a => [a] -> Vector ty a
+{-@ assume fromList :: forall a . Storable a => t:VSEXPTYPE s a -> [a] -> TVector a (vstypeOf t) @-}
+fromList :: Storable a => VSEXPTYPE s a -> [a] -> Vector a
 {-# INLINE fromList #-}
-fromList xs = phony $ proxyW (G.fromListN (Prelude.length xs) xs)
+fromList t xs = phonyvtype t $ proxyW (G.fromListN (Prelude.length xs) xs)
 
 -- | /O(n)/ Convert the first @n@ elements of a list to a vector
 --
 -- @
 -- fromListN n xs = 'fromList' ('take' n xs)
 -- @
-fromListN :: forall ty a . SVECTOR ty a => Int -> [a] -> Vector ty a
+fromListN :: Storable a => VSEXPTYPE s a -> Int -> [a] -> Vector a
 {-# INLINE fromListN #-}
-fromListN i l = phony $ proxyW (G.fromListN i l)
+fromListN t i l = phonyvtype t $ proxyW (G.fromListN i l)
 
 -- Conversions - Unsafe casts
 -- --------------------------
@@ -1707,49 +1870,81 @@ fromListN i l = phony $ proxyW (G.fromListN i l)
 
 -- | /O(1)/ Unsafe convert a mutable vector to an immutable one with
 -- copying. The mutable vector may not be used after this operation.
-unsafeFreeze :: (VECTOR (Region m) ty a, MonadR m, ElemRep V ty ~ a)
-             => MVector (Region m) ty a -> m (Vector ty a)
+{-@ assume unsafeFreeze :: mv:Data.Vector.SEXP.Mutable.MVector (Region m) a -> m (TVector a (Data.Vector.SEXP.Mutable.Internal.mvtypeOf mv)) @-}
+unsafeFreeze :: (Storable a, MonadR m) => MVector (Region m) a -> m (Vector a)
 {-# INLINE unsafeFreeze #-}
-unsafeFreeze m = withAcquire $ \p -> unW <$> G.unsafeFreeze (Mutable.withW p m)
+unsafeFreeze m = do
+    acquireIO <- getAcquireIO
+    reify (acquireIO, evaluate (Mutable.mvtypeOf m)) $ \p -> unW <$> G.unsafeFreeze (Mutable.withW p m)
 
 -- | /O(1)/ Unsafely convert an immutable vector to a mutable one with
 -- copying. The immutable vector may not be used after this operation.
-unsafeThaw :: (MonadR m, VECTOR (Region m) ty a, ElemRep V ty ~ a)
-           => Vector ty a -> m (MVector (Region m) ty a)
+{-@ assume unsafeThaw :: v:Vector a -> m (TMVector (Region m) a (Data.Vector.SEXP.vtypeOf v)) @-}
+unsafeThaw :: (MonadR m, Storable a) => Vector a -> m (MVector (Region m) a)
 {-# INLINE unsafeThaw #-}
-unsafeThaw v = withAcquire $ \p -> Mutable.unW <$> G.unsafeThaw (withW p v)
+unsafeThaw v = do
+    acquireIO <- getAcquireIO
+    reify (acquireIO, evaluate (vtypeOf v)) $ \p -> Mutable.unW <$> G.unsafeThaw (withW p v)
 
 -- | /O(n)/ Yield a mutable copy of the immutable vector.
-thaw :: (MonadR m, VECTOR (Region m) ty a, ElemRep V ty ~ a)
-     => Vector ty a -> m (MVector (Region m) ty a)
+{-@ assume thaw :: v:Vector a -> m (TMVector (Region m) a (Data.Vector.SEXP.vtypeOf v)) @-}
+thaw :: (MonadR m, Storable a) => Vector a -> m (MVector (Region m) a)
 {-# INLINE thaw #-}
-thaw v1 = withAcquire $ \p -> Mutable.unW <$> G.thaw (withW p v1)
+thaw v1 = do
+    acquireIO <- getAcquireIO
+    reify (acquireIO, evaluate (vtypeOf v1)) $ \p -> Mutable.unW <$> G.thaw (withW p v1)
 
 -- | /O(n)/ Yield an immutable copy of the mutable vector.
-freeze :: (MonadR m, VECTOR (Region m) ty a, ElemRep V ty ~ a)
-       => MVector (Region m) ty a -> m (Vector ty a)
+{-@ assume freeze :: mv:Data.Vector.SEXP.Mutable.MVector (Region m) a -> m (TVector a (Data.Vector.SEXP.Mutable.Internal.mvtypeOf mv)) @-}
+freeze :: (Storable a, MonadR m) => MVector (Region m) a -> m (Vector a)
 {-# INLINE freeze #-}
-freeze m1 = withAcquire $ \p -> unW <$> G.freeze (Mutable.withW p m1)
+freeze m1 = do
+    acquireIO <- getAcquireIO
+    reify (acquireIO, evaluate (Mutable.mvtypeOf m1)) $ \p -> unW <$> G.freeze (Mutable.withW p m1)
 
 -- | /O(n)/ Copy an immutable vector into a mutable one. The two vectors must
 -- have the same length. This is not checked.
+{-@ assume unsafeCopy :: mv:Data.Vector.SEXP.Mutable.MVector (Region m) a -> TVector a (Data.Vector.SEXP.Mutable.Internal.mvtypeOf mv) -> m () @-}
 unsafeCopy
-  :: (MonadR m, VECTOR (Region m) ty a, ElemRep V ty ~ a)
-  => MVector (Region m) ty a -> Vector ty a -> m ()
+  :: (MonadR m, Storable a)
+  => MVector (Region m) a -> Vector a -> m ()
 {-# INLINE unsafeCopy #-}
-unsafeCopy m1 v2 = withAcquire $ \p -> G.unsafeCopy (Mutable.withW p m1) (withW p v2)
+unsafeCopy m1 v2 = do
+    acquireIO <- getAcquireIO
+    reify (acquireIO, evaluate (vtypeOf v2)) $ \p -> G.unsafeCopy (Mutable.withW p m1) (withW p v2)
 
 -- | /O(n)/ Copy an immutable vector into a mutable one. The two vectors must
 -- have the same length.
-copy :: (MonadR m, VECTOR (Region m) ty a, ElemRep V ty ~ a)
-     => MVector (Region m) ty a -> Vector ty a -> m ()
+{-@ assume copy :: mv:Data.Vector.SEXP.Mutable.MVector (Region m) a -> TVector a (Data.Vector.SEXP.Mutable.Internal.mvtypeOf mv) -> m () @-}
+copy
+  :: (MonadR m, Storable a)
+  => MVector (Region m) a -> Vector a -> m ()
 {-# INLINE copy #-}
-copy m1 v2 = withAcquire $ \p -> G.copy (Mutable.withW p m1) (withW p v2)
+copy m1 v2 = do
+    acquireIO <- getAcquireIO
+    reify (acquireIO, evaluate (vtypeOf v2)) $ \p -> G.copy (Mutable.withW p m1) (withW p v2)
 
-phony :: (forall t . Reifies t (AcquireIO s) => Proxy t -> r) -> r
-phony f = reify (AcquireIO acquireIO) $ \p ->  f p
+
+phony
+  :: forall s r.
+     (forall t. Reifies t (AcquireIO s, IO R.SEXPTYPE) => Proxy t -> r) -> r
+phony f =
+    reify acquireIO $ \p -> f p
   where
-    acquireIO :: SEXP V ty -> IO (SEXP g ty)
-    acquireIO x = mask_ $ do
-      R.preserveObject x
-      return $ R.unsafeRelease x
+    acquireIO = violation "phony" "phony acquire or SEXPTYPE called."
+
+phonyt
+  :: R.SEXPTYPE ->
+     (forall t. Reifies t (AcquireIO s, IO R.SEXPTYPE) => Proxy t -> r) -> r
+phonyt t f =
+    reify (acquireIO, evaluate t) $ \p -> f p
+  where
+    acquireIO = violation "phony" "phony acquire called."
+
+phonyvtype
+  :: VSEXPTYPE s a ->
+     (forall t. Reifies t (AcquireIO s, IO R.SEXPTYPE) => Proxy t -> r) -> r
+phonyvtype t f =
+    reify (acquireIO, return (vstypeOf t)) $ \p -> f p
+  where
+    acquireIO = violation "phony" "phony acquire called."
