@@ -68,8 +68,8 @@ library
 --    Language.R.HExp
 --    Language.R.Instance
 --    Language.R.Internal
---    Language.R.Internal.FunWrappers
---    Language.R.Internal.FunWrappers.TH
+    Language.R.Internal.FunWrappers
+    Language.R.Internal.FunWrappers.TH
 --    Language.R.Literal
 --    Language.R.Matcher
 --    Language.R.QQ
