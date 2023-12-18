@@ -76,7 +76,7 @@ library
   if !os(windows)
     exposed-modules:
       Foreign.R.EventLoop
---      Language.R.Event
+      Language.R.Event
   other-modules:
     Control.Monad.R.Class
     Control.Monad.R.Internal
