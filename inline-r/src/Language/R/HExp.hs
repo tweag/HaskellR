@@ -26,10 +26,12 @@
 -- 'HExp' is the /view/ and 'hexp' is the /view function/ that projects 'SEXP's
 -- into 'HExp' views.
 
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RoleAnnotations #-}
@@ -37,33 +39,37 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
+{-@ LIQUID "--exact-data-cons" @-}
+{-@ LIQUID "--prune-unsorted" @-}
 module Language.R.HExp
   ( HExp(..)
-  , (===)
   , hexp
+  , htypeOf
   , vector
   ) where
 
 import Control.Applicative
 import Control.Memory.Region (V)
 import qualified Foreign.R      as R
-import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE)
-import Foreign.R.Constraints
+import Foreign.R (SEXP, SEXPTYPE)
 import Internal.Error
 
 import qualified Data.Vector.SEXP as Vector
 
-import Control.Monad (guard, void)
+import Control.Memory.Region -- XXX: Needed for LH name resolution
 import Control.Monad.Primitive ( unsafeInlineIO )
+import Control.Monad.R.Class -- XXX: imported to help LH name resolution
+import Control.Monad.ST -- XXX: Needed for LH name resolution
 import Data.Int (Int32)
 import Data.Word (Word8)
 import Data.Complex
-import Data.Maybe (isJust)
-import Data.Type.Equality (TestEquality(..), (:~:)(Refl))
+import Data.Kind (Type)
+import qualified Data.Vector.SEXP.Mutable as Mutable -- XXX: Needed for LH name resolution
 import GHC.Ptr (Ptr(..))
+import Foreign.C.String -- XXX: Needed for LH name resolution
+import Foreign.ForeignPtr -- XXX: imported to help LH name resolution
 import Foreign.Storable
 import Foreign (castPtr)
-import Unsafe.Coerce (unsafeCoerce)
 -- Fixes redundant import warning >= 7.10 without CPP
 import Prelude
 
@@ -78,43 +84,38 @@ import Prelude
 -- escape).
 --
 -- See <https://cran.r-project.org/doc/manuals/r-release/R-ints.html#SEXPTYPEs>.
-type role HExp phantom nominal
-data HExp :: * -> SEXPTYPE -> * where
+type role HExp phantom
+data HExp :: Type -> Type where
   -- Primitive types. The field names match those of <RInternals.h>.
   -- | The NULL value (@NILSXP@).
-  Nil       :: HExp s 'R.Nil
+  Nil       :: HExp s
   -- | A symbol (@SYMSXP@).
-  Symbol    :: (a :∈ ['R.Char, 'R.Nil])
-            => SEXP s a -- ^ the name (is 'Nil' for 'H.unboundValue')
-            -> SEXP s b -- ^ the value. Many symbols have their value set to 'H.unboundValue'.
-            -> SEXP s c -- ^ «internal»: if the symbol's value is a @.Internal@ function,
+  Symbol    :: SEXP s -- ^ the name (is 'Nil' for 'H.unboundValue')
+            -> SEXP s -- ^ the value. Many symbols have their value set to 'H.unboundValue'.
+            -> SEXP s -- ^ «internal»: if the symbol's value is a @.Internal@ function,
                         -- this is a pointer to the appropriate 'SEXP'.
-            -> HExp s 'R.Symbol
+            -> HExp s
   -- | A list (@LISTSXP@).
-  List      :: (R.IsPairList b, c :∈ ['R.Symbol, 'R.Nil])
-            => SEXP s a -- ^ CAR
-            -> SEXP s b -- ^ CDR (usually a 'List' or 'Nil')
-            -> SEXP s c -- ^ TAG (a 'Symbol' or 'Nil')
-            -> HExp s 'R.List
+  List      :: SEXP s -- ^ CAR
+            -> SEXP s -- ^ CDR (usually a 'List' or 'Nil')
+            -> SEXP s -- ^ TAG (a 'Symbol' or 'Nil')
+            -> HExp s
   -- | An environment (@ENVSXP@).
-  Env       :: (R.IsPairList a, b :∈ ['R.Env, 'R.Nil], c :∈ ['R.Vector, 'R.Nil])
-            => SEXP s a -- ^ the frame: a tagged pairlist with tag the symbol and CAR the bound value
-            -> SEXP s b -- ^ the enclosing environment
-            -> SEXP s c -- ^ the hash table
-            -> HExp s 'R.Env
+  Env       :: SEXP s -- ^ the frame: a tagged pairlist with tag the symbol and CAR the bound value
+            -> SEXP s -- ^ the enclosing environment
+            -> SEXP s -- ^ the hash table
+            -> HExp s
   -- | A closure (@CLOSXP@).
-  Closure   :: (R.IsPairList a)
-            => SEXP s a -- ^ formals (a pairlist)
-            -> SEXP s b -- ^ the body
-            -> SEXP s 'R.Env -- ^ the environment
-            -> HExp s 'R.Closure
+  Closure   :: SEXP s -- ^ formals (a pairlist)
+            -> SEXP s -- ^ the body
+            -> SEXP s -- ^ the environment
+            -> HExp s
   -- | A promise (@PROMSXP@).
-  Promise   :: (R.IsExpression b, c :∈ ['R.Env, 'R.Nil])
-            => SEXP s a -- ^ the value
-            -> SEXP s b -- ^ the expression
-            -> SEXP s c -- ^ the environment. Once the promise has been
+  Promise   :: SEXP s -- ^ the value
+            -> SEXP s -- ^ the expression
+            -> SEXP s -- ^ the environment. Once the promise has been
                         -- evaluated, the environment is set to NULL.
-            -> HExp s 'R.Promise
+            -> HExp s
   -- Derived types. These types don't have their own 'struct' declaration in
   -- <Rinternals.h>.
   -- | Language objects (@LANGSXP@) are calls (including formulae and so on).
@@ -123,265 +124,312 @@ data HExp :: * -> SEXPTYPE -> * where
   -- the call (and with the tags if present giving the specified argument
   -- names). Although this is not enforced, many places in the R code assume
   -- that the pairlist is of length one or more, often without checking.
-  Lang      :: (R.IsExpression a, R.IsPairList b)
-            => SEXP s a -- ^ CAR: the function (perhaps via a symbol or language object)
-            -> SEXP s b -- ^ CDR: the argument list with tags for named arguments
-            -> HExp s 'R.Lang
+  Lang      :: SEXP s -- ^ CAR: the function (perhaps via a symbol or language object)
+            -> SEXP s -- ^ CDR: the argument list with tags for named arguments
+            -> HExp s
   -- | A special (built-in) function call (@SPECIALSXP@). It carries an offset
   -- into the table of primitives but for our purposes is opaque.
-  Special   :: HExp s 'R.Special
+  Special   :: HExp s
   -- | A @BUILTINSXP@. This is similar to 'Special', except the arguments to a 'Builtin'
   -- are always evaluated.
-  Builtin   :: HExp s 'R.Builtin
+  Builtin   :: HExp s
   -- | An internal character string (@CHARSXP@).
-  Char      :: {-# UNPACK #-} !(Vector.Vector 'R.Char Word8)
-            -> HExp s 'R.Char
+  Char      :: Vector.Vector Word8
+            -> HExp s
   -- | A logical vector (@LGLSXP@).
-  Logical   :: {-# UNPACK #-} !(Vector.Vector 'R.Logical R.Logical)
-            -> HExp s 'R.Logical
+  Logical   :: Vector.Vector R.Logical
+            -> HExp s
   -- | An integer vector (@INTSXP@).
-  Int       :: {-# UNPACK #-} !(Vector.Vector 'R.Int Int32)
-            -> HExp s 'R.Int
+  Int       :: Vector.Vector Int32
+            -> HExp s
   -- | A numeric vector (@REALSXP@).
-  Real      :: {-# UNPACK #-} !(Vector.Vector 'R.Real Double)
-            -> HExp s 'R.Real
+  Real      :: Vector.Vector Double
+            -> HExp s
   -- | A complex vector (@CPLXSXP@).
-  Complex   :: {-# UNPACK #-} !(Vector.Vector 'R.Complex (Complex Double))
-            -> HExp s 'R.Complex
+  Complex   :: Vector.Vector (Complex Double)
+            -> HExp s
   -- | A character vector (@STRSXP@).
-  String    :: {-# UNPACK #-} !(Vector.Vector 'R.String (SEXP V 'R.Char))
-            -> HExp s 'R.String
+  String    :: Vector.Vector (SEXP V)
+            -> HExp s
   -- | A special type of @LISTSXP@ for the value bound to a @...@ symbol
-  DotDotDot :: (R.IsPairList a)
-            => SEXP s a -- ^ a pairlist of promises
-            -> HExp s 'R.List
+  DotDotDot :: SEXP s -- ^ a pairlist of promises
+            -> HExp s
   -- | A list/generic vector (@VECSXP@).
-  Vector    :: {-# UNPACK #-} !Int32 -- ^ true length
-            -> {-# UNPACK #-} !(Vector.Vector 'R.Vector (SomeSEXP V))
-            -> HExp s 'R.Vector
+  Vector    :: Int32 -- ^ true length
+            -> Vector.Vector (SEXP V)
+            -> HExp s
   -- | An expression vector (@EXPRSXP@).
-  Expr      :: {-# UNPACK #-} !Int32 -- ^ true length
-            -> {-# UNPACK #-} !(Vector.Vector 'R.Expr (SomeSEXP V))
-            -> HExp s 'R.Expr
+  Expr      :: Int32 -- ^ true length
+            -> Vector.Vector (SEXP V)
+            -> HExp s
   -- | A ‘byte-code’ object generated by R (@BCODESXP@).
-  Bytecode  :: HExp s 'R.Bytecode -- TODO
+  Bytecode  :: HExp s -- TODO
   -- | An external pointer (@EXTPTRSXP@)
-  ExtPtr    :: (c :∈ ['R.Symbol, 'R.Nil])
-            => Ptr () -- ^ the pointer
-            -> SEXP s b -- ^ the protection value (an R object which if alive protects this object)
-            -> SEXP s c -- ^ a tag
-            -> HExp s 'R.ExtPtr
+  ExtPtr    :: Ptr () -- ^ the pointer
+            -> SEXP s -- ^ the protection value (an R object which if alive protects this object)
+            -> SEXP s -- ^ a tag
+            -> HExp s
   -- | A weak reference (@WEAKREFSXP@).
-  WeakRef   :: ( a :∈ ['R.Env, 'R.ExtPtr, 'R.Nil]
-               , c :∈ ['R.Closure, 'R.Builtin, 'R.Special, 'R.Nil]
-               , d :∈ ['R.WeakRef, 'R.Nil] )
-            => SEXP s a -- ^ the key
-            -> SEXP s b -- ^ the value
-            -> SEXP s c -- ^ the finalizer
-            -> SEXP s d -- ^ the next entry in the weak references list
-            -> HExp s 'R.WeakRef
+  WeakRef   :: SEXP s -- ^ the key
+            -> SEXP s -- ^ the value
+            -> SEXP s -- ^ the finalizer
+            -> SEXP s -- ^ the next entry in the weak references list
+            -> HExp s
   -- | A raw vector (@RAWSXP@).
-  Raw       :: {-# UNPACK #-} !(Vector.Vector 'R.Raw Word8)
-            -> HExp s 'R.Raw
+  Raw       :: Vector.Vector Word8
+            -> HExp s
   -- | An S4 class which does not consist solely of a simple type such as an atomic vector or function (@S4SXP@).
-  S4        :: (a :∈ ['R.Symbol, 'R.Nil])
-            => SEXP s a -- ^ the tag
-            -> HExp s 'R.S4
+  S4        :: SEXP s -- ^ the tag
+            -> HExp s
 
--- 'Im a hack
+{-@
+type THExp s T = {e:HExp s | htypeOf e == T }
+@-}
 
-instance Eq (HExp s a) where
-  (==) = (===)
+{-@ reflect htypeOf @-}
+htypeOf :: HExp s -> SEXPTYPE
+htypeOf = \case
+    Nil -> R.Nil
+    Symbol{} -> R.Symbol
+    List{} -> R.List
+    Env{} -> R.Env
+    Closure{} -> R.Closure
+    Promise{} -> R.Promise
+    Lang{} -> R.Lang
+    Special{} -> R.Special
+    Builtin{} -> R.Builtin
+    Char{} -> R.Char
+    Int{} -> R.Int
+    Logical{} -> R.Logical
+    Real{} -> R.Real
+    Complex{} -> R.Complex
+    String{} -> R.String
+    DotDotDot{} -> R.List
+    Vector{} -> R.Vector
+    Expr{} -> R.Expr
+    Bytecode{} -> R.Bytecode
+    ExtPtr{} -> R.ExtPtr
+    WeakRef{} -> R.WeakRef
+    Raw{} -> R.Raw
+    S4{} -> R.S4
 
--- | Heterogeneous equality.
-(===) :: TestEquality f => f a -> f b -> Bool
-x === y = isJust $ testEquality x y
+{-@
+data HExp :: * -> * where
+  Nil       :: HExp s
+  Symbol    :: {e1:SEXP s| typeOf e1 == R.Char || typeOf e1 == R.Nil}
+            -> SEXP s
+            -> SEXP s
+            -> HExp s
+  List      :: SEXP s
+            -> {e2:SEXP s | typeOf e2 == R.List || typeOf e2 == R.Nil}
+            -> {e3:SEXP s | typeOf e3 == R.Symbol || typeOf e3 == R.Nil}
+            -> HExp s
+  Env       :: {e1:SEXP s | typeOf e1 == R.List || typeOf e1 == R.Nil}
+            -> {e2:SEXP s | typeOf e2 == R.Env || typeOf e2 == R.Nil}
+            -> {e3:SEXP s | typeOf e3 == R.Vector || typeOf e3 == R.Nil}
+            -> HExp s
+  Closure   :: {e1:SEXP s | typeOf e1 == R.List || typeOf e1 == R.Nil}
+            -> SEXP s
+            -> TSEXP s R.Env
+            -> HExp s
+  Promise   :: SEXP s
+            -> {e2:SEXP s | typeOf e2 == R.Lang || typeOf e2 == R.Expr || typeOf e2 == R.Symbol}
+            -> {e3:SEXP s | typeOf e3 == R.Env || typeOf e3 == R.Nil}
+            -> HExp s
+  Lang      :: {e1:SEXP s | typeOf e1 == R.Lang || typeOf e1 == R.Expr || typeOf e1 == R.Symbol}
+            -> {e2:SEXP s | typeOf e2 == R.List || typeOf e2 == R.Nil}
+            -> HExp s
+  Special   :: HExp s
+  Builtin   :: HExp s
+  Char      :: TVector Word8 R.Char
+            -> HExp s
+  Logical   :: TVector Foreign.R.Context.Logical R.Logical
+            -> HExp s
+  Int       :: TVector Int32 R.Int
+            -> HExp s
+  Real      :: TVector Double R.Real
+            -> HExp s
+  Complex   :: TVector (Complex Double) R.Complex
+            -> HExp s
+  String    :: TVector (TSEXP V R.Char) R.String
+            -> HExp s
+  DotDotDot :: {e1:SEXP s | typeOf e1 == R.List || typeOf e1 == R.Nil}
+            -> HExp s
+  Vector    :: Int32
+            -> TVector (SEXP V) R.Vector
+            -> HExp s
+  Expr      :: Int32
+            -> TVector (SEXP V) R.Expr
+            -> HExp s
+  Bytecode  :: HExp s
+  ExtPtr    :: Ptr ()
+            -> SEXP s
+            -> {e2:SEXP s | typeOf e2 == R.Symbol || typeOf e2 == R.Nil}
+            -> HExp s
+  WeakRef   :: {e1:SEXP s | typeOf e1 == R.Env || typeOf e1 == R.ExtPtr || typeOf e1 == R.Nil}
+            -> SEXP s
+            -> {e3:SEXP s | typeOf e3 == R.Closure || typeOf e3 == R.Builtin || typeOf e3 == R.Special || typeOf e3 == R.Nil}
+            -> {e4:SEXP s | typeOf e4 == R.WeakRef || typeOf e4 == R.Nil}
+            -> HExp s
+  Raw       :: TVector Word8 R.Raw
+            -> HExp s
+  S4        :: {e1:SEXP s | typeOf e1 == R.Symbol || typeOf e1 == R.Nil}
+            -> HExp s
+@-}
 
 -- | Wrapper for partially applying a type synonym.
-newtype E s a = E (SEXP s a)
+newtype E s = E (SEXP s)
 
-instance TestEquality (E s) where
-  testEquality (E x@(hexp -> t1)) (E y@(hexp -> t2)) =
-      (guard (R.unsexp x == R.unsexp y) >> return (unsafeCoerce Refl)) <|>
-      testEquality t1 t2
+instance Eq (E s) where
+  (E x@(hexp -> t1)) == (E y@(hexp -> t2)) =
+      R.unsexp x == R.unsexp y || t1 == t2
 
-instance TestEquality (HExp s) where
-  testEquality Nil Nil = return Refl
-  testEquality (Symbol pname1 value1 internal1) (Symbol pname2 value2 internal2) = do
-      void $ testEquality (E pname1) (E pname2)
-      void $ testEquality (E value1) (E value2)
-      void $ testEquality (E internal1) (E internal2)
-      return Refl
-  testEquality (List carval1 cdrval1 tagval1) (List carval2 cdrval2 tagval2) = do
-      void $ testEquality (E carval1) (E carval2)
-      void $ testEquality (E cdrval1) (E cdrval2)
-      void $ testEquality (E tagval1) (E tagval2)
-      return Refl
-  testEquality (Env frame1 enclos1 hashtab1) (Env frame2 enclos2 hashtab2) = do
-      void $ testEquality (E frame1) (E frame2)
-      void $ testEquality (E enclos1) (E enclos2)
-      void $ testEquality (E hashtab1) (E hashtab2)
-      return Refl
-  testEquality (Closure formals1 body1 env1) (Closure formals2 body2 env2) = do
-      void $ testEquality (E formals1) (E formals2)
-      void $ testEquality (E body1) (E body2)
-      void $ testEquality (E env1) (E env2)
-      return Refl
-  testEquality (Promise value1 expr1 env1) (Promise value2 expr2 env2) = do
-      void $ testEquality (E value1) (E value2)
-      void $ testEquality (E expr1) (E expr2)
-      void $ testEquality (E env1) (E env2)
-      return Refl
-  testEquality (Lang carval1 cdrval1) (Lang carval2 cdrval2) = do
-      void $ testEquality (E carval1) (E carval2)
-      void $ testEquality (E cdrval1) (E cdrval2)
-      return Refl
+instance Eq (HExp s) where
+  (==) Nil Nil = True
+  (==) (Symbol pname1 value1 internal1) (Symbol pname2 value2 internal2) =
+         E pname1 == E pname2
+      && E value1 == E value2
+      && E internal1 == E internal2
+  (==) (List carval1 cdrval1 tagval1) (List carval2 cdrval2 tagval2) =
+         E carval1 == E carval2
+      && E cdrval1 == E cdrval2
+      && E tagval1 == E tagval2
+  (==) (Env frame1 enclos1 hashtab1) (Env frame2 enclos2 hashtab2) =
+         E frame1 == E frame2
+      && E enclos1 == E enclos2
+      && E hashtab1 == E hashtab2
+  (==) (Closure formals1 body1 env1) (Closure formals2 body2 env2) =
+         E formals1 == E formals2
+      && E body1 == E body2
+      && E env1 == E env2
+  (==) (Promise value1 expr1 env1) (Promise value2 expr2 env2) =
+         E value1 == E value2
+      && E expr1 == E expr2
+      && E env1 == E env2
+  (==) (Lang carval1 cdrval1) (Lang carval2 cdrval2) =
+         E carval1 == E carval2
+      && E cdrval1 == E cdrval2
   -- Not comparable
-  testEquality Special Special = Nothing
+  (==) Special Special = False
   -- Not comparable
-  testEquality Builtin Builtin = Nothing
-  testEquality (Char vec1) (Char vec2) = do
-      guard $ vec1 == vec2
-      return Refl
-  testEquality (Int vec1) (Int vec2) = do
-      guard $ vec1 == vec2
-      return Refl
-  testEquality (Real vec1) (Real vec2) = do
-      guard $ vec1 == vec2
-      return Refl
-  testEquality (String vec1) (String vec2) = do
-      guard $ vec1 == vec2
-      return Refl
-  testEquality (Complex vec1) (Complex vec2) = do
-      guard $ vec1 == vec2
-      return Refl
-  testEquality (DotDotDot pairlist1) (DotDotDot pairlist2) = do
-      void $ testEquality (E pairlist1) (E pairlist2)
-      return Refl
-  testEquality (Vector truelength1 vec1) (Vector truelength2 vec2) = do
-      let eq (SomeSEXP s1) (SomeSEXP s2) = isJust $ testEquality (E s1) (E s2)
-      guard $ truelength1 == truelength2
-      guard $ and $ zipWith eq (Vector.toList vec1) (Vector.toList vec2)
-      return Refl
-  testEquality (Expr truelength1 vec1) (Expr truelength2 vec2) = do
-      let eq (SomeSEXP s1) (SomeSEXP s2) = isJust $ testEquality (E s1) (E s2)
-      guard $ truelength1 == truelength2
-      guard $ and $ zipWith eq (Vector.toList vec1) (Vector.toList vec2)
-      return Refl
-  testEquality Bytecode Bytecode = return Refl
-  testEquality (ExtPtr pointer1 protectionValue1 tagval1) (ExtPtr pointer2 protectionValue2 tagval2) = do
-      guard $ castPtr pointer1 == castPtr pointer2
-      void $ testEquality (E protectionValue1) (E protectionValue2)
-      void $ testEquality (E tagval1) (E tagval2)
-      return Refl
-  testEquality (WeakRef key1 value1 finalizer1 next1) (WeakRef key2 value2 finalizer2 next2) = do
-      void $ testEquality (E key1) (E key2)
-      void $ testEquality (E value1) (E value2)
-      void $ testEquality (E finalizer1) (E finalizer2)
-      void $ testEquality (E next1) (E next2)
-      return Refl
-  testEquality (Raw vec1) (Raw vec2) = do
-      guard $ vec1 == vec2
-      return Refl
-  testEquality (S4 tagval1) (S4 tagval2) = do
-      void $ testEquality (E tagval1) (E tagval2)
-      return Refl
-  testEquality _ _ = Nothing
+  (==) Builtin Builtin = False
+  (==) (Char vec1) (Char vec2) =
+      vec1 == vec2
+  (==) (Int vec1) (Int vec2) =
+      vec1 == vec2
+  (==) (Real vec1) (Real vec2) =
+      vec1 == vec2
+  (==) (String vec1) (String vec2) =
+      vec1 == vec2
+  (==) (Complex vec1) (Complex vec2) =
+      vec1 == vec2
+  (==) (DotDotDot pairlist1) (DotDotDot pairlist2) =
+      E pairlist1 == E pairlist2
+  (==) (Vector truelength1 vec1) (Vector truelength2 vec2) =
+      let eq s1 s2 = E s1 == E s2
+       in truelength1 == truelength2
+          && and (zipWith eq (Vector.toList vec1) (Vector.toList vec2))
+  (==) (Expr truelength1 vec1) (Expr truelength2 vec2) =
+      let eq s1 s2 = E s1 == E s2
+       in truelength1 == truelength2
+          && and (zipWith eq (Vector.toList vec1) (Vector.toList vec2))
+  (==) Bytecode Bytecode = True
+  (==) (ExtPtr pointer1 protectionValue1 tagval1) (ExtPtr pointer2 protectionValue2 tagval2) =
+         castPtr pointer1 == castPtr pointer2
+      && E protectionValue1 == E protectionValue2
+      && E tagval1 == E tagval2
+  (==) (WeakRef key1 value1 finalizer1 next1) (WeakRef key2 value2 finalizer2 next2) =
+         E key1 == E key2
+      && E value1 == E value2
+      && E finalizer1 == E finalizer2
+      && E next1 == E next2
+  (==) (Raw vec1) (Raw vec2) =
+      vec1 == vec2
+  (==) (S4 tagval1) (S4 tagval2) =
+      E tagval1 == E tagval2
+  (==) _ _ = False
+
 
 {-# INLINE peekHExp #-}
-peekHExp :: forall s a. SEXP s a -> IO (HExp s a)
-peekHExp s = do
-    let coerce :: IO (HExp s b) -> IO (HExp s c)
-        coerce = unsafeCoerce
-
-        -- (:∈) constraints are impossible to respect in 'peekHExp', because
-        -- R doesn't tell us statically the form of the SEXPREC referred to by
-        -- a pointer. So in this function only, we pretend all constrained
-        -- fields actually always contain fields of form ANYSXP. This has no
-        -- operational significance - it's only a way to bypass what's
-        -- impossible to prove.
-        coerceAny :: SEXP s b -> SEXP s 'R.Any -- '
-        coerceAny = R.unsafeCoerce
-
-        coerceAnySome :: SomeSEXP s -> SEXP s 'R.Any -- '
-        coerceAnySome (SomeSEXP s1) = coerceAny s1
-
-        su :: forall b. SEXP s b
-        su = R.unsafeCoerce s
-
+{-@ assume peekHExp :: x:SEXP s -> IO (THExp s (typeOf x)) @-}
+{-@ ignore peekHExp @-}
+peekHExp :: SEXP s -> IO (HExp s)
+peekHExp s =
     case R.typeOf s of
-      R.Nil       -> coerce $ return Nil
-      R.Symbol    -> coerce $
-        Symbol    <$> (coerceAnySome <$> R.symbolPrintName su)
-                  <*> (coerceAnySome <$> R.symbolValue su)
-                  <*> (coerceAnySome <$> R.symbolInternal su)
-      R.List      -> coerce $
-        List      <$> (coerceAnySome <$> R.car su)
-                  <*> (coerceAnySome <$> R.cdr su)
-                  <*> (coerceAnySome <$> R.tag su)
-      R.Env       -> coerce $
-        Env       <$> (coerceAny <$> R.envFrame su)
-                  <*> (coerceAny <$> R.envEnclosing su)
-                  <*> (coerceAny <$> R.envHashtab su)
-      R.Closure   -> coerce $
-        Closure   <$> (coerceAny <$> R.closureFormals su)
-                  <*> (coerceAnySome <$> R.closureBody su)
-                  <*> R.closureEnv su
-      R.Promise   -> coerce $
-        Promise   <$> (coerceAnySome <$> R.promiseValue su)
-                  <*> (coerceAnySome <$> R.promiseCode su)
-                  <*> (coerceAnySome <$> R.promiseEnv su)
-      R.Lang      -> coerce $
-        Lang      <$> (coerceAnySome <$> R.car su)
-                  <*> (coerceAnySome <$> R.cdr su)
-      R.Special   -> coerce $ return Special
-      R.Builtin   -> coerce $ return Builtin
-      R.Char      -> unsafeCoerce $ Char    (Vector.unsafeFromSEXP su)
-      R.Logical   -> unsafeCoerce $ Logical (Vector.unsafeFromSEXP su)
-      R.Int       -> unsafeCoerce $ Int     (Vector.unsafeFromSEXP su)
-      R.Real      -> unsafeCoerce $ Real    (Vector.unsafeFromSEXP su)
-      R.Complex   -> unsafeCoerce $ Complex (Vector.unsafeFromSEXP su)
-      R.String    -> unsafeCoerce $ String  (Vector.unsafeFromSEXP su)
+      R.Nil       -> return Nil
+      R.Symbol    ->
+        Symbol    <$> R.symbolPrintName s
+                  <*> R.symbolValue s
+                  <*> R.symbolInternal s
+      R.List      ->
+        List      <$> R.car s
+                  <*> R.cdr s
+                  <*> R.tag s
+      R.Env       ->
+        Env       <$> R.envFrame s
+                  <*> R.envEnclosing s
+                  <*> R.envHashtab s
+      R.Closure   ->
+        Closure   <$> R.closureFormals s
+                  <*> R.closureBody s
+                  <*> R.closureEnv s
+      R.Promise   ->
+        Promise   <$> R.promiseValue s
+                  <*> R.promiseCode s
+                  <*> R.promiseEnv s
+      R.Lang      ->
+        Lang      <$> R.car s
+                  <*> R.cdr s
+      R.Special   -> return Special
+      R.Builtin   -> return Builtin
+      R.Char      -> return $ Char    (Vector.unsafeFromSEXP s)
+      R.Logical   -> return $ Logical (Vector.unsafeFromSEXP s)
+      R.Int       -> return $ Int     (Vector.unsafeFromSEXP s)
+      R.Real      -> return $ Real    (Vector.unsafeFromSEXP s)
+      R.Complex   -> return $ Complex (Vector.unsafeFromSEXP s)
+      R.String    -> return $ String  (Vector.unsafeFromSEXP s)
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
-      R.Vector    -> coerce $
-        Vector    <$> (fromIntegral <$> R.trueLength (coerceAny su))
-                  <*> pure (Vector.unsafeFromSEXP su)
-      R.Expr      -> coerce $
-        Expr      <$> (fromIntegral <$> R.trueLength (coerceAny su))
-                  <*> pure (Vector.unsafeFromSEXP su)
-      R.Bytecode  -> coerce $ return Bytecode
-      R.ExtPtr    -> coerce $
-        ExtPtr    <$> ((\(R.SomeSEXP (R.SEXP (R.SEXP0 ptr))) -> castPtr ptr) <$> R.car s)
-                  <*> (coerceAnySome <$> R.cdr s)
-                  <*> (coerceAnySome <$> R.tag s)
-      R.WeakRef   -> coerce $
-        WeakRef   <$> (coerceAny <$> R.sexp <$>
+      R.Vector    ->
+        Vector    <$> (fromIntegral <$> R.trueLength s)
+                  <*> pure (Vector.unsafeFromSEXP s)
+      R.Expr      ->
+        Expr      <$> (fromIntegral <$> R.trueLength s)
+                  <*> pure (Vector.unsafeFromSEXP s)
+      R.Bytecode  -> return Bytecode
+      R.ExtPtr    ->
+        ExtPtr    <$> ((\(R.SEXP (R.SEXP0 ptr)) -> castPtr ptr) <$> R.car s)
+                  <*> R.cdr s
+                  <*> R.tag s
+      R.WeakRef   ->
+        WeakRef   <$> (R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 0)
                   <*> (R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 1)
-                  <*> (coerceAny <$> R.sexp <$>
+                  <*> (R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
-                  <*> (coerceAny <$> R.sexp <$>
+                  <*> (R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
-      R.Raw       -> unsafeCoerce $ Raw (Vector.unsafeFromSEXP su)
-      R.S4        -> coerce $
-        S4        <$> (coerceAnySome <$> R.tag su)
+      R.Raw       -> return $ Raw (Vector.unsafeFromSEXP s)
+      R.S4        ->
+        S4        <$> R.tag s
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
 
 -- | A view function projecting a view of 'SEXP' as an algebraic datatype, that
 -- can be analyzed through pattern matching.
-hexp :: SEXP s a -> HExp s a
+{-@ assume hexp :: x:SEXP s -> THExp s (R.typeOf x) @-}
+hexp :: SEXP s -> HExp s
 hexp = unsafeInlineIO . peekHExp
 {-# INLINE hexp #-}
 
 -- | Project the vector out of 'SEXP's.
-vector :: R.IsVector a => SEXP s a -> Vector.Vector a (Vector.ElemRep V a)
-vector (hexp -> Char vec)     = vec
-vector (hexp -> Logical vec)  = vec
-vector (hexp -> Int vec)      = vec
-vector (hexp -> Real vec)     = vec
-vector (hexp -> Complex vec)  = vec
-vector (hexp -> String vec)   = vec
-vector (hexp -> Vector _ vec) = vec
-vector (hexp -> Expr _ vec)   = vec
-vector s = violation "vector" $ show (R.typeOf s) ++ " unexpected vector type."
+{-@ assume vector :: vt:VSEXPTYPE V a -> {x:SEXP s | vstypeOf vt == R.typeOf x} -> TVector a (vstypeOf vt) @-}
+vector :: Vector.VSEXPTYPE V a -> SEXP s -> Vector.Vector a
+vector Vector.VChar (hexp -> Char vec)     = vec
+vector Vector.VLogical (hexp -> Logical vec)  = vec
+vector Vector.VInt (hexp -> Int vec)      = vec
+vector Vector.VReal (hexp -> Real vec)     = vec
+vector Vector.VComplex (hexp -> Complex vec)  = vec
+vector Vector.VString (hexp -> String vec)   = vec
+vector Vector.VVector (hexp -> Vector _ vec) = vec
+vector Vector.VExpr (hexp -> Expr _ vec)   = vec
+vector _ s = violation "vector" $ show (R.typeOf s) ++ " unexpected vector type."

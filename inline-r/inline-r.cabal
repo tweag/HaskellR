@@ -65,7 +65,7 @@ library
 --    Language.R.Debug
     Language.R.GC
     Language.R.Globals
---    Language.R.HExp
+    Language.R.HExp
     Language.R.Instance
 --    Language.R.Internal
     Language.R.Internal.FunWrappers
