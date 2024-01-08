@@ -350,9 +350,9 @@ withForeignSEXP (ForeignSEXP fptr) f =
 
 -- | Immutable vectors.
 data Vector a = Vector
-  { vectorBase   :: {-# UNPACK #-} !ForeignSEXP
-  , vectorOffset :: {-# UNPACK #-} !Int32
-  , vectorLength :: {-# UNPACK #-} !Int32
+  { vectorBase   :: ForeignSEXP
+  , vectorOffset :: Int32
+  , vectorLength :: Int32
   }
 
 {-@ assume vtypeOf :: v:Vector a -> {t:R.SEXPTYPE | Data.Vector.SEXP.vtypeOf v == t} @-}
