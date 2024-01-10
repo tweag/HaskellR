@@ -23,7 +23,7 @@ import Control.Memory.Region (V)
 import Data.String (fromString)
 import qualified Data.Vector.SEXP as Vector
 import qualified Foreign.R as R
-import Foreign.R (SEXP, SomeSEXP(..), SEXPTYPE, SEXPInfo)
+import Foreign.R (SEXP, SEXPTYPE, SEXPInfo)
 import Foreign.R.Type (IsVector)
 import Foreign.Storable
 import Language.R.Globals as H
@@ -57,7 +57,7 @@ instance ToJSON a => ToJSON (Complex a) where
   toJSON (x :+ y) =
     object ["Re" .= x, "Im" .= y]
 
-instance ToJSON (SEXP s a) where
+instance ToJSON (SEXP s) where
   toJSON x =
       object
         [ "header" .= info
@@ -65,8 +65,8 @@ instance ToJSON (SEXP s a) where
         , tp .= go x
         ]
     where
-      vector :: (IsVector a, ToJSON (Vector.ElemRep V a), Storable (Vector.ElemRep V a))
-             => Vector.Vector a (Vector.ElemRep V a) -> V.Vector Value
+      vector :: (ToJSON a, Storable a)
+             => Vector.Vector a -> V.Vector Value
       vector = V.fromList . map toJSON . Vector.toList -- XXX: do not use lists
       ub = R.unsexp H.unboundValue
       nil = R.unsexp H.nilValue
@@ -74,7 +74,7 @@ instance ToJSON (SEXP s a) where
       info = unsafePerformIO $ R.peekInfo x
       attr = unsafePerformIO $ R.getAttributes x
       tp = fromString . show $ R.infoType info
-      go :: SEXP s a -> Value
+      go :: SEXP s -> Value
       go y | R.unsexp y == ub   = A.String "UnboundValue"
            | R.unsexp y == nil  = A.String "NilValue"
            | R.unsexp y == miss = A.String "MissingArg"
@@ -133,8 +133,5 @@ instance ToJSON (SEXP s a) where
           object [ "tagval" .= s ]
       go _ = A.String "Unimplemented."
 
-instance ToJSON (SomeSEXP s) where
-  toJSON (R.SomeSEXP s) = toJSON s
-
-inspect :: SEXP s a -> String
+inspect :: SEXP s -> String
 inspect = LBS.unpack . A.encode

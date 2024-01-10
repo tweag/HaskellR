@@ -74,7 +74,6 @@ thWrapperLiteral :: Int -> Q Dec
 thWrapperLiteral n = do
     let s = varT =<< newName "s"
     names1 <- replicateM (n + 1) $ newName "a"
-    names2 <- replicateM (n + 1) $ newName "i"
     let mkTy []     = impossible "thWrapperLiteral"
         mkTy [x]    = [t| $nR $s $x |]
         mkTy (x:xs) = [t| $x -> $(mkTy xs) |]
@@ -84,12 +83,12 @@ thWrapperLiteral n = do
 #else
               [classP (mkName "NFData") [varT (last names1)]] ++
 #endif
-              zipWith f (map varT names1) (map varT names2)
+              map (f . varT) names1
           where
 #if MIN_VERSION_template_haskell(2,10,0)
-            f tv1 tv2 = foldl AppT (ConT (mkName "Literal")) <$> sequence [tv1, tv2]
+            f tv1 = foldl AppT (ConT (mkName "Literal")) <$> sequence [tv1]
 #else
-            f tv1 tv2 = classP (mkName "Literal") [tv1, tv2]
+            f tv1 = classP (mkName "Literal") [tv1]
 #endif
         -- XXX: Ideally would import these names from their defining module, but
         -- see GHC bug #1012. Using 'mkName' is a workaround.
@@ -97,9 +96,11 @@ thWrapperLiteral n = do
         nwrapn = varE $ mkName $ "wrap" ++ show n
         nfunToSEXP = varE $ mkName "Language.R.Literal.funToSEXP"
         nLiteral = conT $ mkName "Literal"
-    instanceD ctx [t| $nLiteral $(mkTy $ map varT names1) 'R.ExtPtr |]
+    instanceD ctx [t| $nLiteral $(mkTy $ map varT names1) |]
       [ funD (mkName "mkSEXPIO")
           [ clause [] (normalB [| $nfunToSEXP $nwrapn |]) [] ]
       , funD (mkName "fromSEXP")
           [ clause [] (normalB [| unimplemented "thWrapperLiteral fromSEXP" |]) [] ]
+      , funD (mkName "dynSEXP")
+          [ clause [] (normalB [| unimplemented "thWrapperLiteral dynSEXP" |]) [] ]
       ]

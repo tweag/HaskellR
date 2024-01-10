@@ -64,12 +64,12 @@ _ = undefined :: (Foreign.C.CString, R.SEXP s)
 
 {-@
 type RVariables =
-    ( Ptr (TSEXP G Env)
-    , Ptr (TSEXP G Env)
-    , Ptr (TSEXP G Env)
-    , Ptr (TSEXP G Nil)
-    , Ptr (TSEXP G Symbol)
-    , Ptr (TSEXP G Symbol)
+    ( Ptr (TSEXP G Foreign.R.Type.Env)
+    , Ptr (TSEXP G Foreign.R.Type.Env)
+    , Ptr (TSEXP G Foreign.R.Type.Env)
+    , Ptr (TSEXP G Foreign.R.Type.Nil)
+    , Ptr (TSEXP G Foreign.R.Type.Symbol)
+    , Ptr (TSEXP G Foreign.R.Type.Symbol)
     , Ptr CInt
     , Ptr CInt
 #ifndef mingw32_HOST_OS
@@ -113,33 +113,33 @@ pokeRVariables = poke rVariables <=< newStablePtr
 #endif
  ) = unsafePerformIO $ peek rVariables >>= deRefStablePtr
 
-{-@ assume unboundValue :: TSEXP G Symbol @-}
+{-@ assume unboundValue :: TSEXP G Foreign.R.Type.Symbol @-}
 -- | Special value to which all symbols unbound in the current environment
 -- resolve to.
 unboundValue :: SEXP G
 unboundValue = unsafePerformIO $ peek unboundValuePtr
 
-{-@ assume nilValue :: TSEXP G Nil @-}
+{-@ assume nilValue :: TSEXP G Foreign.R.Type.Nil @-}
 -- | R's @NULL@ value.
 nilValue :: SEXP G
 nilValue = unsafePerformIO $ peek nilValuePtr
 
-{-@ assume missingArg :: TSEXP G Symbol @-}
+{-@ assume missingArg :: TSEXP G Foreign.R.Type.Symbol @-}
 -- | Value substituted for all missing actual arguments of a function call.
 missingArg :: SEXP G
 missingArg = unsafePerformIO $ peek missingArgPtr
 
-{-@ assume baseEnv :: TSEXP G Env @-}
+{-@ assume baseEnv :: TSEXP G Foreign.R.Type.Env @-}
 -- | The base environment.
 baseEnv :: SEXP G
 baseEnv = unsafePerformIO $ peek baseEnvPtr
 
-{-@ assume emptyEnv :: TSEXP G Env @-}
+{-@ assume emptyEnv :: TSEXP G Foreign.R.Type.Env @-}
 -- | The empty environment.
 emptyEnv :: SEXP G
 emptyEnv = unsafePerformIO $ peek emptyEnvPtr
 
-{-@ assume globalEnv :: TSEXP G Env @-}
+{-@ assume globalEnv :: TSEXP G Foreign.R.Type.Env @-}
 -- | The global environment.
 globalEnv :: SEXP G
 globalEnv = unsafePerformIO $ peek globalEnvPtr

@@ -12,7 +12,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 
+{-@ LIQUID "--exact-data-cons" @-} -- needed to have LH accept specs in module HExp
+{-@ LIQUID "--prune-unsorted" @-}
 module Language.R.QQ
   ( r
   , rsafe
@@ -21,33 +24,30 @@ module Language.R.QQ
 
 import           Control.Memory.Region
 import           Control.Monad.R.Class
-import qualified Data.Vector.SEXP as Vector
-import qualified Foreign.R as R
+import qualified Foreign.R as R -- needed for LH specs
 import qualified Foreign.R.Parse as R
-import           Foreign.R (SEXP, SomeSEXP(..))
 import           Foreign.R.Error
 import           Internal.Error
 import           Language.R (eval)
 import           Language.R.Globals (nilValue, globalEnv)
-import           Language.R.GC (automaticSome)
-import           Language.R.HExp
 import           Language.R.Instance
 import           Language.R.Literal (mkSEXPIO)
 
-import Language.Haskell.TH (Q, runIO)
+import Language.Haskell.TH (Q)
 import Language.Haskell.TH.Quote
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
-import Control.Concurrent (MVar, newMVar, takeMVar, putMVar)
+import Control.Concurrent (MVar, newMVar)
 import Control.Exception (throwIO)
 import Control.Monad (unless)
 import Control.Monad.IO.Class (liftIO)
-import Data.List (intercalate, isSuffixOf)
-import qualified Data.Set as Set
-import Data.Set (Set)
+import Control.Monad.Trans.Reader -- XXX: Needed to help LH name resolution
+import Data.List (intercalate)
 import Foreign (alloca, peek)
-import Foreign.C.String (withCString)
+import Foreign.C.String -- XXX: Needed for LH name resolution
+import Foreign.ForeignPtr -- XXX: imported to help LH name resolution
+import           GHC.ST -- Needed to help LH name resolution
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Text.Heredoc as Heredoc
 import qualified System.IO.Temp as Temp
@@ -89,7 +89,9 @@ qqLock :: MVar ()
 qqLock = unsafePerformIO $ newMVar ()
 {-# NOINLINE qqLock #-}
 
-parse :: String -> IO (R.SEXP V 'R.Expr)
+{-@ parse :: String -> IO (TSEXP V Foreign.R.Type.Expr) @-}
+{-@ ignore parse @-}
+parse :: String -> IO (R.SEXP V)
 parse txt = do
     initialize defaultConfig
     withCString txt $ \ctxt ->
@@ -101,6 +103,7 @@ parse txt = do
                 throwIO . RError $ "Parse error in: " ++ txt
               return exprs
 
+{-@ antiSuffix :: String @-}
 antiSuffix :: String
 antiSuffix = "_hs"
 
@@ -187,13 +190,12 @@ expQQ input = do
          -- compiler notices that it can let-float to top-level).
          let sx = unsafePerformIO $ do
                     exprs <- parse closure
-                    SomeSEXP e <- R.readVector exprs 0
+                    e <- R.readVector exprs 0
                     clos <- R.eval e (R.release globalEnv)
-                    R.unSomeSEXP clos R.preserveObject
+                    R.preserveObject clos
                     return clos
-         in io $ case sx of
-           SomeSEXP f ->
-             R.lcons f =<<
+         in io $
+             R.lcons sx =<<
                $(foldr (\x xs -> [| R.withProtected $xs $ \cdr -> do
                                         car <- mkSEXPIO $(TH.varE x)
                                         R.lcons car cdr |]) z vars)

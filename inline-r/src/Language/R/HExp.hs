@@ -198,14 +198,14 @@ htypeOf = \case
     Lang{} -> R.Lang
     Special{} -> R.Special
     Builtin{} -> R.Builtin
-    Char{} -> R.Char
-    Int{} -> R.Int
+    Char{} -> R.SChar
+    Int{} -> R.SInt
     Logical{} -> R.Logical
     Real{} -> R.Real
-    Complex{} -> R.Complex
-    String{} -> R.String
+    Complex{} -> R.SComplex
+    String{} -> R.SString
     DotDotDot{} -> R.List
-    Vector{} -> R.Vector
+    Vector{} -> R.SVector
     Expr{} -> R.Expr
     Bytecode{} -> R.Bytecode
     ExtPtr{} -> R.ExtPtr
@@ -216,7 +216,7 @@ htypeOf = \case
 {-@
 data HExp :: * -> * where
   Nil       :: HExp s
-  Symbol    :: {e1:SEXP s| typeOf e1 == R.Char || typeOf e1 == R.Nil}
+  Symbol    :: {e1:SEXP s| typeOf e1 == R.SChar || typeOf e1 == R.Nil}
             -> SEXP s
             -> SEXP s
             -> HExp s
@@ -226,7 +226,7 @@ data HExp :: * -> * where
             -> HExp s
   Env       :: {e1:SEXP s | typeOf e1 == R.List || typeOf e1 == R.Nil}
             -> {e2:SEXP s | typeOf e2 == R.Env || typeOf e2 == R.Nil}
-            -> {e3:SEXP s | typeOf e3 == R.Vector || typeOf e3 == R.Nil}
+            -> {e3:SEXP s | typeOf e3 == R.SVector || typeOf e3 == R.Nil}
             -> HExp s
   Closure   :: {e1:SEXP s | typeOf e1 == R.List || typeOf e1 == R.Nil}
             -> SEXP s
@@ -241,22 +241,22 @@ data HExp :: * -> * where
             -> HExp s
   Special   :: HExp s
   Builtin   :: HExp s
-  Char      :: TVector Word8 R.Char
+  Char      :: TVector Word8 R.SChar
             -> HExp s
   Logical   :: TVector Foreign.R.Context.Logical R.Logical
             -> HExp s
-  Int       :: TVector Int32 R.Int
+  Int       :: TVector Int32 R.SInt
             -> HExp s
   Real      :: TVector Double R.Real
             -> HExp s
-  Complex   :: TVector (Complex Double) R.Complex
+  Complex   :: TVector (Complex Double) R.SComplex
             -> HExp s
-  String    :: TVector (TSEXP V R.Char) R.String
+  String    :: TVector (TSEXP V R.SChar) R.SString
             -> HExp s
   DotDotDot :: {e1:SEXP s | typeOf e1 == R.List || typeOf e1 == R.Nil}
             -> HExp s
   Vector    :: Int32
-            -> TVector (SEXP V) R.Vector
+            -> TVector (SEXP V) R.SVector
             -> HExp s
   Expr      :: Int32
             -> TVector (SEXP V) R.Expr
@@ -382,14 +382,14 @@ peekHExp s =
                   <*> R.cdr s
       R.Special   -> return Special
       R.Builtin   -> return Builtin
-      R.Char      -> return $ Char    (Vector.unsafeFromSEXP s)
+      R.SChar     -> return $ Char    (Vector.unsafeFromSEXP s)
       R.Logical   -> return $ Logical (Vector.unsafeFromSEXP s)
-      R.Int       -> return $ Int     (Vector.unsafeFromSEXP s)
+      R.SInt      -> return $ Int     (Vector.unsafeFromSEXP s)
       R.Real      -> return $ Real    (Vector.unsafeFromSEXP s)
-      R.Complex   -> return $ Complex (Vector.unsafeFromSEXP s)
-      R.String    -> return $ String  (Vector.unsafeFromSEXP s)
+      R.SComplex  -> return $ Complex (Vector.unsafeFromSEXP s)
+      R.SString   -> return $ String  (Vector.unsafeFromSEXP s)
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
-      R.Vector    ->
+      R.SVector   ->
         Vector    <$> (fromIntegral <$> R.trueLength s)
                   <*> pure (Vector.unsafeFromSEXP s)
       R.Expr      ->
