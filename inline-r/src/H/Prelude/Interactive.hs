@@ -27,11 +27,8 @@ instance MonadR IO where
 class PrintR a where
   printR :: MonadR m => a -> m ()
 
-instance PrintR (SEXP s a) where
+instance PrintR (SEXP s) where
   printR = io . R.printValue
-
-instance PrintR (R.SomeSEXP s) where
-  printR s = R.unSomeSEXP s printR
 
 -- | A form of the 'printR' function that is more convenient in an interactive
 -- session.

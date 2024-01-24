@@ -60,7 +60,7 @@ library
     Foreign.R.Parse
     Foreign.R.Type
     H.Prelude
---    H.Prelude.Interactive
+    H.Prelude.Interactive
     Language.R
     Language.R.Debug
     Language.R.GC
