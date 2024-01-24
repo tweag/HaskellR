@@ -2,15 +2,22 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
+
+-- Sidesteps a failure when verifying: liftIO . protect
+{-@ LIQUID "--prune-unsorted" @-}
+
 module Control.Monad.R.Class
   ( MonadR(..)
   , Region
-  , acquireSome
   ) where
 
 import Control.Memory.Region
+import qualified Data.Kind
+import Foreign.C -- XXX: only needed to help name resolution in LH
 import Foreign.R
 
 import Control.Applicative
@@ -29,15 +36,16 @@ class (Applicative m, MonadIO m, MonadCatch m, MonadMask m, PrimMonad m)
   io :: IO a -> m a
   io = liftIO
 
+  {-@ acquire :: a:SEXP V -> m (TSEXP (Region m) (typeOf a)) @-}
   -- | Acquire ownership in the current region of the given object. This means
   -- that the liveness of the object is guaranteed so long as the current region
   -- remains active (the R garbage collector will not attempt to free it).
-  acquire :: s ~ V => SEXP s a -> m (SEXP (Region m) a)
-  default acquire :: (MonadIO m, Region m ~ G) => SEXP s a -> m (SEXP (Region m) a)
+  acquire :: SEXP V -> m (SEXP (Region m))
+  default acquire :: (MonadIO m, Region m ~ G) => SEXP V -> m (SEXP (Region m))
   acquire = liftIO . protect
 
   -- | A reification of an R execution context, i.e. a "session".
-  data ExecContext m :: *
+  data ExecContext m :: Data.Kind.Type
 
   -- | Get the current execution context.
   getExecContext :: m (ExecContext m)
@@ -48,7 +56,3 @@ class (Applicative m, MonadIO m, MonadCatch m, MonadMask m, PrimMonad m)
   unsafeRunWithExecContext :: m a -> ExecContext m -> IO a
 
 type Region m = PrimState m
-
--- | 'acquire' for 'SomeSEXP'.
-acquireSome :: (MonadR m) => SomeSEXP V -> m (SomeSEXP (Region m))
-acquireSome (SomeSEXP s) = SomeSEXP <$> acquire s

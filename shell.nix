@@ -38,6 +38,7 @@ haskell.lib.buildStackProject ({
     zlib
     python3Env
     rEnv
+    z3
   ];
   LANG = "en_US.UTF-8";
 } // libHack)

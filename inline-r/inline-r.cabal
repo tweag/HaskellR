@@ -34,6 +34,11 @@ extra-source-files:
   ./R/collectAntis.R
 extra-tmp-files: inline-r.buildinfo
 
+flag liquidhaskell
+  description: enable validation with Liquid Haskell
+  manual: True
+  default: False
+
 source-repository head
   type: git
   location: git://github.com/tweag/HaskellR.git
@@ -126,6 +131,10 @@ library
   --- We don't use ticks for promoted constructors, because we use
   --- promoted constructors heavily and because they confuse hsc2hs.
   ghc-options: -Wall -fno-warn-unticked-promoted-constructors
+  if flag(liquidhaskell) && impl(ghc == 9.2.5)
+    build-depends:
+      liquidhaskell
+    ghc-options: -fplugin=LiquidHaskell -fplugin-opt=LiquidHaskell:--skip-module
 
 test-suite tests
   main-is: tests.hs

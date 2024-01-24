@@ -1,14 +1,6 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveLift #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE GADTs #-}
-#if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE StandaloneKindSignatures #-}
-#endif
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
@@ -24,20 +16,13 @@
 -- c2hs for discharging the boilerplate around 'SEXPTYPE'. This is because
 -- 'SEXPTYPE' is nearly but not quite a true enumeration and c2hs has trouble
 -- dealing with that.
---
--- This module also defines a singleton version of 'SEXPTYPE', called
--- 'SSEXPTYPE'. This is actually a family of types, one for each possible
--- 'SEXPTYPE'. Singleton types are a way of emulating dependent types in
--- a language that does not have true dependent type. They are useful in
--- functions whose result type depends on the value of one of its arguments. See
--- e.g. 'Foreign.R.allocVector'.
 
 module Foreign.R.Type
   ( SEXPTYPE(..)
-  , SSEXPTYPE(..)
   , Sing
   , Logical(..)
   , PairList
+  , ParseStatus(..)
   , IsVector
   , IsGenericVector
   , IsList
@@ -46,11 +31,10 @@ module Foreign.R.Type
   ) where
 
 #include <Rinternals.h>
+#include <R_ext/Parse.h>
 
 import Foreign.R.Constraints
 import Internal.Error
-
-import qualified Language.Haskell.TH.Syntax as Hs
 
 import Data.Singletons.TH
 
@@ -81,15 +65,15 @@ data SEXPTYPE
     | Lang
     | Special
     | Builtin
-    | Char
+    | SChar
     | Logical
-    | Int
+    | SInt
     | Real
-    | Complex
-    | String
+    | SComplex
+    | SString
     | DotDotDot
     | Any
-    | Vector
+    | SVector
     | Expr
     | Bytecode
     | ExtPtr
@@ -99,7 +83,7 @@ data SEXPTYPE
     | New
     | Free
     | Fun
-    deriving (Eq, Ord, Show, Hs.Lift)
+    deriving (Eq, Ord, Show)
 
 instance Enum SEXPTYPE where
   fromEnum Nil        = #const NILSXP
@@ -111,15 +95,15 @@ instance Enum SEXPTYPE where
   fromEnum Lang       = #const LANGSXP
   fromEnum Special    = #const SPECIALSXP
   fromEnum Builtin    = #const BUILTINSXP
-  fromEnum Char       = #const CHARSXP
+  fromEnum SChar       = #const CHARSXP
   fromEnum Logical    = #const LGLSXP
-  fromEnum Int        = #const INTSXP
+  fromEnum SInt        = #const INTSXP
   fromEnum Real       = #const REALSXP
-  fromEnum Complex    = #const CPLXSXP
-  fromEnum String     = #const STRSXP
+  fromEnum SComplex    = #const CPLXSXP
+  fromEnum SString     = #const STRSXP
   fromEnum DotDotDot  = #const DOTSXP
   fromEnum Any        = #const ANYSXP
-  fromEnum Vector     = #const VECSXP
+  fromEnum SVector     = #const VECSXP
   fromEnum Expr       = #const EXPRSXP
   fromEnum Bytecode   = #const BCODESXP
   fromEnum ExtPtr     = #const EXTPTRSXP
@@ -139,15 +123,15 @@ instance Enum SEXPTYPE where
   toEnum (#const LANGSXP)    = Lang
   toEnum (#const SPECIALSXP) = Special
   toEnum (#const BUILTINSXP) = Builtin
-  toEnum (#const CHARSXP)    = Char
+  toEnum (#const CHARSXP)    = SChar
   toEnum (#const LGLSXP)     = Logical
-  toEnum (#const INTSXP)     = Int
+  toEnum (#const INTSXP)     = SInt
   toEnum (#const REALSXP)    = Real
-  toEnum (#const CPLXSXP)    = Complex
-  toEnum (#const STRSXP)     = String
+  toEnum (#const CPLXSXP)    = SComplex
+  toEnum (#const STRSXP)     = SString
   toEnum (#const DOTSXP)     = DotDotDot
   toEnum (#const ANYSXP)     = Any
-  toEnum (#const VECSXP)     = Vector
+  toEnum (#const VECSXP)     = SVector
   toEnum (#const EXPRSXP)    = Expr
   toEnum (#const BCODESXP)   = Bytecode
   toEnum (#const EXTPTRSXP)  = ExtPtr
@@ -162,20 +146,42 @@ instance Enum SEXPTYPE where
 instance NFData SEXPTYPE where
   rnf = (`seq` ())
 
-genSingletons [''SEXPTYPE]
+-- | The return code of a call to 'parseVector', indicating whether the parser
+-- failed or succeeded.
+data ParseStatus
+  = PARSE_NULL
+  | PARSE_OK
+  | PARSE_INCOMPLETE
+  | PARSE_ERROR
+  | PARSE_EOF
+  deriving (Eq, Show)
+
+instance Enum ParseStatus where
+  fromEnum PARSE_NULL       = #const PARSE_NULL
+  fromEnum PARSE_OK         = #const PARSE_OK
+  fromEnum PARSE_INCOMPLETE = #const PARSE_INCOMPLETE
+  fromEnum PARSE_ERROR      = #const PARSE_ERROR
+  fromEnum PARSE_EOF        = #const PARSE_EOF
+  toEnum i = case i of
+    (#const PARSE_NULL)       -> PARSE_NULL
+    (#const PARSE_OK)         -> PARSE_OK
+    (#const PARSE_INCOMPLETE) -> PARSE_INCOMPLETE
+    (#const PARSE_ERROR)      -> PARSE_ERROR
+    (#const PARSE_EOF)        -> PARSE_EOF
+    _ -> error "ParseStatus.fromEnum: can't mach value"
 
 -- | Used where the R documentation speaks of "pairlists", which are really just
 -- regular lists.
 type PairList = List
 
 -- Use a macro to avoid having to define append at the type level.
-#let VECTOR_FORMS = " 'Char \
+#let VECTOR_FORMS = " 'SChar \
                    ': 'Logical \
-                   ': 'Int \
+                   ': 'SInt \
                    ': 'Real \
-                   ': 'Complex \
-                   ': 'String \
-                   ': 'Vector \
+                   ': 'SComplex \
+                   ': 'SString \
+                   ': 'SVector \
                    ': 'Expr \
                    ': 'WeakRef \
                    ': 'Raw"
@@ -186,7 +192,7 @@ type IsVector (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': '[])
 
 -- | Non-atomic vector forms. See @src\/main\/memory.c:SET_VECTOR_ELT@ in the
 -- R source distribution.
-type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [Vector, Expr, WeakRef])
+type IsGenericVector (a :: SEXPTYPE) = (SingI a, a :∈ [SVector, Expr, WeakRef])
 
 -- | @IsList a@ holds iff R's @is.list()@ returns @TRUE@.
 type IsList (a :: SEXPTYPE) = (SingI a, a :∈ #{VECTOR_FORMS} ': List ': '[])
