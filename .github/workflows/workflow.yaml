@@ -35,8 +35,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        stack_yaml: [stack.yaml, stack-lts-18.yaml, stack-lts-19.yaml]
+        os:
+          - macos-latest
+          - ubuntu-latest
+        stack_yaml:
+          - stack.yaml
+          - stack-lts-18.yaml
+          - stack-lts-19.yaml
+          - stack-lts-20.yaml
+          - stack-lts-21.yaml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -72,6 +79,6 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           stack --nix install
-          export PATH=~/.local/bin:$PATH
+          export PATH="$HOME/.local/bin:$PATH"
           stack --nix exec -- ihaskell install
           stack --nix exec -- jupyter nbconvert --to notebook --execute --inplace ./IHaskell/examples/tutorial-ihaskell-inline-r.ipynb

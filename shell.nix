@@ -1,6 +1,6 @@
 {
   pkgs ? import ./nixpkgs.nix { },
-  ghc ? pkgs.haskell.compiler.ghc92,
+  ghc ? pkgs.haskell.compiler.ghc96,
   RVersion ? "4.2.3",
 }:
 let

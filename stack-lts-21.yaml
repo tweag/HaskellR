@@ -1,4 +1,4 @@
-resolver: lts-22.8
+resolver: lts-21.25
 
 packages:
 - examples
@@ -7,8 +7,11 @@ packages:
 - inline-r
 
 extra-deps:
+- ghc-parser-0.2.6.0
+- ihaskell-0.11.0.0
 - ihaskell-blaze-0.3.0.1
+- ipython-kernel-0.11.0.0
 
 nix:
-  shell-file: ./shell.nix
+  shell-file: ./shell-lts-21.nix
   path: ["nixpkgs=./nixpkgs.nix"]

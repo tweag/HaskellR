@@ -1,4 +1,4 @@
-resolver: lts-22.8
+resolver: lts-20.26
 
 packages:
 - examples
@@ -10,5 +10,5 @@ extra-deps:
 - ihaskell-blaze-0.3.0.1
 
 nix:
-  shell-file: ./shell.nix
+  shell-file: ./shell-lts-20.nix
   path: ["nixpkgs=./nixpkgs.nix"]
