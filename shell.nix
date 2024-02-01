@@ -1,10 +1,11 @@
 {
   pkgs ? import ./nixpkgs.nix { },
-  ghc ? pkgs.haskell.compiler.ghc96,
+  ghcAttr ? "ghc96",
   RVersion ? "4.2.3",
 }:
 let
   inherit (pkgs)
+    cabal-install
     fetchpatch
     fetchurl
     haskell
@@ -110,13 +111,6 @@ let
     packages = with rPackages; [ ggplot2 ];
   };
 
-  # NOTE: Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
-  libHack =
-    if stdenv.isDarwin then
-      { DYLD_LIBRARY_PATH = [ "${R}/lib/R/lib" ]; }
-    else
-      { LD_LIBRARY_PATH = [ "${R}/lib/R" ]; };
-
   python3Env = python3.withPackages (
     ps: with ps; [
       ipython
@@ -125,17 +119,19 @@ let
     ]
   );
 in
-haskell.lib.buildStackProject (
-  {
-    name = "HaskellR";
-    inherit ghc;
-    buildInputs = [
-      zeromq
-      zlib
-      python3Env
-      rEnv
-    ];
-    LANG = "en_US.UTF-8";
-  }
-  // libHack
-)
+haskell.lib.buildStackProject {
+  name = "HaskellR";
+  ghc = pkgs.haskell.compiler.${ghcAttr};
+  buildInputs = [
+    cabal-install
+    python3Env
+    rEnv
+    zeromq
+    zlib
+  ];
+  LANG = "en_US.UTF-8";
+  # NOTE: Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
+  ${(strings.optionalString stdenv.isDarwin "DY") + "LD_LIBRARY_PATH"} = [
+    ("${R}/lib/R" + (strings.optionalString stdenv.isDarwin "/lib"))
+  ];
+}
