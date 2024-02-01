@@ -20,7 +20,7 @@ jobs:
         run: |
           stack path --snapshot-install-root
           "dir=$(stack path --snapshot-install-root)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
           key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
@@ -47,9 +47,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v24
-        with:
-          nix_path: nixpkgs=./nixpkgs.nix
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Install Stack
         run: |
           nix-env -f. -iA nixpkgs.stack
@@ -63,7 +62,7 @@ jobs:
           [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
           stack --nix path --snapshot-install-root
           echo "dir=$(stack --nix path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.stack-snapshot.outputs.dir }}
           key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
