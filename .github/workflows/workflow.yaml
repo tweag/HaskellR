@@ -55,7 +55,7 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Install Stack
         run: |
-          nix-env -f. -iA nixpkgs.stack
+          nix-env --file ./nixpkgs.nix --install --attr stack
       - name: Get Stack snapshot install directory
         id: stack-snapshot
         # NOTE: `stack path` must run at least once prior to caching to ensure the directory
