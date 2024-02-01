@@ -10,5 +10,5 @@ extra-deps:
 - ihaskell-blaze-0.3.0.1
 
 nix:
-  shell-file: ./shell.nix
+  shell-file: ./shell-lts-19.nix
   path: ["nixpkgs=./nixpkgs.nix"]
