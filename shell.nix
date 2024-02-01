@@ -5,6 +5,7 @@
 }:
 let
   inherit (pkgs)
+    fetchpatch
     fetchurl
     haskell
     python3
@@ -15,7 +16,7 @@ let
     zlib
     ;
 
-  inherit (pkgs.lib) versions;
+  inherit (pkgs.lib) lists strings versions;
 
   # Set enableStrictBarrier to true to build HaskellR against a version of R with
   # the --enable-strict-barrier configure flag enabled for better memory
@@ -46,6 +47,60 @@ let
           "4.3.2" = "sha256-s/V2CsLu6AJqPw7vyyW0dyPZeAOO7o6ER2IJTIYMRSo=";
         };
       };
+
+      patches =
+        prevAttrs.patches or [ ]
+        # R: 4.0.4 -> 4.1.0
+        # See https://github.com/NixOS/nixpkgs/commit/9a88197fe7825f486052e3a9eca4a68192335978
+        ++
+          lists.optionals
+            (
+              RVersion == "4.1.0"
+              && strings.hasInfix "--without-recommended-packages" (prevAttrs.preConfigure or "")
+            )
+            [
+              (fetchpatch {
+                name = "fix-tests-without-recommended-packages.patch";
+                url = "https://github.com/wch/r-source/commit/7715c67cabe13bb15350cba1a78591bbb76c7bac.patch";
+                # this part of the patch reverts something that was committed after R 4.1.0, so ignore it.
+                excludes = [ "tests/Pkgs/xDir/pkg/DESCRIPTION" ];
+                hash = "sha256-iguLndCIuKuCxVCi/4NSu+9RzBx5JyeHx3K6IhpYshQ=";
+              })
+              (fetchpatch {
+                name = "use-codetools-conditionally.patch";
+                url = "https://github.com/wch/r-source/commit/7543c28b931db386bb254e58995973493f88e30d.patch";
+                hash = "sha256-+yHXB5AItFyQjSxfogxk72DrSDGiBh7OiLYFxou6Xlk=";
+              })
+            ]
+        # R: 4.1.3 -> 4.2.0
+        # See: https://github.com/NixOS/nixpkgs/commit/5eb9f35c44d30153ff1df2105ed73e148a79a3ee
+        ++ lists.optionals (RVersion == "4.2.0" || RVersion == "4.2.1") [
+          (fetchpatch {
+            name = "test-reg-packages.patch";
+            url = "https://raw.githubusercontent.com/NixOS/nixpkgs/5eb9f35c44d30153ff1df2105ed73e148a79a3ee/pkgs/applications/science/math/R/test-reg-packages.patch";
+            hash = "sha256-FUzrenAFvD8GL1/RMG8DRRx+ITcEkDkRGKTVyAhyKqA=";
+          })
+        ];
+
+      postPatch =
+        prevAttrs.postPatch or ""
+        # Nixpkgs ships with curl >= 8.x, which is not compatible with R pre-4.3. However, in the release notes for R
+        # 4.3 (https://stat.ethz.ch/pipermail/r-announce/2023/000691.html), it is mentioned that despite the major
+        # version change for curl, the API is still compatible with the previous version. Therefore, we can patch the
+        # check for curl 7.x. This fixes the following error:
+        #   error: libcurl >= 7.28.0 library and headers are required with support for https
+        # We must patch the ./configure script and the ./m4/R.m4 file to make this work.
+        + strings.optionalString (strings.versionOlder RVersion "4.3.0") ''
+          substituteInPlace \
+            ./configure \
+            ./m4/R.m4 \
+            --replace-fail \
+              "#if LIBCURL_VERSION_MAJOR > 7" \
+              "#if LIBCURL_VERSION_MAJOR < 7" \
+            --replace-fail \
+              "#elif LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 28" \
+              "#elif LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 28 || LIBCURL_VERSION_MAJOR == 8"
+        '';
     }
   );
 
