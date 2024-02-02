@@ -23,13 +23,10 @@ executable H
   main-is:             H.hs
   other-modules:       Paths_H
   build-depends:       base >= 4.6 && < 5
-                     , bytestring >= 0.10 && <0.12
+                     , bytestring >= 0.10 && <0.13
                      , cmdargs >= 0.10.5 && <0.11
                      , file-embed >= 0.0.7 && <0.1
-                     , inline-r >= 0.9 && <1.1
-                     , pretty >= 1.1 && <1.2
                      , process >= 1.2 && <1.7
                      , temporary >= 1.2.0.3 && <1.4
-                     , vector >= 0.10 && <0.14
   default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+  ghc-options:         -Werror=unused-packages -Wall -threaded
