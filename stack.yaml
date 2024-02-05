@@ -1,8 +1,8 @@
 resolver: lts-22.8
 
 packages:
-- examples
 - H
+- HaskellR-examples
 - IHaskell
 - inline-r
 

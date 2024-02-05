@@ -1,8 +1,8 @@
 resolver: lts-19.33
 
 packages:
-- examples
 - H
+- HaskellR-examples
 - IHaskell
 - inline-r
 

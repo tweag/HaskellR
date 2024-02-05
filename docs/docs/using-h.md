@@ -124,10 +124,10 @@ Running examples
 
 Some interactive examples of using H are located in the folders:
 
-* `examples/nls`
-* `examples/nls2`
+* `HaskellR-examples/nls`
+* `HaskellR-examples/nls2`
 
 The following commands can be used to run these examples:
 
-    $ cd examples/<example-name>
+    $ cd HaskellR-examples/<example-name>
     $ H -- -ghci-script <example-name>.H
