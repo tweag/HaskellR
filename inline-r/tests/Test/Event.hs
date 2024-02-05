@@ -82,7 +82,11 @@ tests = testGroup "events"
       withSystemTempFile "inline-r-" $ \path h -> do
         hPutStrLn h "hello"
         hClose h
+#if MIN_VERSION_unix(2,8,0)
+        fd <- openFd path ReadOnly defaultFileFlags{ nonBlock = True }
+#else
         fd <- openFd path ReadOnly Nothing defaultFileFlags{ nonBlock = True }
+#endif
         action fd
         closeFd fd
 #endif

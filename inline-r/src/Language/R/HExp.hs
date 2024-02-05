@@ -336,12 +336,12 @@ peekHExp s = do
                   <*> (coerceAnySome <$> R.cdr su)
       R.Special   -> coerce $ return Special
       R.Builtin   -> coerce $ return Builtin
-      R.Char      -> unsafeCoerce $ Char    (Vector.unsafeFromSEXP su)
-      R.Logical   -> unsafeCoerce $ Logical (Vector.unsafeFromSEXP su)
-      R.Int       -> unsafeCoerce $ Int     (Vector.unsafeFromSEXP su)
-      R.Real      -> unsafeCoerce $ Real    (Vector.unsafeFromSEXP su)
-      R.Complex   -> unsafeCoerce $ Complex (Vector.unsafeFromSEXP su)
-      R.String    -> unsafeCoerce $ String  (Vector.unsafeFromSEXP su)
+      R.Char      -> coerce $ return $ Char    (Vector.unsafeFromSEXP su)
+      R.Logical   -> coerce $ return $ Logical (Vector.unsafeFromSEXP su)
+      R.Int       -> coerce $ return $ Int     (Vector.unsafeFromSEXP su)
+      R.Real      -> coerce $ return $ Real    (Vector.unsafeFromSEXP su)
+      R.Complex   -> coerce $ return $ Complex (Vector.unsafeFromSEXP su)
+      R.String    -> coerce $ return $ String  (Vector.unsafeFromSEXP su)
       R.DotDotDot -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
       R.Vector    -> coerce $
         Vector    <$> (fromIntegral <$> R.trueLength (coerceAny su))
@@ -363,7 +363,7 @@ peekHExp s = do
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 2)
                   <*> (coerceAny <$> R.sexp <$>
                        peekElemOff (castPtr $ R.unsafeSEXPToVectorPtr s) 3)
-      R.Raw       -> unsafeCoerce $ Raw (Vector.unsafeFromSEXP su)
+      R.Raw       -> coerce $ return $ Raw (Vector.unsafeFromSEXP su)
       R.S4        -> coerce $
         S4        <$> (coerceAnySome <$> R.tag su)
       _           -> unimplemented $ "peekHExp: " ++ show (R.typeOf s)
