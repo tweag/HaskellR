@@ -33,4 +33,4 @@ library
 source-repository head
   type: git
   location: https://github.com/tweag/HaskellR.git
-  subdir: IHaskell
+  subdir: ihaskell-inline-r

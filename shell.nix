@@ -107,7 +107,7 @@ let
 
   rEnv = rWrapper.override {
     inherit R;
-    # ggplot2 is required for ./IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+    # ggplot2 is required for ./ihaskell-inline-r/examples/tutorial-ihaskell-inline-r.ipynb
     packages = with rPackages; [ ggplot2 ];
   };
 

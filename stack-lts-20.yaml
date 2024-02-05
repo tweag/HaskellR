@@ -3,7 +3,7 @@ resolver: lts-20.26
 packages:
 - H
 - HaskellR-examples
-- IHaskell
+- ihaskell-inline-r
 - inline-r
 
 extra-deps:

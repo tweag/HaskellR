@@ -82,4 +82,4 @@ jobs:
           stack --nix install
           export PATH="$HOME/.local/bin:$PATH"
           stack --nix exec -- ihaskell install
-          stack --nix exec -- jupyter nbconvert --to notebook --execute --inplace ./IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+          stack --nix exec -- jupyter nbconvert --to notebook --execute --inplace ./ihaskell-inline-r/examples/tutorial-ihaskell-inline-r.ipynb
