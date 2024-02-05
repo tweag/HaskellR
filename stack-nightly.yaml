@@ -1,0 +1,14 @@
+resolver: nightly-2024-02-05
+
+packages:
+- examples
+- H
+- IHaskell
+- inline-r
+
+extra-deps:
+- ihaskell-blaze-0.3.0.1
+
+nix:
+  shell-file: ./shell-nightly.nix
+  path: ["nixpkgs=./nixpkgs.nix"]
