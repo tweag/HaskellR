@@ -1,0 +1,8 @@
+packages:
+  H/H.cabal
+  HaskellR-examples/HaskellR-examples.cabal
+  ihaskell-inline-r/ihaskell-inline-r.cabal
+  inline-r/inline-r.cabal
+
+constraints:
+  ihaskell-blaze == 0.3.0.1
