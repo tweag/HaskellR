@@ -45,6 +45,7 @@ jobs:
           - stack-lts-19.yaml
           - stack-lts-20.yaml
           - stack-lts-21.yaml
+          - stack-nightly.yaml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
