@@ -44,7 +44,6 @@ jobs:
           - ubuntu-latest
         stack_yaml:
           - stack.yaml
-          - stack-lts-18.yaml
           - stack-lts-19.yaml
           - stack-lts-20.yaml
           - stack-lts-21.yaml
