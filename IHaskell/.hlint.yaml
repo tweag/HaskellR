@@ -1,0 +1,28 @@
+- arguments:
+    - --cross
+- extensions:
+  - name:
+    - Haskell2010
+    - TemplateHaskell
+    - QuasiQuotes
+- group:
+    name: generalise
+    enabled: true
+- group:
+    name: generalise-for-conciseness
+    enabled: true
+- group:
+    name: partial
+    enabled: true
+- group:
+    name: future
+    enabled: true
+- group:
+    name: dollar
+    enabled: true
+- group:
+    name: monomorphic
+    enabled: true
+- group:
+    name: teaching
+    enabled: true
