@@ -4,5 +4,8 @@ packages:
   ihaskell-inline-r/ihaskell-inline-r.cabal
   inline-r/inline-r.cabal
 
+index-state:
+  , hackage.haskell.org 2024-02-06T04:11:57Z
+
 constraints:
   ihaskell-blaze == 0.3.0.1

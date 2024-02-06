@@ -6,80 +6,155 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: Build - Windows
-    runs-on: windows-latest
-    steps:
-      - name: Install dependencies
-        run: |
-          choco install -y haskell-stack
-          choco install -y r --version 4.0.0
-      - uses: actions/checkout@v4
-      - name: Get Stack snapshot install directory
-        id: stack-snapshot
-        # NOTE: `stack path` must run at least once prior to caching to ensure the directory
-        # exists and is populated.
-        run: |
-          stack path --snapshot-install-root
-          "dir=$(stack path --snapshot-install-root)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
-          restore-keys: ${{ runner.os }}-stack-
-      - name: Build
-        run: |
-          stack build inline-r H `
-            --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
-            --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
-  test:
-    name: Build & Test - ${{ matrix.os }} - ${{ matrix.stack_yaml }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - macos-latest
-          - ubuntu-latest
-        stack_yaml:
-          - stack.yaml
-          - stack-lts-19.yaml
-          - stack-lts-20.yaml
-          - stack-lts-21.yaml
-          - stack-nightly.yaml
-    runs-on: ${{ matrix.os }}
+  # stack-windows:
+  #   name: Stack - Windows - stack.yaml
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install Stack
+  #       run: choco install -y haskell-stack
+  #     - name: Install R
+  #       run: choco install -y r --version 4.0.0
+  #     # NOTE: `stack path` must run at least once prior to caching to ensure the directory
+  #     # exists and is populated.
+  #     - name: Prime Stack snapshot cache
+  #       run: stack path --snapshot-install-root
+  #     - name: Get Stack snapshot install directory
+  #       id: stack-snapshot
+  #       run: Add-Content -Path $env:GITHUB_OUTPUT -Value ("dir=$(stack path --snapshot-install-root)")
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: ${{ steps.stack-snapshot.outputs.dir }}
+  #         key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
+  #         restore-keys: ${{ runner.os }}-stack-
+  #     - name: Build
+  #       run: |
+  #         stack build inline-r H `
+  #           --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
+  #           --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
+
+  # stack-macOS:
+  #   name: Stack - macOS - ${{ matrix.stack_yaml }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       stack_yaml:
+  #         - stack.yaml
+  #         - stack-lts-19.yaml
+  #         - stack-lts-20.yaml
+  #         - stack-lts-21.yaml
+  #         - stack-nightly.yaml
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: DeterminateSystems/nix-installer-action@main
+  #     - uses: DeterminateSystems/magic-nix-cache-action@main
+  #     - name: Install Stack
+  #       run: nix-env --file ./nixpkgs.nix --install --attr stack
+  #     # NOTE: The renaming of the stack.yaml file is a workaround for
+  #     # https://github.com/commercialhaskell/stack/issues/5028.
+  #     - name: Make desired stack.yaml available
+  #       if: ${{ matrix.stack_yaml != 'stack.yaml' }}
+  #       run: mv ${{ matrix.stack_yaml }} stack.yaml
+  #     # NOTE: `stack path` must run at least once prior to caching to ensure the directory
+  #     # exists and is populated.
+  #     - name: Prime Stack snapshot cache
+  #       run: stack --nix path --snapshot-install-root
+  #     - name: Get Stack snapshot install directory
+  #       id: stack-snapshot
+  #       run: echo "dir=$(stack --nix path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: ${{ steps.stack-snapshot.outputs.dir }}
+  #         key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
+  #         restore-keys: ${{ runner.os }}-stack-
+  #     - name: Stack build
+  #       run: stack --nix build
+
+  # stack-linux:
+  #   name: Stack - Linux - ${{ matrix.stack_yaml }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       stack_yaml:
+  #         - stack.yaml
+  #         - stack-lts-19.yaml
+  #         - stack-lts-20.yaml
+  #         - stack-lts-21.yaml
+  #         - stack-nightly.yaml
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: DeterminateSystems/nix-installer-action@main
+  #     - uses: DeterminateSystems/magic-nix-cache-action@main
+  #     - name: Install Stack
+  #       run: nix-env --file ./nixpkgs.nix --install --attr stack
+  #     # NOTE: The renaming of the stack.yaml file is a workaround for
+  #     # https://github.com/commercialhaskell/stack/issues/5028.
+  #     - name: Make desired stack.yaml available
+  #       if: ${{ matrix.stack_yaml != 'stack.yaml' }}
+  #       run: mv ${{ matrix.stack_yaml }} stack.yaml
+  #     # NOTE: `stack path` must run at least once prior to caching to ensure the directory
+  #     # exists and is populated.
+  #     - name: Prime Stack snapshot cache
+  #       run: stack --nix path --snapshot-install-root
+  #     - name: Get Stack snapshot install directory
+  #       id: stack-snapshot
+  #       run: echo "dir=$(stack --nix path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
+  #     - uses: actions/cache@v4
+  #       with:
+  #         path: ${{ steps.stack-snapshot.outputs.dir }}
+  #         key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
+  #         restore-keys: ${{ runner.os }}-stack-
+  #     - name: Stack build
+  #       run: stack --nix build
+  #     - name: Stack test
+  #       run: stack --nix test
+  #     - name: Add ~/.local/bin to PATH
+  #       run: echo "$HOME/.local/bin" >> "${GITHUB_PATH}"
+  #     - name: Stack install
+  #       run: stack --nix install
+  #     - name: IHaskell install
+  #       run: stack --nix exec -- ihaskell install
+  #     - name: Test IHaskell jupyter notebook example
+  #       run: stack --nix exec -- jupyter nbconvert --to notebook --execute --inplace ./ihaskell-inline-r/examples/tutorial-ihaskell-inline-r.ipynb
+
+  cabal-linux:
+    name: Cabal - Linux
+    runs-on: ubuntu-latest
+    env:
+      NIX_SHELL_RUN: nix-shell ./shell-cabal.nix -I nixpkgs=./nixpkgs.nix --run
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - name: Install Stack
-        run: |
-          nix-env --file ./nixpkgs.nix --install --attr stack
-      - name: Get Stack snapshot install directory
-        id: stack-snapshot
-        # NOTE: `stack path` must run at least once prior to caching to ensure the directory
-        # exists and is populated.
-        # NOTE: The renaming of the stack.yaml file is a workaround for
-        # https://github.com/commercialhaskell/stack/issues/5028.
-        run: |
-          [ ${{ matrix.stack_yaml }} = stack.yaml ] || mv ${{ matrix.stack_yaml }} stack.yaml
-          stack --nix path --snapshot-install-root
-          echo "dir=$(stack --nix path --snapshot-install-root)" > "${GITHUB_OUTPUT}"
-      - uses: actions/cache@v4
+      - name: Update cabal
+        run: ${{ env.NIX_SHELL_RUN }} "cabal update"
+      - name: Configure the build
+        run: ${{ env.NIX_SHELL_RUN }} "cabal configure --enable-tests --disable-documentation"
+      - name: Generate dist-newstyle/cache/plan.json
+        run: ${{ env.NIX_SHELL_RUN }} "cabal build all --dry-run"
+      - name: Restore cached dependencies
+        uses: actions/cache/restore@v4
+        id: cache
+        env:
+          key: ${{ runner.os }}-cabal-${{ hashFiles('**/*.cabal') }}
         with:
-          path: ${{ steps.stack-snapshot.outputs.dir }}
-          key: ${{ runner.os }}-stack-${{ hashFiles('**/*.cabal') }}
-          restore-keys: ${{ runner.os }}-stack-
-      - name: Build
-        run: |
-          stack --nix build
-      - name: Test
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          stack --nix test
-      - name: Test IHaskell jupyter notebook example
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          stack --nix install
-          export PATH="$HOME/.local/bin:$PATH"
-          stack --nix exec -- ihaskell install
-          stack --nix exec -- jupyter nbconvert --to notebook --execute --inplace ./ihaskell-inline-r/examples/tutorial-ihaskell-inline-r.ipynb
+          path: ${{ env.HOME }}/.cabal/store
+          key: ${{ env.key }}-plan-${{ hashFiles('**/plan.json') }}
+          restore-keys: ${{ env.key }}-
+      - name: Install Haskell dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ${{ env.NIX_SHELL_RUN }} "cabal build all --only-dependencies"
+      # Cache dependencies already here, so that we do not have to rebuild them should the subsequent steps fail.
+      - name: Cache Haskell dependencies
+        uses: actions/cache/save@v4
+        # If we had an exact cache hit, trying to save the cache would error because of key clash.
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ env.HOME }}/.cabal/store
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+      - name: Cabal build
+        run: ${{ env.NIX_SHELL_RUN }} "cabal build all"
+      - name: Cabal test
+        run: ${{ env.NIX_SHELL_RUN }} "cabal test all"

@@ -1,12 +1,14 @@
 {
   pkgs ? import ./nixpkgs.nix { },
-  ghcAttr ? "ghc96",
+  ghcAttr ? "ghc98",
   RVersion ? "4.2.3",
 }:
 let
   inherit (pkgs)
     cabal-install
+    cacert
     haskell
+    pkg-config
     python3
     rPackages
     rWrapper
@@ -36,19 +38,28 @@ let
     ]
   );
 in
-haskell.lib.buildStackProject {
-  name = "HaskellR";
-  ghc = pkgs.haskell.compiler.${ghcAttr};
+haskell.packages.${ghcAttr}.shellFor rec {
+  packages = haskellPackages: [ ];
+
+  nativeBuildInputs = [ pkg-config ];
+
   buildInputs = [
     cabal-install
+    cacert
     python3Env
     rEnv
     zeromq
     zlib
   ];
+
+  # Fixes https://github.com/commercialhaskell/stack/issues/2358
   LANG = "en_US.UTF-8";
-  # NOTE: Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
-  ${(strings.optionalString stdenv.isDarwin "DY") + "LD_LIBRARY_PATH"} = [
-    ("${R}/lib/R" + (strings.optionalString stdenv.isDarwin "/lib"))
-  ];
+
+  # XXX: workaround for https://ghc.haskell.org/trac/ghc/ticket/11042.
+  ${(strings.optionalString stdenv.isDarwin "DY") + "LD_LIBRARY_PATH"} = strings.makeLibraryPath (
+    [ ("${R}/lib/R" + (strings.optionalString stdenv.isDarwin "/lib")) ] ++ nativeBuildInputs
+  );
+
+  # Non-NixOS git needs cert
+  GIT_SSL_CAINFO = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 }
