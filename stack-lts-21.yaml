@@ -1,9 +1,9 @@
 resolver: lts-21.25
 
 packages:
-- examples
 - H
-- IHaskell
+- HaskellR-examples
+- ihaskell-inline-r
 - inline-r
 
 extra-deps:
