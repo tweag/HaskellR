@@ -77,7 +77,7 @@ r = QuasiQuoter
 -- TODO some of the above invariants can be checked statically. Do so.
 rsafe :: QuasiQuoter
 rsafe = QuasiQuoter
-    { quoteExp  = \txt -> [| unsafePerformIO $ runRegion $ automaticSome =<< eval =<< $(expQQ txt) |]
+    { quoteExp  = \txt -> [| unsafePerformIO $ runRegion $ automatic =<< eval =<< $(expQQ txt) |]
     , quotePat  = unimplemented "quotePat"
     , quoteType = unimplemented "quoteType"
     , quoteDec  = unimplemented "quoteDec"
