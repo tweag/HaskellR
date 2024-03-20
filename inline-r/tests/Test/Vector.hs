@@ -21,6 +21,9 @@
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-@ LIQUID "--exact-data-cons" @-}
+{-@ LIQUID "--prune-unsorted" @-}
+{-@ LIQUID "--ple" @-}
 
 module Test.Vector where
 
@@ -35,15 +38,26 @@ import qualified Data.Vector.Fusion.Bundle as S
 #else
 import qualified Data.Vector.Fusion.Stream as S
 #endif
+import Foreign.Storable
 import qualified Foreign.R as R
+import qualified Foreign.R.Internal as R (checkSEXPTYPE)
 import H.Prelude
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.Tasty.HUnit
 import Test.QuickCheck.Assertions
 
-instance (Arbitrary a, V.SVECTOR ty a) => Arbitrary (V.Vector ty a) where
-  arbitrary = fmap (\x -> V.fromListN (length x) x) arbitrary
+import qualified Control.Memory.Region
+import qualified Foreign.R.Type
+import qualified Foreign.R.Internal
+import qualified Control.Monad.Reader
+import qualified Data.IORef
+import qualified Data.Word
+import qualified Data.Vector.SEXP
+import qualified Foreign.C.String
+import qualified GHC.ForeignPtr -- Needed to help LH name resolution
+import qualified GHC.ST -- Needed to help LH name resolution
+
 
 #if MIN_VERSION_vector(0,11,0)
 instance Arbitrary a => Arbitrary (S.Bundle v a) where
@@ -53,67 +67,75 @@ instance Arbitrary a => Arbitrary (S.Stream a) where
   arbitrary = fmap (\x -> S.fromListN (length x) x) arbitrary
 #endif
 
-instance (AEq a, V.SVECTOR ty a) => AEq (V.Vector ty a) where
+instance (AEq a, Storable a) => AEq (V.Vector a) where
   a ~== b   = all (uncurry (~==)) $ zip (V.toList a) (V.toList b)
 
-testIdentity :: (Eq a, Show a, Arbitrary a, V.SVECTOR ty a, AEq a) => V.Vector ty a -> TestTree
-testIdentity dummy = testGroup "Test identities"
-    [ testProperty "fromList.toList == id" (prop_fromList_toList dummy)
-    , testProperty "toList.fromList == id" (prop_toList_fromList dummy)
+testIdentity :: (Eq a, Show a, Arbitrary a, Storable a, AEq a) => V.VSEXPTYPE s a -> TestTree
+testIdentity vt = testGroup "Test identities"
+    [ testProperty "fromList.toList == id" (prop_fromList_toList . V.fromList vt)
+    , testProperty "toList.fromList == id" (prop_toList_fromList vt)
 --    , testProperty "unstream.stream == id" (prop_unstream_stream dummy)
 --    , testProperty "stream.unstream == id" (prop_stream_unstream dummy)
     ]
   where
-    prop_fromList_toList (_:: V.Vector ty a) (v :: V.Vector ty a)
-      = (V.fromList . V.toList) v ?~== v
-    prop_toList_fromList (_ :: V.Vector ty a) (l :: [a])
-      = ((V.toList :: V.Vector ty a -> [a]) . V.fromList) l ?~== l
+    prop_fromList_toList v
+      = (V.fromList vt . V.toList) v ?~== v
+    prop_toList_fromList vt l
+      = (V.toList . V.fromList vt) l ?~== l
 --    prop_unstream_stream (_ :: V.Vector s ty a) (v :: V.Vector s ty a)
 --      = (G.unstream . G.stream) v ?~== v
 --    prop_stream_unstream (_ :: V.Vector ty a) (s :: S.Stream a)
 --      = ((G.stream :: V.Vector ty a -> S.Stream a) . G.unstream) s == s
 
 
-testPolymorphicFunctions :: (Eq a, Show a, Arbitrary a, V.SVECTOR ty a, AEq a) => V.Vector ty a -> TestTree
-testPolymorphicFunctions dummy = testGroup "Polymorphic functions."
+-- XXX: LH wants to check properties of head, last, and (!!)
+{-@ ignore testPolymorphicFunctions @-}
+testPolymorphicFunctions :: (Eq a, Show a, Arbitrary a, Storable a, AEq a) => V.VSEXPTYPE s a -> TestTree
+testPolymorphicFunctions vt = testGroup "Polymorphic functions."
     [ -- Length information
-      testProperty "prop_length" (prop_length dummy)
-    , testProperty "prop_null"   (prop_null dummy)
-    , testProperty "prop_index"  (prop_index dummy)
-    , testProperty "prop_head"   (prop_head dummy)
-    , testProperty "prop_last"   (prop_last dummy)
+      testProperty "prop_length" (prop_length . V.fromList vt)
+    , testProperty "prop_null"   (prop_null . V.fromList vt)
+    , testProperty "prop_index"  (prop_index . V.fromList vt)
+    , testProperty "prop_head"   (prop_head . V.fromList vt)
+    , testProperty "prop_last"   (prop_last . V.fromList vt)
     ]
   where
-    prop_length (_:: V.Vector ty a) (v :: V.Vector ty a)
+    prop_length v
       = (length . V.toList) v ~==? V.length v
-    prop_null (_:: V.Vector ty a) (v :: V.Vector ty a)
+    prop_null v
       = (null . V.toList) v ~==? V.null v
-    prop_index (_:: V.Vector ty a) (v :: V.Vector ty a, j::Int)
-      | V.length v == 0 = True
-      | otherwise       = let i = j `mod` V.length v in ((\w -> w !! i) . V.toList) v == (v V.! i)
-    prop_head (_:: V.Vector ty a) (v :: V.Vector ty a)
+    prop_head v
       | V.length v == 0 = True
       | otherwise = (head . V.toList) v == V.head v
-    prop_last (_:: V.Vector ty a) (v :: V.Vector ty a)
+    prop_last v
       | V.length v == 0 = True
       | otherwise = (last . V.toList) v == V.last v
 
-testGeneralSEXPVector :: (Eq a, Show a, Arbitrary a, V.SVECTOR ty a, AEq a) => V.Vector ty a -> TestTree
-testGeneralSEXPVector dummy = testGroup "General Vector"
-  [ testIdentity dummy
-  , testPolymorphicFunctions dummy
+-- XXX: LH wants to check properties of (!!)
+-- XXX: LH cannot ignore local functions (?) so moved this to the top level
+{-@ ignore prop_index @-}
+prop_index v (j::Int) =
+      let n = V.length v
+       in if n == 0 then True
+          else let i = j `mod` n in ((\w -> w !! i) . V.toList) v == (v V.! i)
+
+testGeneralSEXPVector :: (Eq a, Show a, Arbitrary a, Storable a, AEq a) => V.VSEXPTYPE s a -> TestTree
+testGeneralSEXPVector vt = testGroup "General Vector"
+  [ testIdentity vt
+  , testPolymorphicFunctions vt
   ]
 
-testNumericSEXPVector :: (Eq a, Show a, Arbitrary a, V.SVECTOR ty a, AEq a) => V.Vector ty a -> TestTree
-testNumericSEXPVector dummy = testGroup "Test Numeric Vector"
-  [ testGeneralSEXPVector dummy
+testNumericSEXPVector :: (Eq a, Show a, Arbitrary a, Storable a, AEq a) => V.VSEXPTYPE s a -> TestTree
+testNumericSEXPVector vt = testGroup "Test Numeric Vector"
+  [ testGeneralSEXPVector vt
   ]
 
+{-@ ignore fromListLength @-}
 fromListLength :: TestTree
 fromListLength = testCase "fromList should have correct length" $ runRegion $ do
     let lst = [-1.9, -0.1, -2.9]
-    let vn = idVec $ V.fromListN 3 lst
-    let v  = idVec $ V.fromList lst
+    let vn = idVec $ V.fromListN V.VReal 3 lst
+    let v  = idVec $ V.fromList V.VReal lst
     io $ assertEqual "Length should be equal to list length" 3 (V.length vn)
     io $ assertEqual "Length should be equal to list length" 3 (V.length v)
     io $ assertBool "Vectors should be almost equal" (vn ~== v)
@@ -124,32 +146,37 @@ fromListLength = testCase "fromList should have correct length" $ runRegion $ do
     io $ assertEqual "Convertion back to list works 2" lst (V.toList v)
     return ()
   where
-    idVec :: V.Vector 'R.Real Double -> V.Vector 'R.Real Double
+    idVec :: V.Vector Double -> V.Vector Double
     idVec = id
 
+-- XXX: Should pass with ple, but it doesn't
+{-@ ignore vectorIsImmutable @-}
 vectorIsImmutable :: TestTree
 vectorIsImmutable = testCase "immutable vector, should not be affected by SEXP changes" $ do
     i <- runRegion $ do
-           s <- fmap (R.cast (sing :: R.SSEXPTYPE 'R.Real)) [r| c(1.0,2.0,3.0) |]
+           s <- fmap (R.checkSEXPTYPE R.Real) [r| c(1.0,2.0,3.0) |]
            !mutV <- return $ VM.fromSEXP s
            !immV <- return $ V.fromSEXP s
            VM.unsafeWrite mutV 0 (7::Double)
-           return $ immV V.! 0
+           -- XXX: fromSEXP has become unsafe!
+           return (immV V.! 0 :: Double)
     i @?= 1
 
 vectorCopy :: TestTree
 vectorCopy = testCase "Copying vector of doubles works" $ runRegion $ do
-  let vs1 = V.toSEXP (V.fromList [1..3::Double]) :: R.SEXP s 'R.Real
-      vs2 = V.unsafeToSEXP (V.fromList [1..3::Double]) :: R.SEXP s 'R.Real
-  R.SomeSEXP (hexp -> Logical [R.TRUE]) <- [r| identical(vs1_hs, vs2_hs) |]
+  let vs1 = V.toSEXP (V.fromList V.VReal [1..3::Double]) :: R.SEXP s
+      vs2 = V.unsafeToSEXP (V.fromList V.VReal [1..3::Double]) :: R.SEXP s
+  -- XXX: Lost ability to use overloaded lists!
+  -- Logical [R.True] <- hexp <$> ([r| identical(vs1_hs, vs2_hs) |] :: R s (R.SEXP s))
+  Logical (V.toList -> [R.TRUE]) <- hexp <$> ([r| identical(vs1_hs, vs2_hs) |] :: R s (R.SEXP s))
   return ()
 
 tests :: TestTree
 tests = testGroup "Tests."
   [ testGroup "Data.Vector.Storable.Vector (Int32)"
-      [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector 'R.Int Int32)]
+      [testNumericSEXPVector V.VInt]
   , testGroup "Data.Vector.Storable.Vector (Double)"
-      [testNumericSEXPVector (undefined :: Data.Vector.SEXP.Vector 'R.Real Double)]
+      [testNumericSEXPVector V.VReal]
   , testGroup "Regression tests" [fromListLength
                                  ,vectorIsImmutable
                                  ,vectorCopy

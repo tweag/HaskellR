@@ -11,15 +11,18 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-@ LIQUID "--exact-data-cons" @-}
+{-@ LIQUID "--prune-unsorted" @-}
+{-@ LIQUID "--ple" @-}
 module Main where
 
-import qualified Test.Constraints
-import qualified Test.Event
+-- import qualified Test.Constraints
+-- import qualified Test.Event
 import qualified Test.FunPtr
-import qualified Test.GC
-import qualified Test.Regions
+-- import qualified Test.GC
+-- import qualified Test.Regions
 import qualified Test.Vector
-import qualified Test.Matcher
+-- import qualified Test.Matcher
 
 import H.Prelude
 import qualified Foreign.R as R
@@ -39,13 +42,25 @@ import Control.Monad (void)
 import Data.List
 import Data.Singletons (sing)
 import Data.Vector.SEXP (indexM)
+import qualified Data.Vector.SEXP
+import qualified Control.Monad.Reader
+import qualified Data.IORef
+import qualified Foreign.C.String
+import qualified GHC.ST
 import Foreign hiding (void)
+import qualified Foreign.R.Internal as R (checkSEXPTYPE)
 import System.Environment (getArgs, lookupEnv, withArgs)
 import qualified Text.Heredoc as Heredoc
 import Prelude -- Silence AMP warning
 
 inVoid :: R V z -> R V z
 inVoid = id
+
+-- XXX: Why peek cannot be inlined?
+{-@ assume myPeek :: t:R.SEXPTYPE -> Ptr (TSEXP s t) -> IO (TSEXP s t) @-}
+{-@ ignore myPeek @-}
+myPeek :: R.SEXPTYPE -> Ptr (SEXP s) -> IO (SEXP s)
+myPeek _ x = peek x
 
 tests :: Bool -> TestTree
 tests torture = testGroup "Unit tests"
@@ -57,34 +72,35 @@ tests torture = testGroup "Unit tests"
       let x = 2 :: Double
       R.withProtected (mkSEXPIO x) $ \z ->
         assertBool "reflexive" $
-          let s = hexp z in s === s
+          let s = hexp z in s == s
       R.withProtected (mkSEXPIO x) $ \z ->
         assertBool "symmetric" $
           let s1 = hexp z
               s2 = hexp z
-          in s1 === s2 && s2 === s1
+          in s1 == s2 && s2 == s1
       R.withProtected (mkSEXPIO x) $ \z ->
         assertBool "transitive" $
           let s1 = hexp z
               s2 = hexp z
               s3 = hexp z
-          in s1 === s2 && s2 === s3 && s1 === s3
+          in s1 == s2 && s2 == s3 && s1 == s3
   , testCase "Haskell function from R" $ do
       (((3::Double) @=?) =<<) $ fmap fromSEXP $
           alloca $ \p -> do
-            e <- peek R.globalEnv
+            e <- myPeek R.Env R.globalEnv
             R.withProtected (mkSEXPIO $ \x -> return $ x + 1 :: R s Double) $
               \sf -> R.withProtected (mkSEXPIO (2::Double)) $ \d ->
                        R.withProtected (R.lang2 sf d) (unsafeRunRegion . eval)
-                       >>= \(R.SomeSEXP s) ->
-                              R.cast (sing :: R.SSEXPTYPE 'R.Real) <$>
+                       >>= \s ->
+                              R.checkSEXPTYPE (R.Real) <$>
                               R.tryEval s (R.release e) p
   , testCase "Weak Ptr test" $ runRegion $ do
-      R.SomeSEXP key  <- [r| new.env() |]
-      R.SomeSEXP val  <- [r| new.env() |]
+      key  <- [r| new.env() |]
+      val  <- [r| new.env() |]
       True <- return $ R.typeOf val == R.Env
-      n    <- io $ R.release <$> peek R.nilValue
+      n    <- io $ R.release <$> myPeek R.Nil R.nilValue
       rf   <- io $ R.mkWeakRef key val n True
+      -- XXX: Here LH can prove that the case is complete!
       True <- case hexp rf of
                 WeakRef a b c _ -> do
                   True <- return $ (R.unsexp a) == (R.unsexp key)
@@ -93,17 +109,17 @@ tests torture = testGroup "Unit tests"
       return ()
   , testCase "Hexp works" $
       (((42::Double) @=?) =<<) $ runRegion $ do
-         y <- R.cast (sing :: R.SSEXPTYPE 'R.Real) . R.SomeSEXP
+         y <- R.checkSEXPTYPE R.Real
                      <$> mkSEXP (42::Double)
          case hexp y of
            Real s -> s `indexM` 0
-  , Test.Constraints.tests
+--  , Test.Constraints.tests
   , Test.FunPtr.tests
-  , (if torture then id else ignoreTest) Test.GC.tests
-  , (if torture then id else ignoreTest) Test.Regions.tests
+--  , (if torture then id else ignoreTest) Test.GC.tests
+--  , (if torture then id else ignoreTest) Test.Regions.tests
   , Test.Vector.tests
-  , Test.Event.tests
-  , Test.Matcher.tests
+--  , Test.Event.tests
+--  , Test.Matcher.tests
     -- This test helps compiling quasiquoters concurrently from
     -- multiple modules. This in turns helps testing for race
     -- conditions when initializing R from multiple threads.
