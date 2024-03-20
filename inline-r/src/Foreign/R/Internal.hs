@@ -124,7 +124,7 @@ foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G)
 -- | The empty environment.
 foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G)
 
-{-@ globalEnv :: Ptr (TSEXP G Env) @-}
+{-@ Foreign.R.Internal.globalEnv :: Ptr (TSEXP G Env) @-}
 -- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G)
 
