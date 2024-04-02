@@ -72,7 +72,7 @@ foreign import ccall "&R_PolledEvents" polledEvents :: Ptr (FunPtr (IO ()))
 -- | @R_wait_usec@ global variable.
 foreign import ccall "&R_wait_usec" pollingPeriod :: Ptr CInt
 
--- | @R_PolledEvents@ global variable.
+-- | @Rg_PolledEvents@ global variable.
 foreign import ccall "&Rg_PolledEvents" graphicsPolledEvents :: Ptr (FunPtr (IO ()))
 
 -- | @R_wait_usec@ global variable.

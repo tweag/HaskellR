@@ -128,6 +128,7 @@ library
   hs-source-dirs: src
   includes: cbits/missing_r.h
   c-sources: cbits/missing_r.c
+  cc-options: -Werror=incompatible-pointer-types
   include-dirs: cbits
   other-extensions:
     CPP
