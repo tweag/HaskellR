@@ -114,10 +114,10 @@ $ stack [--docker|--nix] exec jupyter notebook
 After launching the Jupyter notebook server you can visit
 
 ~~~
-http://localhost:8888/notebooks/IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+http://localhost:8888/notebooks/ihaskell-inline-r/examples/tutorial-ihaskell-inline-r.ipynb
 ~~~
 
 in your browser for an interactive tutorial, which is available in
 static form [here][tutorial].
 
-[tutorial]: https://github.com/tweag/HaskellR/blob/master/IHaskell/examples/tutorial-ihaskell-inline-r.ipynb
+[tutorial]: https://github.com/tweag/HaskellR/blob/master/ihaskell-inline-r/examples/tutorial-ihaskell-inline-r.ipynb
