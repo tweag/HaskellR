@@ -40,6 +40,34 @@ This is a known issue with GHC, tracked as
 
 [trac-10458]: https://ghc.haskell.org/trac/ghc/ticket/10458
 
+#### Why does stack say that R is missing or bad?
+
+Even if R is installed in a standard location, stack might fail
+to link it.
+
+~~~
+$ stack install
+inline-r> configure
+inline-r> Configuring inline-r-1.0.1...
+inline-r> Error: Cabal-simple_DY68M0FN_3.8.1.0_ghc-9.4.7: Missing dependency on a
+inline-r> foreign library:
+inline-r> * Missing (or bad) C library: R
+...
+~~~
+
+In that case, it is helpful to see the actual output of the linker for diagnosing.
+
+~~~
+$ stack install --cabal-verbosity 3
+~~~
+
+You will have to look for the output corresponding to invocations of `gcc` and `ld`.
+Linking might fail for reasons specific to the environment in which `inline-r` is
+built. See for instance [#427][] or the next question about linker errors. In these
+cases, a workaround is to use Nix to install the system dependencies.
+
+[#427]: https://github.com/tweag/HaskellR/issues/427
+
 #### How do I fix linker errors?
 
 Most systems use the historic `ld.bfd` linker by default. However,
@@ -53,8 +81,8 @@ errors like the following:
     collect2: error: ld returned 1 exit status
 ~~~
 
-The fix is to either upgrade your linker, or better yet, switch to the
-gold linker. On Ubuntu, you can do this with:
+The fix is to either upgrade your linker, or on some systems it might also work
+to switch to the gold linker. On Ubuntu, you can do this with:
 
 ~~~
 # update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.gold" 20
