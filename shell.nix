@@ -1,7 +1,7 @@
 {
   pkgs ? import ./nixpkgs.nix { },
   ghcAttr ? "ghc96",
-  RVersion ? "4.2.3",
+  RVersion ? "4.5.1",
 }:
 let
   inherit (pkgs)
@@ -46,6 +46,9 @@ let
           "4.3.0" = "sha256-RdzEi2zyfTYQIPd/3ho5IJ6Ze4FAKzZjyhwBAFampgk=";
           "4.3.1" = "sha256-jdC/JPECPG9hjDsxc4PSkbSklPQNc7mDrCL/6pnkupk=";
           "4.3.2" = "sha256-s/V2CsLu6AJqPw7vyyW0dyPZeAOO7o6ER2IJTIYMRSo=";
+          "4.4.3" = "sha256-DZPSJEQt6iU8KwhvCI220NPP2bWSzVSW6MshQ+kPyeg=";
+          "4.5.0" = "sha256-OzPqET4NHdyXk4dNWUnOwsc4b2bkq/sc75rsIoRsPOE=";
+          "4.5.1" = "sha256-tCp5IUADhmRbEBBbkcaHKHh9tcTIPJ9sMKzc5jLhu3A=";
         };
       };
 
