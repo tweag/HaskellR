@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           choco install -y haskell-stack
-          choco install -y r --version 4.0.0
+          choco install --allow-downgrade -y r --version 4.0.0
       - uses: actions/checkout@v4
       - name: Get Stack snapshot install directory
         id: stack-snapshot
