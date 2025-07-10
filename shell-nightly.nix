@@ -1,1 +1,1 @@
-builtins.import ./shell.nix { ghcAttr = "ghc98"; }
+builtins.import ./shell.nix { ghcAttr = "ghc9102"; }

@@ -129,7 +129,11 @@ haskell.lib.buildStackProject {
     rEnv
     zeromq
     zlib
+    pkgs.libsodium
   ];
+  nativeBuildInputs = with pkgs; [
+        pkg-config
+    ];
   LANG = "en_US.UTF-8";
   # NOTE: Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
   ${(strings.optionalString stdenv.isDarwin "DY") + "LD_LIBRARY_PATH"} = [

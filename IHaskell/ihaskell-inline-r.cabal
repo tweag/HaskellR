@@ -17,12 +17,12 @@ library
   exposed-modules:     IHaskell.Display.InlineR
   build-depends:       base >=4.7 && <5
                       ,inline-r >=0.6.0.1 && <1.11
-                      ,ihaskell >=0.10.2.2 && <0.12
+                      ,ihaskell >=0.10.2.2 && <0.13
                       ,ihaskell-blaze >=0.3.0.1 && <0.4
                       ,blaze-html >=0.9.1.2 && <0.10
                       ,bytestring >=0.10.12.0 && <0.13
                       ,base64-bytestring >=1.1.0.0 && <1.3
-                      ,template-haskell >=2.16.0.0 && <2.22
+                      ,template-haskell >=2.16.0.0 && <2.23
                       ,temporary >=1.2 && <1.4
   other-extensions:    TemplateHaskell
                        QuasiQuotes
