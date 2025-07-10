@@ -26,6 +26,7 @@ let
     # Pin R to a specific version to avoid breaking changes in the R API.
     finalAttrs: prevAttrs: {
       version = RVersion;
+      doCheck = !pkgs.stdenv.isDarwin;
       src = fetchurl {
         url = "https://cran.r-project.org/src/base/R-${versions.major finalAttrs.version}/R-${finalAttrs.version}.tar.gz";
         hash = builtins.getAttr RVersion {
