@@ -46,6 +46,17 @@ jobs:
           - stack-lts-20.yaml
           - stack-lts-21.yaml
           - stack-nightly.yaml
+        exclude:
+          # Exclude macOS with any stack_yaml except stack-nightly.yaml
+          # We use a newer GHC in macos to avoid FFI-related errors
+          - os: macos-latest
+            stack_yaml: stack.yaml
+          - os: macos-latest
+            stack_yaml: stack-lts-19.yaml
+          - os: macos-latest
+            stack_yaml: stack-lts-20.yaml
+          - os: macos-latest
+            stack_yaml: stack-lts-21.yaml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
