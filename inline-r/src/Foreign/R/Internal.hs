@@ -187,10 +187,7 @@ data SEXPInfo = SEXPInfo
       , infoObj   :: Bool        -- ^ Is this an object with a class attribute.
       , infoNamed :: Int         -- ^ Control copying information.
       , infoGp    :: Int         -- ^ General purpose data.
-      , infoMark  :: Bool        -- ^ Mark object as 'in use' in GC.
       , infoDebug :: Bool        -- ^ Debug marker.
-      , infoTrace :: Bool        -- ^ Trace marker.
-      , infoSpare :: Bool        -- ^ Alignment (not in use).
       } deriving ( Show )
 
 -- | Extract the header from the given 'SEXP'.
@@ -201,10 +198,7 @@ peekInfo ts =
       <*> ((/=0)              <$> cOBJECT s)
       <*> (fromIntegral       <$> cNAMED s)
       <*> (fromIntegral       <$> cLEVELS s)
-      <*> ((/=0)              <$> cMARK s)
       <*> ((/=0)              <$> cRDEBUG s)
-      <*> ((/=0)              <$> cRTRACE s)
-      <*> ((/=0)              <$> cRSTEP s)
   where
     s = unsexp ts
 
@@ -213,10 +207,7 @@ peekInfo ts =
 foreign import ccall unsafe "OBJECT" cOBJECT :: SEXP0 -> IO CInt
 foreign import ccall unsafe "NAMED" cNAMED :: SEXP0 -> IO CInt
 foreign import ccall unsafe "LEVELS" cLEVELS :: SEXP0 -> IO CInt
-foreign import ccall unsafe "MARK" cMARK :: SEXP0 -> IO CInt
 foreign import ccall unsafe "RDEBUG" cRDEBUG :: SEXP0 -> IO CInt
-foreign import ccall unsafe "RTRACE" cRTRACE :: SEXP0 -> IO CInt
-foreign import ccall unsafe "RSTEP" cRSTEP :: SEXP0 -> IO CInt
 
 -------------------------------------------------------------------------------
 -- Attribute header                                                          --
