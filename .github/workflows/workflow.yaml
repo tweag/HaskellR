@@ -9,11 +9,13 @@ jobs:
   build:
     name: Build - Windows
     runs-on: windows-latest
+    env:
+      R_VERSION: 4.4.2
     steps:
       - name: Install dependencies
         run: |
           choco install --no-progress -y haskell-stack
-          choco install --allow-downgrade --no-progress -y r --version 4.0.0
+          choco install --allow-downgrade --no-progress -y r --version $env:R_VERSION
       - uses: actions/checkout@v4
       - name: Get Stack snapshot install directory
         id: stack-snapshot
@@ -30,8 +32,8 @@ jobs:
       - name: Build
         run: |
           stack build inline-r H `
-            --extra-lib-dirs="C:/Program files/R/R-4.0.0/bin/x64" `
-            --extra-include-dirs="C:/Program files/R/R-4.0.0/include"
+            --extra-lib-dirs="C:/Program files/R/R-$env:R_VERSION/bin/x64" `
+            --extra-include-dirs="C:/Program files/R/R-$env:R_VERSION/include"
   test:
     name: Build & Test - ${{ matrix.os }} - ${{ matrix.stack_yaml }}
     strategy:
