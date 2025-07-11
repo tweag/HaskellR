@@ -203,7 +203,7 @@ peekInfo ts =
     s = unsexp ts
 
 -- These accessors are necessary because hsc2hs cannot determine the offset of
--- C struct bit-fields. https://ghc.haskell.org/trac/ghc/ticket/12149
+-- C struct bit-fields. https://gitlab.haskell.org/ghc/ghc/-/issues/12149
 foreign import ccall unsafe "OBJECT" cOBJECT :: SEXP0 -> IO CInt
 foreign import ccall unsafe "NAMED" cNAMED :: SEXP0 -> IO CInt
 foreign import ccall unsafe "LEVELS" cLEVELS :: SEXP0 -> IO CInt
