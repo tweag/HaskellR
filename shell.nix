@@ -1,7 +1,6 @@
 {
   pkgs ? import ./nixpkgs.nix { },
-  ghcAttr ? "ghc96",
-  RVersion ? "4.2.3",
+  ghcAttr ? "ghc9102",
 }:
 let
   inherit (pkgs)

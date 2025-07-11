@@ -1,4 +1,4 @@
-resolver: lts-22.8
+resolver: nightly-2025-07-10
 
 packages:
 - examples
