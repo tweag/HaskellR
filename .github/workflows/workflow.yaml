@@ -42,10 +42,14 @@ jobs:
           - ubuntu-latest
         stack_yaml:
           - stack.yaml
-          - stack-lts-19.yaml
-          - stack-lts-20.yaml
           - stack-lts-21.yaml
-          - stack-nightly.yaml
+          - stack-lts-22.yaml
+        exclude:
+          # Exclude macOS with old GHCs. We use a newer GHC to avoid FFI-related errors.
+          - os: macos-latest
+            stack_yaml: stack-lts-21.yaml
+          - os: macos-latest
+            stack_yaml: stack-lts-22.yaml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
