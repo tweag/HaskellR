@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.2 - 2025-07-11
+
+* Support R 4.5
+
 ## 1.0.1 - 2023-05-22
 * Populate `R_LIBS` environment variable when starting R (#393)
 * Map backslashes to forwardslashes in temp file names under Windows (#399)
