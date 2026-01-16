@@ -1,6 +1,6 @@
 {
   pkgs ? import ./nixpkgs.nix { },
-  ghcAttr ? "ghc9122",
+  ghcAttr ? "ghc9102",
 }:
 let
   inherit (pkgs)
