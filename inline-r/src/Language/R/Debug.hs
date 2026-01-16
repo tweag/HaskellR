@@ -47,10 +47,7 @@ instance ToJSON SEXPInfo where
       , "obj"   .= R.infoObj x
       , "named" .= R.infoNamed x
       , "gp"    .= R.infoGp x
-      , "mark"  .= R.infoMark x
       , "debug" .= R.infoDebug x
-      , "trace" .= R.infoTrace x
-      , "spare" .= R.infoSpare x
       ]
 
 instance ToJSON a => ToJSON (Complex a) where

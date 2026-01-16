@@ -1,13 +1,14 @@
+cabal-version:       2.2
 name:                HaskellR-examples
 version:             0.1.0.0
-license:             AllRightsReserved
+license:             BSD-3-Clause
+license-file:        LICENSE
 copyright:           Copyright (c) 2013-2015 Amgen, Inc.
                      Copyright (c) 2015 Tweag I/O Limited.
 build-type:          Simple
 Category:            FFI
 Synopsis:            Examples bundled with the HaskellR project
 description:         This package is part of the HaskellR project.
-cabal-version:       >=1.10
 extra-source-files:
   nls/nls.H
   nls2/nls2.H
@@ -17,47 +18,54 @@ source-repository head
   location: git://github.com/tweag/HaskellR.git
   subdir: examples
 
-executable fft
-  main-is:          Main.hs
-  hs-source-dirs:   fft
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
+common common-config
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded
 
+common common-deps
+  build-depends:
+    inline-r,
+    base >= 4.6 && < 5,
+
+executable fft
+  import:
+    common-config,
+    common-deps,
+  main-is:          Main.hs
+  hs-source-dirs:   fft
+
 executable fib
+  import:
+    common-config,
+    common-deps,
   main-is:          Main.hs
   hs-source-dirs:   fib
   other-modules:    Fib
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
 
 executable nls
+  import:
+    common-config,
+    common-deps,
   main-is:          Main.hs
   hs-source-dirs:   nls
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-                    , mwc-random >= 0.12 && <0.16
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+  build-depends:
+    mwc-random >= 0.12 && <0.16,
 
 executable nls2
+  import:
+    common-config,
+    common-deps,
   main-is:          Main.hs
   hs-source-dirs:   nls2
-  build-depends:      inline-r
-                    , base >= 4.6 && < 5
-                    , mwc-random >= 0.12 && <0.16
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+  build-depends:
+    mwc-random >= 0.12 && <0.16,
 
 executable RelaxWithNM
+  import:
+    common-config,
+    common-deps,
   main-is:           RelaxWithNM.hs
-  build-depends:       inline-r
-                     , base >= 4.6 && < 5
-                     , deepseq >=1.4.4.0 && <1.5
-                     , integration >=0.2.1 && <0.3
-                     , temporary >= 1.2.0.3 && <1.4
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+  build-depends:
+    deepseq >=1.4.4.0 && <1.6,
+    integration >=0.2.1 && <0.3,
+    temporary >= 1.2.0.3 && <1.4,
