@@ -46,6 +46,7 @@ jobs:
           - stack.yaml
           - stack-lts-21.yaml
           - stack-lts-22.yaml
+          - stack-lts-24.yaml
         exclude:
           # Exclude macOS with old GHCs. We use a newer GHC to avoid FFI-related errors.
           - os: macos-latest
