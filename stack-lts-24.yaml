@@ -1,0 +1,14 @@
+resolver: lts-24.11
+
+packages:
+- examples
+- H
+- IHaskell
+- inline-r
+
+extra-deps:
+- ihaskell-blaze-0.3.0.1
+
+nix:
+  shell-file: ./shell-lts-24.nix
+  path: ["nixpkgs=./nixpkgs.nix"]
