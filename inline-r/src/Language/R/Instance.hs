@@ -262,7 +262,7 @@ setLimit = do
 -- | Create a new embedded instance of the R interpreter. Only works from the
 -- main thread of the program. That is, from the same thread of execution that
 -- the program's @main@ function is running on. In GHCi, use @-fno-ghci-sandbox@
--- to achieve this. 
+-- to achieve this.
 --
 -- Set `H_DISABLE_INCREASE_STACK_SIZE` to disable changing rlimit.
 initialize :: Config -> IO ()
