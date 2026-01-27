@@ -233,7 +233,7 @@ initLock = unsafePerformIO $ newMVar ()
 -- initialize multiple times concurrently, but there is nothing stopping the
 -- compiler from doing so when compiling quasiquotes.
 
-#if !defined(mingw32_HOST_OS) & !defined(darwin_HOST_OS)
+#if !defined(mingw32_HOST_OS) && !defined(darwin_HOST_OS)
 explainStackIncrease :: [String] -> String
 explainStackIncrease cmds = unlines $
     [ "Language.R.Interpreter: cannot increase stack size limit."
