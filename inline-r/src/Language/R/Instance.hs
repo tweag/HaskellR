@@ -42,6 +42,7 @@ import           Control.Monad.Primitive (PrimMonad(..))
 import           Control.Monad.R.Class
 import           Control.Monad.ST.Unsafe (unsafeSTToIO)
 import qualified Data.Semigroup as Sem
+import           Data.Maybe (isJust)
 import           Data.Monoid
 import           Data.Default.Class (Default(..))
 import qualified Foreign.R as R
@@ -232,35 +233,42 @@ initLock = unsafePerformIO $ newMVar ()
 -- initialize multiple times concurrently, but there is nothing stopping the
 -- compiler from doing so when compiling quasiquotes.
 
+#if !defined(mingw32_HOST_OS) & !defined(darwin_HOST_OS)
+explainStackIncrease :: [String] -> String
+explainStackIncrease cmds = unlines $
+    [ "Language.R.Interpreter: cannot increase stack size limit."
+    , "Try increasing your stack size limit manually:"
+    ] ++ cmds
+#endif
+
+setLimit :: IO ()
+#ifdef darwin_HOST_OS
+setLimit = return ()
+#elif defined(mingw32_HOST_OS)
+setLimit = return ()
+#elif defined(freebsd_HOST_OS)
+setLimit = do
+    let stackLimit = ResourceLimit 67104768
+    setResourceLimit ResourceStackSize (ResourceLimits stackLimit stackLimit)
+      `onException` hPutStrLn stderr (explainStackIncrease ["$ ulimit -s 67104768"])
+#else
+setLimit = do
+    let stackLimit = ResourceLimitUnknown
+    setResourceLimit ResourceStackSize (ResourceLimits stackLimit stackLimit)
+      `onException` hPutStrLn stderr (explainStackIncrease ["$ ulimit -s unlimited"])
+#endif
+
+
 -- | Create a new embedded instance of the R interpreter. Only works from the
 -- main thread of the program. That is, from the same thread of execution that
 -- the program's @main@ function is running on. In GHCi, use @-fno-ghci-sandbox@
--- to achieve this.
+-- to achieve this. 
+--
+-- Set `H_DISABLE_INCREASE_STACK_SIZE` to disable changing rlimit.
 initialize :: Config -> IO ()
 initialize Config{..} = do
-#ifndef mingw32_HOST_OS
-#if defined(darwin_HOST_OS) || defined(freebsd_HOST_OS)
-    -- NOTE: OS X and FreeBSD does not allow removing the stack size limit completely,
-    -- instead forcing a hard limit of just under 64MB.
-    let stackLimit = ResourceLimit 67104768
-#else
-    let stackLimit = ResourceLimitUnknown
-#endif
-    setResourceLimit ResourceStackSize (ResourceLimits stackLimit stackLimit)
-      `onException` (hPutStrLn stderr $
-                       "Language.R.Interpreter: "
-                       ++ "Cannot increase stack size limit."
-                       ++ "Try increasing your stack size limit manually:"
-#ifdef darwin_HOST_OS
-                       ++ "$ launchctl limit stack 67104768"
-                       ++ "$ ulimit -s 65532"
-#elif defined(freebsd_HOST_OS)
-                       ++ "$ ulimit -s 67104768"
-#else
-                       ++ "$ ulimit -s unlimited"
-#endif
-                    )
-#endif
+    shouldSetLimit <- isJust <$> lookupEnv "H_DISABLE_INCREASE_STACK_SIZE"
+    unless shouldSetLimit setLimit
     initialized <- fmap (==1) $ peek isRInitializedPtr
     -- See note [Concurrent initialization]
     unless initialized $ withMVar initLock $ const $ do
