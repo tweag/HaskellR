@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.1.x — (unreleased, placeholder)
+
+* Setting limit in the interactive mode was disabled on darwin.
+  In order to completely disable it use `H_DISABLE_INCREASE_STACK_SIZE` should
+  be set.
+
 ## 1.0.2 - 2025-07-11
 
 * Support R 4.5
