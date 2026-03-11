@@ -69,8 +69,8 @@ library
   exposed-modules:
     Control.Memory.Region
 --    Data.Vector.SEXP
---    Data.Vector.SEXP.Base
---    Data.Vector.SEXP.Mutable
+    Data.Vector.SEXP.Base
+    Data.Vector.SEXP.Mutable
     Foreign.R
     Foreign.R.Constraints
     Foreign.R.Context
@@ -100,8 +100,8 @@ library
 --      Language.R.Event
   other-modules:
     Control.Monad.R.Class
---    Control.Monad.R.Internal
---    Data.Vector.SEXP.Mutable.Internal
+    Control.Monad.R.Internal
+    Data.Vector.SEXP.Mutable.Internal
     Internal.Error
   build-depends:
     base >=4.7 && <5,
@@ -116,12 +116,12 @@ library
     mtl >=2.1 && <2.4,
     primitive >=0.5 && <0.10,
 --    process >=1.2 && <1.7,
---    reflection >=2 && <2.2,
+    reflection >=2 && <2.2,
 --    setenv >=0.1.1 && <0.2,
 --    template-haskell >=2.8 && <2.24,
 --    temporary >=1.2 && <1.4,
 --    text >=0.11 && <2.2,
---    vector >=0.10 && <0.14,
+    vector >=0.10 && <0.14,
   if impl(ghc <9)
 --    build-depends:
 --      singletons >=2.7 && <3,
@@ -151,7 +151,7 @@ library
   if flag(liquidhaskell) && impl(ghc == 9.12.2)
     build-depends:
       liquidhaskell
-    ghc-options: -fplugin=LiquidHaskell -fplugin-opt=LiquidHaskell:--skip-module
+    ghc-options: -fplugin=LiquidHaskell -fplugin-opt=LiquidHaskell:--skip-module -fplugin-opt=LiquidHaskell:--exactdc
 
 test-suite tests
   import:

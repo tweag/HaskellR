@@ -10,7 +10,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
@@ -101,35 +100,44 @@ foreign import ccall unsafe "TYPEOF" cTYPEOF :: SEXP0 -> IO CInt
 -- Global variables                                                           --
 --------------------------------------------------------------------------------
 
+{-@ ignore isRInteractive @-}
 foreign import ccall "&R_Interactive" isRInteractive :: Ptr CInt
 
+{-@ ignore nilValue @-}
 {-@ nilValue :: Ptr (TSEXP G Nil) @-}
 -- | Global nil value. Constant throughout the lifetime of the R instance.
 foreign import ccall "&R_NilValue" nilValue  :: Ptr (SEXP G)
 
+{-@ ignore unboundValue @-}
 {-@ unboundValue :: Ptr (TSEXP G Symbol) @-}
 -- | Unbound marker. Constant throughout the lifetime of the R instance.
 foreign import ccall "&R_UnboundValue" unboundValue :: Ptr (SEXP G)
 
+{-@ ignore missingArg @-}
 {-@ missingArg :: Ptr (TSEXP G Symbol) @-}
 -- | Missing argument marker. Constant throughout the lifetime of the R instance.
 foreign import ccall "&R_MissingArg" missingArg :: Ptr (SEXP G)
 
+{-@ ignore baseEnv @-}
 {-@ baseEnv :: Ptr (TSEXP G Env) @-}
 -- | The base environment.
 foreign import ccall "&R_BaseEnv" baseEnv :: Ptr (SEXP G)
 
+{-@ ignore emptyEnv @-}
 {-@ emptyEnv :: Ptr (TSEXP G Env) @-}
 -- | The empty environment.
 foreign import ccall "&R_EmptyEnv" emptyEnv :: Ptr (SEXP G)
 
+{-@ ignore globalEnv @-}
 {-@ globalEnv :: Ptr (TSEXP G Env) @-}
 -- | Global environment.
 foreign import ccall "&R_GlobalEnv" globalEnv :: Ptr (SEXP G)
 
+{-@ ignore signalHandlers @-}
 -- | Signal handler switch
 foreign import ccall "&R_SignalHandlers" signalHandlers :: Ptr CInt
 
+{-@ ignore interruptsPending @-}
 -- | Flag that shows if computation should be interrupted.
 foreign import ccall "&R_interrupts_pending" interruptsPending :: Ptr CInt
 
@@ -146,11 +154,12 @@ data SEXPInfo = SEXPInfo
       , infoDebug :: Bool        -- ^ Debug marker.
       } deriving ( Show )
 
+{- HLINT ignore "Functor law" -}
 -- | Extract the header from the given 'SEXP'.
 peekInfo :: SEXP s -> IO SEXPInfo
 peekInfo ts =
     SEXPInfo
-      <$> (toEnum.fromIntegral <$> cTYPEOF s)
+      <$> (toEnum . fromIntegral <$> cTYPEOF s)
       <*> ((/=0)              <$> cOBJECT s)
       <*> (fromIntegral       <$> cNAMED s)
       <*> (fromIntegral       <$> cLEVELS s)

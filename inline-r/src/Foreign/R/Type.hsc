@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 
 -- |
 -- Copyright: (C) 2013 Amgen, Inc.

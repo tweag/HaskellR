@@ -2,16 +2,18 @@
 -- Copyright: (C) 2013 Amgen, Inc.
 --
 
+{-# OPTIONS_GHC -fplugin-opt=LiquidHaskell:--skip-module=False #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-@ LIQUID "--exact-data-cons" @-} -- TODO: needed because it is used in some dependency
 
 module Data.Vector.SEXP.Base where
 
 import Control.Memory.Region
 
 import Foreign.R.Type
-import Foreign.R (SEXP, SomeSEXP)
+import Foreign.R (SEXP)
 
 import Data.Singletons (SingI)
 
@@ -28,16 +30,13 @@ type family ElemRep s (a :: SEXPTYPE) where
   ElemRep s 'Int     = Int32
   ElemRep s 'Real    = Double
   ElemRep s 'Complex = Complex Double
-  ElemRep s 'String  = SEXP s 'Char
-  ElemRep s 'Vector  = SomeSEXP s
-  ElemRep s 'Expr    = SomeSEXP s
+  ElemRep s 'String  = SEXP s
+  ElemRep s 'Vector  = SEXP s
+  ElemRep s 'Expr    = SEXP s
   ElemRep s 'Raw     = Word8
 
 -- | 'ElemRep' in the form of a relation, for convenience.
 type E s a b = ElemRep s a ~ b
-
--- | Constraint synonym for all operations on vectors.
-type VECTOR s ty a = (Storable a, IsVector ty, SingI ty)
 
 -- | Constraint synonym for all operations on vectors.
 type SVECTOR ty a = (Storable a, IsVector ty, SingI ty, ElemRep V ty ~ a)

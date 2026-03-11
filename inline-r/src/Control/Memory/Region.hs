@@ -6,8 +6,11 @@
 -- of an object. That is, regions have scopes, and objects within a region are
 -- guaranteed to remain live within the scope of that region.
 
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Memory.Region where
 
@@ -35,3 +38,9 @@ type family   a <= b :: Constraint
 type instance a <= a = ()
 type instance a <= G = ()
 type instance V <= b = ()
+
+-- | An alias for (<=).
+--
+-- XXX: LH complains when using (<=) in type signatures
+class SubRegion s' s where
+instance s' <= s => SubRegion s' s where

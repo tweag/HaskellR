@@ -25,3 +25,9 @@ withAcquire
 withAcquire f = do
     cxt <- getExecContext
     reify (\sx -> unsafeRunWithExecContext (acquire sx) cxt) f
+
+getAcquireIO
+  :: MonadR m => m (AcquireIO (Region m))
+getAcquireIO = do
+    cxt <- getExecContext
+    return (\sx -> unsafeRunWithExecContext (acquire sx) cxt)

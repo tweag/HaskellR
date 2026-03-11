@@ -95,6 +95,7 @@ type RVariables =
 -- | Stores R variables in a static location. This makes the variables'
 -- addresses accesible after reloading in GHCi.
 foreign import ccall "missing_r.h &" rVariables :: Ptr (StablePtr RVariables)
+{-@ ignore rVariables @-}
 
 {-@ assume pokeRVariables :: RVariables -> IO () @-}
 pokeRVariables :: RVariables -> IO ()
